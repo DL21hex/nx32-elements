@@ -150,7 +150,7 @@ const NAV: MenuItem[] = [
     children: [
       { id: "sidemenu", label: "SideMenu", href: "#/sidemenu", icon: "clipboard-list" },
       { id: "breadcrumb", label: "Ruta navegable", href: "#/breadcrumb", icon: "folder" },
-      { id: "command", label: "Paleta de comandos", href: "#/command", icon: "circle-help" },
+      { id: "command", label: "Paleta de comandos", href: "#/command", icon: "circle-question-mark" },
       { id: "launcher", label: "Launcher", href: "#/launcher", icon: "layout-grid" },
       { id: "keytips", label: "Atajos con Alt", href: "#/keytips", icon: "keyboard" },
       { id: "account", label: "Cuenta", href: "#/account", icon: "user" },
@@ -209,7 +209,7 @@ const NAV: MenuItem[] = [
     icon: "loader",
     section: "Componentes",
     children: [
-      { id: "ai", label: "IA", href: "#/ai", icon: "circle-help" },
+      { id: "ai", label: "IA", href: "#/ai", icon: "circle-question-mark" },
       { id: "sync", label: "Sin conexión", href: "#/sync", icon: "truck" },
       { id: "jobs", label: "Trabajos largos", href: "#/jobs", icon: "loader" },
       { id: "handoff", label: "Sigue en el celular", href: "#/handoff", icon: "smartphone" },

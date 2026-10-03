@@ -79,6 +79,9 @@ export default defineConfig(({ command, mode }) => {
           "breadcrumb": "src/components/breadcrumb/index.ts",
           "org": "src/components/org/index.ts",
           icons: "src/icons/index.ts",
+          // El catálogo completo de Lucide: en su carpeta, fuera de `sideEffects`, así una app que no lo
+          // importa no lo arrastra y una que importa tres íconos se queda con esos tres.
+          "icons/lucide": "src/icons/lucide-catalog.ts",
           // En su carpeta: fuera del patrón "./dist/*.js" de `sideEffects`, así se puede descartar.
           "core/index": "src/core/index.ts",
           bdui: "src/bdui.ts",

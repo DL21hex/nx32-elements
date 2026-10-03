@@ -148,6 +148,7 @@ const BUDGET = [
   ["dist/jobs.css", 2.25 * 1024, "jobs (CSS)"],
   ["dist/nx32-elements.css", null, "todo el CSS (informativo)"],
   ["dist/nx32-elements.iife.js", null, "todo-en-uno + íconos (informativo)"],
+  ["dist/icons/lucide.js", null, "catálogo Lucide completo (informativo: la app se queda con los que importa)"],
 ];
 
 // Por ahora los topes no hacen fallar el build: primero funcional, después ligero (decisión del

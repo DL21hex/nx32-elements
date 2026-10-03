@@ -140,8 +140,21 @@ pone `:root { color-scheme: light }`; una marca, `:root { --nx-primary: … }`.
 import "nx32-elements/nx32-elements.css";
 import "nx32-elements/sidemenu"; // registra <nx-sidemenu>
 import { registerIcons } from "nx32-elements/core"; // sin efectos: no registra nada
-import { lucide } from "nx32-elements/icons"; // opcional: ~28 íconos Lucide
+import { lucide } from "nx32-elements/icons"; // opcional: 44 íconos Lucide
 registerIcons(lucide);
+```
+
+**Íconos.** Un `icon` es un nombre del registro (`registerIcons({nombre: svg})`); sin registrar, el
+componente pinta las iniciales. `nx32-elements/icons/lucide` trae el catálogo completo de Lucide, un
+export por ícono con su nombre en PascalCase (`chart-column` → `ChartColumn`; `iconExportName` de
+`nx32-elements/icons` lo calcula). Sólo los nombres vigentes: ni alias (`bar-chart-3`) ni retirados
+(`align-center`), para que cada ícono se escriba de una sola manera. Un bundler se queda con los que la
+app importa; importar el catálogo entero pesa ~87 KB gzip.
+
+```js
+import { registerIcons } from "nx32-elements/core";
+import { House, ChartColumn } from "nx32-elements/icons/lucide";
+registerIcons({ house: House, "chart-column": ChartColumn });
 ```
 
 `nx32-elements/core` trae las utilidades del núcleo sin ningún componente: `registerIcons`,
@@ -2350,8 +2363,9 @@ gallery/             la galería (usa <nx-sidemenu> como su propia navegación)
 **Navegadores:** Chrome/Edge 123+, Safari 17.5+ y Firefox 125+. Importar la librería en el
 servidor (SSR) no lanza errores: los elementos solo se registran en el navegador.
 
-Los íconos de `nx32-elements/icons` son de [Lucide](https://lucide.dev) (licencia ISC, ver
-[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)). Para regenerarlos: `node scripts/gen-icons.mjs`.
+Los íconos de `nx32-elements/icons` y `nx32-elements/icons/lucide` son de [Lucide](https://lucide.dev)
+(licencia ISC, ver [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)). Para regenerarlos, también al
+subir `@iconify-json/lucide`: `node scripts/gen-icons.mjs`.
 
 ## Licencia
 

@@ -1,5 +1,18 @@
 # Registro de cambios
 
+## 0.2.3 — 2026-10-03
+
+### Íconos
+
+- **`nx32-elements/icons/lucide`**: el catálogo completo de Lucide (1853 íconos de
+  @iconify-json/lucide 1.2.136), un export por ícono con su nombre en PascalCase
+  (`chart-column` → `ChartColumn`). Un bundler se queda con los que la app importa. Sólo los
+  nombres vigentes: ni alias ni retirados.
+- **`iconExportName(nombre)`** en `nx32-elements/icons`: el export que corresponde a un nombre.
+- **El juego pequeño (`lucide`) ya no usa alias**: `building-2` pasa a `building-complex` y
+  `circle-help` a `circle-question-mark`. Si registrabas `lucide` y usabas esos dos nombres,
+  cámbialos.
+
 ## 0.2.2 — 2026-10-03
 
 ### `<nx-account>`

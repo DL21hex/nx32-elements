@@ -39,6 +39,22 @@ describe.skipIf(!hasDist)("dist/", () => {
     expect(out.outputFiles[0].text.length).toBeLessThan(8000);
   });
 
+  it("nx32-elements/icons/lucide: la app se queda con los íconos que importa, no con el catálogo", async () => {
+    const out = await build({
+      stdin: { contents: 'import { House, ChartColumn } from "nx32-elements/icons/lucide"; console.log(House, ChartColumn);', resolveDir: process.cwd() },
+      bundle: true,
+      minify: true,
+      format: "esm",
+      write: false,
+    });
+    const text = out.outputFiles[0].text;
+    expect(text.length).toBeLessThan(1500);
+    // Ni el registro de componentes ni otro ícono: `Users` es su vecino en el archivo.
+    expect(text).not.toContain("customElements.define");
+    const { Users } = await import("../src/icons/lucide-catalog");
+    expect(text).not.toContain(Users);
+  });
+
   const solid = () => readdirSync("dist/solid").filter((f) => f.endsWith(".jsx"));
 
   it("el adaptador Solid importa los componentes de dist/ y no trae su propia copia", () => {

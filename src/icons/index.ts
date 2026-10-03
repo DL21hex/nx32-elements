@@ -3,3 +3,4 @@
  * núcleo: `registerIcons(lucide)` los deja disponibles por nombre.
  */
 export { lucide } from "./lucide";
+export { iconExportName } from "./name";

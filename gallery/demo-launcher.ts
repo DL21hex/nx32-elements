@@ -125,7 +125,7 @@ const COMPRAS: LauncherItem[] = [
   {
     id: "proveedores",
     label: "Proveedores",
-    icon: "building-2",
+    icon: "building-complex",
     description: "Directorio, pólizas, documentos y desempeño de cada proveedor.",
     href: "/compras/proveedores",
     section: "Datos y análisis",

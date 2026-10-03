@@ -265,6 +265,11 @@
       "import": "./dist/icons.js",
       "default": "./dist/icons.js"
     },
+    "./icons/lucide": {
+      "types": "./dist/types/icons/lucide-catalog.d.ts",
+      "import": "./dist/icons/lucide.js",
+      "default": "./dist/icons/lucide.js"
+    },
     "./bdui": {
       "types": "./dist/types/bdui.d.ts",
       "import": "./dist/bdui.js",

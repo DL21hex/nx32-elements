@@ -638,11 +638,26 @@ describe("<nx-grid>", () => {
     const opened: string[] = [];
     el.addEventListener("nx-grid-open", (e) => opened.push(e.detail.id));
     expect(el.querySelector(".nx-grid__avatar")!.textContent).toBe("Ac");
+    expect(el.querySelector<HTMLElement>(".nx-grid__avatar")!.style.getPropertyValue("--_h")).not.toBe("");
     el.querySelector<HTMLElement>('[data-r="2"] .nx-grid__link')!.click();
     expect(opened).toEqual(["3"]);
     key(el, "ArrowUp");
     key(el, "Enter");
     expect(opened).toEqual(["3", "2"]);
+  });
+
+  it("avatar \"neutral\": las mismas iniciales, en gris y sin color por persona; un valor raro es `true`", () => {
+    document.body.innerHTML = `<nx-grid></nx-grid>`;
+    const el = document.querySelector("nx-grid")!;
+    el.columns = [{ key: "prov", label: "Proveedor", link: true, avatar: "neutral" }, ...COLS.slice(2)];
+    el.rows = ROWS;
+    const av = el.querySelector<HTMLElement>(".nx-grid__avatar")!;
+    expect(av.textContent).toBe("Ac");
+    expect(av.dataset.tone).toBe("neutral");
+    expect(av.style.getPropertyValue("--_h")).toBe("");
+    el.setAttribute("columns", JSON.stringify([{ key: "prov", label: "Proveedor", avatar: "sí" }]));
+    expect(el.columns[0].avatar).toBe(true);
+    expect(el.querySelector<HTMLElement>(".nx-grid__avatar")!.dataset.tone).toBeUndefined();
   });
 
   it("deshacer y rehacer: Ctrl+Z, Ctrl+Y, Ctrl+Mayús+Z; un pegado es un solo paso", () => {

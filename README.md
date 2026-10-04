@@ -531,7 +531,14 @@ Una tabla de datos que se explora sola:
 - **Selección y detalle.** `selectable` agrega casillas (Mayús para un tramo, Espacio con teclado,
   «seleccionar las n» filtradas); lo que la app ponga con `slot="bulk"` aparece junto al conteo.
   Una columna `link` abre el detalle (`nx-grid-open`, también con Enter) y `avatar` muestra las
-  iniciales. `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
+  iniciales, cada persona con su color; `avatar: "neutral"` las pone todas en gris, para la columna
+  que más se lee. `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
+- **Atajos (`presets`).** Tarjetas sobre la tabla, cada una con un filtro con nombre y su conteo
+  sobre todos los datos (con `source`, el servidor lo manda en `presets` de la respuesta): `{id,
+  label, hint?, filters, tone?}`. Tocar una aplica sus filtros, y otra vez vuelve a los de antes; la
+  del filtro que se está viendo queda marcada (`aria-pressed`). Con `tone` (`info`, `success`,
+  `warning`, `danger`) el conteo va en ese color y, marcada, la tarjeta también: para el atajo que
+  señala algo por resolver, no para todos.
 - **Enlaces de verdad (`href`).** Una columna con `href: "url"` (la clave de la fila que trae la
   dirección) pinta un `<a href>` en las filas que la traen: Ctrl/⌘+clic o la rueda abren otra
   pestaña, el clic derecho da el menú del navegador (copiar el enlace) y un router de la app lo
@@ -599,7 +606,7 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo` |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
 

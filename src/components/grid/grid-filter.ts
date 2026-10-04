@@ -706,21 +706,45 @@ export class FilterPanel {
   // ---------------------------------------------------------------- menú de una celda
 
   /** Filtrar desde lo que se mira: «Solo Cali», «Desde $ 5.000.000»… en (x, y). */
-  menu(col: GridColumn, value: unknown, x: number, y: number): void {
+  /** El menú de una celda: primero las acciones de su fila (`acts`), después los filtros de su
+   *  columna (`col`; null si no se filtra). */
+  menu(col: GridColumn | null, value: unknown, x: number, y: number, acts: readonly { label: string; danger?: boolean; run: () => void }[] = []): void {
     const L = this.#host.labels;
-    const loc = this.#host.loc;
-    const key = col.key;
-    const kind = this.#host.kind(col);
-    const filters = this.#host.filters;
     const items: HTMLElement[] = [];
-    const add = (text: string, fn: () => void) => {
-      const b = h("button", { type: "button", role: "menuitem", class: "nx-grid__menu-item" }, text);
+    const add = (text: string, fn: () => void, danger = false) => {
+      const b = h("button", { type: "button", role: "menuitem", class: "nx-grid__menu-item", "data-tone": danger ? "danger" : undefined }, text);
       b.addEventListener("click", () => {
         this.#hideMenu();
         fn();
       });
       items.push(b);
     };
+    for (const a of acts) add(a.label, a.run, a.danger);
+    if (col) this.#filterItems(col, value, items, add);
+    this.#menu.setAttribute("aria-label", col ? fmt(L.filterBy, { col: col.label }) : L.rowActions);
+    this.#menu.replaceChildren(...items);
+    this.#menu.showPopover?.();
+    const w = this.#menu.offsetWidth || 220;
+    const hgt = this.#menu.offsetHeight || 120;
+    // El punto del clic (o del dedo, en una pulsación larga) queda siempre dentro del menú: si no cabe
+    // hacia abajo o hacia la derecha, abre hacia arriba o hacia la izquierda. Si quedara afuera, el
+    // navegador lo cerraría al soltar el botón o levantar el dedo.
+    const left = x + w + 8 > innerWidth ? x - w + 4 : x - 4;
+    const top = y + hgt + 8 > innerHeight ? y - hgt + 4 : y - 4;
+    this.#menu.style.setProperty("--_left", `${Math.max(8, left)}px`);
+    this.#menu.style.setProperty("--_top", `${Math.max(8, top)}px`);
+    this.#menu.querySelector<HTMLElement>("button")?.focus();
+  }
+
+  /** Los filtros que ofrece el valor de una celda («Solo Cali», «Desde $ 5.000.000») y «Más filtros». */
+  #filterItems(col: GridColumn, value: unknown, items: HTMLElement[], add: (text: string, fn: () => void) => void): void {
+    const L = this.#host.labels;
+    const loc = this.#host.loc;
+    const key = col.key;
+    const kind = this.#host.kind(col);
+    const filters = this.#host.filters;
+    if (items.length) items.push(h("hr"));
+    const before = items.length;
     const own = filters.filter((f) => f.key === key);
     const fixed = own.find((f): f is Range => f.op === "range" && !f.rel);
     const empty = value === null || value === undefined || value === "";
@@ -741,21 +765,8 @@ export class FilterPanel {
       const v = String(value).slice(0, 40);
       add(fmt(L.containsValue, { v }), () => this.#host.set(key, [{ key, op: "contains", value: v }]));
     }
-    if (items.length) items.push(h("hr"));
+    if (items.length > before) items.push(h("hr"));
     add(fmt(L.moreFilters, { col: col.label }), () => this.#open(col, this.#host.funnel(key)?.closest(".nx-grid__th") as HTMLElement | null));
-    this.#menu.setAttribute("aria-label", fmt(L.filterBy, { col: col.label }));
-    this.#menu.replaceChildren(...items);
-    this.#menu.showPopover?.();
-    const w = this.#menu.offsetWidth || 220;
-    const hgt = this.#menu.offsetHeight || 120;
-    // El punto del clic (o del dedo, en una pulsación larga) queda siempre dentro del menú: si no cabe
-    // hacia abajo o hacia la derecha, abre hacia arriba o hacia la izquierda. Si quedara afuera, el
-    // navegador lo cerraría al soltar el botón o levantar el dedo.
-    const left = x + w + 8 > innerWidth ? x - w + 4 : x - 4;
-    const top = y + hgt + 8 > innerHeight ? y - hgt + 4 : y - 4;
-    this.#menu.style.setProperty("--_left", `${Math.max(8, left)}px`);
-    this.#menu.style.setProperty("--_top", `${Math.max(8, top)}px`);
-    this.#menu.querySelector<HTMLElement>("button")?.focus();
   }
 
   #hideMenu(): void {

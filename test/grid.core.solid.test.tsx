@@ -31,6 +31,15 @@ describe("<Grid>", () => {
     expect(shown(fold)).toEqual(["PEÑA", "Pena"]);
   });
 
+  it("actions llega como propiedad y onAction recibe el botón de una fila", () => {
+    const root = document.body.appendChild(document.createElement("div"));
+    const onAction = vi.fn();
+    render(() => <Grid columns={COLS} rows={ROWS} actions={[{ key: "edit", label: "Editar" }]} onAction={onAction} />, root);
+    root.querySelector<HTMLButtonElement>('[data-r="1"] .nx-grid__act')!.click();
+    expect(onAction).toHaveBeenCalledOnce();
+    expect(onAction.mock.calls[0][0].detail).toMatchObject({ action: "edit", id: "2" });
+  });
+
   it("rowKey: los id salen de esa columna", () => {
     const root = document.body.appendChild(document.createElement("div"));
     const onSelection = vi.fn();

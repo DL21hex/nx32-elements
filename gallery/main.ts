@@ -724,6 +724,33 @@ function mountGridDemo(root: HTMLElement) {
   grid.addEventListener("nx-grid-filter", (e) => add(`nx-grid-filter → ${e.detail.count} filas · ${JSON.stringify(e.detail.filters)}${e.detail.sort ? ` · orden ${e.detail.sort.key} ${e.detail.sort.dir}` : ""}${e.detail.groupBy ? ` · grupo ${e.detail.groupBy}` : ""}`));
   grid.addEventListener("nx-grid-change", (e) => add(`nx-grid-change → ${e.detail.changes.map((c) => `${c.id}.${c.key} = ${JSON.stringify(c.value)}`).join(", ")}`));
   grid.addEventListener("nx-grid-columns", (e) => add(`nx-grid-columns → ${e.detail.columns.map((c) => c.key).join(", ")}`));
+
+  // Enlace por fila, columna escondida de arranque y acciones de fila.
+  const links = root.querySelector<NxGrid>("#grid-links")!;
+  const linksLog = root.querySelector<HTMLOListElement>("#grid-links-log")!;
+  links.columns = [
+    { key: "oc", label: "Pedido", width: 110, href: "url" },
+    ...PURCHASE_COLUMNS.filter((c) => c.key !== "oc").map((c) => ({ ...c, editable: false })),
+    { key: "comprador", label: "Comprador", width: 150, hidden: true },
+  ];
+  links.actions = [
+    { key: "pdf", label: "PDF", icon: "file-text", href: "pdf", newTab: true },
+    { key: "edit", label: "Editar", icon: "pen-line" },
+    { key: "void", label: "Anular", tone: "danger", when: "anulable" },
+  ];
+  links.rows = purchaseRows(40, 11).map((r, i) => ({
+    ...r,
+    url: `#/grid?pedido=${r.oc}`,
+    pdf: `#/grid?pdf=${r.oc}`,
+    anulable: r.estado === "borrador" || r.estado === "pendiente",
+    comprador: ["Ana Ríos", "Luis Peña", "Marta Gómez"][i % 3],
+  }));
+  links.addEventListener("nx-grid-action", (e) => {
+    const li = document.createElement("li");
+    li.textContent = `nx-grid-action → ${e.detail.action} · ${e.detail.row.oc}`;
+    linksLog.prepend(li);
+    while (linksLog.children.length > 5) linksLog.lastElementChild!.remove();
+  });
 }
 
 // ---------------------------------------------------------------- demo de diálogos

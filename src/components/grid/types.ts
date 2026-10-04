@@ -38,8 +38,41 @@ export interface GridColumn {
   facet?: boolean;
   /** El valor se ve como enlace: un clic (o Enter) emite `nx-grid-open` con la fila. */
   link?: boolean;
+  /** La clave de la fila que trae la dirección del enlace (`"detalle_url"`). Si la fila la trae, la
+   *  celda es un `<a href>` de verdad: abrir en otra pestaña (Ctrl/⌘+clic, la rueda), copiar el
+   *  enlace y el menú del navegador funcionan, y abrir la fila (Enter, doble clic) lo sigue en vez
+   *  de emitir `nx-grid-open`. Sin dirección (o con una que no es segura, como `javascript:`), la
+   *  celda se comporta como `link`. Implica `link`. */
+  href?: string;
+  /** Con `href`: el enlace abre en otra pestaña (`target="_blank"`, `rel="noopener noreferrer"`). */
+  newTab?: boolean;
+  /** Empieza escondida: «Columnas» la muestra, y «Restablecer columnas» (o volver a la tabla
+   *  original) la vuelve a esconder. Una vista guardada recuerda lo que eligió la persona. */
+  hidden?: boolean;
   /** Un círculo con las iniciales del valor antes del texto (nombres de personas). */
   avatar?: boolean;
+}
+
+/** Una acción de fila: un botón (o un enlace) en la columna de acciones, fija a la derecha. */
+export interface GridAction {
+  /** Lo que llega en `nx-grid-action` (`detail.action`). */
+  key: string;
+  /** El nombre de la acción: el texto del botón, o su `aria-label` y su `title` si lleva ícono. */
+  label: string;
+  /** Un ícono del registro (`registerIcons`): el botón queda solo con el ícono. */
+  icon?: string;
+  /** `danger` para lo que borra o revoca. */
+  tone?: "neutral" | "danger";
+  /** La clave de la fila que trae la dirección: la acción es un `<a href>` (abrir el PDF, ir a otra
+   *  pantalla) y no emite nada. Una fila sin dirección (o con una que no es segura) no la muestra. */
+  href?: string;
+  /** Con `href`: abre en otra pestaña. */
+  newTab?: boolean;
+  /** Con `href`: el enlace descarga (`download`). */
+  download?: boolean;
+  /** La clave de la fila que dice si la acción aplica: solo se muestra donde vale verdadero
+   *  (`false`, `0`, `""`, `"0"`, `"false"`, `null` o sin la clave, no). Sin `when`, en todas. */
+  when?: string;
 }
 
 export type GridRow = Record<string, unknown>;
@@ -153,6 +186,10 @@ export interface GridLabels {
   matches: string;
   moreFilters: string;
   relax: string;
+  /** La cabecera (para lectores de pantalla) de la columna de acciones. */
+  actions: string;
+  /** El nombre del menú de una celda cuando solo trae las acciones de la fila. */
+  rowActions: string;
 }
 
 /** Una faceta que manda el backend (modo `source`). */
@@ -189,6 +226,14 @@ export interface GridErrorDetail {
   offset: number;
   limit: number;
   error: string;
+}
+
+/** `nx-grid-action`: la persona pulsó el botón de una acción de fila (las que son enlace no emiten). */
+export interface GridActionDetail {
+  /** La `key` de la acción. */
+  action: string;
+  id: string;
+  row: GridRow;
 }
 
 /** `nx-grid-export`: cómo terminó una exportación (botón o `exportXlsx()`). */
@@ -248,5 +293,7 @@ export interface GridViewLabels {
   viewUntitled: string;
   columnsTitle: string;
   columnsReset: string;
+  /** `columnsReset` cuando la tabla esconde columnas de arranque (`hidden`): restablecer no las muestra. */
+  columnsResetDefault: string;
   columnsHint: string;
 }

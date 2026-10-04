@@ -22,8 +22,8 @@
  * `textContent`.
  */
 import { Base, boolAttr, upgrade, attrProps } from "../../core/define";
-import { h, safeEndpoint } from "../../core/dom";
-import { glyph, initials } from "../../core/icons";
+import { h, safeEndpoint, safeHref } from "../../core/dom";
+import { glyph, icon, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import { extent } from "../../core/time";
@@ -57,7 +57,7 @@ import {
 } from "./logic";
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -139,6 +139,8 @@ export const GRID_LABELS: GridLabels = {
   matches: "1 fila coincide|{n} filas coinciden",
   moreFilters: "Más filtros de {col}…",
   relax: "Quitar {filter}: vuelve 1 fila|Quitar {filter}: vuelven {n} filas",
+  actions: "Acciones",
+  rowActions: "Acciones de la fila",
 };
 
 const SLIDERS = '<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/>';
@@ -251,12 +253,42 @@ function cleanColumn(c: unknown): GridColumn | null {
   }
   if (x.filter !== undefined && x.filter !== false && !KINDS.has(x.filter as string)) fix.filter = undefined;
   if (x.currency !== undefined && typeof x.currency !== "string") fix.currency = undefined;
-  for (const k of ["editable", "link", "avatar", "histogram", "facet"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
+  if (x.href !== undefined && (typeof x.href !== "string" || !x.href)) fix.href = undefined;
+  for (const k of ["editable", "link", "avatar", "histogram", "facet", "newTab", "hidden"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
   if (!Object.keys(fix).length) return c as GridColumn;
   const out: Record<string, unknown> = { ...x, ...fix };
   for (const k of Object.keys(fix)) if (fix[k] === undefined) delete out[k];
   return out as unknown as GridColumn;
 }
+
+/** Las acciones de fila que llegan de afuera (BDUI): sin `key` y `label` de texto no sirven, una
+ *  `key` repetida tampoco (el evento no diría cuál fue), y lo opcional que no tiene la forma se quita. */
+function cleanActions(v: unknown): GridAction[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: GridAction[] = [];
+  for (const a of v as Record<string, unknown>[]) {
+    if (!a || typeof a !== "object" || typeof a.key !== "string" || !a.key || typeof a.label !== "string" || !a.label || seen.has(a.key)) continue;
+    seen.add(a.key);
+    out.push({
+      key: a.key,
+      label: a.label,
+      ...(typeof a.icon === "string" && a.icon ? { icon: a.icon } : {}),
+      ...(a.tone === "danger" ? { tone: "danger" as const } : {}),
+      ...(typeof a.href === "string" && a.href ? { href: a.href } : {}),
+      ...(a.newTab === true ? { newTab: true } : {}),
+      ...(a.download === true ? { download: true } : {}),
+      ...(typeof a.when === "string" && a.when ? { when: a.when } : {}),
+    });
+  }
+  return out;
+}
+
+/** El valor de `when` en una fila: lo que un backend manda como «no» (falso, 0, vacío, "0", "false"). */
+const truthy = (v: unknown): boolean => !!v && v !== "0" && v !== "false";
+
+/** Ancho de la columna de acciones (px): 30 por botón de ícono, el texto a ojo, y el margen. */
+const actionsWidth = (list: readonly GridAction[]): number => list.reduce((w, a) => w + (a.icon ? 30 : Math.min(160, 18 + a.label.length * 7)), 14);
 
 /** La copia de una fila que guarda la tabla: sin prototipo, para que una columna «constructor» o
  *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. */
@@ -296,7 +328,7 @@ export class NxGrid extends Base {
     attrProps(this, ["height"]);
   }
   declare height: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "source", "client-max", "group-by", "facets-open", "height", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents"];
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -347,6 +379,8 @@ export class NxGrid extends Base {
   /** Ya se juzgó si `facets-open` cabe (ver `#fitFacets`). */
   #facetsFitted = false;
   #presets: GridPreset[] = [];
+  /** Las acciones de fila (la columna fija a la derecha). */
+  #actions: GridAction[] = [];
   /** Conteos de los atajos: del servidor, o calculados aquí sobre `#all` (se olvidan al cambiar los datos). */
   #presetN = new Map<string, number>();
   #presetKey = "";
@@ -450,7 +484,11 @@ export class NxGrid extends Base {
     return this.#cols;
   }
   set columns(v: GridColumn[] | null | undefined) {
+    const known = new Set(this.#cols.map((c) => c.key));
     this.#cols = Array.isArray(v) ? v.map(cleanColumn).filter((c): c is GridColumn => !!c) : [];
+    // Una columna `hidden` empieza escondida la primera vez que llega; si ya estaba, manda lo que
+    // eligió la persona (reasignar las columnas no le vuelve a esconder lo que mostró).
+    for (const c of this.#cols) if (c.hidden && !known.has(c.key)) this.#hidden.add(c.key);
     this.#syncColumns();
     // Con `source`, las columnas no viajan al servidor: se rehace la cabecera sin volver a pedir.
     this.#dataChanged(true, true);
@@ -616,6 +654,19 @@ export class NxGrid extends Base {
     if (!this.#server) this.#presetN.clear();
     this.#presetKey = "";
     this.#paintPresets();
+  }
+  /** Acciones de fila: botones (o enlaces) en una columna fija a la derecha. Un botón emite
+   *  `nx-grid-action` con la acción y la fila; un enlace (`href`) no emite nada. También salen en el
+   *  menú de la celda (clic derecho, Mayús+F10), que es como se llega a ellas con el teclado. */
+  get actions(): GridAction[] {
+    return this.#actions;
+  }
+  set actions(v: GridAction[] | null | undefined) {
+    this.#actions = cleanActions(v);
+    if (this.#built) {
+      this.#buildHead();
+      this.#paintRows(true);
+    }
   }
   /** Nombre del archivo al exportar (sin extensión). */
   get filename(): string {
@@ -835,7 +886,7 @@ export class NxGrid extends Base {
   }
 
   attributeChangedCallback(name: string, old: string | null, value: string | null): void {
-    if ((name === "columns" || name === "rows" || name === "filters" || name === "labels" || name === "presets") && value !== null) {
+    if ((name === "columns" || name === "rows" || name === "filters" || name === "labels" || name === "presets" || name === "actions") && value !== null) {
       try {
         (this as unknown as Record<string, unknown>)[name] = JSON.parse(value);
       } catch {
@@ -1316,7 +1367,10 @@ export class NxGrid extends Base {
     const known = (k: string) => !this.#cols.length || this.#cols.some((c) => c.key === k);
     const gone = [...new Set([...x.filters.map((f) => f.key), ...(x.sort ? [x.sort.key] : [])].filter((k) => !known(k)))];
     this.#activeView = id;
-    this.#hidden = new Set(x.hidden);
+    // Una vista que no dice qué columnas esconde (la tabla original, un `view` sin `hidden`) deja
+    // escondidas las que la tabla declara `hidden`.
+    const says = !!v && typeof v === "object" && Array.isArray((v as Partial<GridView>).hidden);
+    this.#hidden = says ? new Set(x.hidden) : this.#defaultHidden();
     this.#widths = new Map(Object.entries(x.widths));
     this.#syncColumns();
     this.#sort = x.sort && known(x.sort.key) ? x.sort : null;
@@ -1364,6 +1418,11 @@ export class NxGrid extends Base {
     ));
   }
 
+  /** Las columnas que la tabla declara `hidden`: las que esconde la tabla original. */
+  #defaultHidden(): Set<string> {
+    return new Set(this.#cols.filter((c) => c.hidden).map((c) => c.key));
+  }
+
   /** Esconde o muestra una columna. */
   #setHidden(key: string, hidden: boolean): void {
     this.#settle();
@@ -1392,8 +1451,9 @@ export class NxGrid extends Base {
   #applyWidths(): void {
     const widths = this.#columns.map((c) => this.#widthOf(c));
     const check = this.selectable ? "36px " : "";
-    this.#scroll!.style.setProperty("--_cols", check + widths.map((w, i) => (i === widths.length - 1 ? `minmax(${w}px, 1fr)` : `${w}px`)).join(" "));
-    const w = `${widths.reduce((a, b) => a + b, check ? 36 : 0)}px`;
+    const acts = this.#actions.length ? actionsWidth(this.#actions) : 0;
+    this.#scroll!.style.setProperty("--_cols", check + widths.map((w, i) => (i === widths.length - 1 ? `minmax(${w}px, 1fr)` : `${w}px`)).join(" ") + (acts ? ` ${acts}px` : ""));
+    const w = `${widths.reduce((a, b) => a + b, (check ? 36 : 0) + acts)}px`;
     this.#scroll!.style.setProperty("--_w", w);
     // El relleno de la barra de arriba mide lo mismo que las columnas: su barra nativa aparece justo
     // cuando la tabla desborda, en el mismo pase de maquetación (sin medir ni observar nada).
@@ -1417,6 +1477,9 @@ export class NxGrid extends Base {
       get hidden() {
         return self.#hidden;
       },
+      get defaultHidden() {
+        return self.#defaultHidden();
+      },
       get view() {
         return self.view;
       },
@@ -1437,7 +1500,7 @@ export class NxGrid extends Base {
       },
       setHidden: (key, hidden) => this.#setHidden(key, hidden),
       resetColumns: () => {
-        this.#hidden.clear();
+        this.#hidden = this.#defaultHidden();
         this.#widths.clear();
         this.#setHidden("", false);
       },
@@ -1652,6 +1715,8 @@ export class NxGrid extends Base {
       }
     });
     this.#rowsEl.addEventListener("contextmenu", (e) => {
+      // Sobre un enlace, el menú del navegador: abrir en otra pestaña, copiar el enlace.
+      if ((e.target as Element).closest?.("a[href]")) return;
       const p = this.#posOf(e.target);
       if (!p || this.#editing || !this.#menuFor(p)) return;
       e.preventDefault();
@@ -1671,7 +1736,18 @@ export class NxGrid extends Base {
       this.#tap = null;
       const box = t.closest<HTMLInputElement>("input[data-pick]");
       if (box) return this.#pick(Number(box.closest<HTMLElement>("[data-r]")!.dataset.r), box.checked, (e as MouseEvent).shiftKey);
+      // Una acción: el enlace lo sigue el navegador; el botón emite `nx-grid-action`.
+      const act = t.closest<HTMLElement>(".nx-grid__act");
+      if (act) {
+        const r = Number(act.closest<HTMLElement>("[data-r]")?.dataset.r);
+        const it = this.#itemAt(r);
+        const a = this.#actions.find((x) => x.key === act.dataset.act);
+        if (act.tagName !== "A" && a && it && "r" in it) this.#runAction(r, a);
+        return;
+      }
       const p = this.#posOf(t);
+      // La celda con `href` es un enlace: lo sigue el navegador (o el router de la app).
+      if (t.closest("a.nx-grid__link")) return;
       if (t.closest(".nx-grid__link")) {
         if (p) this.#act = this.#anchor = p;
         return this.#openRow();
@@ -1709,7 +1785,8 @@ export class NxGrid extends Base {
   #buildHead(): void {
     const cols = this.#columns;
     const off = this.selectable ? 1 : 0;
-    this.#scroll!.setAttribute("aria-colcount", String(cols.length + off));
+    const acts = this.#actions.length ? 1 : 0;
+    this.#scroll!.setAttribute("aria-colcount", String(cols.length + off + acts));
     this.#ths = cols.map((c, ci) =>
       h(
         "div",
@@ -1722,7 +1799,8 @@ export class NxGrid extends Base {
     this.#applyWidths();
     this.#panel?.close();
     this.#headCheck = this.selectable ? h("input", { type: "checkbox", tabindex: -1, "data-pick-all": "", "data-nx-ephemeral": "" }) : undefined;
-    this.#head!.replaceChildren(...(this.#headCheck ? [h("div", { role: "columnheader", class: "nx-grid__th nx-grid__check", "aria-colindex": 1 }, this.#headCheck)] : []), ...this.#ths);
+    const actsHead = acts ? h("div", { role: "columnheader", class: "nx-grid__th nx-grid__actions", "aria-colindex": cols.length + 1 + off }, h("span", { class: "nx-sr-only" }, this.#labels.actions)) : null;
+    this.#head!.replaceChildren(...(this.#headCheck ? [h("div", { role: "columnheader", class: "nx-grid__th nx-grid__check", "aria-colindex": 1 }, this.#headCheck)] : []), ...this.#ths, ...(actsHead ? [actsHead] : []));
     this.#fill!.replaceChildren(...[...this.#head!.children].map(() => h("i")));
     this.#win = { start: -1, end: -1 };
   }
@@ -1748,6 +1826,8 @@ export class NxGrid extends Base {
     this.#searchInput!.placeholder = L.searchTable;
     this.#searchInput!.setAttribute("aria-label", L.searchTable);
     this.#searchClear!.setAttribute("aria-label", L.clearSearch);
+    const actsHead = this.#head!.querySelector(".nx-grid__actions > .nx-sr-only");
+    if (actsHead) actsHead.textContent = L.actions;
     this.#paintSearch();
     const applied = this.#filters.reduce((a, f) => a + ("values" in f ? f.values.length : 1), 0);
     this.#facetBtn!.hidden = !this.#facetList.length;
@@ -2168,18 +2248,73 @@ export class NxGrid extends Base {
         const text = formatCell(v, c, this.#loc);
         const tone = c.options?.find((o) => o.value === String(v))?.tone;
         if (text && (colType(c) === "status" || tone)) el.append(h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text));
-        else if (text && (c.link || c.avatar)) {
+        else if (text && (c.link || c.href || c.avatar)) {
           // El tono del avatar sale del texto: la misma persona, siempre el mismo color.
           const hue = [...text].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
           if (c.avatar) el.append(h("span", { class: "nx-grid__avatar", style: `--_h:${hue}`, "aria-hidden": "true" }, initials(text)));
-          el.append(c.link ? h("span", { class: "nx-grid__link" }, text) : text);
+          // Con dirección, un enlace de verdad (fuera del orden del Tab: la tabla es una sola parada).
+          const url = c.href ? safeHref(r[c.href]) : undefined;
+          if (url) el.append(h("a", { class: "nx-grid__link", href: url, tabindex: -1, draggable: "false", ...(c.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {}) }, text));
+          else el.append(c.link || c.href ? h("span", { class: "nx-grid__link" }, text) : text);
         } else el.textContent = text;
         if (c.editable) el.classList.add("is-editable");
         if (this.#edited.has(`${id}\u0000${c.key}`)) el.classList.add("is-edited");
         return el;
       }),
     );
+    if (this.#actions.length) row.append(this.#actionsCell(r, cols.length + 1 + off));
     return row;
+  }
+
+  /** Las acciones que aplican a una fila (`when`), con la dirección de las que son enlace. Una
+   *  acción `href` sin dirección segura en la fila no aplica. */
+  #rowActions(r: GridRow): { a: GridAction; url?: string }[] {
+    const out: { a: GridAction; url?: string }[] = [];
+    for (const a of this.#actions) {
+      if (a.when && !truthy(r[a.when])) continue;
+      if (!a.href) out.push({ a });
+      else {
+        const url = safeHref(r[a.href]);
+        if (url) out.push({ a, url });
+      }
+    }
+    return out;
+  }
+
+  /** La celda de acciones de una fila: un enlace por cada acción con dirección, un botón por las demás. */
+  #actionsCell(r: GridRow, colindex: number): HTMLElement {
+    const cell = h("div", { role: "gridcell", class: "nx-grid__cell nx-grid__actions", "aria-colindex": colindex });
+    for (const { a, url } of this.#rowActions(r)) {
+      const attrs = {
+        class: `nx-grid__act${a.icon ? " is-icon" : ""}`,
+        tabindex: -1,
+        "data-act": a.key,
+        "data-tone": a.tone === "danger" ? "danger" : undefined,
+        "aria-label": a.icon ? a.label : undefined,
+        title: a.icon ? a.label : undefined,
+      };
+      const inner = a.icon ? icon(a.icon, a.label) : a.label;
+      cell.append(
+        url
+          ? h("a", { ...attrs, href: url, draggable: "false", ...(a.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {}), ...(a.download ? { download: "" } : {}) }, inner)
+          : h("button", { ...attrs, type: "button" }, inner),
+      );
+    }
+    return cell;
+  }
+
+  /** Una acción de la fila `r`: el enlace se sigue con el mismo clic que haría la persona (el del
+   *  DOM, para que la app lo intercepte igual: un router, `target`, `download`); el botón emite
+   *  `nx-grid-action`. */
+  #runAction(r: number, a: GridAction, url?: string): void {
+    const it = this.#itemAt(r);
+    if (!it || "g" in it) return;
+    if (url) {
+      const el = [...(this.#rowsEl?.querySelectorAll<HTMLElement>(`[data-r="${r}"] .nx-grid__act`) ?? [])].find((x) => x.dataset.act === a.key);
+      if (el) el.click();
+      return;
+    }
+    this.#emit("nx-grid-action", { action: a.key, id: this.#ids.get(it.r), row: it.r });
   }
 
   #range() {
@@ -2423,19 +2558,27 @@ export class NxGrid extends Base {
   }
 
   /** La columna de una celda de datos, si se puede filtrar desde ella. */
-  #menuFor(p: Pos): GridColumn | null {
+  #filterCol(p: Pos): GridColumn | null {
     const it = this.#itemAt(p.r);
     const col = this.#columns[p.c];
     return it && "r" in it && col && this.#filterable(col) ? col : null;
   }
 
-  /** El menú de una celda: «Solo Cali», «Desde $ 5.000.000»… */
-  async #cellMenu(p: Pos, x: number, y: number): Promise<void> {
-    const col = this.#menuFor(p);
+  /** Si una celda de datos tiene menú: filtros de su columna o acciones de su fila. */
+  #menuFor(p: Pos): boolean {
     const it = this.#itemAt(p.r);
-    if (!col || !it || !("r" in it)) return;
+    return !!this.#filterCol(p) || (!!it && "r" in it && this.#rowActions(it.r).length > 0);
+  }
+
+  /** El menú de una celda: las acciones de la fila y «Solo Cali», «Desde $ 5.000.000»… */
+  async #cellMenu(p: Pos, x: number, y: number): Promise<void> {
+    const col = this.#filterCol(p);
+    const it = this.#itemAt(p.r);
+    if (!it || !("r" in it)) return;
+    const acts = this.#rowActions(it.r).map(({ a, url }) => ({ label: a.label, danger: a.tone === "danger", run: () => this.#runAction(p.r, a, url) }));
+    if (!col && !acts.length) return;
     try {
-      (await this.#loadPanel()).menu(col, it.r[col.key], x, y);
+      (await this.#loadPanel()).menu(col, col ? it.r[col.key] : undefined, x, y, acts);
     } catch (err) {
       console.warn("[nx-grid] no se pudo cargar el filtro", err);
     }
@@ -2462,6 +2605,19 @@ export class NxGrid extends Base {
     this.#touch = e.pointerType !== "mouse";
     this.#tap = null;
     if (e.button !== 0 || (this.#editing && e.target === this.#editing.input)) return;
+    // La columna de acciones no es una celda que se marque: el foco se queda en la tabla (el botón
+    // o el enlace reciben igual su clic) y su fila pasa a ser la activa.
+    const acts = (e.target as Element).closest?.<HTMLElement>(".nx-grid__actions");
+    if (acts) {
+      e.preventDefault();
+      this.#scroll!.focus({ preventScroll: true });
+      const r = Number(acts.closest<HTMLElement>("[data-r]")?.dataset.r);
+      if (Number.isFinite(r) && this.#itemAt(r)) {
+        this.#act = this.#anchor = { r, c: this.#act.c };
+        this.#paintSel();
+      }
+      return;
+    }
     const p = this.#posOf(e.target);
     if (!p) return;
     e.preventDefault();
@@ -2658,7 +2814,25 @@ export class NxGrid extends Base {
   #openRow(): void {
     const it = this.#itemAt(this.#act.r);
     if (!it || "g" in it) return;
+    // Una fila con enlace (`href`) se abre siguiéndolo: el mismo clic que haría la persona.
+    const link = this.#rowLink(this.#act);
+    if (link) return void link.click();
     this.#emit("nx-grid-open", { id: this.#ids.get(it.r), row: it.r, key: this.#columns[this.#act.c]?.key, origin: this.#cell(this.#act) });
+  }
+
+  /** El enlace de una fila: el de la columna activa si lo tiene, si no el de la primera columna `href`
+   *  con dirección. */
+  #rowLink(p: Pos): HTMLAnchorElement | null {
+    const it = this.#itemAt(p.r);
+    if (!it || !("r" in it)) return null;
+    for (const ci of [p.c, ...this.#columns.keys()]) {
+      const c = this.#columns[ci];
+      if (!c?.href || !safeHref(it.r[c.href])) continue;
+      // Una celda vacía no pinta el enlace: se prueba con la siguiente columna `href`.
+      const a = this.#cell({ r: p.r, c: ci })?.querySelector<HTMLAnchorElement>("a.nx-grid__link");
+      if (a) return a;
+    }
+    return null;
   }
 
   #moveTo(p: Pos, extend: boolean): void {

@@ -418,6 +418,15 @@ Una tabla de datos que se explora sola:
   chip ni va en las vistas, y si no queda ninguna fila la tabla propone quitarla. `grid.search` la
   lee o la asigna. El texto de cada fila se arma la primera vez que se busca (con 10.000 filas,
   unos 20 ms) y después cada tecla solo lo recorre.
+- **Tildes y ñ (`accents`).** Por omisión la tabla busca y filtra sin tildes ni mayúsculas:
+  «porteria» encuentra «Portería». Con `accents="exact"` (propiedad `grid.accents`, `"fold"` o
+  `"exact"`; en Solid, `accents="exact"`) ignora las mayúsculas pero no las tildes ni la ñ, en NFC
+  (`matchText` del núcleo): «peña» encuentra «PEÑA» y «Peña», «pena» no; «tecnico» no encuentra
+  «TÉCNICO»; una «é» compuesta y una «e» + U+0301 son la misma letra. Es para datos de un ERP en
+  mayúsculas cuyo servidor compara así: con todas las filas aquí, la tabla encuentra lo mismo que
+  con `source`. Rige en «Buscar en la tabla», el «contiene» de una columna (con su muestra y su
+  aviso, `labels.containsHintExact`), el buscador de la lista de valores del filtro y el de las
+  facetas. Con `source` la búsqueda la hace el servidor: el atributo no la cambia.
 - **Filtrar desde una celda.** Clic derecho (o Mayús+F10): «Solo Aceros», «Sin Aceros», «Desde
   $ 5.000.000». Si no queda ninguna fila, la tabla propone qué filtro quitar y cuántas volverían.
 - **Panel de filtros.** Facetas con casillas y conteos, con la misma regla del tablón de nx32:
@@ -551,7 +560,7 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo` |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
 

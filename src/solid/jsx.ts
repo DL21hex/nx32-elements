@@ -255,6 +255,7 @@ declare module "solid-js" {
       "review-below": string | undefined;
       "group-by": string | undefined;
       "row-key": string | undefined;
+      accents: string | undefined;
       "client-max": string | undefined;
       "views-storage": string | undefined;
       filename: string | undefined;

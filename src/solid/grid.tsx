@@ -3,10 +3,10 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/grid/index";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
+import type { GridAccents, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
 import type { GridFilterDetail } from "./jsx";
 
-export type { NxGrid, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
+export type { NxGrid, GridAccents, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
 
 export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" | "onError"> {
   columns: GridColumn[];
@@ -29,6 +29,10 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   groupBy?: string;
   rowKey?: string;
   facetsOpen?: boolean;
+  /** Cómo compara lo escrito al buscar y filtrar en el navegador. Por omisión (`"fold"`), sin
+   *  tildes ni mayúsculas; `"exact"`, sin mayúsculas pero con sus tildes y su ñ («pena» no
+   *  encuentra «PEÑA»), la regla del servidor para datos de un ERP en mayúsculas. */
+  accents?: GridAccents;
   /** La barra de desplazamiento horizontal también arriba de la tabla (solo si no cabe a lo ancho). Viene encendida: `false` la quita. */
   topScrollbar?: boolean;
   /** Atajos: tarjetas con un filtro y su conteo sobre la tabla. */
@@ -58,13 +62,14 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "topScrollbar", "presets", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
     <nx-grid
       {...rest}
       attr:row-key={local.rowKey}
+      attr:accents={local.accents === "exact" ? "exact" : undefined}
       prop:columns={local.columns}
       prop:rows={local.rows}
       prop:filters={local.filters}

@@ -12,8 +12,8 @@ import { h } from "../../core/dom";
 import { foldText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
 import { histogram, histogramSpec, type HistogramSpec } from "./bars";
-import { addDays, applyFilters, colType, crossfilter, DATE_RELS, facetOrder, foldValue, formatCell, fromSelection, matchFilter, relRange, selection, todayISO, type GridFacet } from "./logic";
-import type { GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridRow } from "./types";
+import { addDays, applyFilters, colType, crossfilter, DATE_RELS, facetOrder, foldValue, formatCell, fromSelection, matchFilter, normalizer, relRange, selection, todayISO, type GridFacet } from "./logic";
+import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridRow } from "./types";
 
 export type FilterKind = "list" | "range" | "date" | "text";
 
@@ -26,6 +26,8 @@ export interface FilterHost {
   readonly filters: GridFilter[];
   /** Los datos están en el servidor: los conteos y las barras llegan con cada página. */
   readonly server: boolean;
+  /** Cómo se compara lo escrito (`accents` de la grilla). */
+  readonly accents: GridAccents;
   /** Todas las filas (modo cliente). */
   readonly all: GridRow[];
   kind(col: GridColumn): FilterKind;
@@ -62,8 +64,9 @@ const fmt = (t: string, vars: Record<string, string | number>) => t.replace(/\{(
 const inclusive = (v: number) => Math.round((v + 0.01) * 100) / 100;
 const shownMax = (m: number) => (Math.round(m * 100) % 100 === 1 ? Math.round((m - 0.01) * 100) / 100 : m);
 
-function mark(el: HTMLElement, text: string, q: string): void {
-  const i = q ? foldText(text).indexOf(q) : -1;
+/** Resalta `q` (ya normalizado con `norm`) dentro de `text`. */
+function mark(el: HTMLElement, text: string, q: string, norm: (s: string) => string): void {
+  const i = q ? norm(text).indexOf(q) : -1;
   if (i < 0) el.textContent = text;
   else el.replaceChildren(text.slice(0, i), h("mark", null, text.slice(i, i + q.length)), text.slice(i + q.length));
 }
@@ -279,6 +282,7 @@ export class FilterPanel {
     return applyFilters(
       this.#host.all,
       this.#host.filters.filter((f) => f.key !== key),
+      this.#host.accents,
     );
   }
 
@@ -294,7 +298,7 @@ export class FilterPanel {
   /** Los valores de una lista, con cuántas filas quedarían (contando los demás filtros). */
   #values(c: GridColumn, order: Memo<Map<string, string[]>>): Value[] {
     const tone = (v: string) => c.options?.find((o) => o.value === v)?.tone;
-    const facet = this.#host.facet(c.key) ?? (this.#host.server ? undefined : crossfilter(this.#host.all, this.#host.filters, [c], this.#memo(order, (rows) => facetOrder([c], rows))).facets[0]);
+    const facet = this.#host.facet(c.key) ?? (this.#host.server ? undefined : crossfilter(this.#host.all, this.#host.filters, [c], this.#memo(order, (rows) => facetOrder([c], rows)), this.#host.accents).facets[0]);
     if (facet) return facet.options.map((o) => ({ ...o, tone: tone(o.value) }));
     return (c.options ?? []).map((o) => ({ value: o.value, label: o.label ?? o.value, tone: o.tone }));
   }
@@ -318,7 +322,7 @@ export class FilterPanel {
   #counts(c: GridColumn, fs: GridFilter[]): number[] | null {
     if (this.#host.server) return null;
     const rows = this.#others(c.key);
-    return fs.map((f) => rows.reduce((n, r) => n + (matchFilter(r, f) ? 1 : 0), 0));
+    return fs.map((f) => rows.reduce((n, r) => n + (matchFilter(r, f, this.#host.accents) ? 1 : 0), 0));
   }
 
   /** Hasta 5 valores que contienen `q` y cuántas filas coinciden (null en el servidor). */
@@ -328,7 +332,7 @@ export class FilterPanel {
     let n = 0;
     for (const r of this.#others(c.key)) {
       const v = formatCell(r[c.key], c, this.#host.loc);
-      if (!foldValue(v).includes(q)) continue;
+      if (!foldValue(v, this.#host.accents).includes(q)) continue;
       n++;
       if (values.size < 5) values.add(v);
     }
@@ -358,8 +362,9 @@ export class FilterPanel {
     type Item = { row: HTMLElement; box: HTMLInputElement; text: HTMLElement; n: HTMLElement; q?: string };
     let vals: Value[] = [];
     let values: string[] = [];
-    // Las etiquetas sin tildes, una vez por lista (no en cada tecla del buscador).
+    // Las etiquetas normalizadas, una vez por lista (no en cada tecla del buscador), y con qué regla.
     let folds: string[] = [];
+    let foldsAs: GridAccents | null = null;
     // Las filas se crean al mostrarse y se reutilizan; `shown`: las que están en la lista.
     let made = new Map<string, Item>();
     let shown: Item[] = [];
@@ -392,7 +397,8 @@ export class FilterPanel {
     };
     const build = (next: Value[]) => {
       values = next.map((v) => v.value);
-      folds = next.map((v) => foldText(v.label));
+      const norm = normalizer((foldsAs = this.#host.accents));
+      folds = next.map((v) => norm(v.label));
       made = new Map();
       search.placeholder = fmt(L.searchIn, { n: this.#host.loc.number(values.length) });
       search.setAttribute("aria-label", search.placeholder);
@@ -414,10 +420,7 @@ export class FilterPanel {
       e.preventDefault();
       commit(new Set([b.dataset.only!]));
     });
-    search.addEventListener("input", () => {
-      q = foldText(search.value.trim());
-      update();
-    });
+    search.addEventListener("input", () => update());
     search.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       e.preventDefault();
@@ -427,7 +430,10 @@ export class FilterPanel {
     const update = () => {
       // Los valores llegan después en modo servidor (las facetas vienen con cada bloque).
       vals = this.#values(col, order);
-      if (vals.length !== values.length || vals.some((v, i) => v.value !== values[i])) build(vals);
+      const accents = this.#host.accents;
+      if (foldsAs !== accents || vals.length !== values.length || vals.some((v, i) => v.value !== values[i])) build(vals);
+      const norm = normalizer(accents);
+      q = norm(search.value.trim());
       const s = sel();
       match = [];
       for (let i = 0; i < values.length; i++) if (!q || folds[i].includes(q)) match.push(i);
@@ -440,7 +446,12 @@ export class FilterPanel {
         it.box.checked = s.has(v.value);
         it.n.textContent = v.count === undefined ? "" : this.#host.loc.number(v.count);
         it.row.classList.toggle("is-zero", v.count === 0);
-        if (it.q !== q) mark(it.text, v.label, (it.q = q));
+        // Lo resaltado depende de lo buscado y de la regla con que se compara.
+        const marked = `${accents}\u0000${q}`;
+        if (it.q !== marked) {
+          it.q = marked;
+          mark(it.text, v.label, q, norm);
+        }
       });
       const on = match.filter((i) => s.has(values[i])).length;
       all.checked = match.length > 0 && on === match.length;
@@ -669,13 +680,15 @@ export class FilterPanel {
     const update = () => {
       const f = this.#own().find((x): x is Extract<GridFilter, { op: "contains" }> => x.op === "contains");
       if (document.activeElement !== input) input.value = f?.value ?? "";
-      const q = foldText(f?.value ?? "");
+      const accents = this.#host.accents;
+      const norm = normalizer(accents);
+      const q = norm(f?.value ?? "");
       const s = q ? this.#sample(col, q) : null;
-      res.textContent = s ? fmt(L.matches.split("|")[s.n === 1 ? 0 : 1] ?? L.matches, { n: this.#host.loc.number(s.n) }) : L.containsHint;
+      res.textContent = s ? fmt(L.matches.split("|")[s.n === 1 ? 0 : 1] ?? L.matches, { n: this.#host.loc.number(s.n) }) : accents === "exact" ? L.containsHintExact : L.containsHint;
       list.replaceChildren(
         ...(s?.values ?? []).map((v) => {
           const li = h("li");
-          mark(li, v, q);
+          mark(li, v, q, norm);
           return li;
         }),
       );

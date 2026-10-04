@@ -2,6 +2,7 @@
 // Los ayudantes que antes repetía cada componente (`reduced()`, `#emit`, `#attr`).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { emit, reducedMotion, safeHref, setAttr } from "../src/core/dom";
+import { foldText, matchText } from "../src/core/text";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -48,5 +49,31 @@ describe("ayudantes del núcleo", () => {
     expect(safeHref("java\tscript:alert(1)")).toBeUndefined();
     expect(safeHref(" /ruta ")).toBe("/ruta");
     expect(safeHref("mailto:a@b.co")).toBe("mailto:a@b.co");
+  });
+});
+
+describe("matchText (tildes exactas) frente a foldText (sin tildes)", () => {
+  // Peña es peña, no pena: sin mayúsculas, con tildes y ñ, en NFC.
+  const has = (hay: string, q: string) => matchText(hay).includes(matchText(q));
+  it("matchText: sin mayúsculas, con sus tildes y su ñ", () => {
+    expect(has("PEÑA", "peña")).toBe(true);
+    expect(has("Peña", "peña")).toBe(true);
+    expect(has("PEÑA", "pena")).toBe(false);
+    expect(has("TÉCNICO", "técnico")).toBe(true);
+    expect(has("TÉCNICO", "tecnico")).toBe(false);
+    expect(has("Llinás", "Llinas")).toBe(false);
+  });
+  it("matchText: NFC y NFD son lo mismo, y nunca quita marcas", () => {
+    expect(matchText("te\u0301cnico")).toBe("técnico");
+    expect(matchText("TE\u0301CNICO")).toBe(matchText("TÉCNICO"));
+    expect(has("TÉCNICO", "te\u0301cnico")).toBe(true);
+    expect(has("te\u0301cnico", "TÉCNICO")).toBe(true);
+    expect(matchText("Ñandú")).toBe("ñandú");
+    // Una letra latina en NFC conserva su posición (para resaltar).
+    expect(matchText("Ana María Rincón")).toHaveLength("Ana María Rincón".length);
+  });
+  it("foldText sigue tolerando la tilde que falta", () => {
+    expect(foldText("Mañana")).toBe("manana");
+    expect(foldText("TÉCNICO")).toBe("tecnico");
   });
 });

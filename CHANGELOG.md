@@ -1,5 +1,26 @@
 # Registro de cambios
 
+## 0.2.4 — 2026-10-03
+
+### `<nx-grid>`
+
+- **`accents="exact"`** (propiedad `accents`: `"fold"` o `"exact"`; en Solid, `accents="exact"`):
+  la tabla busca y filtra sin mayúsculas pero **con** tildes y ñ, en NFC. «peña» encuentra «PEÑA»
+  y «Peña», pero «pena» no encuentra «PEÑA», «tecnico» no encuentra «TÉCNICO» y «Llinas» no
+  encuentra «Llinás». Una «é» compuesta y una «e» + U+0301 siguen siendo la misma letra. Es para
+  datos de un ERP en mayúsculas cuyo servidor compara así: con todas las filas en el navegador, la
+  tabla encuentra lo mismo que con `source`. Rige en «Buscar en la tabla», el «contiene» de una
+  columna (su muestra, lo resaltado y su aviso, con el texto nuevo `labels.containsHintExact`), el
+  buscador de la lista de valores del filtro y el de las facetas. Cambiarlo con algo buscado vuelve
+  a filtrar con la nueva regla.
+- **Sin el atributo, nada cambia:** la tabla sigue sin distinguir tildes ni mayúsculas
+  («porteria» encuentra «Portería»), igual que el resto de la librería (select, paleta, menú,
+  lanzador, tarjetas…). Lo que interpreta lo escrito (un estado escrito en una celda, montos como
+  «5 millones», el nombre de una vista repetido) sigue tolerando la tilde que falta en los dos
+  modos.
+- `applyFilters` y `crossfilter` aceptan la regla como último argumento (`"fold"` por omisión).
+  Nuevo tipo `GridAccents`.
+
 ## 0.2.3 — 2026-10-03
 
 ### Íconos

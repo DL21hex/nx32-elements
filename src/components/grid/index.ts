@@ -6,6 +6,7 @@ define("nx-grid", NxGrid);
 export { NxGrid, GRID_LABELS } from "./grid";
 export { applyFilters, crossfilter, filterLabel, formatCell, parseTSV, sortRows, toTSV } from "./logic";
 export type {
+  GridAccents,
   GridChange,
   GridChangeSource,
   GridColumn,

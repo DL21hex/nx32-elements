@@ -3,6 +3,11 @@
  */
 export type GridColumnType = "text" | "number" | "money" | "date" | "status";
 export type GridTone = "neutral" | "info" | "success" | "warning" | "danger";
+/** Cómo compara la grilla lo escrito al buscar y filtrar (`accents`). `"fold"` (por omisión): sin
+ *  tildes ni mayúsculas, «porteria» encuentra «Portería». `"exact"`: sin mayúsculas pero con sus
+ *  tildes y su ñ, «pena» no encuentra «PEÑA» (para datos de un ERP en mayúsculas, con la regla del
+ *  servidor). */
+export type GridAccents = "fold" | "exact";
 
 export interface GridOption {
   value: string;
@@ -142,6 +147,8 @@ export interface GridLabels {
   barHint: string;
   contains: string;
   containsHint: string;
+  /** `containsHint` con `accents="exact"`. */
+  containsHintExact: string;
   containsValue: string;
   matches: string;
   moreFilters: string;

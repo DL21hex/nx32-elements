@@ -25,7 +25,6 @@ import { Base, boolAttr, upgrade, attrProps } from "../../core/define";
 import { h, safeEndpoint } from "../../core/dom";
 import { glyph, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
-import { foldText } from "../../core/text";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import { extent } from "../../core/time";
 import {
@@ -40,6 +39,7 @@ import {
   formatCell,
   groupRows,
   isNumeric,
+  normalizer,
   num,
   parseInput,
   parseTSV,
@@ -57,7 +57,7 @@ import {
 } from "./logic";
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -134,6 +134,7 @@ export const GRID_LABELS: GridLabels = {
   barHint: "Clic en una barra para quedarte con ese tramo.",
   contains: "Contiene…",
   containsHint: "Escribe parte del texto. No distingue mayúsculas ni tildes.",
+  containsHintExact: "Escribe parte del texto. No distingue mayúsculas; las tildes y la ñ sí cuentan.",
   containsValue: "Contiene «{v}»",
   matches: "1 fila coincide|{n} filas coinciden",
   moreFilters: "Más filtros de {col}…",
@@ -295,7 +296,7 @@ export class NxGrid extends Base {
     attrProps(this, ["height"]);
   }
   declare height: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "source", "client-max", "group-by", "facets-open", "height", "locale", "selectable", "views-storage", "top-scrollbar", "row-key"];
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "source", "client-max", "group-by", "facets-open", "height", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -525,7 +526,7 @@ export class NxGrid extends Base {
     this.#setFilters(validFilters(v), false);
   }
   /** Buscar en la tabla: quedan las filas que contienen este texto en alguna columna visible (sin
-   *  tildes ni mayúsculas). Se suma a los filtros, pero no es uno: no deja chip ni va en las vistas.
+   *  tildes ni mayúsculas; con `accents="exact"`, con sus tildes). Se suma a los filtros, pero no es uno: no deja chip ni va en las vistas.
    *  Con `source`, viaja al servidor como `search`. */
   get search(): string {
     return this.#search;
@@ -534,7 +535,7 @@ export class NxGrid extends Base {
     this.#search = String(v ?? "");
     clearTimeout(this.#searchWait);
     this.#paintSearch();
-    const q = foldText(this.#search.trim());
+    const q = normalizer(this.accents)(this.#search.trim());
     if (q === this.#q) return;
     this.#q = q;
     this.#refilter(true);
@@ -587,6 +588,18 @@ export class NxGrid extends Base {
   }
   /** La barra de desplazamiento horizontal también arriba de la tabla (la propia queda al pie de su
    *  caja), solo si las columnas no caben a lo ancho. Viene encendida; `top-scrollbar="false"` la quita. */
+  /** Cómo compara lo escrito al buscar y filtrar en el navegador: «Buscar en la tabla», el
+   *  «contiene» de una columna (y su muestra), el buscador de la lista de valores y el de las
+   *  facetas. Por omisión (`"fold"`), sin tildes ni mayúsculas: «porteria» encuentra «Portería».
+   *  `accents="exact"`: sin mayúsculas pero con sus tildes y su ñ, en NFC (`matchText`): «peña»
+   *  encuentra «PEÑA» y «Peña», «pena» no; es la regla del servidor para datos de un ERP en
+   *  mayúsculas, así que la tabla encuentra lo mismo con `source` que con todas las filas aquí. */
+  get accents(): GridAccents {
+    return this.getAttribute("accents") === "exact" ? "exact" : "fold";
+  }
+  set accents(v: GridAccents | null | undefined) {
+    this.#attr("accents", v === "exact" ? "exact" : null);
+  }
   get topScrollbar(): boolean {
     return this.getAttribute("top-scrollbar") !== "false";
   }
@@ -834,6 +847,16 @@ export class NxGrid extends Base {
     // Lo que cuenta es la clave efectiva: sin atributo es «id», así que pasar a `row-key="id"` no
     // cambia ningún id (y no se pierden marcas ni historial).
     if (name === "row-key") return void ((old || "id") !== (value || "id") && this.#rekey());
+    // `accents`: lo buscado, el texto de cada fila y los conteos de los atajos, con la otra regla.
+    // También antes de conectarse: `search` puede haber llegado antes que el atributo.
+    if (name === "accents") {
+      if ((old === "exact") === (value === "exact")) return;
+      this.#forgetText();
+      this.#presetN.clear();
+      this.#q = normalizer(this.accents)(this.#search.trim());
+      if (this.#built) this.#refilter(true);
+      return;
+    }
     if (!this.#built || old === value || this.#quiet) return;
     if (name === "source" || name === "client-max") {
       this.#settle();
@@ -960,7 +983,7 @@ export class NxGrid extends Base {
       if (!q) this.#base = this.#all;
       else if (this.#baseQ !== q) this.#base = this.#all.filter((r) => this.#textOf(r).includes(q));
       this.#baseQ = q;
-      const x = crossfilter(this.#base, this.#filters, this.#facetCols, this.#order);
+      const x = crossfilter(this.#base, this.#filters, this.#facetCols, this.#order, this.accents);
       this.#filtered = x.filtered;
       this.#facetList = x.facets;
       this.#sumTotals();
@@ -990,7 +1013,7 @@ export class NxGrid extends Base {
 
   #textOf(r: GridRow): string {
     let t = this.#hay.get(r);
-    if (t === undefined) this.#hay.set(r, (t = (this.#texter ??= rowTexter(this.#columns, this.#loc))(r)));
+    if (t === undefined) this.#hay.set(r, (t = (this.#texter ??= rowTexter(this.#columns, this.#loc, this.accents))(r)));
     return t;
   }
 
@@ -1801,7 +1824,7 @@ export class NxGrid extends Base {
     const list = this.#presets;
     // Con las filas aquí, cada atajo se cuenta una vez por juego de datos (no en cada pintado).
     if (!this.#server && list.some((p) => !this.#presetN.has(p.id)))
-      for (const p of list) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters)).length);
+      for (const p of list) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
     const state = list.map((p) => [p.id, p.label, p.hint, this.#presetN.get(p.id), this.#presetOn(p)]);
     const key = JSON.stringify([this.#labels.presets, this.locale, state]);
     if (key === this.#presetKey) return;
@@ -1835,7 +1858,7 @@ export class NxGrid extends Base {
         .join(", "),
     }));
     // La búsqueda también se puede quitar (su botón lleva la clave vacía).
-    if (this.#q) opts.push({ key: "", n: applyFilters(this.#all, this.#filters).length, what: `«${this.#search.trim()}»` });
+    if (this.#q) opts.push({ key: "", n: applyFilters(this.#all, this.#filters, this.accents).length, what: `«${this.#search.trim()}»` });
     const top = opts
       .filter((x) => x.n > 0)
       .sort((a, b) => b.n - a.n)
@@ -1935,8 +1958,9 @@ export class NxGrid extends Base {
         const avail = f.options.filter((o) => o.count || selected.includes(o.value));
         if (!avail.length) return [];
         const raw = this.#facetQ.get(f.key) ?? "";
-        const q = foldText(raw.trim());
-        const opts = q ? avail.filter((o) => foldText(o.label).includes(q)) : avail;
+        const norm = normalizer(this.accents);
+        const q = norm(raw.trim());
+        const opts = q ? avail.filter((o) => norm(o.label).includes(q)) : avail;
         const expanded = this.#facetMore.has(f.key);
         const shown = q || expanded ? opts : opts.filter((o, i) => i < FACET_SHOWN || selected.includes(o.value));
         return h(
@@ -2347,6 +2371,7 @@ export class NxGrid extends Base {
     return applyFilters(
       this.#base,
       this.#filters.filter((f) => f.key !== key),
+      this.accents,
     );
   }
 
@@ -2379,6 +2404,9 @@ export class NxGrid extends Base {
       },
       get server() {
         return self.#server;
+      },
+      get accents() {
+        return self.accents;
       },
       // Lo que dejó la búsqueda: el panel cuenta y dibuja sus barras sobre eso.
       get all() {
@@ -2870,7 +2898,7 @@ export class NxGrid extends Base {
     for (const c of facets) this.#order.set(c.key, facetOrder([c], this.#all).get(c.key) ?? []);
     // Las facetas cuentan con los filtros de las demás columnas: cambian si se editó una faceta o
     // una columna con filtro.
-    if (facets.length || this.#filters.some((f) => keys.has(f.key))) this.#facetList = crossfilter(this.#base, this.#filters, this.#facetCols, this.#order).facets;
+    if (facets.length || this.#filters.some((f) => keys.has(f.key))) this.#facetList = crossfilter(this.#base, this.#filters, this.#facetCols, this.#order, this.accents).facets;
     if (this.#groups && touched.some(isNumeric)) this.#groupStats();
   }
 

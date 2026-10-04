@@ -1,8 +1,8 @@
 /** Lógica pura de `<nx-grid>`: valores, filtros, orden, grupos, estadísticas y TSV. Las barras del
  *  filtro de una columna están en `bars.ts` (solo las usa el panel, que se carga aparte). */
-import { foldText } from "../../core/text";
+import { foldText, matchText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
-import type { GridColumn, GridDateRel, GridFilter, GridRow, GridSort } from "./types";
+import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridRow, GridSort } from "./types";
 
 // Las funciones que muestran o leen valores reciben el formato del locale (`nxFormat`); sin él,
 // usan «es-CO».
@@ -76,14 +76,21 @@ export function parseInput(text: string, c: GridColumn, f: NxFormat = nxFormat()
 
 // ---------------------------------------------------------------- buscar en la tabla
 
+/** Cómo se normaliza un texto para buscar: sin tildes ni mayúsculas (`foldText`, por omisión) o
+ *  sin mayúsculas y con sus tildes y su ñ (`matchText`, `accents="exact"`). Lo escrito y el dato
+ *  pasan siempre por la misma. */
+export const normalizer = (accents: GridAccents = "fold"): ((s: string) => string) => (accents === "exact" ? matchText : foldText);
+
 /** Lo que «Buscar en la tabla» mira de una fila: el texto que se ve en cada columna y, en números y
- *  fechas, también el valor sin formato («8000000», «2026-03»), sin tildes ni mayúsculas. Un salto
- *  de línea separa las columnas: lo buscado no puede quedar a caballo entre dos.
+ *  fechas, también el valor sin formato («8000000», «2026-03»), sin tildes ni mayúsculas (o con sus
+ *  tildes, con `accents` en `"exact"`). Un salto de línea separa las columnas: lo buscado no puede
+ *  quedar a caballo entre dos.
  *
  *  Devuelve la función que lo arma para unas columnas y un locale. Los valores que se repiten
  *  (fechas, estados, proveedores) se formatean una sola vez: formatear 100.000 fechas con `Intl`
  *  costaba más de la mitad del tiempo, y solo había 336 distintas. */
-export function rowTexter(cols: readonly GridColumn[], f: NxFormat = nxFormat()): (r: GridRow) => string {
+export function rowTexter(cols: readonly GridColumn[], f: NxFormat = nxFormat(), accents: GridAccents = "fold"): (r: GridRow) => string {
+  const norm = normalizer(accents);
   const memo = cols.map(() => new Map<unknown, string>());
   return (r) => {
     let s = "";
@@ -92,7 +99,7 @@ export function rowTexter(cols: readonly GridColumn[], f: NxFormat = nxFormat())
       if (v === null || v === undefined || v === "") return;
       let t = memo[i].get(v);
       if (t === undefined) {
-        t = foldText(isNumeric(c) || colType(c) === "date" ? `${formatCell(v, c, f)}\n${String(v)}` : formatCell(v, c, f));
+        t = norm(isNumeric(c) || colType(c) === "date" ? `${formatCell(v, c, f)}\n${String(v)}` : formatCell(v, c, f));
         if (memo[i].size < 5000) memo[i].set(v, t);
       }
       s += `${t}\n`;
@@ -103,24 +110,30 @@ export function rowTexter(cols: readonly GridColumn[], f: NxFormat = nxFormat())
 
 // ---------------------------------------------------------------- filtros y orden
 
-/** «Contiene» se evalúa en cada fila con el mismo texto buscado: se pliega una vez, no por fila. */
-let needle = { raw: "", folded: "" };
-const folded = (q: string) => (needle.raw === q ? needle.folded : (needle = { raw: q, folded: foldText(q) }).folded);
+/** «Contiene» se evalúa en cada fila con el mismo texto buscado: se pliega una vez, no por fila
+ *  (una aguja por modo: dos grillas, una con `accents="exact"`, no se pisan). */
+const needles: Record<GridAccents, { raw: string; folded: string }> = { fold: { raw: "", folded: "" }, exact: { raw: "", folded: "" } };
+const folded = (q: string, accents: GridAccents) => {
+  const n = needles[accents];
+  return n.raw === q ? n.folded : (needles[accents] = { raw: q, folded: normalizer(accents)(q) }).folded;
+};
 
-/** Cada dato se pliega (sin tildes ni mayúsculas) una sola vez: «contiene» se vuelve a evaluar en
- *  cada cambio de filtro, en cada faceta y en la muestra del panel, siempre sobre los mismos datos.
- *  Va por valor, no por fila: una celda editada es otro valor. Con más valores distintos que el
- *  tope se empieza de nuevo (la memoria no crece sin fin), y un texto largo (observaciones de
- *  varios KB) no se guarda: con miles de ellos la memoria guardaba cientos de MB. */
+/** Cada dato se pliega (sin tildes ni mayúsculas; con `"exact"`, solo sin mayúsculas) una sola
+ *  vez: «contiene» se vuelve a evaluar en cada cambio de filtro, en cada faceta y en la muestra del
+ *  panel, siempre sobre los mismos datos. Va por valor, no por fila: una celda editada es otro
+ *  valor. Con más valores distintos que el tope se empieza de nuevo (la memoria no crece sin fin),
+ *  y un texto largo (observaciones de varios KB) no se guarda: con miles de ellos la memoria
+ *  guardaba cientos de MB. Una memoria por modo. */
 const FOLD_MAX = 200_000;
 const FOLD_LONG = 256;
-let foldMemo = new Map<string, string>();
-export function foldValue(s: string): string {
-  if (s.length > FOLD_LONG) return foldText(s);
-  let t = foldMemo.get(s);
+const foldMemo: Record<GridAccents, Map<string, string>> = { fold: new Map(), exact: new Map() };
+export function foldValue(s: string, accents: GridAccents = "fold"): string {
+  const norm = normalizer(accents);
+  if (s.length > FOLD_LONG) return norm(s);
+  let t = foldMemo[accents].get(s);
   if (t === undefined) {
-    if (foldMemo.size >= FOLD_MAX) foldMemo = new Map();
-    foldMemo.set(s, (t = foldText(s)));
+    if (foldMemo[accents].size >= FOLD_MAX) foldMemo[accents] = new Map();
+    foldMemo[accents].set(s, (t = norm(s)));
   }
   return t;
 }
@@ -142,18 +155,19 @@ function freshSets(filters: readonly GridFilter[]): void {
   for (const f of filters) if (f.op === "in" || f.op === "notIn") valueSets.set(f.values, { n: f.values.length, set: new Set(f.values) });
 }
 
-export function matchFilter(row: GridRow, f: GridFilter): boolean {
-  return matchValue(row[f.key], f);
+/** `accents`: cómo compara «contiene» (ver `GridAccents`); los demás filtros no lo miran. */
+export function matchFilter(row: GridRow, f: GridFilter, accents: GridAccents = "fold"): boolean {
+  return matchValue(row[f.key], f, accents);
 }
 
-function matchValue(v: unknown, f: GridFilter): boolean {
+function matchValue(v: unknown, f: GridFilter, accents: GridAccents): boolean {
   switch (f.op) {
     case "in":
       return valueSet(f.values).has(String(v ?? ""));
     case "notIn":
       return !valueSet(f.values).has(String(v ?? ""));
     case "contains":
-      return foldValue(String(v ?? "")).includes(folded(f.value));
+      return foldValue(String(v ?? ""), accents).includes(folded(f.value, accents));
     case "range": {
       if (v === null || v === undefined || v === "") return false;
       const x = typeof f.min === "string" || typeof f.max === "string" ? String(v) : num(v);
@@ -165,10 +179,10 @@ function matchValue(v: unknown, f: GridFilter): boolean {
   }
 }
 
-export function applyFilters(rows: readonly GridRow[], filters: readonly GridFilter[]): GridRow[] {
+export function applyFilters(rows: readonly GridRow[], filters: readonly GridFilter[], accents: GridAccents = "fold"): GridRow[] {
   if (!filters.length) return rows as GridRow[];
   freshSets(filters);
-  return rows.filter((r) => filters.every((f) => matchFilter(r, f)));
+  return rows.filter((r) => filters.every((f) => matchFilter(r, f, accents)));
 }
 
 /** Orden estable. El texto sigue el alfabeto del locale (tildes y mayúsculas no cuentan, «OC-9» va
@@ -285,7 +299,8 @@ export function selection(filters: readonly GridFilter[], key: string, values: r
   const own = filters.filter((f) => f.key === key && (f.op === "in" || f.op === "notIn"));
   if (!own.length) return null;
   freshSets(own);
-  return new Set(values.filter((v) => own.every((f) => matchValue(v, f))));
+  // Solo `in` / `notIn`: la regla de tildes no cuenta.
+  return new Set(values.filter((v) => own.every((f) => matchValue(v, f, "fold"))));
 }
 
 /** Lo marcado → los filtros de la columna. Todo marcado es no filtrar; con más de la mitad (si se
@@ -461,6 +476,7 @@ export function crossfilter(
   filters: readonly GridFilter[],
   columns: readonly GridColumn[],
   order: Map<string, string[]> = facetOrder(columns, rows),
+  accents: GridAccents = "fold",
 ): { filtered: GridRow[]; facets: GridFacet[] } {
   freshSets(filters);
   const byKey = new Map<string, GridFilter[]>();
@@ -477,7 +493,7 @@ export function crossfilter(
     let fails = 0;
     let failed = "";
     for (const [key, fs] of groups) {
-      if (fs.every((f) => matchFilter(r, f))) continue;
+      if (fs.every((f) => matchFilter(r, f, accents))) continue;
       failed = key;
       if (++fails > 1) break;
     }

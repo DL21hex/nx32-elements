@@ -15,6 +15,22 @@ const ROWS = [
 ];
 
 describe("<Grid>", () => {
+  it("accents=\"exact\" llega como atributo y la búsqueda distingue tildes; sin él, no", () => {
+    const rows = [
+      { id: "1", oc: "PEÑA" },
+      { id: "2", oc: "Pena" },
+    ];
+    const shown = (root: Element) => [...root.querySelectorAll('.nx-grid__row > [data-c="0"]')].map((x) => x.textContent);
+    const exact = document.body.appendChild(document.createElement("div"));
+    render(() => <Grid columns={COLS} rows={rows} search="pena" accents="exact" />, exact);
+    expect(exact.querySelector("nx-grid")!.getAttribute("accents")).toBe("exact");
+    expect(shown(exact)).toEqual(["Pena"]);
+    const fold = document.body.appendChild(document.createElement("div"));
+    render(() => <Grid columns={COLS} rows={rows} search="pena" />, fold);
+    expect(fold.querySelector("nx-grid")!.hasAttribute("accents")).toBe(false);
+    expect(shown(fold)).toEqual(["PEÑA", "Pena"]);
+  });
+
   it("rowKey: los id salen de esa columna", () => {
     const root = document.body.appendChild(document.createElement("div"));
     const onSelection = vi.fn();

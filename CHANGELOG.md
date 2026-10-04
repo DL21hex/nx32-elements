@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## 0.3.2 — 2026-10-04
+
+### `<nx-grid>`
+
+- **Atajos con tono (`tone` en `GridPreset`: `info`, `success`, `warning`, `danger`).** El conteo
+  va en ese color y, marcado, la tarjeta también (fondo y borde del tono en vez de los del color
+  principal). Es para el atajo que señala algo por resolver («Sin jefe asignado» en `warning`); los
+  demás siguen sin tono. `neutral`, o un tono que no existe, no pinta nada (el segundo se quita).
+- **Avatares en gris (`avatar: "neutral"` en la columna).** Las mismas iniciales, todas con el gris
+  de la píldora sin tono en vez de un color por persona: para la columna que más se lee, donde
+  quince tonos distintos compiten con los de la tabla. `avatar: true` sigue igual.
+- Los atajos (`presets`) quedan documentados en el README, que no los nombraba.
+- `npm run contrast` revisa también el conteo de un atajo con tono sobre la tarjeta y el avatar
+  neutro.
+
 ## 0.3.1 — 2026-10-04
 
 ### `<nx-button>`

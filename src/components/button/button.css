@@ -2,6 +2,9 @@
  * <nx-button>. Variables propias:
  *   --nx-button-height (36px) · --nx-button-log-height (180px)
  *   --nx-button-busy-max (22rem): ancho máximo mientras corre (el mensaje se corta con …)
+ *
+ * La clase `.nx-button` (con `.nx-button--primary`, `--danger`, `--ghost`) da el mismo aspecto a un
+ * `<a>` o un `<button>` cualquiera, sin JS: un enlace que se ve como botón y sigue siendo enlace.
  */
 
 nx-button {
@@ -24,7 +27,8 @@ nx-button [hidden] {
 
 /* ---------------------------------------------------------------- el botón */
 
-.nx-button__btn {
+.nx-button__btn,
+.nx-button {
   --_bg: var(--nx-card);
   --_fg: var(--nx-foreground);
   --_bd: var(--nx-border);
@@ -52,13 +56,16 @@ nx-button [hidden] {
     scale var(--nx-motion-fast);
   -webkit-tap-highlight-color: transparent;
 }
-.nx-button__btn:hover {
+.nx-button__btn:hover,
+.nx-button:hover {
   background: color-mix(in oklch, var(--_bg), var(--_fg) 6%);
 }
-.nx-button__btn:active:not([aria-disabled="true"]) {
+.nx-button__btn:active:not([aria-disabled="true"]),
+.nx-button:active:not(:disabled, [aria-disabled="true"]) {
   scale: 0.98;
 }
-.nx-button__btn:focus-visible {
+.nx-button__btn:focus-visible,
+.nx-button:focus-visible {
   outline: 2px solid var(--nx-ring);
   outline-offset: 2px;
 }
@@ -86,6 +93,35 @@ nx-button [hidden] {
 }
 nx-button[disabled] .nx-button__btn {
   opacity: 0.5;
+}
+
+/* La clase suelta: lo que en el componente viene del envoltorio `<nx-button>`, más lo que un `<a>`
+   trae de serie (subrayado, color de enlace). */
+.nx-button {
+  box-sizing: border-box;
+  vertical-align: middle;
+  font-family: var(--nx-font-sans);
+  font-size: 13.5px;
+  line-height: 1.3;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nx-button:is(:link, :visited, :hover) {
+  color: var(--_fg);
+  text-decoration: none;
+}
+.nx-button > :is(.nx-icon, .nx-glyph, svg) {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+}
+/* Un enlace no tiene `disabled`: con `aria-disabled="true"` se apaga y deja de responder al clic. */
+.nx-button:is(:disabled, [aria-disabled="true"]) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+a.nx-button[aria-disabled="true"] {
+  pointer-events: none;
 }
 
 /* Ocupado: el fondo se apaga un punto y el contenido pasa a ser el avance. */

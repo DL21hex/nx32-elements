@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## 0.2.5 — 2026-10-04
+
+### `<nx-button>`
+
+- **Clase `nx-button`** para un `<a>` (o un `<button>`) con el aspecto del botón, sin JS:
+  `<a class="nx-button nx-button--primary" href="/empleados">`. Trae la tipografía del componente,
+  quita el subrayado y el color de enlace, da 16 px al ícono que vaya dentro y se apaga con
+  `aria-disabled="true"` (en un `<a>`, además, deja de responder al clic). Las variantes son las
+  mismas: `--primary`, `--danger`, `--ghost`.
+
 ## 0.2.4 — 2026-10-03
 
 ### `<nx-grid>`

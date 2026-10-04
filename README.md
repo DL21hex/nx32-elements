@@ -271,17 +271,20 @@ cancela y una pulsación larga a medio camino no se completa.
 
 | | |
 |---|---|
-| Propiedades / atributos | `label`, `icon`, `icon-only`, `variant` (`secondary`, `primary`, `ghost`, `danger`), `type` (`button`, `submit`, `reset`), `name`, `value`, `disabled`, `busy`, `progress`, `log-mode` (`ticker`, `inline`, `none`), `stream`, `method`, `hold`, `labels` |
+| Propiedades / atributos | `label`, `icon`, `icon-only`, `variant` (`secondary`, `primary`, `ghost`, `danger`), `type` (`button`, `submit`, `reset`), `name`, `value`, `disabled`, `busy`, `progress`, `log-mode` (`ticker`, `inline`, `none`), `stream`, `method`, `hold`, `href`, `new-tab`, `download`, `labels` |
 | Métodos | `run(task)`, `log(msg, level?)`, `done(ok, msg?)`, `lines` |
 | Eventos | `click` (solo el del botón), `nx-button-done` `{ok, ms, lines}` |
 
-**Un enlace con aspecto de botón:** la clase `nx-button` (con `nx-button--primary`, `--danger` o
-`--ghost`) viste igual un `<a>` o un `<button>` cualquiera, sin JS. El enlace sigue siendo enlace:
-se abre en otra pestaña, se copia su dirección y funciona sin JS. Un ícono va como primer hijo;
-`aria-disabled="true"` lo apaga.
+**Como enlace (`href`):** el control de adentro es un `<a href>` de verdad en vez del `<button>`,
+con el mismo aspecto y las mismas variantes. Ctrl/⌘+clic, la rueda y el menú del navegador
+funcionan, y el router de una app lo intercepta como a cualquier enlace (el DOM es ligero, sin
+sombra). `new-tab` lo abre en otra pestaña (`rel="noopener noreferrer"`) y `download` descarga. Una
+dirección que no es segura (`javascript:`, `data:`…) no se pinta, y deshabilitado u ocupado el
+enlace pierde su `href`: no lo sigue ni un Ctrl/⌘+clic. Con `href` no aplican `type`, `name`,
+`value` ni `stream`.
 
 ```html
-<a class="nx-button nx-button--primary" href="/empleados">Ver empleados</a>
+<nx-button label="Ver empleados" icon="users" variant="primary" href="/empleados"></nx-button>
 ```
 
 ## `<nx-select>`

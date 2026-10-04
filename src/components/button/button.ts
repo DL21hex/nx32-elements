@@ -13,9 +13,13 @@
  * mover, así que no rompe la hidratación. Por dentro hay un `<button>` nativo: foco, teclado y
  * envío de formularios funcionan solos. Solo su clic llega a la app: el de «Registro», el del panel
  * o el del hueco entre ellos se queda adentro.
+ *
+ * Con `href` es un ENLACE: por dentro hay un `<a href>` de verdad en vez del `<button>`, así que
+ * Ctrl/⌘+clic, la rueda y el menú del navegador funcionan, y el router de la app lo intercepta como
+ * a cualquier enlace (el DOM es ligero, sin sombra). Mismo aspecto y mismas variantes.
  */
 import { Base, boolAttr, upgrade } from "../../core/define";
-import { h, safeEndpoint } from "../../core/dom";
+import { h, safeEndpoint, safeHref } from "../../core/dom";
 import { glyph, icon } from "../../core/icons";
 import { formatElapsed } from "../../core/format";
 import { mergeLabels } from "../../core/labels";
@@ -40,7 +44,7 @@ const RESULT_MS = { ok: 2200, error: 4000 };
 const MAX_LINES = 200;
 
 export class NxButton extends Base {
-  static observedAttributes = ["label", "icon", "icon-only", "variant", "type", "name", "value", "disabled", "busy", "log-mode", "progress", "stream", "method", "labels", "hold"];
+  static observedAttributes = ["label", "icon", "icon-only", "variant", "type", "name", "value", "disabled", "busy", "log-mode", "progress", "stream", "method", "labels", "hold", "href", "new-tab", "download"];
 
   #labels: ButtonLabels = BUTTON_LABELS;
   #lines: LogLine[] = [];
@@ -50,7 +54,8 @@ export class NxButton extends Base {
   #tick = 0;
   #logOpen: boolean | null = null;
   #built = false;
-  #btn?: HTMLButtonElement;
+  /** El control de adentro: un `<button>`, o un `<a>` con `href`. */
+  #btn?: HTMLButtonElement | HTMLAnchorElement;
   #lead?: HTMLSpanElement;
   #text?: HTMLSpanElement;
   #time?: HTMLSpanElement;
@@ -187,6 +192,29 @@ export class NxButton extends Base {
   set hold(v: number) {
     this.#attr("hold", v ? String(v) : null);
   }
+  /** Dirección: con ella el botón es un enlace (`<a href>` por dentro). Pasan las rutas relativas
+   *  y http(s), mailto y tel; una dirección que no es segura (`javascript:`, `data:`…) no se pinta y
+   *  el enlace queda apagado. Con `href` no aplican `type`, `name`, `value` ni `stream`. */
+  get href(): string | null {
+    return this.getAttribute("href");
+  }
+  set href(v: string | null) {
+    this.#attr("href", v);
+  }
+  /** Con `href`: en otra pestaña (`target="_blank"`, `rel="noopener noreferrer"`). */
+  get newTab(): boolean {
+    return boolAttr(this, "new-tab");
+  }
+  set newTab(v: boolean) {
+    this.#bool("new-tab", v);
+  }
+  /** Con `href`: descarga lo que hay en la dirección en vez de navegar a ella. */
+  get download(): boolean {
+    return boolAttr(this, "download");
+  }
+  set download(v: boolean) {
+    this.#bool("download", v);
+  }
   /** Copia del registro de la última tarea. */
   get lines(): LogLine[] {
     return [...this.#lines];
@@ -322,7 +350,7 @@ export class NxButton extends Base {
     this.#time = h("span", { class: "nx-button__time" });
     this.#bar = h("span", { class: "nx-button__bar", "aria-hidden": "true" });
     this.#fill = h("span", { class: "nx-button__hold", "aria-hidden": "true" });
-    this.#btn = h("button", { class: "nx-button__btn" }, this.#fill, this.#lead, this.#text, this.#time, this.#bar);
+    this.#btn = this.#control(this.hasAttribute("href"));
     this.#toggle = h("button", { type: "button", class: "nx-button__toggle", hidden: true });
     this.#panel = h("div", { class: "nx-button__log", role: "log", hidden: true });
     // Leer o desplazar el registro no es un clic del botón.
@@ -330,7 +358,22 @@ export class NxButton extends Base {
     this.#status = h("span", { class: "nx-sr-only", role: "status" });
     this.append(this.#btn, this.#toggle, this.#panel, this.#status);
 
-    this.#btn.addEventListener("click", (e) => {
+    this.#toggle.addEventListener("click", (e) => {
+      // Abrir el registro no es un clic del botón: no llega a la app (ni se salta `hold`).
+      e.stopPropagation();
+      this.#logOpen = !this.#isLogOpen();
+      this.#paint();
+    });
+  }
+
+  /** El control de adentro, con sus partes: un `<button>`, o un `<a>` si es un enlace. Al cambiar
+   *  de uno a otro (aparece o se va `href`) las partes se mudan al nuevo y se reconectan sus
+   *  oyentes. */
+  #control(link: boolean): HTMLButtonElement | HTMLAnchorElement {
+    const btn = h(link ? "a" : "button", { class: "nx-button__btn" }, this.#fill!, this.#lead!, this.#text!, this.#time!, this.#bar!);
+    // Los oyentes sobre `HTMLElement`: en la unión `<a> | <button>` TypeScript pierde el tipo de cada evento.
+    const el: HTMLElement = btn;
+    el.addEventListener("click", (e) => {
       // Ocupado: el clic no existe (el botón no se deshabilita para no perder el foco).
       // Con `hold`, solo cuenta el clic que llega al completar la pulsación larga.
       if (this.busy || this.disabled || (this.hold && !this.#held)) {
@@ -338,8 +381,9 @@ export class NxButton extends Base {
         e.stopImmediatePropagation();
         return;
       }
-      // `type="submit"` lo envía el <button> nativo solo; aquí solo el modo stream.
-      if (this.stream) {
+      // `type="submit"` lo envía el <button> nativo solo, y un enlace navega solo; aquí solo el
+      // modo stream (que no aplica a un enlace).
+      if (this.stream && !(btn instanceof HTMLAnchorElement)) {
         e.preventDefault();
         void this.#runStream();
       }
@@ -359,26 +403,21 @@ export class NxButton extends Base {
         this.#held = false;
       }, this.hold);
     };
-    this.#btn.addEventListener("pointerdown", (e) => e.button === 0 && start());
-    for (const t of ["pointerup", "pointerleave", "pointercancel", "blur"]) this.#btn.addEventListener(t, cancel);
-    this.#btn.addEventListener("keydown", (e) => {
+    el.addEventListener("pointerdown", (e) => e.button === 0 && start());
+    for (const t of ["pointerup", "pointerleave", "pointercancel", "blur"]) el.addEventListener(t, cancel);
+    el.addEventListener("keydown", (e) => {
       if (this.hold && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
         if (!e.repeat) start();
       }
     });
-    this.#btn.addEventListener("keyup", (e) => (e.key === "Enter" || e.key === " ") && cancel());
+    el.addEventListener("keyup", (e) => (e.key === "Enter" || e.key === " ") && cancel());
     // En un toque largo el sistema abre su menú (o la selección de texto) hacia los 500 ms y la
     // pulsación se cancelaría: mientras se mantiene, no hay menú.
-    this.#btn.addEventListener("contextmenu", (e) => {
+    el.addEventListener("contextmenu", (e) => {
       if (this.#btn!.dataset.holding !== undefined) e.preventDefault();
     });
-    this.#toggle.addEventListener("click", (e) => {
-      // Abrir el registro no es un clic del botón: no llega a la app (ni se salta `hold`).
-      e.stopPropagation();
-      this.#logOpen = !this.#isLogOpen();
-      this.#paint();
-    });
+    return btn;
   }
 
   /** En HTML plano se puede escribir <nx-button>Guardar</nx-button>: los nodos de texto sueltos se
@@ -429,16 +468,43 @@ export class NxButton extends Base {
   /** Pinta el estado actual. `fromLog`: solo cambió el registro (anima el ticker). */
   #paint(fromLog = false): void {
     if (!this.#built) return;
+    // Aparece o se va `href`: el control de adentro cambia de `<button>` a `<a>` (o al revés).
+    const link = this.hasAttribute("href");
+    if (link !== this.#btn instanceof HTMLAnchorElement) {
+      const next = this.#control(link);
+      this.#btn!.replaceWith(next);
+      this.#btn = next;
+    }
     const btn = this.#btn!;
     const busy = this.busy;
     const result = this.#result;
     const last = this.#lines[this.#lines.length - 1];
+    // Un enlace sin dirección segura no lleva a ninguna parte: se pinta apagado.
+    const url = link ? safeHref(this.href) : undefined;
+    const off = busy || this.disabled || (link && !url);
 
-    btn.type = this.type as "button" | "submit" | "reset";
-    for (const a of ["name", "value"]) {
-      const v = this.getAttribute(a);
-      if (v === null) btn.removeAttribute(a);
-      else btn.setAttribute(a, v);
+    if (btn instanceof HTMLAnchorElement) {
+      // Apagado u ocupado, sin `href`: así no lo sigue ni el clic, ni Ctrl/⌘+clic, ni la rueda. Un
+      // `<a>` sin `href` no es un enlace para el lector de pantalla: lo dice el `role`.
+      if (url && !off) btn.setAttribute("href", url);
+      else btn.removeAttribute("href");
+      if (btn.hasAttribute("href")) btn.removeAttribute("role");
+      else btn.setAttribute("role", "link");
+      if (this.newTab) {
+        btn.target = "_blank";
+        btn.rel = "noopener noreferrer";
+      } else {
+        btn.removeAttribute("target");
+        btn.removeAttribute("rel");
+      }
+      btn.toggleAttribute("download", this.download);
+    } else {
+      btn.type = this.type as "button" | "submit" | "reset";
+      for (const a of ["name", "value"]) {
+        const v = this.getAttribute(a);
+        if (v === null) btn.removeAttribute(a);
+        else btn.setAttribute(a, v);
+      }
     }
     btn.className = `nx-button__btn nx-button--${this.variant}`;
     btn.toggleAttribute("data-hold", this.hold > 0);
@@ -450,7 +516,7 @@ export class NxButton extends Base {
     btn.dataset.result = result ? (result.ok ? "ok" : "error") : "";
     btn.setAttribute("aria-busy", String(busy));
     // `aria-disabled` y no `disabled`: un botón deshabilitado suelta el foco en pleno clic.
-    btn.setAttribute("aria-disabled", String(busy || this.disabled));
+    btn.setAttribute("aria-disabled", String(off));
     if (this.hold) btn.setAttribute("aria-description", this.#labels.hold);
     else btn.removeAttribute("aria-description");
 

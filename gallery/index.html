@@ -4614,6 +4614,18 @@ emp.addEventListener("nx-select-change", (e) =&gt; console.log(e.detail.value, e
         <nx-button label="Deshabilitado" disabled></nx-button>
       </div>
 
+      <h2>Como enlace</h2>
+      <p>
+        Con <code>href</code> es un enlace de verdad (un <code>&lt;a href&gt;</code> por dentro): Ctrl/⌘+clic, la rueda y el
+        menú del navegador funcionan, y el router de la app lo intercepta como a cualquier enlace. Mismo aspecto y mismas
+        variantes; <code>new-tab</code> lo abre en otra pestaña y <code>download</code> descarga.
+      </p>
+      <div class="btn-row">
+        <nx-button id="btn-link" label="Ver el directorio de TH" variant="primary" icon="users" href="#/th"></nx-button>
+        <nx-button label="Abrir el registro de cambios" icon="file-text" href="https://github.com/DL21hex/nx32-elements" new-tab></nx-button>
+        <nx-button label="Enlace deshabilitado" href="#/th" disabled></nx-button>
+      </div>
+
       <h2>Tareas en segundo plano</h2>
       <label class="fail-toggle"><input type="checkbox" id="btn-fail" /> Simular un error en el paso 4</label>
       <div class="btn-demos">

@@ -122,3 +122,31 @@ test("alto contraste: el spinner tiene un borde de otro color y el relleno de ho
   expect(Number(fill.opacity)).toBeGreaterThan(0.3);
   await btn.dispatchEvent("pointerup");
 });
+
+test("href: el enlace se ve como el botón de su variante y navega con el teclado", async ({ page }) => {
+  await open(page, "#/button");
+  await add(
+    page,
+    '<div style="position:fixed;top:80px;left:20px;z-index:99999;display:flex;gap:8px;background:white;padding:8px">' +
+      '<nx-button id="as-btn" label="Ver empleados" icon="users" variant="primary"></nx-button>' +
+      '<nx-button id="as-link" label="Ver empleados" icon="users" variant="primary" href="#/th"></nx-button>' +
+      "</div>",
+  );
+  const look = (sel: string) =>
+    page.locator(`${sel} .nx-button__btn`).evaluate((el) => {
+      const s = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return { tag: el.tagName, bg: s.backgroundColor, fg: s.color, deco: s.textDecorationLine, radius: s.borderRadius, h: Math.round(r.height), w: Math.round(r.width), font: s.fontWeight };
+    });
+  const btn = await look("#as-btn");
+  const link = await look("#as-link");
+  expect(btn.tag).toBe("BUTTON");
+  expect(link.tag).toBe("A");
+  // Mismo aspecto: ni subrayado ni color de enlace.
+  expect({ ...link, tag: "" }).toEqual({ ...btn, tag: "" });
+  expect(link.deco).toBe("none");
+  // Un enlace de verdad: con el foco, Enter navega.
+  await page.locator("#as-link .nx-button__btn").focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => location.hash)).toBe("#/th");
+});

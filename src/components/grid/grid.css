@@ -119,6 +119,10 @@ nx-grid:not([data-selection]) > [slot="bulk"] {
     text-underline-offset: 2px;
   }
 }
+/* `href`: la celda es un enlace de verdad; se ve igual que `link`. */
+a.nx-grid__link {
+  text-decoration: none;
+}
 .nx-grid__avatar {
   display: inline-grid;
   place-items: center;
@@ -815,6 +819,77 @@ nx-grid .nx-grid__sort-icon {
 }
 .is-copied .nx-grid__cell:is(.is-sel, .is-active) {
   animation: nx-grid-copy 0.6s ease-out;
+}
+/* La columna de acciones: fija a la derecha y opaca (las columnas pasan por debajo al desplazarse
+   a lo ancho). No se marca ni se selecciona: lo que se recorre con el teclado son las columnas de
+   datos, y las acciones salen en el menú de la celda. */
+.nx-grid__actions {
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding-inline: 6px;
+  border-inline-start: 1px solid var(--nx-border-subtle);
+  border-inline-end: 0;
+  background: var(--nx-card);
+  cursor: default;
+
+  .nx-grid__row:hover > & {
+    background: linear-gradient(var(--nx-hover), var(--nx-hover)), var(--nx-card);
+  }
+  .nx-grid__row.is-picked > & {
+    background: linear-gradient(color-mix(in oklab, var(--nx-primary) 7%, transparent), color-mix(in oklab, var(--nx-primary) 7%, transparent)), var(--nx-card);
+  }
+}
+.nx-grid__th.nx-grid__actions {
+  z-index: 1;
+}
+.nx-grid__act {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  block-size: 26px;
+  min-inline-size: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: none;
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &.is-icon {
+    inline-size: 26px;
+    padding: 0;
+    color: var(--nx-muted-foreground);
+  }
+  & .nx-icon {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+  &:hover {
+    background: var(--nx-hover);
+    color: var(--nx-foreground);
+  }
+  &[data-tone="danger"] {
+    color: var(--nx-danger);
+  }
+  &[data-tone="danger"]:hover {
+    background: var(--nx-danger-soft);
+    color: var(--nx-danger);
+  }
+}
+.nx-grid__menu-item[data-tone="danger"] {
+  color: var(--nx-danger);
 }
 .nx-grid__input {
   inline-size: 100%;

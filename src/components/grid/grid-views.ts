@@ -30,6 +30,7 @@ export const VIEW_LABELS: GridViewLabels = {
   viewUntitled: "Vista {n}",
   columnsTitle: "Columnas visibles",
   columnsReset: "Mostrar todas, con su ancho original",
+  columnsResetDefault: "Volver a las columnas de la tabla, con su ancho original",
   columnsHint: "Arrastra el borde de una cabecera para cambiar su ancho; doble clic lo devuelve.",
 };
 
@@ -42,6 +43,8 @@ export interface ViewsHost {
   /** Todas las columnas, también las ocultas. */
   readonly cols: GridColumn[];
   readonly hidden: ReadonlySet<string>;
+  /** Las columnas que la tabla declara `hidden` (las que esconde la tabla original). */
+  readonly defaultHidden: ReadonlySet<string>;
   readonly view: GridView;
   readonly views: GridSavedView[];
   readonly active: string | null;
@@ -75,8 +78,10 @@ export function sameView(a: GridView, b: GridView): boolean {
   return key(a) === key(b);
 }
 
-/** La tabla sin nada: ni filtros, ni orden, ni grupos, ni columnas ocultas o con otro ancho. */
-const isOriginal = (v: GridView) => !v.filters.length && !v.sort && !v.groupBy && !v.hidden.length && !Object.keys(v.widths).length;
+/** La tabla sin nada: ni filtros, ni orden, ni grupos, ni anchos cambiados, y escondidas solo las
+ *  columnas que la tabla declara `hidden`. */
+const isOriginal = (v: GridView, defaults: ReadonlySet<string>) =>
+  !v.filters.length && !v.sort && !v.groupBy && v.hidden.length === defaults.size && v.hidden.every((k) => defaults.has(k)) && !Object.keys(v.widths).length;
 
 export class ViewsUI {
   #host: ViewsHost;
@@ -172,7 +177,7 @@ export class ViewsUI {
 
   #signature(): string {
     const cur = this.#current();
-    return JSON.stringify([this.#host.views.map((v) => [v.id, v.name, !!v.default]), this.#host.active, !!cur && !sameView(cur, this.#host.view), isOriginal(this.#host.view)]);
+    return JSON.stringify([this.#host.views.map((v) => [v.id, v.name, !!v.default]), this.#host.active, !!cur && !sameView(cur, this.#host.view), isOriginal(this.#host.view, this.#host.defaultHidden)]);
   }
 
   /** La lista guardada de ahora, no la de cuando se pintó el menú: otra pestaña, u otra tabla con la
@@ -310,8 +315,8 @@ export class ViewsUI {
         this.#item(L.viewSaveNew, () => this.#to("save")),
         cur ? this.#item(fmt(L.viewEdit, { name: cur.name }), () => this.#to("edit")) : null,
         cur ? this.#item(fmt(L.viewDelete, { name: cur.name }), () => this.#to("delete")) : null,
-        cur || !isOriginal(host.view) ? h("hr") : null,
-        cur || !isOriginal(host.view)
+        cur || !isOriginal(host.view, host.defaultHidden) ? h("hr") : null,
+        cur || !isOriginal(host.view, host.defaultHidden)
           ? this.#item(L.viewReset, () => {
               host.apply(null);
               done();
@@ -394,7 +399,8 @@ export class ViewsUI {
       const t = e.target as HTMLInputElement;
       if (t.dataset.col !== undefined) host.setHidden(t.dataset.col, !t.checked);
     });
-    const reset = h("button", { type: "button", class: "nx-grid__clear" }, L.columnsReset);
+    // Con columnas que la tabla esconde de arranque, restablecer no las muestra todas: lo dice.
+    const reset = h("button", { type: "button", class: "nx-grid__clear" }, host.defaultHidden.size ? L.columnsResetDefault : L.columnsReset);
     reset.addEventListener("click", () => host.resetColumns());
     this.#cpop.setAttribute("aria-label", L.columnsTitle);
     this.#cpop.replaceChildren(h("strong", { class: "nx-grid__v-title" }, L.columnsTitle), list, h("p", { class: "nx-grid__f-hint" }, L.columnsHint), reset);

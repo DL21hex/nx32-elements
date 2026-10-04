@@ -3,10 +3,10 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/grid/index";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAccents, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
+import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
 import type { GridFilterDetail } from "./jsx";
 
-export type { NxGrid, GridAccents, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
+export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
 
 export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" | "onError"> {
   columns: GridColumn[];
@@ -37,6 +37,8 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   topScrollbar?: boolean;
   /** Atajos: tarjetas con un filtro y su conteo sobre la tabla. */
   presets?: GridPreset[];
+  /** Acciones de fila: botones (o enlaces, con `href`) en una columna fija a la derecha. */
+  actions?: GridAction[];
   /** Casillas para seleccionar filas; las acciones van como hijo con `slot="bulk"`. */
   selectable?: boolean;
   selected?: string[];
@@ -52,8 +54,11 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   onChange?: (e: CustomEvent<{ changes: GridChange[]; source: GridChangeSource }>) => void;
   onColumns?: (e: CustomEvent<{ columns: GridColumn[] }>) => void;
   onSelection?: (e: CustomEvent<{ ids: string[]; count: number }>) => void;
-  /** Clic en una columna `link` o Enter en una fila: el detalle (p. ej. un `<Dialog mode="panel">`). */
+  /** Clic en una columna `link` o Enter en una fila: el detalle (p. ej. un `<Dialog mode="panel">`).
+   *  Una fila con enlace (columna `href` con dirección) lo sigue y no emite. */
   onOpen?: (e: CustomEvent<{ id: string; row: GridRow; key: string; origin: HTMLElement | null }>) => void;
+  /** El botón de una acción de fila (las que son enlace no emiten). */
+  onAction?: (e: CustomEvent<GridActionDetail>) => void;
   /** Con `source`: un bloque no llegó (la tabla lo vuelve a pedir más tarde). */
   onError?: (e: CustomEvent<GridErrorDetail>) => void;
   /** Cómo terminó una exportación. */
@@ -62,7 +67,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "actions", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -76,6 +81,7 @@ export function Grid(props: GridProps): JSX.Element {
       prop:sort={local.sort}
       prop:search={local.search}
       prop:presets={local.presets}
+      prop:actions={local.actions}
       prop:view={local.view}
       prop:views={local.views}
       attr:views-storage={local.viewsStorage}
@@ -94,6 +100,7 @@ export function Grid(props: GridProps): JSX.Element {
       on:nx-grid-columns={own((e) => local.onColumns?.(e))}
       on:nx-grid-selection={own((e) => local.onSelection?.(e))}
       on:nx-grid-open={own((e) => local.onOpen?.(e))}
+      on:nx-grid-action={own((e) => local.onAction?.(e))}
       on:nx-grid-error={own((e) => local.onError?.(e))}
       on:nx-grid-export={own((e) => local.onExport?.(e))}
       prop:selected={local.selected}

@@ -7,6 +7,8 @@ export { NxGrid, GRID_LABELS } from "./grid";
 export { applyFilters, crossfilter, filterLabel, formatCell, parseTSV, sortRows, toTSV } from "./logic";
 export type {
   GridAccents,
+  GridAction,
+  GridActionDetail,
   GridChange,
   GridChangeSource,
   GridColumn,
@@ -40,6 +42,7 @@ declare global {
     "nx-grid-selection": CustomEvent<{ ids: string[]; count: number }>;
     "nx-grid-views": CustomEvent<{ views: import("./types").GridSavedView[] }>;
     "nx-grid-open": CustomEvent<{ id: string; row: import("./types").GridRow; key: string; origin: HTMLElement | null }>;
+    "nx-grid-action": CustomEvent<import("./types").GridActionDetail>;
     "nx-grid-error": CustomEvent<import("./types").GridErrorDetail>;
     "nx-grid-export": CustomEvent<import("./types").GridExportDetail>;
   }

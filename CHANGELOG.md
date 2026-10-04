@@ -1,5 +1,36 @@
 # Registro de cambios
 
+## 0.3.0 — 2026-10-04
+
+### `<nx-grid>`
+
+- **Enlaces de verdad (`href` en la columna).** `{ key: "oc", label: "Pedido", href: "detalle_url" }`
+  pinta un `<a href>` en las filas que traen esa clave: Ctrl/⌘+clic o la rueda abren otra pestaña,
+  el clic derecho da el menú del navegador y un router de la app lo intercepta como a cualquier
+  enlace. Abrir la fila (Enter, doble clic, segundo toque) lo sigue con ese mismo clic y **no**
+  emite `nx-grid-open`. `newTab` pone `target="_blank"` y `rel="noopener noreferrer"`. Una dirección
+  que no es segura (`javascript:`, `data:`…) no se pinta: la celda queda como `link`. `href` implica
+  `link`.
+- **Columnas que empiezan escondidas (`hidden` en la columna).** La persona las muestra desde
+  «Columnas»; restablecer (o la tabla original de las vistas) las vuelve a esconder, y ese botón lo
+  dice (`columnsResetDefault`: «Volver a las columnas de la tabla, con su ancho original»).
+  Reasignar `columns` no vuelve a esconder lo que la persona mostró. Un `view` sin `hidden` deja
+  escondidas las declaradas; con `hidden: []`, todas a la vista.
+- **Acciones de fila (`actions`, propiedad o atributo JSON; en Solid, `actions` y `onAction`).** Una
+  columna fija a la derecha, opaca, fuera de los filtros, la búsqueda, la exportación y «Columnas».
+  Cada acción: `key`, `label`, `icon` (del registro: queda solo el ícono, con `aria-label` y
+  `title`), `tone: "danger"`, `href` (clave de la fila con la dirección: un enlace, con `newTab` y
+  `download`; una fila sin dirección segura no la muestra) y `when` (clave de la fila que dice si
+  aplica). Un botón emite **`nx-grid-action`** `{action, id, row}`; un enlace no emite nada. Con el
+  teclado, las acciones salen primero en el menú de la celda (Mayús+F10, tecla de menú o clic
+  derecho), aunque la columna no se filtre (`labels.rowActions`). Tocar la columna deja el foco en
+  la tabla y su fila como la activa. Una `key` repetida, o una acción sin `key` o `label`, se
+  descarta.
+- Clic derecho sobre un enlace (el de una celda o el de una acción): el menú del navegador, no el
+  de la tabla.
+- Nuevos textos: `labels.actions` («Acciones», la cabecera para lectores de pantalla) y
+  `labels.rowActions` («Acciones de la fila»). Nuevos tipos: `GridAction`, `GridActionDetail`.
+
 ## 0.2.5 — 2026-10-04
 
 ### `<nx-button>`

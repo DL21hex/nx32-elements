@@ -468,7 +468,10 @@ Una tabla de datos que se explora sola:
   las celdas.
 - **Agrupación con subtotales** por cualquier columna de categorías o por mes.
 - **Columnas a la medida.** «Columnas» muestra y esconde columnas (la última no se esconde, y el
-  filtro de una columna oculta sigue puesto). El borde de cada cabecera cambia su ancho: arrastrar,
+  filtro de una columna oculta sigue puesto). Una columna con `hidden: true` empieza escondida: la
+  persona la muestra desde «Columnas», y «Volver a las columnas de la tabla» (o la tabla original
+  de las vistas) la vuelve a esconder. Reasignar `columns` no esconde otra vez lo que la persona
+  mostró; una vista guardada recuerda lo que eligió. El borde de cada cabecera cambia su ancho: arrastrar,
   Ctrl+←/→ con el foco en la cabecera, y doble clic o Supr para el original.
 - **Vistas guardadas.** Con `views-storage="compras:ana"`, «Vistas» guarda el estado de la tabla
   con un nombre en `localStorage` (filtros, orden, agrupación, columnas ocultas y anchos) y lo
@@ -526,6 +529,22 @@ Una tabla de datos que se explora sola:
   «seleccionar las n» filtradas); lo que la app ponga con `slot="bulk"` aparece junto al conteo.
   Una columna `link` abre el detalle (`nx-grid-open`, también con Enter) y `avatar` muestra las
   iniciales. `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
+- **Enlaces de verdad (`href`).** Una columna con `href: "url"` (la clave de la fila que trae la
+  dirección) pinta un `<a href>` en las filas que la traen: Ctrl/⌘+clic o la rueda abren otra
+  pestaña, el clic derecho da el menú del navegador (copiar el enlace) y un router de la app lo
+  intercepta como cualquier enlace. Abrir la fila (Enter, doble clic, el segundo toque) lo sigue con
+  ese mismo clic, en vez de emitir `nx-grid-open`. Con `newTab`, `target="_blank"` y
+  `rel="noopener noreferrer"`. Una dirección que no es segura (`javascript:`, `data:`) no se pinta:
+  la celda queda como `link`. El enlace va fuera del orden del Tab (la tabla sigue siendo una sola
+  parada).
+- **Acciones de fila (`actions`).** Botones en una columna fija a la derecha, opaca, que no se
+  filtra, no se busca, no se exporta y no está en «Columnas». Cada acción tiene `key` y `label`;
+  con `icon` (del registro) queda solo el ícono, con su nombre en `aria-label` y `title`; `tone:
+  "danger"` para lo que borra. Un botón emite `nx-grid-action` (`{action, id, row}`); con `href`
+  (la clave de la fila con la dirección) es un enlace, con `newTab` y `download` si hacen falta, y
+  no emite nada. `when` nombra la clave de la fila que dice si aplica (`false`, `0`, `""`, `"0"` o
+  `"false"`, no). Con el teclado, las acciones de la fila salen primero en el menú de la celda
+  (Mayús+F10 o la tecla de menú, también con el clic derecho). Tocarlas deja el foco en la tabla.
 - **Con el dedo.** Un toque marca la celda y otro toque sobre la misma la edita o abre la fila,
   como el doble clic (que en iOS no llega). La pulsación larga abre el menú de la celda. Arrastrar
   desplaza la tabla (no marca un rango) y, al llegar a su final, sigue la página. En una pantalla
@@ -548,6 +567,14 @@ grid.columns = [
 ];
 grid.rows = pedidos; // o grid.source = "/compras/pedidos/buscar"
 grid.addEventListener("nx-grid-change", (e) => guardar(e.detail.changes));
+
+// Enlace por fila y acciones (cada fila trae `detalle_url`, `pdf_url` y `anulable`).
+grid.columns = [{ key: "oc", label: "Pedido", href: "detalle_url" }, ...];
+grid.actions = [
+  { key: "pdf", label: "PDF", icon: "file-text", href: "pdf_url", newTab: true },
+  { key: "anular", label: "Anular", tone: "danger", when: "anulable" },
+];
+grid.addEventListener("nx-grid-action", (e) => anular(e.detail.id));
 ```
 
 ```
@@ -569,9 +596,9 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo` |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 

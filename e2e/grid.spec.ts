@@ -634,3 +634,66 @@ test("menú de vistas cerca del borde de abajo: abre hacia arriba, sigue al bot�
     return Math.round(b.y - (m.y + m.height) - gap);
   }).toBe(0);
 });
+
+const links = (page: Page) => page.locator("#grid-links");
+
+test("enlace por fila: clic sigue el enlace; Ctrl/⌘+clic abre otra pestaña; Enter lo sigue desde otra celda", async ({ page, context }) => {
+  await open(page, "#/grid");
+  const first = links(page).locator('.nx-grid__row[data-r="0"] > [data-c="0"] a');
+  const href = await first.getAttribute("href");
+  expect(href).toMatch(/^#\/grid\?pedido=OC-/);
+  // Ctrl/⌘+clic: el navegador abre otra pestaña y esta no se mueve.
+  const popup = context.waitForEvent("page");
+  await first.click({ modifiers: [mod(page)] });
+  const other = await popup;
+  await expect.poll(() => decodeURIComponent(other.url())).toContain(href!);
+  await other.close();
+  expect(page.url()).not.toContain("pedido=");
+  // Enter desde la columna de al lado sigue el enlace de la fila.
+  await links(page).locator('.nx-grid__row[data-r="1"] > [data-c="1"]').click();
+  const second = await links(page).locator('.nx-grid__row[data-r="1"] > [data-c="0"] a').getAttribute("href");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => decodeURIComponent(new URL(page.url()).hash)).toBe(second);
+  // Clic normal: también lo sigue.
+  await page.goto("/#/grid");
+  await first.click();
+  await expect.poll(() => decodeURIComponent(new URL(page.url()).hash)).toBe(href);
+});
+
+test("acciones de fila: columna fija a la derecha al desplazar, botón con nx-grid-action, «Anular» solo donde aplica", async ({ page }) => {
+  await open(page, "#/grid");
+  const grid = links(page);
+  const scroller = grid.locator(".nx-grid__scroll");
+  const actsCell = grid.locator('.nx-grid__row[data-r="0"] > .nx-grid__actions');
+  const before = (await actsCell.boundingBox())!;
+  const box = (await scroller.boundingBox())!;
+  // Pegada al borde derecho de lo visible, antes y después de desplazar a lo ancho.
+  expect(Math.abs(before.x + before.width - (box.x + box.width))).toBeLessThan(20);
+  await scroller.evaluate((s) => (s.scrollLeft = 400));
+  const after = (await actsCell.boundingBox())!;
+  expect(Math.round(after.x)).toBe(Math.round(before.x));
+  // «Editar» emite el evento y la galería lo anota.
+  await actsCell.getByRole("button", { name: "Editar" }).click();
+  await expect(page.locator("#grid-links-log li").first()).toContainText("nx-grid-action → edit");
+  // El foco se quedó en la tabla.
+  await expect(scroller).toBeFocused();
+  // «Anular» sale en las filas anulables (borrador o pendiente) y no en las demás.
+  const states = await grid.locator('.nx-grid__row:not(.nx-grid__row--group)[data-r]').evaluateAll((rows) =>
+    rows.map((r) => ({ estado: r.querySelector('[data-c="6"]')?.textContent ?? "", anular: !!r.querySelector('.nx-grid__act[data-act="void"]') })),
+  );
+  expect(states.length).toBeGreaterThan(3);
+  for (const s of states) expect(s.anular, s.estado).toBe(s.estado === "Borrador" || s.estado === "Pendiente");
+});
+
+test("acciones de fila con el teclado: Mayús+F10 las ofrece primero y «Comprador» empieza escondida", async ({ page }) => {
+  await open(page, "#/grid");
+  const grid = links(page);
+  await expect(grid.locator(".nx-grid__th-label")).not.toContainText(["Comprador"]);
+  await grid.locator('.nx-grid__row[data-r="0"] > [data-c="1"]').click();
+  await page.keyboard.press("Shift+F10");
+  const items = page.locator(".nx-grid__menu:popover-open .nx-grid__menu-item");
+  await expect(items.first()).toHaveText("PDF");
+  await expect(items.nth(1)).toHaveText("Editar");
+  await items.nth(1).click();
+  await expect(page.locator("#grid-links-log li").first()).toContainText("nx-grid-action → edit");
+});

@@ -231,6 +231,11 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
       <nx-grid id="grid-demo" locale="es-CO" facets-open filename="necesidades-de-compra" views-storage="nx-galeria:compras"></nx-grid>
       <ol class="stage__log btn-events" id="grid-log"></ol>
 
+      <h2>Enlace por fila y acciones</h2>
+      <p>«Pedido» es un enlace de verdad (<code>href</code>): Ctrl/⌘+clic o la rueda lo abren en otra pestaña y el clic derecho da el menú del navegador; Enter o doble clic en la fila lo siguen. A la derecha, las acciones de la fila: «PDF» es un enlace (<code>href</code>), «Editar» y «Anular» emiten <code>nx-grid-action</code>, y «Anular» solo aparece donde la fila lo permite (<code>when</code>). «Comprador» empieza escondida (<code>hidden</code>).</p>
+      <nx-grid id="grid-links" locale="es-CO" height="320" filename="pedidos"></nx-grid>
+      <ol class="stage__log btn-events" id="grid-links-log"></ol>
+
       <h2>Cómo se usa</h2>
       <div class="table-wrap">
         <table>

@@ -90,4 +90,22 @@ describe("nx-grid: atajos", () => {
     await sleep(10);
     expect(cards(el).map((b) => b.querySelector("strong")!.textContent)).toEqual(["1.520", "7"]);
   });
+
+  it("`tone` llega a la tarjeta; sin tono, `neutral` o uno que no existe, nada", () => {
+    document.body.innerHTML = "<nx-grid></nx-grid>";
+    const el = document.querySelector("nx-grid")!;
+    el.columns = COLS;
+    el.rows = ROWS;
+    el.presets = [
+      { ...PRESETS[0], tone: "warning" },
+      PRESETS[1],
+      { id: "n", label: "Neutro", tone: "neutral", filters: [] },
+      { id: "x", label: "Raro", tone: "fucsia" as never, filters: [] },
+    ];
+    expect(cards(el).map((b) => b.dataset.tone ?? null)).toEqual(["warning", null, null, null]);
+    expect(el.presets[3]).not.toHaveProperty("tone");
+    // Cambiar solo el tono vuelve a pintar.
+    el.presets = [{ ...PRESETS[0], tone: "danger" }, PRESETS[1]];
+    expect(cards(el)[0].dataset.tone).toBe("danger");
+  });
 });

@@ -49,8 +49,10 @@ export interface GridColumn {
   /** Empieza escondida: «Columnas» la muestra, y «Restablecer columnas» (o volver a la tabla
    *  original) la vuelve a esconder. Una vista guardada recuerda lo que eligió la persona. */
   hidden?: boolean;
-  /** Un círculo con las iniciales del valor antes del texto (nombres de personas). */
-  avatar?: boolean;
+  /** Un círculo con las iniciales del valor antes del texto (nombres de personas). Con `true`, cada
+   *  persona tiene su color (sale del texto: la misma, siempre el mismo); con `"neutral"`, todos van
+   *  en gris, para una columna que se lee mucho y no debe competir con los tonos de la tabla. */
+  avatar?: boolean | "neutral";
 }
 
 /** Una acción de fila: un botón (o un enlace) en la columna de acciones, fija a la derecha. */
@@ -208,6 +210,9 @@ export interface GridPreset {
   hint?: string;
   /** Todos los filtros del atajo (reemplazan a los que haya). Un tramo con `rel` se recalcula cada día. */
   filters: GridFilter[];
+  /** El tono del atajo: su conteo va en ese color y, marcado, la tarjeta también. Para el atajo que
+   *  señala algo por resolver («Sin jefe asignado» en `warning`); los demás, sin tono. */
+  tone?: GridTone;
 }
 
 /** Lo que responde `source`: un bloque de filas y, opcionalmente, los agregados con los filtros aplicados. */

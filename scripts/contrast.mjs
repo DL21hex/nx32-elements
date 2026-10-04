@@ -20,6 +20,11 @@ const pairs = [
   ["--nx-success", "--nx-success-soft", "--nx-canvas"],
   ["--nx-danger", "--nx-danger-soft", "--nx-canvas"],
   ["--nx-warning-ink", "--nx-warning-soft", "--nx-canvas"],
+  // El conteo de un atajo con tono, sin marcar (sobre la tarjeta), y el avatar neutro.
+  ["--nx-warning-ink", "--nx-card", "--nx-card"],
+  ["--nx-success", "--nx-card", "--nx-card"],
+  ["--nx-danger", "--nx-card", "--nx-card"],
+  ["--nx-muted-foreground", "--nx-hover", "--nx-card"],
   ["--nx-primary-foreground", "--nx-primary", "--nx-card"],
   ["--nx-danger-foreground", "--nx-danger", "--nx-card"],
 ];

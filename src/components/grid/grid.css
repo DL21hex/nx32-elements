@@ -136,6 +136,12 @@ a.nx-grid__link {
   font-weight: 600;
   line-height: 1;
   vertical-align: middle;
+
+  /* `avatar: "neutral"`: todos en gris, como la píldora sin tono. */
+  &[data-tone="neutral"] {
+    background: var(--nx-hover);
+    color: var(--nx-muted-foreground);
+  }
 }
 nx-grid .nx-glyph {
   display: inline-flex;
@@ -158,7 +164,8 @@ nx-grid .nx-glyph {
   gap: 8px;
   margin-block-end: 8px;
 }
-/* Atajos: tarjetas con un filtro y su conteo. Marcada, la del filtro que se está viendo. */
+/* Atajos: tarjetas con un filtro y su conteo. Marcada, la del filtro que se está viendo. Con tono, el
+   conteo va en su color y, marcada, la tarjeta también: el color se lo lleva el atajo que señala algo. */
 .nx-grid__presets {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -166,6 +173,9 @@ nx-grid .nx-glyph {
   margin-block-end: 12px;
 }
 .nx-grid__preset {
+  --_soft: var(--nx-primary-soft);
+  --_line: var(--nx-primary-border);
+  --_ink: var(--nx-primary-ink);
   display: grid;
   align-content: start;
   justify-items: start;
@@ -203,11 +213,26 @@ nx-grid .nx-glyph {
     outline-offset: 1px;
   }
   &[aria-pressed="true"] {
-    border-color: var(--nx-primary-border);
-    background: var(--nx-primary-soft);
+    border-color: var(--_line);
+    background: var(--_soft);
   }
-  &[aria-pressed="true"] > strong {
-    color: var(--nx-primary-ink);
+  &:is([aria-pressed="true"], [data-tone]) > strong {
+    color: var(--_ink);
+  }
+  &[data-tone="success"] {
+    --_soft: var(--nx-success-soft);
+    --_line: color-mix(in oklab, var(--nx-success) 45%, transparent);
+    --_ink: var(--nx-success);
+  }
+  &[data-tone="warning"] {
+    --_soft: var(--nx-warning-soft);
+    --_line: color-mix(in oklab, var(--nx-warning) 55%, transparent);
+    --_ink: var(--nx-warning-ink);
+  }
+  &[data-tone="danger"] {
+    --_soft: var(--nx-danger-soft);
+    --_line: color-mix(in oklab, var(--nx-danger) 45%, transparent);
+    --_ink: var(--nx-danger);
   }
 }
 /* Buscar en la tabla: ocupa lo que sobra de la fila, y los botones que le siguen quedan a la derecha. */

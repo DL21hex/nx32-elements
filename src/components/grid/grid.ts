@@ -57,7 +57,7 @@ import {
 } from "./logic";
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -231,6 +231,7 @@ function validFilters(v: unknown): GridFilter[] {
 
 const TYPES = new Set(["text", "number", "money", "date", "status"]);
 const KINDS = new Set(["list", "range", "date", "text"]);
+const TONES = new Set<GridTone>(["neutral", "info", "success", "warning", "danger"]);
 
 /** Una columna que llega de afuera (BDUI: JSON). Sin `key` y `label` de texto no sirve; lo demás que
  *  no tenga la forma correcta se arregla o se quita: unas `options` que no son lista lanzaban al
@@ -254,7 +255,8 @@ function cleanColumn(c: unknown): GridColumn | null {
   if (x.filter !== undefined && x.filter !== false && !KINDS.has(x.filter as string)) fix.filter = undefined;
   if (x.currency !== undefined && typeof x.currency !== "string") fix.currency = undefined;
   if (x.href !== undefined && (typeof x.href !== "string" || !x.href)) fix.href = undefined;
-  for (const k of ["editable", "link", "avatar", "histogram", "facet", "newTab", "hidden"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
+  for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
+  if (x.avatar !== undefined && typeof x.avatar !== "boolean" && x.avatar !== "neutral") fix.avatar = !!x.avatar;
   if (!Object.keys(fix).length) return c as GridColumn;
   const out: Record<string, unknown> = { ...x, ...fix };
   for (const k of Object.keys(fix)) if (fix[k] === undefined) delete out[k];
@@ -650,7 +652,12 @@ export class NxGrid extends Base {
     return this.#presets;
   }
   set presets(v: GridPreset[] | null | undefined) {
-    this.#presets = Array.isArray(v) ? v.filter((p) => p && typeof p.id === "string" && typeof p.label === "string" && Array.isArray(p.filters)) : [];
+    this.#presets = Array.isArray(v)
+      ? v
+          .filter((p) => p && typeof p.id === "string" && typeof p.label === "string" && Array.isArray(p.filters))
+          // Un tono que no existe no pinta nada: se quita, como si no viniera.
+          .map((p) => (p.tone === undefined || TONES.has(p.tone) ? p : (({ tone: _, ...rest }) => rest)(p)))
+      : [];
     if (!this.#server) this.#presetN.clear();
     this.#presetKey = "";
     this.#paintPresets();
@@ -1905,7 +1912,7 @@ export class NxGrid extends Base {
     // Con las filas aquí, cada atajo se cuenta una vez por juego de datos (no en cada pintado).
     if (!this.#server && list.some((p) => !this.#presetN.has(p.id)))
       for (const p of list) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
-    const state = list.map((p) => [p.id, p.label, p.hint, this.#presetN.get(p.id), this.#presetOn(p)]);
+    const state = list.map((p) => [p.id, p.label, p.hint, p.tone, this.#presetN.get(p.id), this.#presetOn(p)]);
     const key = JSON.stringify([this.#labels.presets, this.locale, state]);
     if (key === this.#presetKey) return;
     this.#presetKey = key;
@@ -1916,7 +1923,13 @@ export class NxGrid extends Base {
         const n = this.#presetN.get(p.id);
         return h(
           "button",
-          { type: "button", class: "nx-grid__preset", "data-preset": p.id, "aria-pressed": String(this.#presetOn(p)) },
+          {
+            type: "button",
+            class: "nx-grid__preset",
+            "data-preset": p.id,
+            "data-tone": p.tone && p.tone !== "neutral" ? p.tone : null,
+            "aria-pressed": String(this.#presetOn(p)),
+          },
           h("strong", null, n === undefined ? "—" : this.#loc.number(n)),
           h("span", null, p.label),
           p.hint ? h("small", null, p.hint) : null,
@@ -2249,9 +2262,12 @@ export class NxGrid extends Base {
         const tone = c.options?.find((o) => o.value === String(v))?.tone;
         if (text && (colType(c) === "status" || tone)) el.append(h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text));
         else if (text && (c.link || c.href || c.avatar)) {
-          // El tono del avatar sale del texto: la misma persona, siempre el mismo color.
-          const hue = [...text].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
-          if (c.avatar) el.append(h("span", { class: "nx-grid__avatar", style: `--_h:${hue}`, "aria-hidden": "true" }, initials(text)));
+          // El tono del avatar sale del texto: la misma persona, siempre el mismo color (o gris, `neutral`).
+          if (c.avatar === "neutral") el.append(h("span", { class: "nx-grid__avatar", "data-tone": "neutral", "aria-hidden": "true" }, initials(text)));
+          else if (c.avatar) {
+            const hue = [...text].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
+            el.append(h("span", { class: "nx-grid__avatar", style: `--_h:${hue}`, "aria-hidden": "true" }, initials(text)));
+          }
           // Con dirección, un enlace de verdad (fuera del orden del Tab: la tabla es una sola parada).
           const url = c.href ? safeHref(r[c.href]) : undefined;
           if (url) el.append(h("a", { class: "nx-grid__link", href: url, tabindex: -1, draggable: "false", ...(c.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {}) }, text));

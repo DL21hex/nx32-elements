@@ -1,5 +1,26 @@
 # Registro de cambios
 
+## 0.3.1 — 2026-10-04
+
+### `<nx-button>`
+
+- **`href`: el botón como enlace.** Con dirección, el control de adentro es un `<a href>` de verdad
+  en vez del `<button>`, con el mismo aspecto y las mismas variantes: Ctrl/⌘+clic, la rueda y el
+  menú del navegador funcionan, y el router de la app lo intercepta como a cualquier enlace.
+  `new-tab` (en Solid, `newTab`) abre en otra pestaña con `rel="noopener noreferrer"`; `download`
+  descarga. Una dirección que no es segura no se pinta, y deshabilitado u ocupado el enlace pierde
+  su `href` (ni un Ctrl/⌘+clic lo sigue). Con `href` no aplican `type`, `name`, `value` ni `stream`.
+  Aparecer o irse `href` cambia el control sin perder etiqueta, ícono ni oyentes.
+- **Se retira la clase `nx-button` de la 0.2.5.** Servía para vestir un `<a>` suelto de botón; con
+  `href` el enlace es el propio componente, y las clases vuelven a ser internas. Para migrar:
+  `<a class="nx-button nx-button--primary" href="/x">Ir</a>` →
+  `<nx-button variant="primary" href="/x" label="Ir"></nx-button>`.
+
+### Versiones
+
+- La 0.3.0 (enlaces y acciones de fila de `<nx-grid>`) salió de una rama antes de entrar a `main`, y
+  la 0.2.5 salió de `main` sin ella. Las dos están en esta versión.
+
 ## 0.3.0 — 2026-10-04
 
 ### `<nx-grid>`

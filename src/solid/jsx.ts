@@ -177,6 +177,8 @@ declare module "solid-js" {
       tone: string | undefined;
       text: string | undefined;
       "action-href": string | undefined;
+      /** `<nx-button href>`: el botón como enlace. */
+      href: string | undefined;
       nav: string | undefined;
       badge: string | undefined;
       "badge-tone": string | undefined;
@@ -323,6 +325,8 @@ declare module "solid-js" {
       "auto-collapse": boolean;
       busy: boolean;
       "icon-only": boolean;
+      "new-tab": boolean;
+      download: boolean;
       disabled: boolean;
       multiple: boolean;
       required: boolean;

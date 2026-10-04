@@ -29,6 +29,12 @@ export interface ButtonProps extends Omit<JSX.HTMLAttributes<NxButton>, "onClick
   labels?: Partial<ButtonLabels>;
   /** Mantener pulsado (ms) para activarlo: para lo destructivo. */
   hold?: number;
+  /** Con dirección es un enlace (`<a href>` por dentro): el router lo intercepta como a cualquiera. */
+  href?: string;
+  /** Con `href`: en otra pestaña. */
+  newTab?: boolean;
+  /** Con `href`: descarga en vez de navegar. */
+  download?: boolean;
   /** Solo el clic del botón: no llega mientras está ocupado, deshabilitado o sin completar `hold`,
    *  ni desde «Registro». */
   onClick?: (e: MouseEvent) => void;
@@ -54,6 +60,9 @@ export function Button(props: ButtonProps): JSX.Element {
     "method",
     "labels",
     "hold",
+    "href",
+    "newTab",
+    "download",
     "onClick",
     "onDone",
     "children",
@@ -71,6 +80,9 @@ export function Button(props: ButtonProps): JSX.Element {
       attr:stream={local.stream}
       attr:method={local.method}
       attr:hold={local.hold ? String(local.hold) : undefined}
+      attr:href={local.href}
+      bool:new-tab={!!local.newTab}
+      bool:download={!!local.download}
       bool:icon-only={!!local.iconOnly}
       bool:disabled={!!local.disabled}
       bool:busy={!!local.busy}

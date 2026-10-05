@@ -551,7 +551,11 @@ Una tabla de datos que se explora sola:
   señala algo por resolver, no para todos. Con `menu: true` el atajo no es tarjeta: va en el menú
   «Vistas», en el grupo «Seguimiento» (`labels.viewTracking`), sin conteo (ni la tabla lo cuenta ni el
   servidor tiene que mandarlo), y se marca y se quita igual. Con atajos de menú, «Vistas» aparece
-  aunque no haya `views-storage`, y entonces solo trae ese grupo.
+  aunque no haya `views-storage`, y entonces solo trae ese grupo. Con `href`, el atajo lleva a otra
+  página en vez de filtrar: es un `<a href>` de verdad (Ctrl/⌘+clic, el router de la app), con ↗ en
+  lugar de la flecha, que nunca queda marcado; su número solo lo manda el servidor (en `presets` de
+  la respuesta, también cuando la tabla pasa a contar en el navegador con `client-max`), porque no
+  hay filtro con qué contarlo. Va bien al final, después de los que filtran.
 - **Título (`heading`).** La tabla que es la página lleva su título en la primera fila, y los atajos
   pasan a ser botones a su derecha: el número, el nombre y su línea corta, y una flecha que, marcado,
   pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se desplazan de lado.

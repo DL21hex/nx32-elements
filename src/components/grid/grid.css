@@ -303,6 +303,22 @@ nx-grid .nx-glyph {
     }
   }
 }
+/* Un atajo que lleva a otra página (`href`): un enlace con el aspecto del botón, y ↗. Como tarjeta
+   (sin título), la ↗ va en la esquina. */
+a.nx-grid__preset {
+  text-decoration: none;
+}
+.nx-grid__top:not([data-heading]) {
+  & .nx-grid__preset[data-link] {
+    position: relative;
+    padding-inline-end: 32px;
+  }
+  & .nx-grid__preset-go {
+    position: absolute;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
+  }
+}
 .nx-grid__preset-go {
   display: grid;
   grid-column: 3;

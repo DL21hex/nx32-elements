@@ -752,6 +752,8 @@ function mountGridDemo(root: HTMLElement) {
   page.presets = [
     { id: "pend", label: "Pendientes", hint: "por aprobar", tone: "warning", filters: [{ key: "estado", op: "in", values: ["pendiente"] }] },
     { id: "atraso", label: "Atrasados", hint: "más de 5 días", filters: [{ key: "atraso", op: "range", min: 6 }] },
+    // Lleva a otra página (↗): no filtra ni se marca, y su número lo mandaría el servidor.
+    { id: "proveedores", label: "Proveedores por revisar", hint: "abre su lista", tone: "warning", href: "#/grid?proveedores", filters: [] },
     { id: "anulados", label: "Anulados", menu: true, filters: [{ key: "estado", op: "in", values: ["anulado"] }] },
     { id: "mes", label: "Del último mes", hint: "por fecha", menu: true, filters: [{ key: "fecha", op: "range", rel: "last30" }] },
   ];

@@ -1,0 +1,1092 @@
+<title>Empleados en nx-grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens de nx32-elements (src/styles/tokens.css) con la paleta «NX32» de la consola (tono 210).
+   Distribución: menú | página que no se desplaza; la tabla llena el alto y es lo único que se mueve. */
+:root {
+  color-scheme: light dark;
+  --_h: 210; --_c: 0.16; --_l: 0.52; --_ld: 0.72; --_n: 250; --_t: 1;
+  --nx-canvas: light-dark(oklch(0.982 calc(0.003 * var(--_t)) var(--_n)), oklch(0.165 calc(0.004 * var(--_t)) var(--_n)));
+  --nx-card: light-dark(oklch(1 0 0), oklch(0.205 calc(0.005 * var(--_t)) var(--_n)));
+  --nx-popover: light-dark(oklch(1 0 0), oklch(0.235 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-border-subtle: light-dark(oklch(0.93 calc(0.004 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.07));
+  --nx-border: light-dark(oklch(0.89 calc(0.005 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.11));
+  --nx-border-strong: light-dark(oklch(0.82 calc(0.006 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.17));
+  --nx-foreground: light-dark(oklch(0.2 calc(0.008 * var(--_t)) var(--_n)), oklch(0.955 calc(0.003 * var(--_t)) var(--_n)));
+  --nx-muted-foreground: light-dark(oklch(0.44 calc(0.01 * var(--_t)) var(--_n)), oklch(0.76 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-text-tertiary: light-dark(oklch(0.51 calc(0.01 * var(--_t)) var(--_n)), oklch(0.66 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-text-quaternary: light-dark(oklch(0.66 calc(0.008 * var(--_t)) var(--_n)), oklch(0.53 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-primary: light-dark(oklch(var(--_l) var(--_c) var(--_h)), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h)));
+  --nx-primary-ink: light-dark(oklch(calc(var(--_l) - 0.07) var(--_c) var(--_h)), oklch(calc(var(--_ld) + 0.05) calc(var(--_c) * 0.7) var(--_h)));
+  --nx-primary-soft: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.09), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.15));
+  --nx-primary-border: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.35), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.4));
+  --nx-on-primary: light-dark(oklch(1 0 0), oklch(0.18 0.02 var(--_h)));
+  --nx-hover: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.045), oklch(1 0 0 / 0.055));
+  --nx-ring: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.6), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.7));
+  --nx-backdrop: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.35), oklch(0 0 0 / 0.6));
+  --nx-success: light-dark(oklch(0.49 0.13 150), oklch(0.74 0.14 150));
+  --nx-success-soft: light-dark(oklch(0.55 0.14 150 / 0.1), oklch(0.74 0.14 150 / 0.14));
+  --nx-warning: light-dark(oklch(0.74 0.15 70), oklch(0.8 0.14 78));
+  --nx-warning-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --nx-warning-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
+  --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
+    0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
+  --nx-shadow-edge: light-dark(rgb(15 20 30 / 0.1), rgb(0 0 0 / 0.45));
+  --nx-font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-radius-sm: 6px; --nx-radius-md: 8px; --nx-radius-lg: 10px;
+  --row: 34px;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--nx-canvas);
+  color: var(--nx-foreground);
+  font: 14px/1.45 var(--nx-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: 1px; }
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ------------------------------------------------------------------ el marco */
+.app { height: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr); }
+
+.nav {
+  width: 232px; height: 100%; display: flex; flex-direction: column; gap: 1px;
+  padding: 12px 10px 10px; background: var(--nx-canvas); border-right: 1px solid var(--nx-border-subtle);
+  overflow: hidden auto; transition: width 180ms ease;
+}
+.app[data-nav="rail"] .nav { width: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 2px 5px 14px; font-weight: 600; font-size: 14.5px; white-space: nowrap; }
+.mark { width: 26px; height: 26px; border-radius: 7px; background: var(--nx-primary); color: var(--nx-on-primary); display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; flex: none; }
+.nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.item {
+  display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 9px; border-radius: 7px;
+  color: var(--nx-muted-foreground); text-decoration: none; font-size: 13.5px; white-space: nowrap;
+}
+.item:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.item .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.item .chev { width: 14px; height: 14px; color: var(--nx-text-quaternary); }
+.item.open { color: var(--nx-foreground); font-weight: 500; }
+.sub { padding: 2px 0 6px 28px !important; }
+.sub .item { height: 30px; font-size: 13px; padding-left: 10px; }
+.sub .item[aria-current="page"] { background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-weight: 500; }
+.sec { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--nx-text-tertiary); padding: 14px 10px 6px; white-space: nowrap; }
+.nav-foot { margin-top: auto; padding-top: 10px; display: grid; gap: 4px; border-top: 1px solid var(--nx-border-subtle); }
+.who { display: flex; align-items: center; gap: 10px; padding: 6px 5px; white-space: nowrap; min-width: 0; }
+.who-av { width: 30px; height: 30px; border-radius: 50%; background: var(--nx-primary); color: var(--nx-on-primary); display: grid; place-items: center; font-size: 11.5px; font-weight: 600; flex: none; }
+.who-txt { min-width: 0; line-height: 1.3; }
+.who-txt b { display: block; font-size: 13px; font-weight: 600; }
+.who-txt span { display: block; font-size: 12px; color: var(--nx-text-tertiary); }
+.collapse { appearance: none; border: 0; background: none; cursor: pointer; width: 100%; text-align: left; }
+.app[data-nav="rail"] :is(.lbl, .chev, .sub, .who-txt, .brand-txt) { display: none; }
+.app[data-nav="rail"] .sec { font-size: 0; padding: 8px 0; margin: 6px 9px; border-top: 1px solid var(--nx-border-subtle); }
+.app[data-nav="rail"] .item.open { background: var(--nx-primary-soft); color: var(--nx-primary-ink); }
+
+/* ------------------------------------------------------------------ la página */
+.main {
+  display: flex; flex-direction: column; gap: 12px; min-width: 0; height: 100%; overflow: hidden;
+  background: var(--nx-card); padding-inline: 24px; padding-block: 14px 16px;
+}
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; }
+.title { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.menu-btn { display: none; }
+.crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; font-size: 12.5px; color: var(--nx-text-tertiary); }
+.crumbs li { display: inline-flex; align-items: center; gap: 4px; }
+.crumbs a { color: inherit; text-decoration: none; }
+.crumbs a:hover { color: var(--nx-foreground); text-decoration: underline; }
+.crumbs .i { width: 13px; height: 13px; }
+h1 { font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.015em; margin: 2px 0 0; }
+
+/* Tres cifras junto al título, con aspecto de botón: cada una abre su lista y se apaga con la ×. */
+.kpis { display: flex; align-items: center; gap: 14px; min-width: 0; max-width: 100%; }
+.kpi-scope { margin: 0; max-width: 170px; font-size: 11.5px; line-height: 1.35; color: var(--nx-text-tertiary); text-align: right; }
+.kpi-scope span, .kpi-scope b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-scope b { font-weight: 500; color: var(--nx-muted-foreground); }
+.kpi-scope b.on { color: var(--nx-primary-ink); }
+.kpi-row { display: flex; gap: 8px; min-width: 0; }
+.kpi {
+  appearance: none; cursor: pointer; text-align: left; min-width: 0; max-width: 290px; height: 48px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 10px; align-content: center;
+  padding: 0 8px 0 12px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); background: var(--nx-card);
+  box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.05), rgb(0 0 0 / 0.25));
+  transition: background-color 120ms, border-color 120ms;
+}
+.kpi:hover { background: var(--nx-hover); border-color: var(--nx-border-strong); }
+.kpi[aria-pressed="true"] { background: var(--nx-primary-soft); border-color: var(--nx-primary); box-shadow: inset 0 0 0 1px var(--nx-primary); }
+.kpi-n { grid-row: 1 / 3; align-self: center; font-size: 20px; font-weight: 600; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; line-height: 1; }
+.kpi[data-tone="warning"] .kpi-n { color: var(--nx-warning-ink); }
+.kpi.zero .kpi-n { color: var(--nx-text-quaternary); }
+.kpi-l { grid-column: 2; align-self: end; font-size: 13px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-c { grid-column: 2; align-self: start; font-size: 11.5px; line-height: 1.35; color: var(--nx-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-go { grid-column: 3; grid-row: 1 / 3; align-self: center; width: 22px; height: 22px; display: grid; place-items: center; color: var(--nx-text-quaternary); }
+.kpi-go .i { width: 15px; height: 15px; }
+.kpi:hover .kpi-go { color: var(--nx-foreground); }
+.kpi[aria-pressed="true"] .kpi-go { color: var(--nx-primary-ink); }
+
+/* Barra de herramientas */
+.toolbar { display: flex; align-items: center; gap: 8px; }
+.anchor { position: relative; }
+.btn {
+  height: 34px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px;
+  border: 1px solid var(--nx-border); background: var(--nx-card); border-radius: var(--nx-radius-md);
+  font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--nx-hover); }
+.btn[aria-pressed="true"], .btn[aria-expanded="true"] { background: var(--nx-primary-soft); border-color: var(--nx-primary-border); color: var(--nx-primary-ink); }
+.btn .chev { width: 14px; height: 14px; color: var(--nx-text-tertiary); margin-left: -2px; }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--nx-primary); color: var(--nx-on-primary); font-size: 11px; font-weight: 600; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }
+.icon-btn { appearance: none; border: 0; background: none; cursor: pointer; width: 30px; height: 30px; border-radius: var(--nx-radius-sm); display: grid; place-items: center; color: var(--nx-muted-foreground); }
+.icon-btn:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.search {
+  flex: 1; min-width: 0; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-md); background: var(--nx-card); color: var(--nx-text-tertiary);
+}
+.search:focus-within { border-color: var(--nx-primary); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--nx-foreground); font-size: 13.5px; }
+.search input::placeholder { color: var(--nx-text-tertiary); }
+
+/* Resultado y filtros activos */
+.resbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 28px; font-size: 13px; }
+.total { margin: 0 4px 0 0; color: var(--nx-muted-foreground); white-space: nowrap; }
+.total strong { color: var(--nx-foreground); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chips { display: contents; }
+.chip {
+  display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 2px 0 10px; max-width: 100%;
+  border: 1px solid var(--nx-primary-border); background: var(--nx-primary-soft); color: var(--nx-primary-ink);
+  border-radius: 999px; font-size: 12.5px; white-space: nowrap;
+}
+.chip > span { overflow: hidden; text-overflow: ellipsis; }
+.chip-x { appearance: none; border: 0; background: none; cursor: pointer; color: inherit; width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; flex: none; }
+.chip-x:hover { background: var(--nx-primary-soft); }
+.chip-x .i { width: 13px; height: 13px; }
+.link { appearance: none; border: 0; background: none; cursor: pointer; padding: 2px 0; font-size: 13px; color: var(--nx-primary-ink); text-decoration: underline; text-decoration-color: var(--nx-primary-border); text-underline-offset: 3px; white-space: nowrap; }
+.link.quiet { color: var(--nx-muted-foreground); text-decoration-color: var(--nx-border-strong); }
+.link:hover { text-decoration-color: currentColor; }
+
+/* ------------------------------------------------------------------ filtros + tabla */
+.work { flex: 1; min-height: 0; display: flex; gap: 12px; }
+.facets {
+  width: 248px; flex: none; min-height: 0; display: flex; flex-direction: column;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); background: var(--nx-card);
+}
+.app:not([data-facets]) .facets { display: none; }
+.fx-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 7px 7px 14px; border-bottom: 1px solid var(--nx-border-subtle); }
+.fx-head h2 { margin: 0; font-size: 13.5px; font-weight: 600; }
+.fx-body { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 8px; overscroll-behavior: contain; }
+.fx-foot { display: none; }
+.facet { padding: 12px 0; border-bottom: 1px solid var(--nx-border-subtle); }
+.facet:last-child { border-bottom: 0; }
+.facet h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 7px; font-size: 13px; font-weight: 600; }
+.facet h3 .badge { min-width: 16px; height: 16px; font-size: 10.5px; }
+.fq {
+  width: 100%; height: 30px; padding: 0 9px; margin-bottom: 6px; font-size: 13px;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm); background: var(--nx-card); color: var(--nx-foreground);
+}
+.fq:focus { outline: 0; border-color: var(--nx-primary); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.opt {
+  display: grid; grid-template-columns: 15px minmax(0, 1fr) auto; gap: 8px; align-items: start;
+  padding: 4px 6px; margin: 0 -6px; border-radius: var(--nx-radius-sm); cursor: pointer; font-size: 13px; line-height: 1.35;
+}
+.opt:hover { background: var(--nx-hover); }
+.opt input { width: 15px; height: 15px; margin: 1px 0 0; accent-color: var(--nx-primary); cursor: pointer; }
+.opt-l { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.opt-n { padding-top: 1px; font-size: 12px; color: var(--nx-text-tertiary); font-variant-numeric: tabular-nums; }
+.more { margin-top: 4px; }
+.none { margin: 2px 0 0; font-size: 12.5px; color: var(--nx-text-tertiary); }
+
+.gridbox {
+  flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); background: var(--nx-card); overflow: hidden;
+}
+.scroller { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.tbl { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl th {
+  position: sticky; top: 0; z-index: 2; height: 38px; padding: 0; text-align: left;
+  background: var(--nx-card); border-bottom: 1px solid var(--nx-border);
+  font-size: 12.5px; font-weight: 600; color: var(--nx-muted-foreground);
+}
+.th-btn {
+  appearance: none; border: 0; background: none; cursor: pointer; width: 100%; height: 100%;
+  display: flex; align-items: center; gap: 4px; padding: 0 12px; text-align: left; white-space: nowrap;
+}
+.th-btn:hover { color: var(--nx-foreground); background: var(--nx-hover); }
+.th-btn:focus-visible { outline-offset: -2px; }
+.th-btn .i { width: 13px; height: 13px; opacity: 0; }
+th[aria-sort] .th-btn { color: var(--nx-foreground); }
+th[aria-sort] .th-btn .i { opacity: 1; color: var(--nx-primary-ink); }
+.tbl td {
+  height: var(--row); padding: 0 12px; border-bottom: 1px solid var(--nx-border-subtle);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: var(--nx-card);
+}
+.tbl tbody tr:not(.sp, .empty):hover td { background-image: linear-gradient(var(--nx-hover), var(--nx-hover)); }
+.tbl tr.sp td { padding: 0; border: 0; }
+.c-stick { position: sticky; left: 0; z-index: 1; }
+th.c-stick { z-index: 3; }
+.scroller.x .c-stick { box-shadow: 1px 0 0 var(--nx-border), 8px 0 10px -8px var(--nx-shadow-edge); }
+.emp { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.av {
+  width: 24px; height: 24px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--nx-hover); box-shadow: inset 0 0 0 1px var(--nx-border-subtle);
+  color: var(--nx-muted-foreground); font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+}
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--nx-primary-ink); font-weight: 500; text-decoration: none; }
+.name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.flag { display: inline-flex; align-items: center; gap: 5px; color: var(--nx-warning-ink); }
+.flag .i { width: 14px; height: 14px; color: var(--nx-warning); }
+.emp .flag { flex: none; }
+.mut { color: var(--nx-text-tertiary); }
+.dt { color: var(--nx-text-tertiary); margin-right: 3px; }
+.rel { margin-left: 6px; font-size: 12px; }
+.rel.due { color: var(--nx-warning-ink); font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 1px 9px; border-radius: 999px; background: var(--soft); color: var(--ink); line-height: 1.5; }
+.dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--tone); }
+[data-tone="neutral"] { --tone: var(--nx-text-quaternary); --soft: var(--nx-hover); --ink: var(--nx-muted-foreground); }
+[data-tone="success"] { --tone: var(--nx-success); --soft: var(--nx-success-soft); --ink: var(--nx-success); }
+.empty td { height: 200px; text-align: center; white-space: normal; color: var(--nx-muted-foreground); }
+.empty p { margin: 0 0 6px; }
+
+/* ------------------------------------------------------------------ capas */
+.pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 250px; max-width: min(380px, calc(100vw - 32px)); padding: 6px;
+  background: var(--nx-popover); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); box-shadow: var(--nx-shadow-popover);
+}
+.pop.end { left: auto; right: 0; }
+.pop-h { margin: 0; padding: 6px 8px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--nx-text-tertiary); }
+.pop-item {
+  appearance: none; border: 0; background: none; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px; border-radius: var(--nx-radius-sm); text-align: left; font-size: 13.5px; white-space: nowrap;
+}
+.pop-item:hover { background: var(--nx-hover); }
+.pop-item .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pop-item small { color: var(--nx-text-tertiary); font-size: 12px; }
+.pop-item .ok { width: 16px; flex: none; display: grid; place-items: center; color: var(--nx-primary-ink); }
+.pop-n { color: var(--nx-text-tertiary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pop-item input { width: 15px; height: 15px; margin: 0; accent-color: var(--nx-primary); }
+.pop-item:has(input:disabled) { cursor: default; color: var(--nx-text-tertiary); }
+.pop hr { border: 0; border-top: 1px solid var(--nx-border-subtle); margin: 6px 2px; }
+.backdrop { position: fixed; inset: 0; z-index: 35; background: var(--nx-backdrop); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 60; transform: translateX(-50%);
+  max-width: min(560px, calc(100% - 32px)); padding: 9px 14px; border-radius: var(--nx-radius-md);
+  background: var(--nx-foreground); color: var(--nx-card); font-size: 13px; box-shadow: var(--nx-shadow-popover);
+}
+.notes-btn {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px 0 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--nx-border-strong); background: var(--nx-popover); color: var(--nx-foreground); font-size: 13px; font-weight: 500;
+  box-shadow: var(--nx-shadow-popover);
+}
+.notes-btn[aria-expanded="true"] { background: var(--nx-primary-soft); color: var(--nx-primary-ink); border-color: var(--nx-primary-border); }
+.notes {
+  position: fixed; right: 16px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  width: min(420px, calc(100% - 32px)); max-height: min(72vh, 640px); overflow: auto; padding: 16px 18px 18px;
+  background: var(--nx-popover); border: 1px solid var(--nx-border); border-radius: 12px; box-shadow: var(--nx-shadow-popover);
+}
+.notes h2 { margin: 0 0 2px; font-size: 15px; }
+.notes > p { margin: 0 0 10px; font-size: 12.5px; color: var(--nx-text-tertiary); }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 13px; line-height: 1.45; }
+.notes li::marker { color: var(--nx-text-quaternary); }
+
+/* ------------------------------------------------------------------ anchos */
+/* Sin sitio para filtros y tabla lado a lado: los filtros pasan a un panel encima. */
+@media (max-width: 1099px) {
+  .facets {
+    position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(320px, 88vw);
+    border-radius: 0; border-width: 0 1px 0 0; box-shadow: var(--nx-shadow-popover);
+    padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+  }
+  .fx-foot { display: block; padding: 10px 14px; border-top: 1px solid var(--nx-border-subtle); }
+  .fx-foot .btn { width: 100%; justify-content: center; background: var(--nx-primary); border-color: var(--nx-primary); color: var(--nx-on-primary); }
+}
+@media (max-width: 719px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .nav {
+    position: fixed; z-index: 45; top: 0; bottom: 0; left: 0; width: min(280px, 85vw) !important;
+    transform: translateX(-102%); transition: transform 200ms ease; box-shadow: var(--nx-shadow-popover);
+    padding-block: calc(12px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .app[data-navopen] .nav { transform: none; }
+  .app :is(.lbl, .chev, .sub, .who-txt, .brand-txt) { display: revert !important; }
+  .app .sub { display: grid !important; }
+  .app .item .lbl { display: block !important; }
+  .collapse { display: none !important; }
+  .app[data-nav="rail"] .sec { font-size: 11px; padding: 14px 10px 6px; margin: 0; border: 0; }
+  .menu-btn { display: grid; margin-left: -6px; }
+  .main { padding-inline: 16px; padding-block: 10px 12px; overflow: auto; }
+  .work { flex: none; height: 72svh; min-height: 360px; }
+  .head { gap: 8px; }
+  .kpis { flex-basis: 100%; flex-direction: column; align-items: stretch; gap: 6px; }
+  .kpi-scope { max-width: none; text-align: left; }
+  .kpi-scope span, .kpi-scope b { display: inline; }
+  .kpi-row { overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 2px; }
+  .kpi { flex: 0 0 auto; max-width: 250px; scroll-snap-align: start; }
+  .toolbar { flex-wrap: wrap; }
+  .search { order: -1; flex-basis: 100%; }
+  .toolbar .btn { flex: 1; justify-content: center; padding: 0 8px; }
+  .toolbar .anchor { flex: 1; display: flex; }
+  .toolbar .anchor .btn { flex: 1; }
+  .btn-l { display: none; }
+  .notes-btn { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); right: 12px; }
+}
+@media (max-height: 640px) and (min-width: 720px) {
+  .main { overflow: auto; }
+  .work { flex: none; height: 480px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav, .kpi { transition: none; }
+}
+</style>
+
+<div class="app" id="app" data-nav="full">
+  <nav class="nav" id="nav" aria-label="Menú principal">
+    <div class="brand"><span class="mark" aria-hidden="true">nx</span><span class="brand-txt">Consola nx32</span></div>
+    <ul>
+      <li><a class="item" href="#" aria-label="Inicio" title="Inicio" data-ic="house"><span class="lbl">Inicio</span></a></li>
+      <li><a class="item" href="#" aria-label="Pendientes" title="Pendientes" data-ic="list-checks"><span class="lbl">Pendientes</span></a></li>
+    </ul>
+    <div class="sec">Proceso</div>
+    <ul>
+      <li>
+        <a class="item open" href="#" aria-label="Talento Humano" title="Talento Humano" aria-expanded="true" data-ic="users" data-chev="chevron-down"><span class="lbl">Talento Humano</span></a>
+        <ul class="sub">
+          <li><a class="item" href="#" aria-current="page"><span class="lbl">Empleados</span></a></li>
+          <li><a class="item" href="#"><span class="lbl">Contratos</span></a></li>
+          <li><a class="item" href="#"><span class="lbl">Vacaciones</span></a></li>
+          <li><a class="item" href="#"><span class="lbl">Certificados</span></a></li>
+        </ul>
+      </li>
+      <li><a class="item" href="#" aria-label="Administración" title="Administración" data-ic="settings-2"><span class="lbl">Administración</span></a></li>
+      <li><a class="item" href="#" aria-label="Almacén" title="Almacén" data-ic="warehouse" data-chev="chevron-right"><span class="lbl">Almacén</span></a></li>
+      <li><a class="item" href="#" aria-label="Trading" title="Trading" data-ic="chart-candlestick" data-chev="chevron-right"><span class="lbl">Trading</span></a></li>
+      <li><a class="item" href="#" aria-label="Compras" title="Compras" data-ic="shopping-cart" data-chev="chevron-right"><span class="lbl">Compras</span></a></li>
+      <li><a class="item" href="#" aria-label="Casino" title="Casino" data-ic="utensils-crossed" data-chev="chevron-right"><span class="lbl">Casino</span></a></li>
+      <li><a class="item" href="#" aria-label="Seguridad física" title="Seguridad física" data-ic="shield-check" data-chev="chevron-right"><span class="lbl">Seguridad física</span></a></li>
+      <li><a class="item" href="#" aria-label="WhatsApp" title="WhatsApp" data-ic="message-circle"><span class="lbl">WhatsApp</span></a></li>
+      <li><a class="item" href="#" aria-label="Terminales" title="Terminales" data-ic="fingerprint-pattern" data-chev="chevron-right"><span class="lbl">Terminales</span></a></li>
+      <li><a class="item" href="#" aria-label="SST" title="SST" data-ic="hard-hat" data-chev="chevron-right"><span class="lbl">SST</span></a></li>
+      <li><a class="item" href="#" aria-label="Operaciones de campo" title="Operaciones de campo" data-ic="sprout" data-chev="chevron-right"><span class="lbl">Operaciones de campo</span></a></li>
+    </ul>
+    <div class="nav-foot">
+      <div class="who" title="Diego Llinas · Super administrador">
+        <span class="who-av" aria-hidden="true">DL</span>
+        <span class="who-txt"><b>Diego Llinas</b><span>Super administrador</span></span>
+      </div>
+      <button class="item collapse" id="collapse" type="button" data-ic="panel-left"><span class="lbl">Contraer menú</span></button>
+    </div>
+  </nav>
+
+  <main class="main" id="main">
+    <header class="head">
+      <div class="title">
+        <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" data-ic="menu"></button>
+        <div>
+          <nav class="crumbs" aria-label="Ruta">
+            <ol>
+              <li><a href="#">Inicio</a><span data-ic="chevron-right"></span></li>
+              <li><a href="#">Talento Humano</a><span data-ic="chevron-right"></span></li>
+            </ol>
+          </nav>
+          <h1>Empleados</h1>
+        </div>
+      </div>
+      <div class="kpis" role="group" aria-label="Indicadores">
+        <p class="kpi-scope" id="scope"></p>
+        <div class="kpi-row" id="kpis"></div>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="anchor">
+        <button class="btn" id="bViews" type="button" aria-expanded="false" aria-controls="pViews"><span data-ic="bookmark"></span><span class="btn-l">Vistas</span><span data-ic="chevron-down" data-cls="chev"></span></button>
+        <div class="pop" id="pViews" role="group" aria-label="Vistas" hidden></div>
+      </div>
+      <label class="search"><span data-ic="search"></span><span class="sr">Buscar empleados</span><input id="q" type="search" placeholder="Buscar por nombre, documento o cargo" autocomplete="off"></label>
+      <button class="btn" id="bFacets" type="button" aria-pressed="true" aria-controls="facets"><span data-ic="sliders-horizontal"></span><span class="btn-l">Filtros</span><span class="badge" id="fCount" hidden></span></button>
+      <div class="anchor">
+        <button class="btn" id="bCols" type="button" aria-expanded="false" aria-controls="pCols"><span data-ic="columns-3"></span><span class="btn-l">Columnas</span></button>
+        <div class="pop end" id="pCols" role="group" aria-label="Columnas" hidden></div>
+      </div>
+      <button class="btn" id="bExport" type="button"><span data-ic="download"></span><span class="btn-l">Exportar</span></button>
+    </div>
+
+    <div class="resbar">
+      <p class="total" aria-live="polite"><strong id="total">0</strong> <span id="totalWord">empleados</span></p>
+      <div class="chips" id="chips"></div>
+      <button class="link quiet" id="clear" type="button">Limpiar filtros</button>
+      <button class="link" id="saveView" type="button">Guardar como vista</button>
+    </div>
+
+    <div class="work">
+      <aside class="facets" id="facets" aria-label="Filtros">
+        <div class="fx-head"><h2>Filtros</h2><button class="icon-btn" id="fClose" type="button" aria-label="Cerrar filtros" data-ic="x"></button></div>
+        <div class="fx-body" id="fxBody"></div>
+        <div class="fx-foot"><button class="btn" id="fDone" type="button">Ver resultados</button></div>
+      </aside>
+      <div class="gridbox">
+        <div class="scroller" id="scroller" tabindex="0" aria-label="Tabla de empleados">
+          <table class="tbl" id="tbl">
+            <colgroup id="cg"></colgroup>
+            <thead><tr id="hr"></tr></thead>
+            <tbody id="tb"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="backdrop" id="backdrop" hidden></div>
+
+<button class="notes-btn" id="notesBtn" type="button" aria-expanded="false" aria-controls="notes"><span data-ic="circle-question-mark"></span>Qué cambió</button>
+<section class="notes" id="notes" aria-label="Qué cambió" hidden>
+  <h2>Qué cambió frente a la captura</h2>
+  <p>Maqueta con datos inventados: nombres, documentos, empresas y correos no son reales.</p>
+  <ul>
+    <li>Tres cifras al nivel del título, como botones de acción: contratos que vencen, sin jefe y correos por corregir. «Correos por corregir» deja de ser un botón sin número.</li>
+    <li>Ingresos, retiros y posibles duplicados pasan a Vistas, en «Seguimiento», cada una con su número. Sin la franja de cifras, la tabla empieza mucho más arriba.</li>
+    <li>Las cifras siguen a los filtros de empresa, subdivisión, contrato y búsqueda, y a su izquierda dicen sobre qué se cuentan. Cada una trae su propio estado.</li>
+    <li>Tocar una cifra filtra la tabla y la ordena por lo que importa. Su flecha pasa a ×, y tocarla otra vez deja todo como estaba.</li>
+    <li>El total queda a la vista, junto a los filtros activos. «Limpiar filtros» aparece una sola vez.</li>
+    <li>La tabla llena el alto: la página no se desplaza, solo la tabla, así que su barra horizontal siempre se ve y la de arriba sobra.</li>
+    <li>Con los filtros abiertos, el menú se pliega a iconos, y ningún icono se repite.</li>
+    <li>Las opciones largas de los filtros ocupan dos líneas y muestran el nombre completo al pasar el ratón.</li>
+    <li>Iniciales con nombre y primer apellido, tomadas del campo de apellidos: Abel Andres Hernandez Carrillo es AH, no AA.</li>
+    <li>Documentos, correos y nombres repetidos se marcan en la celda. «Fin de contrato» sube a la parte visible de la tabla.</li>
+    <li>Ninguna celda aparece enmarcada al cargar.</li>
+  </ul>
+</section>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const ICONS = {"house":"<path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/>","list-checks":"<path d=\"M13 5h8m-8 7h8m-8 7h8M3 17l2 2l4-4M3 7l2 2l4-4\"/>","users":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.128a4 4 0 0 1 0 7.744M22 21v-2a4 4 0 0 0-3-3.87\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/>","settings-2":"<path d=\"M14 17H5M19 7h-9\"/><circle cx=\"17\" cy=\"17\" r=\"3\"/><circle cx=\"7\" cy=\"7\" r=\"3\"/>","warehouse":"<path d=\"M18 21V10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v11\"/><path d=\"M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8zM6 13h12M6 17h12\"/>","chart-candlestick":"<path d=\"M9 5v4\"/><rect width=\"4\" height=\"6\" x=\"7\" y=\"9\" rx=\"1\"/><path d=\"M9 15v2m8-14v2\"/><rect width=\"4\" height=\"8\" x=\"15\" y=\"5\" rx=\"1\"/><path d=\"M17 13v3M3 3v16a2 2 0 0 0 2 2h16\"/>","shopping-cart":"<path d=\"m2.05 2.05l1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18\"/><path d=\"M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25\"/><circle cx=\"18\" cy=\"20\" r=\"2\"/><circle cx=\"8\" cy=\"20\" r=\"2\"/>","utensils-crossed":"<path d=\"m16 2l-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8m-7 7L3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0zm0 0l7 7m-19.9-.2l6.4-6.3M19 5l-7 7\"/>","shield-check":"<path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"m9 12l2 2l4-4\"/>","message-circle":"<path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092a10 10 0 1 0-4.777-4.719\"/>","fingerprint-pattern":"<path d=\"M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4M14 13.12c0 2.38 0 6.38-1 8.88m4.29-.98c.12-.6.43-2.3.5-3.02M2 12a10 10 0 0 1 18-6M2 16h.01m19.79 0c.2-2 .131-5.354 0-6\"/><path d=\"M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2m2.31 12c.21-.66.45-1.32.57-2M9 6.8a6 6 0 0 1 9 5.2v2\"/>","hard-hat":"<path d=\"M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m0-4a6 6 0 0 1 6 6v3M4 15v-3a6 6 0 0 1 6-6\"/><rect width=\"20\" height=\"4\" x=\"2\" y=\"15\" rx=\"1\"/>","sprout":"<path d=\"M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4a4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3M4 9a5 5 0 0 1 8 4a5 5 0 0 1-8-4m1 12h14\"/>","search":"<path d=\"m21 21l-4.34-4.34\"/><circle cx=\"11\" cy=\"11\" r=\"8\"/>","sliders-horizontal":"<path d=\"M10 5H3m9 14H3M14 3v4m2 10v4m5-9h-9m9 7h-5m5-14h-7m-6 5v4m0-2H3\"/>","columns-3":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18m6-18v18\"/>","download":"<path d=\"M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10l5 5l5-5\"/>","bookmark":"<path d=\"M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z\"/>","x":"<path d=\"M18 6L6 18M6 6l12 12\"/>","chevron-right":"<path d=\"m9 18l6-6l-6-6\"/>","chevron-down":"<path d=\"m6 9l6 6l6-6\"/>","chevrons-up-down":"<path d=\"m7 15l5 5l5-5M7 9l5-5l5 5\"/>","mail":"<path d=\"m22 7l-8.991 5.727a2 2 0 0 1-2.009 0L2 7\"/><rect width=\"20\" height=\"16\" x=\"2\" y=\"4\" rx=\"2\"/>","arrow-up":"<path d=\"m5 12l7-7l7 7m-7 7V5\"/>","arrow-down":"<path d=\"M12 5v14m7-7l-7 7l-7-7\"/>","menu":"<path d=\"M4 5h16M4 12h16M4 19h16\"/>","panel-left":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/>","triangle-alert":"<path d=\"m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01\"/>","copy":"<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/>","check":"<path d=\"M20 6L9 17l-5-5\"/>","user-x":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"m17 8l5 5m0-5l-5 5\"/>","user-plus":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M19 8v6m3-3h-6\"/>","log-out":"<path d=\"m16 17l5-5l-5-5m5 5H9m0 9H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/>","calendar-clock":"<path d=\"M16 14v2.2l1.6 1M16 2v3m5 2.338V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h2.338M3 9h5.859M8 2v3\"/><circle cx=\"16\" cy=\"16\" r=\"6\"/>","id-card":"<path d=\"M13 19a4 4 0 0 0-8 0m11-9h2m-2 4h2\"/><circle cx=\"9\" cy=\"12\" r=\"3\"/><rect width=\"20\" height=\"14\" x=\"2\" y=\"5\" rx=\"2\"/>","mail-warning":"<path d=\"M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5\"/><path d=\"m22 7l-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7m18 7v4m0 4v.01\"/>","circle-question-mark":"<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m.08 4h.01\"/>"};
+const ic = (n, cls = "") => `<svg class="i${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ""}</svg>`;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const TODAY = new Date(); TODAY.setHours(12, 0, 0, 0);
+const fmtD = (d) => { const x = new Date(TODAY.getTime() + d * 864e5); return `${x.getDate()} ${MES[x.getMonth()]} ${x.getFullYear()}`; };
+const inDays = (d) => d === 0 ? "hoy" : d === 1 ? "mañana" : `en ${d} días`;
+
+document.querySelectorAll("[data-ic]").forEach((el) => {
+  const svg = ic(el.dataset.ic, el.dataset.cls || "");
+  if (el.tagName === "SPAN" && !el.childElementCount) el.outerHTML = svg;
+  else el.insertAdjacentHTML("afterbegin", svg);
+  if (el.dataset.chev) el.insertAdjacentHTML("beforeend", ic(el.dataset.chev, "chev"));
+});
+
+/* ---------------------------------------------------------------- datos inventados */
+function rng(a) { return () => { a |= 0; a = a + 0x6d2b79f5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const R = rng(20261005);
+const ri = (a, b) => a + Math.floor(R() * (b - a + 1));
+const pick = (a) => a[Math.floor(R() * a.length)];
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function weighted(items, weights) {
+  const cum = []; let s = 0;
+  for (const w of weights) { s += w; cum.push(s); }
+  return () => { const x = R() * s; let lo = 0, hi = cum.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < x) lo = m + 1; else hi = m; } return items[lo]; };
+}
+
+const HOM = ["Abel", "Adalberto", "Adolfo", "Alberto", "Alexander", "Alfonso", "Alirio", "Andres", "Arnulfo", "Camilo", "Carlos", "Cesar", "Cristian", "Daniel", "Darwin", "Deiner", "Edgar", "Edwin", "Elkin", "Enrique", "Fabian", "Fernando", "Fredy", "Gustavo", "Hector", "Hernan", "Ivan", "Jader", "Jaime", "Jairo", "Javier", "Jesus", "Jhon", "Jorge", "Jose", "Juan", "Julio", "Leonardo", "Luis", "Manuel", "Marlon", "Mauricio", "Miguel", "Nelson", "Orlando", "Oscar", "Pedro", "Rafael", "Ramiro", "Ricardo", "Rodrigo", "Sebastian", "Sergio", "Wilmer", "Yeison"];
+const MUJ = ["Adriana", "Alba", "Ana", "Andrea", "Angela", "Beatriz", "Carmen", "Carolina", "Claudia", "Daniela", "Diana", "Elena", "Eliana", "Gloria", "Isabel", "Johana", "Karen", "Katherine", "Leidy", "Liliana", "Lucia", "Luz", "Maria", "Marlene", "Milena", "Monica", "Nidia", "Paola", "Patricia", "Rosa", "Sandra", "Shirley", "Tatiana", "Viviana", "Yuliana", "Zuleima"];
+const APE = ["Blanco", "Cuello", "Ospino", "Barrios", "Bolaño", "Cantillo", "Castro", "Charris", "De La Hoz", "De Avila", "Diaz", "Escorcia", "Fontalvo", "Garcia", "Gomez", "Gutierrez", "Hernandez", "Herrera", "Jimenez", "Lopez", "Manjarres", "Marquez", "Martinez", "Mendoza", "Molina", "Montero", "Narvaez", "Orozco", "Padilla", "Pertuz", "Polo", "Ramos", "Rodriguez", "Rojas", "Salcedo", "Sanchez", "Torres", "Vargas", "Villa", "Zuñiga"];
+const person = () => {
+  const pool = R() < 0.72 ? HOM : MUJ;
+  const n1 = pick(pool), n2 = R() < 0.7 ? pick(pool) : "";
+  const a1 = pick(APE), a2 = R() < 0.95 ? pick(APE) : "";
+  return { nombres: n2 && n2 !== n1 ? `${n1} ${n2}` : n1, apellidos: a2 && a2 !== a1 ? `${a1} ${a2}` : a1 };
+};
+
+const EA = ["AGRICOLA", "INVERSIONES", "BANANERA", "AGROPECUARIA", "COMERCIALIZADORA", "AGROINDUSTRIAL", "PALMERAS", "TRANSPORTES"];
+const EB = ["SANTA ELENA", "EL PORVENIR", "LA CEIBA", "LOS ALMENDROS", "SAN JACINTO", "LA ESPERANZA", "LA ARGENTINA", "RIO FRIO", "EL RETIRO", "LA FLORIDA", "GUACAMAYAL", "EL TREBOL", "LAS PALMAS", "SANTA ROSALIA", "EL PRADO", "CARIBE VERDE", "SIERRA NEVADA", "EL MAMON", "LA QUINTA", "SAN RAFAEL", "LOS OLIVOS", "BUENAVISTA", "LA FE", "MONTERREY"];
+const FN = ["EL ROBLE", "LA MARIA", "SAN PEDRO", "LOS MANGOS", "EL CARMEN", "LA PALMA", "BUENOS AIRES", "EL CAIRO", "LA NEGRITA", "SANTA ANA", "EL PARAISO", "LA SELVA", "PATIO BONITO", "LA YE", "CAÑO SECO", "EL MOLINO", "LAS VEGAS", "VILLA LUZ", "LA SIRENA", "MONTE RUBIO", "EL DIAMANTE", "LA AURORA", "SAN JOSE", "EL REPOSO", "LA COLONIA", "LOS CEDROS", "EL CEIBAL", "PALO ALTO", "LA UNION", "EL ENCANTO"];
+
+const bases = new Set();
+const companies = [];
+while (companies.length < 49) {
+  const base = `${pick(EA)} ${pick(EB)}`;
+  if (bases.has(base)) continue;
+  bases.add(base);
+  const r = R();
+  companies.push({ name: `${base} ${r < 0.8 ? "S.A.S." : r < 0.92 ? "S.A." : "LTDA"}`, base });
+}
+// El tamaño de cada empresa sigue una ley de potencias: dos o tres grandes y muchas pequeñas.
+companies.forEach((c, i) => { c.w = 1 / Math.pow(i + 1, 1.05); });
+const usedSubs = new Set();
+const uniqueSub = (s) => { let n = s, k = 2; while (usedSubs.has(n)) n = `${s} ${["II", "III", "IV", "V", "VI"][k++ - 2] || k}`; usedSubs.add(n); return n; };
+companies.forEach((c, i) => {
+  const k = i === 0 ? 7 : Math.max(1, Math.min(6, Math.round(1 + c.w * 9 + R() * 2.4)));
+  const subs = [];
+  if (i === 0) for (const s of ["ADMINISTRACION SM BANANERA NORTE", "ADMINISTRACION SM BANANERA SUR", "ADMINISTRACION SM BANANERA CENTRO"]) subs.push(uniqueSub(s));
+  if (k === 1) subs.push(uniqueSub(c.base));
+  while (subs.length < k) subs.push(uniqueSub(R() < 0.6 ? `FINCA ${pick(FN)}` : pick(FN)));
+  c.subs = subs.map((name) => ({ name, w: 0.3 + R(), jefes: Array.from({ length: ri(1, 4) }, () => { const p = person(); return `${p.nombres} ${p.apellidos}`; }) }));
+  c.pickSub = weighted(c.subs, c.subs.map((s) => s.w));
+});
+const pickCompany = weighted(companies, companies.map((c) => c.w));
+const CARGOS = [["Operario de cosecha y empaque", 30], ["Operario de labores agricolas", 22], ["Oficios varios", 10], ["Operario de mantenimiento y riego", 6], ["Conductor", 3], ["Tractorista", 2], ["Fumigador", 3], ["Supervisor de campo", 3], ["Auxiliar de bodega", 2], ["Auxiliar administrativo", 3], ["Administrador de finca", 1], ["Celador", 2], ["Mayordomo", 1], ["Electricista", 0.5], ["Analista de nomina", 0.4], ["Coordinador de SST", 0.4]];
+const pickCargo = weighted(CARGOS.map((c) => c[0]), CARGOS.map((c) => c[1]));
+const CONTRATOS = ["Término fijo", "Término indefinido", "Obra o labor", "Aprendizaje"];
+const pickContrato = weighted(CONTRATOS, [58, 30, 7, 5]);
+const DOMS = ["gmail.com", "gmail.com", "gmail.com", "hotmail.com", "outlook.com", "yahoo.es"];
+const BAD = [
+  [(e) => e.replace("@", ""), "Le falta la @"],
+  [(e) => e.replace(/@.*/, "@gmial.com"), "El dominio parece mal escrito: gmial.com"],
+  [(e) => e.replace(/@.*/, "@hotmial.com"), "El dominio parece mal escrito: hotmial.com"],
+  [(e) => e.replace(/\.[a-z]+$/, ""), "Al dominio le falta la terminación (.com, .es…)"],
+  [(e) => e.replace(".", " "), "Tiene un espacio"],
+  [(e) => e.replace("@", "@@"), "Tiene dos @"],
+];
+const slug = (s) => norm(s).replace(/[^a-z]/g, "");
+
+const N_ACT = 9704, N_INA = 22213, N = N_ACT + N_INA;
+const order = shuffle([...Array(N).keys()]);
+const isAct = new Uint8Array(N);
+for (let i = 0; i < N_ACT; i++) isAct[order[i]] = 1;
+
+const rows = [];
+for (let id = 0; id < N; id++) {
+  const p = person(), c = pickCompany(), s = c.pickSub();
+  const contrato = pickContrato();
+  const cargo = contrato === "Aprendizaje" ? (R() < 0.7 ? "Aprendiz etapa productiva" : "Aprendiz etapa lectiva") : pickCargo();
+  const r = R();
+  const docTipo = r < 0.06 ? "CE" : "CC";
+  const doc = docTipo === "CE" ? String(ri(100000, 9999999)) : r < 0.5 ? String(ri(1000000000, 1099999999)) : r < 0.86 ? String(ri(10000000, 99999999)) : String(ri(1000000, 9999999));
+  const activo = !!isAct[id];
+  const row = {
+    id, ...p, activo, emp: c.name, sub: s.name, cargo, contrato, docTipo, doc,
+    jefe: activo || R() < 0.8 ? pick(s.jefes) : null,
+    correo: R() < 0.03 ? "" : `${slug(p.nombres.split(" ")[0])}.${slug(p.apellidos.split(" ")[0])}${ri(1, 99)}@${pick(DOMS)}`,
+    correoMal: null, ing: 0, ret: null, fin: null,
+  };
+  if (activo) {
+    row.ing = -ri(31, 6500);
+    row.fin = contrato === "Término indefinido" ? null : ri(31, contrato === "Aprendizaje" ? 180 : 365);
+  } else {
+    row.ret = -ri(31, 3600);
+    row.ing = row.ret - ri(40, 2500);
+    row.fin = contrato === "Término indefinido" ? null : row.ret;
+    if (row.correo && R() < 0.1) { const b = pick(BAD); row.correo = b[0](row.correo); row.correoMal = b[1]; }
+  }
+  rows.push(row);
+}
+// Las cifras de la captura salen exactas con toda la planta: se fijan sobre filas al azar.
+const act = shuffle(rows.filter((r) => r.activo));
+const ina = shuffle(rows.filter((r) => !r.activo));
+act.slice(0, 1361).forEach((r) => { r.jefe = null; });
+shuffle(act.filter((r) => r.contrato !== "Término indefinido")).slice(0, 883).forEach((r) => { r.fin = ri(1, 30); });
+shuffle(act.slice()).slice(0, 135).forEach((r) => { r.ing = -ri(0, 29); });
+ina.slice(0, 224).forEach((r) => { r.ret = -ri(0, 29); if (r.fin != null) r.fin = r.ret; });
+shuffle(act.filter((r) => r.correo)).slice(0, 412).forEach((r) => { const b = pick(BAD); r.correo = b[0](r.correo); r.correoMal = b[1]; });
+// Nueve personas cargadas dos veces: mismo nombre y finca, documento con un dígito de más o cambiado.
+shuffle(act.slice()).slice(0, 18).forEach((b, i, arr) => {
+  if (i % 2 === 0) return;
+  const a = arr[i - 1];
+  Object.assign(b, { nombres: a.nombres, apellidos: a.apellidos, emp: a.emp, sub: a.sub, cargo: a.cargo, contrato: a.contrato, docTipo: a.docTipo });
+  const d = a.doc, k = ri(1, d.length - 1);
+  b.doc = i % 4 === 1 ? d.slice(0, k) + d[k] + d.slice(k) : d.slice(0, k - 1) + d[k] + d[k - 1] + d.slice(k + 1);
+  if (b.doc === a.doc) b.doc = d.slice(0, -1) + ((+d.slice(-1) + 1) % 10);
+});
+const dupCount = new Map();
+for (const r of rows) {
+  r.nombre = `${r.nombres} ${r.apellidos}`;
+  r.ini = (r.nombres[0] + r.apellidos[0]).toUpperCase();
+  r.nk = norm(r.nombre);
+  r.hay = norm(`${r.nombre} ${r.doc} ${r.cargo} ${r.jefe || ""}`);
+  r.docMal = r.docTipo === "CC" && (r.doc.length > 10 || r.doc.length < 6) ? `Tiene ${r.doc.length} dígitos; una cédula tiene como máximo 10` : null;
+  r.dk = `${r.nk}|${r.emp}`;
+  if (r.activo) dupCount.set(r.dk, (dupCount.get(r.dk) || 0) + 1);
+}
+for (const r of rows) r.dup = r.activo && dupCount.get(r.dk) > 1;
+
+/* ---------------------------------------------------------------- definición de la vista */
+const SIGNALS = [
+  { id: "vencen", group: "mov", kpi: true, label: "Contratos que vencen", ctx: "próximos 30 días", estado: ["activo"], test: (r) => r.activo && r.fin != null && r.fin >= 0 && r.fin <= 30, sort: { k: "fin", dir: 1 }, show: ["fin"] },
+  { id: "ingresos", group: "mov", label: "Ingresos recientes", ctx: "últimos 30 días", estado: [], test: (r) => r.ing >= -30, sort: { k: "ing", dir: -1 }, show: ["ing"] },
+  { id: "retiros", group: "mov", label: "Retiros recientes", ctx: "inactivos · últimos 30 días", estado: ["inactivo"], test: (r) => !r.activo && r.ret >= -30, sort: { k: "ret", dir: -1 }, show: ["ret"] },
+  { id: "sinjefe", group: "fix", tone: "warning", kpi: true, label: "Sin jefe asignado", ctx: "sus permisos no le llegan a nadie", estado: ["activo"], test: (r) => r.activo && !r.jefe, sort: { k: "sub", dir: 1 } },
+  { id: "correos", group: "fix", tone: "warning", kpi: true, label: "Correos por corregir", ctx: "no les llegan los avisos", estado: ["activo"], test: (r) => r.activo && !!r.correoMal, sort: { k: "nombre", dir: 1 }, show: ["correo"] },
+  { id: "duplicados", group: "fix", tone: "warning", label: "Posibles duplicados", ctx: "activos · mismo nombre y empresa", estado: ["activo"], test: (r) => r.dup, sort: { k: "nombre", dir: 1 }, show: ["doc"] },
+];
+const SIG = Object.fromEntries(SIGNALS.map((s) => [s.id, s]));
+
+const flagged = (txt, why, icon = "triangle-alert") => `<span class="flag" title="${esc(why)}">${esc(txt)}${ic(icon)}</span>`;
+const COLS = [
+  { k: "nombre", label: "Empleado", w: 270, stick: true, key: (r) => r.nk,
+    cell: (r) => `<span class="emp"><span class="av" aria-hidden="true">${r.ini}</span><a class="name" href="#" data-id="${r.id}" title="${esc(r.nombre)}">${esc(r.nombre)}</a>${r.dup ? `<span class="flag" title="Hay otro registro activo con este nombre en ${esc(r.emp)}">${ic("copy")}<span class="sr">Posible duplicado</span></span>` : ""}</span>` },
+  { k: "doc", label: "Documento", w: 140, key: (r) => r.doc.length * 1e11 + +r.doc,
+    cell: (r) => `<span class="dt">${r.docTipo}</span>${r.docMal ? flagged(r.doc, r.docMal) : esc(r.doc)}` },
+  { k: "cargo", label: "Cargo", w: 210, key: (r) => r.cargo, cell: (r) => esc(r.cargo), title: (r) => r.cargo },
+  { k: "jefe", label: "Jefe", w: 210, key: (r) => r.jefe ? norm(r.jefe) : "￿",
+    cell: (r) => r.jefe ? esc(r.jefe) : `<span class="pill" data-tone="neutral">Sin asignar</span>`, title: (r) => r.jefe },
+  { k: "emp", label: "Empresa", w: 210, key: (r) => r.emp, cell: (r) => esc(r.emp), title: (r) => r.emp },
+  { k: "sub", label: "Subdivisión", w: 180, key: (r) => r.sub, cell: (r) => esc(r.sub), title: (r) => r.sub },
+  { k: "contrato", label: "Contrato", w: 140, key: (r) => r.contrato, cell: (r) => esc(r.contrato) },
+  { k: "fin", label: "Fin de contrato", w: 170, key: (r) => r.fin ?? 1e9,
+    cell: (r) => r.fin == null ? `<span class="mut">—</span>` : r.activo && r.fin <= 30 ? `${fmtD(r.fin)}<span class="rel due">${inDays(r.fin)}</span>` : r.activo ? fmtD(r.fin) : `<span class="mut">${fmtD(r.fin)}</span>` },
+  { k: "ing", label: "Ingreso", w: 120, key: (r) => r.ing,
+    cell: (r) => r.ing >= -30 ? `${fmtD(r.ing)}<span class="rel mut">${r.ing === 0 ? "hoy" : `hace ${-r.ing} d`}</span>` : fmtD(r.ing) },
+  { k: "correo", label: "Correo", w: 250, key: (r) => r.correo || "￿",
+    cell: (r) => !r.correo ? `<span class="mut">Sin correo</span>` : r.correoMal ? flagged(r.correo, r.correoMal, "mail-warning") : esc(r.correo), title: (r) => r.correo },
+  { k: "estado", label: "Estado", w: 110, key: (r) => r.activo ? 0 : 1, def: false,
+    cell: (r) => r.activo ? `<span class="pill" data-tone="success"><span class="dot"></span>Activo</span>` : `<span class="pill" data-tone="neutral"><span class="dot"></span>Inactivo</span>` },
+  { k: "ret", label: "Retiro", w: 120, key: (r) => r.ret ?? -1e9, def: false, cell: (r) => r.ret == null ? `<span class="mut">—</span>` : fmtD(r.ret) },
+];
+const COL = Object.fromEntries(COLS.map((c) => [c.k, c]));
+const DEFAULT_COLS = COLS.filter((c) => c.def !== false).map((c) => c.k);
+
+const FACETS = [
+  { k: "estado", label: "Estado", val: (r) => r.activo ? "activo" : "inactivo", fixed: ["activo", "inactivo"], name: (v) => v === "activo" ? "Activo" : "Inactivo" },
+  { k: "emp", label: "Empresa", val: (r) => r.emp, search: true },
+  { k: "sub", label: "Subdivisión", val: (r) => r.sub, search: true },
+  { k: "contrato", label: "Tipo de contrato", val: (r) => r.contrato, fixed: CONTRATOS },
+];
+const FAC = Object.fromEntries(FACETS.map((f) => [f.k, f]));
+const SHOWN = 6;
+
+/* ---------------------------------------------------------------- estado */
+const S = {
+  f: { estado: new Set(["activo"]), emp: new Set(), sub: new Set(), contrato: new Set() },
+  q: "", signal: null, before: null,
+  sort: { k: "nombre", dir: 1 },
+  cols: new Set(DEFAULT_COLS),
+  facets: false, nav: "full", navBefore: null,
+  more: {}, fq: {},
+  view: "activos",
+};
+let VIEW = [];
+
+// Lo que salió de la cabecera queda en Vistas, bajo «Seguimiento», con su número.
+const VIEWS = [
+  { id: "activos", name: "Activos", note: "predeterminada", f: { estado: ["activo"] } },
+  { id: "aprendices", name: "Aprendices activos", f: { estado: ["activo"], contrato: ["Aprendizaje"] } },
+  { id: "todos", name: "Toda la planta", note: "activos e inactivos", f: {} },
+  { id: "ingresos", group: "seg", name: "Ingresos recientes", note: "últimos 30 días", signal: "ingresos" },
+  { id: "retiros", group: "seg", name: "Retiros recientes", note: "últimos 30 días", signal: "retiros" },
+  { id: "duplicados", group: "seg", name: "Posibles duplicados", note: "activos", signal: "duplicados" },
+];
+
+/* ---------------------------------------------------------------- cálculo */
+const BIT = { estado: 1, emp: 2, sub: 4, contrato: 8, q: 16, signal: 32 };
+function compute() {
+  const qn = norm(S.q.trim());
+  const sig = S.signal ? SIG[S.signal] : null;
+  const counts = Object.fromEntries(FACETS.map((f) => [f.k, new Map()]));
+  const sigCounts = Object.fromEntries(SIGNALS.map((s) => [s.id, 0]));
+  const out = [];
+  for (const r of rows) {
+    let m = 0, fails = 0, only = null;
+    for (const f of FACETS) {
+      const set = S.f[f.k];
+      if (set.size && !set.has(f.val(r))) { m |= BIT[f.k]; fails++; only = f.k; }
+    }
+    if (qn && !r.hay.includes(qn)) { m |= BIT.q; fails++; only = "q"; }
+    if (sig && !sig.test(r)) { m |= BIT.signal; fails++; only = "signal"; }
+    if (fails === 0) {
+      out.push(r);
+      for (const f of FACETS) { const v = f.val(r), c = counts[f.k]; c.set(v, (c.get(v) || 0) + 1); }
+    } else if (fails === 1 && only in counts) {
+      const f = FAC[only], v = f.val(r), c = counts[only]; c.set(v, (c.get(v) || 0) + 1);
+    }
+    // Las cifras siguen a empresa, subdivisión, contrato y búsqueda; el estado lo pone cada una.
+    if ((m & ~(BIT.estado | BIT.signal)) === 0) for (const s of SIGNALS) if (s.test(r)) sigCounts[s.id]++;
+  }
+  const col = COL[S.sort.k], dir = S.sort.dir;
+  const keyed = out.map((r) => [col.key(r), r]);
+  keyed.sort((a, b) => (a[0] < b[0] ? -dir : a[0] > b[0] ? dir : a[1].nk < b[1].nk ? -1 : a[1].nk > b[1].nk ? 1 : a[1].id - b[1].id));
+  VIEW = keyed.map((x) => x[1]);
+  return { counts, sigCounts };
+}
+
+/* ---------------------------------------------------------------- pintar */
+const app = $("#app"), scroller = $("#scroller"), tb = $("#tb");
+const wide = () => window.matchMedia("(min-width: 1100px)").matches;
+const phone = () => window.matchMedia("(max-width: 719px)").matches;
+
+function renderKpis(sigCounts) {
+  $("#kpis").innerHTML = SIGNALS.filter((s) => s.kpi).map((s) => {
+    const n = sigCounts[s.id], on = S.signal === s.id;
+    return `<button class="kpi${n ? "" : " zero"}" type="button" data-sig="${s.id}" aria-pressed="${on}"${s.tone ? ` data-tone="${s.tone}"` : ""} title="${esc(on ? `Quitar «${s.label}»` : `${s.label}: ${s.ctx}`)}">
+      <span class="kpi-n">${fmtN(n)}</span><span class="kpi-l">${esc(s.label)}</span><span class="kpi-c">${esc(s.ctx)}</span><span class="kpi-go">${ic(on ? "x" : "chevron-right")}</span></button>`;
+  }).join("");
+  const used = ["emp", "sub", "contrato"].filter((k) => S.f[k].size).map((k) => FAC[k].label.toLowerCase());
+  if (S.q.trim()) used.push("búsqueda");
+  const sc = $("#scope");
+  sc.innerHTML = used.length ? `<span>Activos de la selección:</span> <b class="on">${esc(used.join(", "))}</b>` : `<span>Activos de</span> <b>toda la planta</b>`;
+  sc.title = used.length ? `Las cifras cuentan activos con estos filtros: ${used.join(", ")}` : "Las cifras cuentan los activos de toda la planta";
+}
+
+function chipText(k) {
+  const set = [...S.f[k]], f = FAC[k], name = f.name || ((v) => v);
+  return set.length === 1 ? `${f.label}: ${name(set[0])}` : `${f.label}: ${name(set[0])} y ${set.length - 1} más`;
+}
+function renderChips() {
+  const parts = [];
+  if (S.signal) parts.push([`signal`, SIG[S.signal].label]);
+  for (const f of FACETS) if (S.f[f.k].size) parts.push([f.k, chipText(f.k)]);
+  $("#chips").innerHTML = parts.map(([k, t]) => `<span class="chip"><span title="${esc(t)}">${esc(t)}</span><button class="chip-x" type="button" data-clear="${k}" aria-label="Quitar ${esc(t)}">${ic("x")}</button></span>`).join("");
+  const any = parts.length || S.q.trim();
+  $("#clear").hidden = !any;
+  $("#saveView").hidden = !any;
+  const nf = FACETS.reduce((n, f) => n + (S.f[f.k].size ? 1 : 0), 0) + (S.signal ? 1 : 0);
+  $("#fCount").hidden = !nf;
+  $("#fCount").textContent = nf;
+  $("#total").textContent = fmtN(VIEW.length);
+  $("#totalWord").textContent = VIEW.length === 1 ? "empleado" : "empleados";
+  $("#fDone").textContent = `Ver ${fmtN(VIEW.length)} ${VIEW.length === 1 ? "empleado" : "empleados"}`;
+}
+
+function facetOptions(f, counts) {
+  const c = counts[f.k], sel = S.f[f.k];
+  let vals = f.fixed ? f.fixed.slice() : [...new Set([...c.keys(), ...sel])].sort((a, b) => a.localeCompare(b, "es"));
+  vals = vals.filter((v) => (c.get(v) || 0) > 0 || sel.has(v));
+  const q = f.search ? norm(S.fq[f.k] || "") : "";
+  if (q) vals = vals.filter((v) => norm(v).includes(q));
+  return vals;
+}
+function renderFacets(counts) {
+  const body = $("#fxBody");
+  const a = document.activeElement;
+  const keep = a && body.contains(a) ? (a.dataset.fq ? `q:${a.dataset.fq}` : a.dataset.v != null ? `v:${a.dataset.f}:${a.dataset.v}` : a.dataset.more ? `m:${a.dataset.more}` : null) : null;
+  const sel = keep && keep.startsWith("q:") ? [a.selectionStart, a.selectionEnd] : null;
+  body.innerHTML = FACETS.map((f) => {
+    const vals = facetOptions(f, counts), c = counts[f.k], set = S.f[f.k];
+    const open = S.more[f.k] || (S.fq[f.k] || "").trim();
+    const shown = open ? vals : vals.slice(0, SHOWN);
+    const name = f.name || ((v) => v);
+    return `<section class="facet">
+      <h3 id="fh-${f.k}">${esc(f.label)}${set.size ? `<span class="badge">${set.size}</span>` : ""}</h3>
+      ${f.search ? `<input class="fq" type="search" data-fq="${f.k}" placeholder="Buscar ${esc(f.label.toLowerCase())}" aria-label="Buscar ${esc(f.label.toLowerCase())}" value="${esc(S.fq[f.k] || "")}">` : ""}
+      ${shown.length ? `<ul class="opts" aria-labelledby="fh-${f.k}">${shown.map((v) => `<li><label class="opt"><input type="checkbox" data-f="${f.k}" data-v="${esc(v)}"${set.has(v) ? " checked" : ""}><span class="opt-l" title="${esc(name(v))}">${esc(name(v))}</span><span class="opt-n">${fmtN(c.get(v) || 0)}</span></label></li>`).join("")}</ul>` : `<p class="none">Ninguna coincide.</p>`}
+      ${!(S.fq[f.k] || "").trim() && vals.length > SHOWN ? `<button class="link more" type="button" data-more="${f.k}">${S.more[f.k] ? "Ver menos" : `Ver ${fmtN(vals.length - SHOWN)} más`}</button>` : ""}
+    </section>`;
+  }).join("");
+  if (keep) {
+    const [t, k, ...rest] = keep.split(":");
+    const el = t === "q" ? body.querySelector(`[data-fq="${k}"]`) : t === "m" ? body.querySelector(`[data-more="${k}"]`)
+      : [...body.querySelectorAll(`input[data-f="${k}"]`)].find((x) => x.dataset.v === rest.join(":")) || body.querySelector(`input[data-f="${k}"]`);
+    if (el) { el.focus(); if (sel) el.setSelectionRange(sel[0], sel[1]); }
+  }
+}
+
+function visCols() { return COLS.filter((c) => S.cols.has(c.k)); }
+function renderHead() {
+  const cols = visCols();
+  $("#tbl").style.width = cols.reduce((s, c) => s + c.w, 0) + "px";
+  $("#cg").innerHTML = cols.map((c) => `<col style="width:${c.w}px">`).join("");
+  $("#hr").innerHTML = cols.map((c) => {
+    const on = S.sort.k === c.k;
+    return `<th scope="col"${c.stick ? ` class="c-stick"` : ""}${on ? ` aria-sort="${S.sort.dir > 0 ? "ascending" : "descending"}"` : ""}><button class="th-btn" type="button" data-sort="${c.k}">${esc(c.label)}${ic(on && S.sort.dir < 0 ? "arrow-down" : "arrow-up")}</button></th>`;
+  }).join("");
+  $("#tbl").setAttribute("aria-rowcount", VIEW.length + 1);
+}
+
+let win = [-1, -1];
+function renderRows(force) {
+  const cols = visCols();
+  if (!VIEW.length) {
+    win = [-1, -1];
+    tb.innerHTML = `<tr class="empty"><td colspan="${cols.length}"><p>Ningún empleado cumple estos filtros.</p><button class="link" type="button" data-clear="all">Limpiar filtros</button></td></tr>`;
+    return;
+  }
+  const row = 34, vh = scroller.clientHeight || 640;
+  const first = Math.max(0, Math.floor((scroller.scrollTop - 38) / row) - 8);
+  const last = Math.min(VIEW.length, first + Math.ceil(vh / row) + 16);
+  if (!force && first === win[0] && last === win[1]) return;
+  win = [first, last];
+  let h = first ? `<tr class="sp" aria-hidden="true"><td colspan="${cols.length}" style="height:${first * row}px"></td></tr>` : "";
+  for (let i = first; i < last; i++) {
+    const r = VIEW[i];
+    h += `<tr aria-rowindex="${i + 2}">` + cols.map((c) => {
+      const t = c.title && c.title(r);
+      return `<td${c.stick ? ` class="c-stick"` : ""}${t ? ` title="${esc(t)}"` : ""}>${c.cell(r)}</td>`;
+    }).join("") + "</tr>";
+  }
+  if (last < VIEW.length) h += `<tr class="sp" aria-hidden="true"><td colspan="${cols.length}" style="height:${(VIEW.length - last) * row}px"></td></tr>`;
+  tb.innerHTML = h;
+}
+
+function renderLayout() {
+  const overlay = !wide() && S.facets;
+  if (S.facets) app.setAttribute("data-facets", ""); else app.removeAttribute("data-facets");
+  app.dataset.nav = S.nav;
+  $("#bFacets").setAttribute("aria-pressed", String(S.facets));
+  $("#backdrop").hidden = !(overlay || app.hasAttribute("data-navopen"));
+  const c = $("#collapse");
+  c.querySelector(".lbl").textContent = S.nav === "rail" ? "Expandir menú" : "Contraer menú";
+  c.setAttribute("aria-label", c.querySelector(".lbl").textContent);
+  c.title = c.querySelector(".lbl").textContent;
+}
+
+function update(opts = {}) {
+  const { counts, sigCounts } = compute();
+  renderKpis(sigCounts);
+  renderChips();
+  renderFacets(counts);
+  renderHead();
+  if (opts.top) scroller.scrollTop = 0;
+  renderRows(true);
+  renderLayout();
+}
+
+/* ---------------------------------------------------------------- acciones */
+const touched = () => { S.view = null; };
+// Al apagar una cifra vuelve lo que ella cambió (estado, orden, columnas); los demás filtros se quedan.
+function snapshot() { return { estado: [...S.f.estado], sort: { ...S.sort }, cols: [...S.cols] }; }
+function restore(s) { S.f.estado = new Set(s.estado); S.sort = { ...s.sort }; S.cols = new Set(s.cols); }
+
+function setSignal(id) {
+  if (S.signal === id) {
+    if (S.before) restore(S.before);
+    S.signal = null; S.before = null;
+  } else {
+    if (!S.signal) S.before = snapshot();
+    else restore(S.before);
+    const s = SIG[id];
+    S.signal = id;
+    S.f.estado = new Set(s.estado);
+    S.sort = { ...s.sort };
+    for (const k of s.show || []) S.cols.add(k);
+  }
+  touched();
+  update({ top: true });
+}
+function clearFacet(k) {
+  if (k === "all") { for (const f of FACETS) S.f[f.k].clear(); S.signal = null; S.before = null; S.q = ""; $("#q").value = ""; }
+  else if (k === "signal") { if (S.before) restore(S.before); S.signal = null; S.before = null; }
+  else S.f[k].clear();
+  touched();
+  update({ top: true });
+}
+function setFacets(open) {
+  S.facets = open;
+  if (wide()) {
+    // Con los filtros abiertos el menú se pliega a iconos; al cerrarlos vuelve como estaba.
+    if (open && S.nav === "full") { S.navBefore = "full"; S.nav = "rail"; }
+    else if (!open && S.navBefore) { S.nav = S.navBefore; S.navBefore = null; }
+  }
+  renderLayout();
+  requestAnimationFrame(() => renderRows(true));
+}
+const viewFilters = (v) => v.f || (v.signal ? { estado: SIG[v.signal].estado } : {});
+function viewCount(v) {
+  const f = viewFilters(v), sig = v.signal ? SIG[v.signal] : null, qn = norm((v.q || "").trim());
+  const sets = FACETS.map((fa) => [fa, f[fa.k] && f[fa.k].length ? new Set(f[fa.k]) : null]);
+  let n = 0;
+  outer: for (const r of rows) {
+    for (const [fa, set] of sets) if (set && !set.has(fa.val(r))) continue outer;
+    if ((qn && !r.hay.includes(qn)) || (sig && !sig.test(r))) continue;
+    n++;
+  }
+  return n;
+}
+function applyView(v) {
+  const f = viewFilters(v), s = v.signal ? SIG[v.signal] : null;
+  for (const fa of FACETS) S.f[fa.k] = new Set(f[fa.k] || []);
+  S.q = v.q || ""; $("#q").value = S.q;
+  S.cols = new Set(v.cols || DEFAULT_COLS);
+  S.signal = s ? s.id : null;
+  // Quitar el chip de una vista de seguimiento deja la vista «Activos».
+  S.before = s ? { estado: ["activo"], sort: { k: "nombre", dir: 1 }, cols: [...DEFAULT_COLS] } : null;
+  S.sort = { ...(v.sort || (s && s.sort) || { k: "nombre", dir: 1 }) };
+  if (s && !v.cols) for (const k of s.show || []) S.cols.add(k);
+  S.view = v.id;
+  update({ top: true });
+}
+function describe() {
+  const parts = [];
+  if (S.signal) parts.push(SIG[S.signal].label);
+  for (const f of FACETS) if (S.f[f.k].size) { const set = [...S.f[f.k]], name = f.name || ((v) => v); parts.push(set.length === 1 ? name(set[0]) : `${set.length} ${f.label.toLowerCase()}`); }
+  if (S.q.trim()) parts.push(`«${S.q.trim()}»`);
+  return parts.join(" · ") || "Toda la planta";
+}
+
+let toastT;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { t.hidden = true; }, 4200);
+}
+
+/* Capas: Vistas y Columnas. */
+const POPS = [["#bViews", "#pViews", renderViews], ["#bCols", "#pCols", renderCols]];
+function closePops(except) {
+  for (const [b, p] of POPS) if (b !== except) { $(p).hidden = true; $(b).setAttribute("aria-expanded", "false"); }
+}
+// La vista marcada es la que coincide con lo que se ve, llegue uno a ella como llegue.
+function sameState(v) {
+  const f = viewFilters(v);
+  if ((v.signal || null) !== S.signal || (v.q || "").trim() !== S.q.trim()) return false;
+  return FACETS.every((fa) => { const a = f[fa.k] || [], b = S.f[fa.k]; return a.length === b.size && a.every((x) => b.has(x)); });
+}
+function renderViews() {
+  const cur = (VIEWS.find(sameState) || {}).id;
+  const item = (v) => `<button class="pop-item" type="button"${cur === v.id ? ` aria-current="true"` : ""} data-view="${v.id}"><span class="ok">${cur === v.id ? ic("check") : ""}</span><span class="grow">${esc(v.name)}${v.note ? ` <small>· ${esc(v.note)}</small>` : ""}</span><span class="pop-n">${fmtN(viewCount(v))}</span></button>`;
+  $("#pViews").innerHTML = `<p class="pop-h">Vistas</p>${VIEWS.filter((v) => v.group !== "seg").map(item).join("")}<hr><p class="pop-h">Seguimiento</p>${VIEWS.filter((v) => v.group === "seg").map(item).join("")}`;
+}
+function renderCols() {
+  $("#pCols").innerHTML = `<p class="pop-h">Columnas visibles</p>` + COLS.map((c) =>
+    `<label class="pop-item"><input type="checkbox" data-col="${c.k}"${S.cols.has(c.k) ? " checked" : ""}${c.stick ? " disabled" : ""}><span class="grow">${esc(c.label)}</span></label>`).join("") +
+    `<hr><button class="pop-item" type="button" data-cols-reset><span class="grow">Restablecer columnas</span></button>`;
+}
+for (const [b, p, render] of POPS) {
+  $(b).addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = $(p).hidden;
+    closePops(open ? b : null);
+    if (open) { render(); $(p).hidden = false; $(b).setAttribute("aria-expanded", "true"); $(p).querySelector("button, input:not(:disabled)")?.focus(); }
+    else { $(p).hidden = true; $(b).setAttribute("aria-expanded", "false"); }
+  });
+}
+$("#pViews").addEventListener("click", (e) => {
+  const v = e.target.closest("[data-view]");
+  if (!v) return;
+  applyView(VIEWS.find((x) => x.id === v.dataset.view));
+  closePops(); $("#bViews").focus();
+});
+$("#pCols").addEventListener("change", (e) => {
+  const k = e.target.dataset.col;
+  if (!k) return;
+  if (e.target.checked) S.cols.add(k); else S.cols.delete(k);
+  renderHead(); renderRows(true);
+});
+$("#pCols").addEventListener("click", (e) => {
+  if (!e.target.closest("[data-cols-reset]")) return;
+  S.cols = new Set(DEFAULT_COLS);
+  renderCols(); renderHead(); renderRows(true);
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".anchor")) closePops();
+  if (!e.target.closest("#notes, #notesBtn") && !$("#notes").hidden) toggleNotes(false);
+});
+
+/* Cifras, filtros, búsqueda, orden. */
+$("#kpis").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-sig]");
+  if (!b) return;
+  setSignal(b.dataset.sig);
+  $(`#kpis [data-sig="${b.dataset.sig}"]`)?.focus();
+});
+document.addEventListener("click", (e) => {
+  const x = e.target.closest("[data-clear]");
+  if (x) { clearFacet(x.dataset.clear); if (x.dataset.clear !== "all") $("#q").focus({ preventScroll: true }); }
+});
+$("#clear").addEventListener("click", () => clearFacet("all"));
+$("#fxBody").addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.f == null) return;
+  const set = S.f[el.dataset.f];
+  if (el.checked) set.add(el.dataset.v); else set.delete(el.dataset.v);
+  touched();
+  update({ top: true });
+});
+$("#fxBody").addEventListener("click", (e) => {
+  const m = e.target.closest("[data-more]");
+  if (!m) return;
+  S.more[m.dataset.more] = !S.more[m.dataset.more];
+  update();
+});
+let fqT;
+$("#fxBody").addEventListener("input", (e) => {
+  const k = e.target.dataset.fq;
+  if (!k) return;
+  S.fq[k] = e.target.value;
+  clearTimeout(fqT);
+  fqT = setTimeout(() => update(), 90);
+});
+let qT;
+$("#q").addEventListener("input", (e) => {
+  S.q = e.target.value;
+  clearTimeout(qT);
+  qT = setTimeout(() => { touched(); update({ top: true }); }, 120);
+});
+$("#hr").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-sort]");
+  if (!b) return;
+  const k = b.dataset.sort;
+  S.sort = S.sort.k === k ? { k, dir: -S.sort.dir } : { k, dir: k === "ing" || k === "ret" ? -1 : 1 };
+  update({ top: true });
+  $(`#hr [data-sort="${k}"]`)?.focus();
+});
+scroller.addEventListener("scroll", () => {
+  scroller.classList.toggle("x", scroller.scrollLeft > 0);
+  requestAnimationFrame(() => renderRows(false));
+}, { passive: true });
+tb.addEventListener("click", (e) => {
+  const a = e.target.closest(".name");
+  if (!a) return;
+  e.preventDefault();
+  const r = rows[+a.dataset.id];
+  toast(`Aquí se abre la ficha lateral de ${r.nombre}.`);
+});
+
+/* Panel de filtros, menú, exportar, vistas. */
+$("#bFacets").addEventListener("click", () => setFacets(!S.facets));
+$("#fClose").addEventListener("click", () => { setFacets(false); $("#bFacets").focus(); });
+$("#fDone").addEventListener("click", () => { setFacets(false); $("#bFacets").focus(); });
+$("#collapse").addEventListener("click", () => { S.nav = S.nav === "rail" ? "full" : "rail"; S.navBefore = null; renderLayout(); requestAnimationFrame(() => renderRows(true)); });
+$("#menuBtn").addEventListener("click", () => { app.setAttribute("data-navopen", ""); renderLayout(); $("#nav a")?.focus(); });
+$("#backdrop").addEventListener("click", () => { app.removeAttribute("data-navopen"); if (!wide()) S.facets = false; renderLayout(); });
+$("#nav").addEventListener("click", (e) => {
+  const a = e.target.closest("a");
+  if (!a) return;
+  e.preventDefault();
+  if (a.getAttribute("aria-current") !== "page") toast("En la maqueta solo funciona Empleados.");
+  if (app.hasAttribute("data-navopen")) { app.removeAttribute("data-navopen"); renderLayout(); }
+});
+document.querySelectorAll(".crumbs a").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); toast("En la maqueta solo funciona Empleados."); }));
+$("#bExport").addEventListener("click", () => toast(`En la maqueta no se descarga nada. Exportaría ${fmtN(VIEW.length)} ${VIEW.length === 1 ? "fila" : "filas"} con las ${visCols().length} columnas visibles, en este orden.`));
+$("#saveView").addEventListener("click", () => {
+  const name = describe();
+  const id = "v" + (VIEWS.length + 1);
+  VIEWS.push({ id, name, f: Object.fromEntries(FACETS.map((f) => [f.k, [...S.f[f.k]]])), signal: S.signal, q: S.q, sort: { ...S.sort }, cols: [...S.cols] });
+  S.view = id;
+  toast(`Guardada como «${name}». Está en Vistas.`);
+});
+
+function toggleNotes(open) {
+  $("#notes").hidden = !open;
+  $("#notesBtn").setAttribute("aria-expanded", String(open));
+}
+$("#notesBtn").addEventListener("click", (e) => { e.stopPropagation(); toggleNotes($("#notes").hidden); });
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const openPop = POPS.find(([, p]) => !$(p).hidden);
+  if (openPop) { closePops(); $(openPop[0]).focus(); return; }
+  if (!$("#notes").hidden) { toggleNotes(false); $("#notesBtn").focus(); return; }
+  if (app.hasAttribute("data-navopen")) { app.removeAttribute("data-navopen"); renderLayout(); $("#menuBtn").focus(); return; }
+  if (S.facets && !wide()) { setFacets(false); $("#bFacets").focus(); }
+});
+let wasWide = wide();
+window.addEventListener("resize", () => {
+  const w = wide();
+  if (w !== wasWide) {
+    wasWide = w;
+    if (!w && S.navBefore) { S.nav = S.navBefore; S.navBefore = null; }
+    if (!w) S.facets = false;
+  }
+  if (!phone()) app.removeAttribute("data-navopen");
+  renderLayout();
+  renderRows(true);
+});
+
+/* Arranque: en pantalla ancha, con los filtros abiertos como en la captura. */
+if (wide()) { S.facets = true; S.nav = "rail"; S.navBefore = "full"; }
+update();
+})();
+</script>

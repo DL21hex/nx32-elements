@@ -86,7 +86,7 @@ test("filtrar con el filtro de una columna", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(estado.locator(".nx-grid__funnel")).toBeFocused();
-  await expect(grid(page).locator(".nx-grid__foot")).toContainText("de 600 filas");
+  await expect(grid(page).locator(".nx-grid__count")).toContainText("de 600 filas");
 });
 
 test("el desplazamiento virtual pinta pocas filas aunque haya 600", async ({ page }) => {

@@ -519,7 +519,15 @@ Una tabla de datos que se explora sola:
   ancho a la tabla (también en RTL). Va en su propia fila, solo sobre la tabla y al lado del panel
   «Filtros»: aparecer o irse no cambia el alto de la tabla. Si las columnas caben queda una franja
   vacía de 1 px, y en una pantalla táctil no se muestra (la tabla se desplaza con el dedo). Va con
-  `aria-hidden` y fuera del orden del teclado (lo que se recorre es la tabla).
+  `aria-hidden` y fuera del orden del teclado (lo que se recorre es la tabla). Con `height="fill"`
+  no se pone: la barra de abajo siempre se ve.
+- **Alto del contenedor (`height="fill"`).** La tabla ocupa el alto de su contenedor y es lo único
+  que se desplaza: para la tabla que es la página, donde la de abajo de la página no tiene por qué
+  moverse. El contenedor tiene que tener alto (un flex en columna con alto, o un alto fijo). Cada
+  pieza va en su fila (título, barra, selección, aviso, resultado, tabla, pie) y la tabla se lleva lo
+  que sobra, sin medir nada; el panel «Filtros» se desplaza dentro de su alto. Si no cabe, la tabla
+  no baja de `--nx-grid-fill-min` (240 px) y se desplaza la página. Con un número, `height` sigue
+  siendo el alto en px del área con scroll.
 - **Filas virtualizadas.** Solo existen en el DOM las filas visibles, y al desplazarse se reutilizan.
   En el cliente, 100.000 filas se filtran y ordenan en décimas de segundo (se ordenan una vez:
   filtrar o buscar no vuelve a ordenar); más allá, `source`. Con cientos de miles de filas del
@@ -537,10 +545,23 @@ Una tabla de datos que se explora sola:
   (`{ key: "nombre", avatar: true, initials: "iniciales" }`, hasta tres letras). `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
 - **Atajos (`presets`).** Tarjetas sobre la tabla, cada una con un filtro con nombre y su conteo
   sobre todos los datos (con `source`, el servidor lo manda en `presets` de la respuesta): `{id,
-  label, hint?, filters, tone?}`. Tocar una aplica sus filtros, y otra vez vuelve a los de antes; la
+  label, hint?, filters, tone?, menu?}`. Tocar una aplica sus filtros, y otra vez vuelve a los de antes; la
   del filtro que se está viendo queda marcada (`aria-pressed`). Con `tone` (`info`, `success`,
   `warning`, `danger`) el conteo va en ese color y, marcada, la tarjeta también: para el atajo que
-  señala algo por resolver, no para todos.
+  señala algo por resolver, no para todos. Con `menu: true` el atajo no es tarjeta: va en el menú
+  «Vistas», en el grupo «Seguimiento» (`labels.viewTracking`), sin conteo (ni la tabla lo cuenta ni el
+  servidor tiene que mandarlo), y se marca y se quita igual. Con atajos de menú, «Vistas» aparece
+  aunque no haya `views-storage`, y entonces solo trae ese grupo.
+- **Título (`heading`).** La tabla que es la página lleva su título en la primera fila, y los atajos
+  pasan a ser botones a su derecha: el número, el nombre y su línea corta, y una flecha que, marcado,
+  pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se desplazan de lado.
+  `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
+  El tamaño sale de `--nx-grid-heading-size` (22 px).
+- **El total, con los filtros.** «**9.704** filas» (o «12 de 9.704 filas» filtrando en el
+  navegador) va al principio de la fila de los filtros puestos, con un solo «Limpiar todo» y
+  «Guardar como vista». El pie queda para los totales de los montos y las cuentas de un rango
+  marcado, y no ocupa nada si no tiene ninguno. `labels.rows` y `labels.of` nombran las filas
+  («{n} empleados»).
 - **Enlaces de verdad (`href`).** Una columna con `href: "url"` (la clave de la fila que trae la
   dirección) pinta un `<a href>` en las filas que la traen: Ctrl/⌘+clic o la rueda abren otra
   pestaña, el clic derecho da el menú del navegador (copiar el enlace) y un router de la app lo
@@ -608,7 +629,7 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-level`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo` |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
 

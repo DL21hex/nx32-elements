@@ -745,6 +745,16 @@ function mountGridDemo(root: HTMLElement) {
     anulable: r.estado === "borrador" || r.estado === "pendiente",
     comprador: ["Ana Ríos", "Luis Peña", "Marta Gómez"][i % 3],
   }));
+  // La tabla como página: título con los atajos como botones, «Seguimiento» y el alto del marco.
+  const page = root.querySelector<NxGrid>("#grid-page")!;
+  page.columns = PURCHASE_COLUMNS.map((c) => ({ ...c, editable: false }));
+  page.rows = purchaseRows(300, 5);
+  page.presets = [
+    { id: "pend", label: "Pendientes", hint: "por aprobar", tone: "warning", filters: [{ key: "estado", op: "in", values: ["pendiente"] }] },
+    { id: "atraso", label: "Atrasados", hint: "más de 5 días", filters: [{ key: "atraso", op: "range", min: 6 }] },
+    { id: "anulados", label: "Anulados", menu: true, filters: [{ key: "estado", op: "in", values: ["anulado"] }] },
+    { id: "mes", label: "Del último mes", hint: "por fecha", menu: true, filters: [{ key: "fecha", op: "range", rel: "last30" }] },
+  ];
   links.addEventListener("nx-grid-action", (e) => {
     const li = document.createElement("li");
     li.textContent = `nx-grid-action → ${e.detail.action} · ${e.detail.row.oc}`;

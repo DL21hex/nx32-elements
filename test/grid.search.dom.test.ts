@@ -57,7 +57,7 @@ describe("Buscar en la tabla", () => {
     expect(shown(el)).toEqual(["OC-1", "OC-3"]);
     expect(el.search).toBe("aceros");
     expect(el.count).toBe(2);
-    expect(el.querySelector(".nx-grid__foot")!.textContent).toContain("2 de 4 filas");
+    expect(el.querySelector(".nx-grid__count")!.textContent).toBe("2 de 4 filas");
   });
 
   it("encuentra lo que se ve (la etiqueta del estado, el monto con formato) y el valor sin formato", () => {

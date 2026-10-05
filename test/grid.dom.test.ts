@@ -34,6 +34,8 @@ const column = (el: NxGrid, c: number) => [...el.querySelectorAll(`.nx-grid__row
 const chips = (el: NxGrid) => [...el.querySelectorAll(".nx-grid__chip")].map((c) => c.textContent);
 const key = (el: NxGrid, k: string, init: KeyboardEventInit = {}) => scroll(el).dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, ...init }));
 const foot = (el: NxGrid) => el.querySelector(".nx-grid__foot")!.textContent;
+/** El total de filas, arriba con los filtros (desde la 0.4.0 ya no va en el pie). */
+const count = (el: NxGrid) => el.querySelector(".nx-grid__chips .nx-grid__count")?.textContent;
 /** El panel del filtro se carga aparte: espera a que muestre esa columna. */
 async function panel(el: NxGrid, title: string): Promise<HTMLElement> {
   for (let i = 0; i < 200 && el.querySelector(".nx-grid__filter .nx-grid__f-head")?.textContent !== title; i++) await new Promise((r) => setTimeout(r, 10));
@@ -52,7 +54,7 @@ describe("<nx-grid>", () => {
     expect(el.querySelector("img")).toBeNull();
     expect(cellText(el, 0, 3)).toBe("$ 8.000.000");
     expect(el.querySelector(`[data-r="0"] > [data-c="2"] .nx-grid__pill`)!.getAttribute("data-tone")).toBe("warning");
-    expect(foot(el)).toContain("5 filas");
+    expect(count(el)).toBe("5 filas");
   });
 
   it("los atributos JSON funcionan; JSON inválido se ignora sin romper", () => {
@@ -487,7 +489,7 @@ describe("<nx-grid>", () => {
     const el = mount('source="/datos" facets-open');
     await new Promise((r) => setTimeout(r, 20));
     expect(JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({ offset: 0, limit: 100, sort: null, filters: [] });
-    expect(foot(el)).toContain("250 filas");
+    expect(count(el)).toBe("250 filas");
     expect(foot(el)).toContain("$ 250.000");
     expect(el.querySelector(".nx-grid__facet-title")!.textContent).toBe("Proveedor");
     expect(el.querySelector<HTMLElement>(".nx-grid__group")!.hidden).toBe(true);
@@ -525,11 +527,11 @@ describe("<nx-grid>", () => {
     const calls = fetch.mock.calls.length;
     expect(el.mode).toBe("client");
     expect(el.rows).toHaveLength(250);
-    expect(foot(el)).toContain("250 filas");
+    expect(count(el)).toBe("250 filas");
     // En el cliente: filtrar no pide nada y agrupar vuelve a estar.
     expect(el.querySelector<HTMLElement>(".nx-grid__group")!.hidden).toBe(false);
     el.filters = [{ key: "estado", op: "in", values: ["apr"] }];
-    expect(foot(el)).toContain("50 de 250 filas");
+    expect(count(el)).toBe("50 de 250 filas");
     expect(fetch).toHaveBeenCalledTimes(calls);
     // refresh() vuelve a mirar el servidor: la primera página (con el filtro) y la consulta completa.
     el.refresh();
@@ -540,7 +542,7 @@ describe("<nx-grid>", () => {
       { offset: 0, limit: 1001, sort: null, filters: [] },
     ]);
     expect(el.mode).toBe("client");
-    expect(foot(el)).toContain("50 de 250 filas");
+    expect(count(el)).toBe("50 de 250 filas");
   });
 
   it("client-max: si la consulta pasa del tope, se queda en el servidor sin pedir de más", async () => {
@@ -755,7 +757,7 @@ describe("<nx-grid>", () => {
   it("etiquetas propias y BDUI", () => {
     document.body.innerHTML = "<div id=t></div>";
     const [el] = render({ component: "Grid", props: { columns: COLS, rows: ROWS, labels: { rows: "{n} registros" } } }, document.getElementById("t")!) as NxGrid[];
-    expect(foot(el)).toContain("4 registros");
+    expect(count(el)).toBe("4 registros");
     expect(el.labels.clear).toBe(GRID_LABELS.clear);
   });
 });

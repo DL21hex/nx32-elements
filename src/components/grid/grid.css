@@ -1,6 +1,10 @@
 /*
  * <nx-grid>. Variables propias:
- *   --nx-grid-height (440px): alto del área con scroll (o el atributo `height`)
+ *   --nx-grid-height (440px): alto del área con scroll (o el atributo `height`; `height="fill"`
+ *     ocupa el alto del contenedor)
+ *   --nx-grid-fill-min (240px): con `height="fill"`, lo mínimo que mide la tabla (si no cabe, la
+ *     página se desplaza)
+ *   --nx-grid-heading-size (22px): el tamaño del título (`heading`)
  *   --nx-grid-facets-width (248px): ancho del panel de filtros
  */
 
@@ -36,7 +40,7 @@ nx-grid > * {
   flex: 1 0 100%;
   min-inline-size: 0;
 }
-nx-grid > .nx-grid__presets {
+nx-grid > .nx-grid__top {
   order: 0;
 }
 nx-grid > .nx-grid__bar {
@@ -164,13 +168,31 @@ nx-grid .nx-glyph {
   gap: 8px;
   margin-block-end: 8px;
 }
+/* La primera fila: el título (`heading`) y los atajos. Sin título, los atajos ocupan la fila. */
+.nx-grid__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+  margin-block-end: 12px;
+}
+.nx-grid__heading {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  margin: 0;
+  font-size: var(--nx-grid-heading-size, 22px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
 /* Atajos: tarjetas con un filtro y su conteo. Marcada, la del filtro que se está viendo. Con tono, el
    conteo va en su color y, marcada, la tarjeta también: el color se lo lleva el atajo que señala algo. */
 .nx-grid__presets {
   display: grid;
+  flex: 1 1 100%;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 8px;
-  margin-block-end: 12px;
 }
 .nx-grid__preset {
   --_soft: var(--nx-primary-soft);
@@ -233,6 +255,72 @@ nx-grid .nx-glyph {
     --_soft: var(--nx-danger-soft);
     --_line: color-mix(in oklab, var(--nx-danger) 45%, transparent);
     --_ink: var(--nx-danger);
+  }
+}
+/* Junto al título, los atajos son botones en una fila: el número a la izquierda, el nombre y su línea
+   corta, y una flecha que marcado pasa a ✕. Si no caben al lado del título, bajan a la fila
+   siguiente y se desplazan de lado. */
+.nx-grid__top[data-heading] {
+  & > .nx-grid__presets {
+    display: flex;
+    flex: 0 1 auto;
+    max-inline-size: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  & .nx-grid__preset {
+    flex: 0 0 auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: stretch;
+    column-gap: 10px;
+    row-gap: 0;
+    min-block-size: 48px;
+    max-inline-size: 290px;
+    padding: 6px 8px 6px 12px;
+    box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.05), rgb(0 0 0 / 0.25));
+
+    & > strong {
+      grid-row: 1 / 3;
+      line-height: 1;
+    }
+    & > :is(span, small):not(.nx-grid__preset-go) {
+      grid-column: 2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    & > span:not(.nx-grid__preset-go) {
+      align-self: end;
+      line-height: 1.25;
+    }
+    & > small {
+      align-self: start;
+      font-size: 11.5px;
+    }
+    &[aria-pressed="true"] {
+      box-shadow: inset 0 0 0 1px var(--_line);
+    }
+  }
+}
+.nx-grid__preset-go {
+  display: grid;
+  grid-column: 3;
+  grid-row: 1 / 3;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  color: var(--nx-text-quaternary);
+
+  & .nx-glyph {
+    inline-size: 15px;
+    block-size: 15px;
+  }
+  .nx-grid__preset:hover & {
+    color: var(--nx-foreground);
+  }
+  .nx-grid__preset[aria-pressed="true"] & {
+    color: var(--_ink);
   }
 }
 /* Buscar en la tabla: ocupa lo que sobra de la fila, y los botones que le siguen quedan a la derecha. */
@@ -383,12 +471,25 @@ nx-grid .nx-glyph {
 
 /* ---------------------------------------------------------------- chips */
 
+/* El resultado: el total, los filtros puestos, «Limpiar todo» y «Guardar como vista». */
 .nx-grid__chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  min-block-size: 26px;
   margin-block-end: 8px;
+}
+.nx-grid__count {
+  margin-inline-end: 4px;
+  color: var(--nx-muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  & strong {
+    color: var(--nx-foreground);
+    font-weight: 600;
+  }
 }
 .nx-grid__chip {
   display: inline-flex;
@@ -630,7 +731,7 @@ nx-grid .nx-grid__hscroll {
    barra va en su propia fila, solo sobre la tabla; el panel «Filtros» queda en la fila de la tabla,
    alineado con ella. Así aparecer o irse no cambia el alto de la tabla. Sin `gap` (un panel oculto
    dejaría su hueco): separa el margen del panel. */
-nx-grid:not([top-scrollbar="false"]) {
+nx-grid:not([top-scrollbar="false"], [height="fill"]) {
   & > .nx-grid__main {
     display: grid;
     grid-template: ". hscroll" "facets table" / auto minmax(0, 1fr);
@@ -649,9 +750,62 @@ nx-grid:not([top-scrollbar="false"]) {
     grid-area: table;
   }
 }
+/* `height="fill"`: la tabla ocupa el alto de su contenedor y es lo único que se desplaza, así que su
+   barra horizontal siempre se ve (la de arriba sobra y no se pone). Una fila por pieza, en el orden de
+   siempre; las que no se ven no ocupan nada, y la de la tabla se lleva lo que sobra. La selección y lo
+   que la app pone en `slot="bulk"` comparten su fila, como fuera de este modo. El panel «Filtros» se
+   desplaza dentro de su alto. */
+nx-grid[height="fill"] {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: repeat(5, auto) minmax(var(--nx-grid-fill-min, 240px), 1fr) auto;
+  block-size: 100%;
+  min-block-size: 0;
+
+  & > * {
+    grid-column: 1 / -1;
+  }
+  & > .nx-grid__top {
+    grid-row: 1;
+  }
+  & > .nx-grid__bar {
+    grid-row: 2;
+  }
+  & > .nx-grid__selbar {
+    grid-row: 3;
+    grid-column: 1;
+  }
+  & > [slot="bulk"] {
+    grid-row: 3;
+    grid-column: 2;
+  }
+  & > .nx-grid__note {
+    grid-row: 4;
+  }
+  & > .nx-grid__chips {
+    grid-row: 5;
+  }
+  & > .nx-grid__main {
+    grid-row: 6;
+    align-self: stretch;
+    min-block-size: 0;
+  }
+  & > .nx-grid__foot {
+    grid-row: 7;
+  }
+  & .nx-grid__scroll {
+    min-block-size: 0;
+  }
+  & .nx-grid__facets {
+    min-block-size: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
 /* Sin puntero (celulares, tabletas): la tabla se desplaza con el dedo; la barra sobra. */
 @media (hover: none) {
-  nx-grid:not([top-scrollbar="false"]) .nx-grid__hscroll {
+  nx-grid:not([top-scrollbar="false"], [height="fill"]) .nx-grid__hscroll {
     display: none;
   }
 }
@@ -1512,6 +1666,21 @@ nx-grid mark {
   color: var(--nx-text-tertiary);
   font-weight: 400;
 }
+/* «Seguimiento»: el nombre del grupo de los atajos del menú, y la línea corta de cada uno. */
+.nx-grid__v-group {
+  margin: 0;
+  padding: 6px 10px 2px;
+  color: var(--nx-text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nx-grid__v-hint {
+  color: var(--nx-text-tertiary);
+  font-size: inherit;
+  font-weight: 400;
+}
 .nx-grid__v-title {
   display: block;
   padding: 6px 6px 4px;
@@ -1586,7 +1755,7 @@ nx-grid mark {
   .nx-grid__search {
     flex-basis: 100%;
   }
-  nx-grid:not([top-scrollbar="false"]) {
+  nx-grid:not([top-scrollbar="false"], [height="fill"]) {
     & > .nx-grid__main {
       grid-template: "facets" "hscroll" "table" / minmax(0, 1fr);
     }

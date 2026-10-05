@@ -147,6 +147,7 @@ const SLIDERS = '<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path
 const DOWNLOAD = '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>';
 const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
 const ARROW = '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>';
+const CHEVRON = '<path d="m9 18 6-6-6-6"/>';
 const UNDO = '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>';
 const REDO = '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>';
 const BOOKMARK = '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>';
@@ -334,10 +335,15 @@ function cleanViews(list: unknown): GridSavedView[] {
 
 export class NxGrid extends Base {
   static {
-    attrProps(this, ["height"]);
+    attrProps(this, ["height", "heading"]);
   }
+  /** Alto del área con scroll en px, o `fill`: la tabla ocupa el alto de su contenedor (que tiene que
+   *  tenerlo: un flex en columna con alto, o un alto fijo) y es lo único que se desplaza. */
   declare height: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents"];
+  /** El título de la tabla, en su primera fila, con los atajos como botones a la derecha: para la
+   *  tabla que es la página («Empleados»). Sin él, los atajos son tarjetas sobre la barra. */
+  declare heading: string | null;
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-level", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -396,6 +402,9 @@ export class NxGrid extends Base {
   /** Los filtros que había antes de tocar un atajo: tocarlo otra vez los devuelve. */
   #beforePreset: GridFilter[] | null = null;
   #presetBar?: HTMLDivElement;
+  /** La primera fila: el título (`heading`) y los atajos que son tarjetas o botones. */
+  #top?: HTMLDivElement;
+  #headingEl?: HTMLElement;
   #totals: Record<string, number> = {};
   // Filas.
   #ids = new WeakMap<GridRow, string>();
@@ -647,6 +656,14 @@ export class NxGrid extends Base {
   set accents(v: GridAccents | null | undefined) {
     this.#attr("accents", v === "exact" ? "exact" : null);
   }
+  /** El nivel del título (`heading`): 2 por defecto; 1 si es el de la página. */
+  get headingLevel(): number {
+    const n = Number(this.getAttribute("heading-level"));
+    return n >= 1 && n <= 6 ? Math.floor(n) : 2;
+  }
+  set headingLevel(v: number | null | undefined) {
+    this.#attr("heading-level", v == null ? null : String(v));
+  }
   get topScrollbar(): boolean {
     return this.getAttribute("top-scrollbar") !== "false";
   }
@@ -664,10 +681,12 @@ export class NxGrid extends Base {
           .filter((p) => p && typeof p.id === "string" && typeof p.label === "string" && Array.isArray(p.filters))
           // Un tono que no existe no pinta nada: se quita, como si no viniera.
           .map((p) => (p.tone === undefined || TONES.has(p.tone) ? p : (({ tone: _, ...rest }) => rest)(p)))
+          .map((p) => (p.menu === undefined || typeof p.menu === "boolean" ? p : { ...p, menu: !!p.menu }))
       : [];
     if (!this.#server) this.#presetN.clear();
     this.#presetKey = "";
-    this.#paintPresets();
+    // La barra también: «Vistas» aparece si hay atajos de menú, y su «Seguimiento» se rehace.
+    this.#paintChrome();
   }
   /** Acciones de fila: botones (o enlaces) en una columna fija a la derecha. Un botón emite
    *  `nx-grid-action` con la acción y la fila; un enlace (`href`) no emite nada. También salen en el
@@ -1519,6 +1538,14 @@ export class NxGrid extends Base {
         this.#setHidden("", false);
       },
       chipText: (f) => this.#chipText(f),
+      get storage() {
+        return !!self.viewsStorage;
+      },
+      get tracking() {
+        return self.#presets.filter((p) => p.menu);
+      },
+      presetOn: (p) => this.#presetOn(p),
+      togglePreset: (p) => this.#togglePreset(p),
       viewsBtn: this.#viewsBtn!,
       colsBtn: this.#colsBtn!,
     };
@@ -1784,16 +1811,10 @@ export class NxGrid extends Base {
     this.#presetBar.addEventListener("click", (e) => {
       const id = (e.target as Element).closest<HTMLElement>("[data-preset]")?.dataset.preset;
       const p = this.#presets.find((x) => x.id === id);
-      if (!p) return;
-      if (this.#presetOn(p)) {
-        this.#setFilters(this.#beforePreset ?? []);
-        this.#beforePreset = null;
-      } else {
-        if (!this.#presets.some((x) => this.#presetOn(x))) this.#beforePreset = this.#filters;
-        this.#setFilters(validFilters(p.filters));
-      }
+      if (p) this.#togglePreset(p);
     });
-    this.append(this.#presetBar, bar, this.#selbar, this.#note, this.#chips, main, this.#foot, this.#live);
+    this.#top = h("div", { class: "nx-grid__top", hidden: true }, this.#presetBar);
+    this.append(this.#top, bar, this.#selbar, this.#note, this.#chips, main, this.#foot, this.#live);
   }
 
   /** La tabla es una sola parada de Tab (patrón grid de la APG): los controles de la cabecera van
@@ -1863,13 +1884,17 @@ export class NxGrid extends Base {
     }
     this.#groupSel!.value = groupable.some((c) => c.key === this.groupBy) ? this.groupBy : "";
     this.#exportBtn!.lastElementChild!.textContent = this.#exportBtn!.hasAttribute("aria-busy") ? L.exporting : L.export;
-    this.#viewsBtn!.hidden = !this.viewsStorage;
+    // Sin `views-storage` también, si hay atajos de menú («Seguimiento»).
+    this.#viewsBtn!.hidden = !this.viewsStorage && !this.#presets.some((p) => p.menu);
     if (!this.#viewsUI) this.#viewsBtn!.lastElementChild!.textContent = L.views;
     this.#colsBtn!.hidden = this.#cols.length < 2;
     this.#colsBtn!.lastElementChild!.textContent = L.columns;
-    // Chips.
-    this.#chips!.hidden = !this.#filters.length;
+    // El resultado: el total y los filtros puestos, con un solo «Limpiar todo». El total no se dice
+    // mientras no llega la primera respuesta del servidor (sería «0 filas»).
+    const counting = this.#server && this.#blocks.get(0) === "loading" && !this.#count();
+    this.#chips!.hidden = !this.#columns.length;
     this.#chips!.replaceChildren(
+      ...(counting ? [] : [this.#countEl()]),
       ...this.#filters.map((f, i) => {
         const text = this.#chipText(f);
         const col = this.#cols.find((c) => c.key === f.key);
@@ -1877,8 +1902,8 @@ export class NxGrid extends Base {
         const label = col && this.#filterable(col) ? h("button", { type: "button", class: "nx-grid__chip-edit", "data-edit": f.key, title: this.#fmt(L.filterBy, { col: col.label }) }, text) : h("span", null, text);
         return h("span", { class: "nx-grid__chip" }, label, h("button", { type: "button", "data-i": i, "aria-label": `${L.remove}: ${text}` }, glyph(X)));
       }),
-      h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear),
-      ...(this.viewsStorage ? [h("button", { type: "button", class: "nx-grid__save-view", "data-save-view": "" }, L.saveView)] : []),
+      ...(this.#filters.length ? [h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear)] : []),
+      ...(this.viewsStorage && this.#filters.length ? [h("button", { type: "button", class: "nx-grid__save-view", "data-save-view": "" }, L.saveView)] : []),
     );
     // Cabeceras.
     this.#ths.forEach((th, ci) => this.#paintTh(th, this.#columns[ci]));
@@ -1898,6 +1923,7 @@ export class NxGrid extends Base {
     if (failed) this.#emptyCell!.replaceChildren(L.loadError, h("span", { class: "nx-grid__relax" }, h("button", { type: "button", class: "nx-grid__btn", "data-retry": "" }, L.retry)));
     else this.#emptyCell!.replaceChildren(loading ? L.loading : L.empty, ...(this.#empty!.hidden || loading ? [] : this.#relax()));
     this.#paintFacets();
+    this.#paintHeading();
     this.#paintPresets();
     this.#paintHistory();
     this.#panel?.refresh();
@@ -1915,15 +1941,55 @@ export class NxGrid extends Base {
     return canon(this.#filters) === canon(validFilters(p.filters));
   }
 
+  /** Aplica el atajo o, si ya es el que se ve, vuelve a los filtros de antes de tocar uno. */
+  #togglePreset(p: GridPreset): void {
+    if (this.#presetOn(p)) {
+      this.#setFilters(this.#beforePreset ?? []);
+      this.#beforePreset = null;
+    } else {
+      if (!this.#presets.some((x) => this.#presetOn(x))) this.#beforePreset = this.#filters;
+      this.#setFilters(validFilters(p.filters));
+    }
+  }
+
+  /** «**9.704** filas», o «**12** de 9.704 filas» con filtros en el navegador: el número en negrita. */
+  #countEl(): HTMLElement {
+    const L = this.#labels;
+    const of = (this.#filters.length || this.#q) && !this.#server;
+    const n = this.#loc.number(this.#rowCount());
+    const total = this.#loc.number(this.#server ? this.#total : this.#all.length);
+    const parts = (of ? L.of : L.rows).split(/(\{n\}|\{total\})/).filter(Boolean);
+    return h("span", { class: "nx-grid__count" }, ...parts.map((x) => (x === "{n}" ? h("strong", null, n) : x === "{total}" ? total : x)));
+  }
+
+  /** La primera fila: el título (con su nivel) y, a su derecha, los atajos como botones. */
+  #paintHeading(): void {
+    const text = (this.heading ?? "").trim();
+    const tag = `h${this.headingLevel}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+    if (!text) this.#headingEl?.remove();
+    else {
+      if (this.#headingEl?.localName !== tag) {
+        this.#headingEl?.remove();
+        this.#top!.prepend((this.#headingEl = h(tag, { class: "nx-grid__heading" })));
+      }
+      this.#headingEl.textContent = text;
+    }
+    if (!text) this.#headingEl = undefined;
+    this.#top!.toggleAttribute("data-heading", !!text);
+    this.#top!.hidden = !text && !this.#presets.some((p) => !p.menu);
+  }
+
   #paintPresets(): void {
     const bar = this.#presetBar;
     if (!bar) return;
-    const list = this.#presets;
+    // Las tarjetas (o los botones junto al título); los de menú van en «Vistas», sin conteo.
+    const list = this.#presets.filter((p) => !p.menu);
+    const go = !!this.heading?.trim();
     // Con las filas aquí, cada atajo se cuenta una vez por juego de datos (no en cada pintado).
     if (!this.#server && list.some((p) => !this.#presetN.has(p.id)))
       for (const p of list) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
     const state = list.map((p) => [p.id, p.label, p.hint, p.tone, this.#presetN.get(p.id), this.#presetOn(p)]);
-    const key = JSON.stringify([this.#labels.presets, this.locale, state]);
+    const key = JSON.stringify([this.#labels.presets, this.locale, go, state]);
     if (key === this.#presetKey) return;
     this.#presetKey = key;
     bar.hidden = !list.length;
@@ -1943,6 +2009,8 @@ export class NxGrid extends Base {
           h("strong", null, n === undefined ? "—" : this.#loc.number(n)),
           h("span", null, p.label),
           p.hint ? h("small", null, p.hint) : null,
+          // Junto al título son botones: la flecha dice que llevan a algún lado; marcado, la ✕ que se quita.
+          go ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(this.#presetOn(p) ? X : CHEVRON)) : null,
         );
       }),
     );
@@ -2054,7 +2122,7 @@ export class NxGrid extends Base {
     const sel = (f: GridFacet) => [...(selection(this.#filters, f.key, f.options.map((o) => o.value)) ?? [])];
     aside.setAttribute("aria-label", L.filters);
     aside.replaceChildren(
-      h("div", { class: "nx-grid__facets-head" }, h("strong", null, L.filters), this.#filters.length ? h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear) : null),
+      h("div", { class: "nx-grid__facets-head" }, h("strong", null, L.filters)),
       ...this.#facetList.flatMap((f) => {
         const selected = sel(f);
         // Las opciones sin filas no se muestran; las marcadas sí, para poder desmarcarlas.
@@ -2413,9 +2481,10 @@ export class NxGrid extends Base {
         parts.push(part(L.sum, formatCell(st.sum, f, this.#loc)), part(L.avg, formatCell(st.avg, f, this.#loc)), part(L.min, formatCell(st.min, f, this.#loc)), part(L.max, formatCell(st.max, f, this.#loc)));
       }
     } else {
-      parts.push(h("span", null, this.#rowsText()));
+      // El conteo de filas va arriba, con los filtros (`#countEl`); aquí quedan los totales.
       for (const c of this.#columns) if (colType(c) === "money" && this.#totals[c.key] !== undefined) parts.push(part(`${L.total} ${c.label}`, formatCell(this.#totals[c.key], c, this.#loc)));
     }
+    this.#foot!.hidden = !parts.length;
     this.#foot!.replaceChildren(...parts);
   }
 

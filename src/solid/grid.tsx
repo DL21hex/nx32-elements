@@ -35,14 +35,20 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   accents?: GridAccents;
   /** La barra de desplazamiento horizontal también arriba de la tabla (solo si no cabe a lo ancho). Viene encendida: `false` la quita. */
   topScrollbar?: boolean;
-  /** Atajos: tarjetas con un filtro y su conteo sobre la tabla. */
+  /** Atajos: tarjetas con un filtro y su conteo sobre la tabla (con `heading`, botones junto al
+   *  título; con `menu`, en «Vistas» → «Seguimiento»). */
   presets?: GridPreset[];
+  /** El título de la tabla, en su primera fila, con los atajos como botones a la derecha. */
+  heading?: string;
+  /** El nivel del título (2 por defecto; 1 si es el de la página). */
+  headingLevel?: number;
   /** Acciones de fila: botones (o enlaces, con `href`) en una columna fija a la derecha. */
   actions?: GridAction[];
   /** Casillas para seleccionar filas; las acciones van como hijo con `slot="bulk"`. */
   selectable?: boolean;
   selected?: string[];
-  height?: number;
+  /** Alto del área con scroll en px, o `"fill"`: el alto de su contenedor, y solo la tabla se desplaza. */
+  height?: number | "fill";
   filename?: string;
   /** Formato de números, montos, fechas y orden (`es-CO`, `en-US`…). Por defecto, el `lang` de la página. */
   locale?: string;
@@ -67,7 +73,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "actions", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "heading", "headingLevel", "actions", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -91,6 +97,8 @@ export function Grid(props: GridProps): JSX.Element {
       attr:client-max={local.clientMax ? String(local.clientMax) : undefined}
       attr:group-by={local.groupBy}
       attr:height={local.height === undefined ? undefined : String(local.height)}
+      attr:heading={local.heading || undefined}
+      attr:heading-level={local.headingLevel === undefined ? undefined : String(local.headingLevel)}
       attr:filename={local.filename}
       attr:locale={local.locale}
       bool:facets-open={!!local.facetsOpen}

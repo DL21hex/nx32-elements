@@ -1126,3 +1126,12 @@ td:first-child {
   font-size: 12px;
 }
 
+/* «La tabla como página»: un marco de alto fijo, como el área de una app, para `height="fill"`. */
+.grid-page-frame {
+  display: flex;
+  flex-direction: column;
+  block-size: 560px;
+  padding: 16px;
+  border: 1px dashed var(--nx-border-strong);
+  border-radius: 12px;
+}

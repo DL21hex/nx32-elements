@@ -219,6 +219,10 @@ export interface GridPreset {
   /** El tono del atajo: su conteo va en ese color y, marcado, la tarjeta también. Para el atajo que
    *  señala algo por resolver («Sin jefe asignado» en `warning`); los demás, sin tono. */
   tone?: GridTone;
+  /** Va en el menú «Vistas», en el grupo «Seguimiento», en vez de una tarjeta: para lo que se mira
+   *  de vez en cuando («Ingresos recientes»). Sin conteo: ni la tabla lo cuenta ni el servidor tiene
+   *  que mandarlo. Se marca y se quita igual que una tarjeta. */
+  menu?: boolean;
 }
 
 /** Lo que responde `source`: un bloque de filas y, opcionalmente, los agregados con los filtros aplicados. */
@@ -227,7 +231,8 @@ export interface GridPage {
   total: number;
   histograms?: Record<string, GridHistogram>;
   facets?: GridFacetData[];
-  /** Cuántas filas deja cada atajo (`GridPreset.id` → conteo), sobre todos los datos, no sobre lo filtrado. */
+  /** Cuántas filas deja cada atajo (`GridPreset.id` → conteo), sobre todos los datos, no sobre lo
+   *  filtrado. Los del menú (`menu`) no llevan conteo. */
   presets?: Record<string, number>;
   totals?: Record<string, number>;
 }
@@ -287,6 +292,8 @@ export interface GridSavedView extends GridView {
 
 /** Los textos del menú de vistas y del selector de columnas (se cargan con ellos). */
 export interface GridViewLabels {
+  /** El grupo del menú «Vistas» con los atajos `menu`. */
+  viewTracking: string;
   viewModified: string;
   viewEmpty: string;
   viewSaveNew: string;

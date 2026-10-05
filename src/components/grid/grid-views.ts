@@ -6,13 +6,17 @@
  * Una vista es el estado de la tabla con un nombre (filtros, orden, agrupación, columnas ocultas y
  * anchos). Se aplica con un clic; si después se cambia algo, el botón dice «modificada» y el menú
  * ofrece guardar los cambios o guardarla como nueva.
+ *
+ * Debajo, «Seguimiento»: los atajos que la tabla declara `menu` (sin conteo). Sin `views-storage`
+ * el menú trae solo ese grupo.
  */
 import { h } from "../../core/dom";
 import { mergeLabels } from "../../core/labels";
 import { foldText } from "../../core/text";
-import type { GridColumn, GridFilter, GridLabels, GridSavedView, GridView, GridViewLabels } from "./types";
+import type { GridColumn, GridFilter, GridLabels, GridPreset, GridSavedView, GridView, GridViewLabels } from "./types";
 
 export const VIEW_LABELS: GridViewLabels = {
+  viewTracking: "Seguimiento",
   viewModified: "modificada",
   viewEmpty: "Todavía no tienes vistas. Filtra, ordena o esconde columnas y guárdalo con un nombre.",
   viewSaveNew: "Guardar como vista nueva…",
@@ -55,6 +59,14 @@ export interface ViewsHost {
   setHidden(key: string, hidden: boolean): void;
   resetColumns(): void;
   chipText(f: GridFilter): string;
+  /** Hay dónde guardar vistas con nombre (`views-storage`). Sin eso, el menú solo trae «Seguimiento». */
+  readonly storage: boolean;
+  /** Los atajos del menú (`GridPreset.menu`), en su orden. */
+  readonly tracking: readonly GridPreset[];
+  /** Si los filtros de ahora son los del atajo. */
+  presetOn(p: GridPreset): boolean;
+  /** Lo aplica o, si ya está, vuelve a los filtros de antes (como la tarjeta). */
+  togglePreset(p: GridPreset): void;
   readonly viewsBtn: HTMLButtonElement;
   readonly colsBtn: HTMLButtonElement;
 }
@@ -177,7 +189,8 @@ export class ViewsUI {
 
   #signature(): string {
     const cur = this.#current();
-    return JSON.stringify([this.#host.views.map((v) => [v.id, v.name, !!v.default]), this.#host.active, !!cur && !sameView(cur, this.#host.view), isOriginal(this.#host.view, this.#host.defaultHidden)]);
+    const host = this.#host;
+    return JSON.stringify([host.views.map((v) => [v.id, v.name, !!v.default]), host.active, !!cur && !sameView(cur, host.view), isOriginal(host.view, host.defaultHidden), host.storage, host.tracking.map((p) => [p.id, p.label, p.hint, host.presetOn(p)])]);
   }
 
   /** La lista guardada de ahora, no la de cuando se pintó el menú: otra pestaña, u otra tabla con la
@@ -284,6 +297,8 @@ export class ViewsUI {
       body = [h("p", { class: "nx-grid__v-text" }, fmt(L.viewConfirm, { name: cur.name })), h("div", { class: "nx-grid__v-actions" }, this.#cancel(), yes)];
     } else if (this.#mode === "save" || (this.#mode === "edit" && cur)) {
       body = [this.#form(this.#mode === "edit" ? cur : undefined)];
+    } else if (!host.storage) {
+      body = this.#tracking(done);
     } else {
       body = [
         views.length
@@ -302,6 +317,7 @@ export class ViewsUI {
               ),
             )
           : h("p", { class: "nx-grid__v-text" }, L.viewEmpty),
+        ...this.#tracking(done),
         h("hr"),
         cur && mod
           ? this.#item(fmt(L.viewSaveChanges, { name: cur.name }), () => {
@@ -327,6 +343,31 @@ export class ViewsUI {
     this.#pop.setAttribute("aria-label", L.views);
     this.#pop.replaceChildren(...body.filter((x): x is Node => !!x));
     this.#sig = this.#signature();
+  }
+
+  /** «Seguimiento»: un atajo por renglón, con su línea corta; el que se está viendo, marcado. */
+  #tracking(done: () => void): Node[] {
+    const host = this.#host;
+    if (!host.tracking.length) return [];
+    const L = this.#L;
+    return [
+      host.storage ? h("hr") : null,
+      h("p", { class: "nx-grid__v-group", "aria-hidden": "true" }, L.viewTracking),
+      h(
+        "div",
+        { class: "nx-grid__v-list", role: "group", "aria-label": L.viewTracking },
+        ...host.tracking.map((p) =>
+          this.#item(
+            h("span", null, p.label, p.hint ? h("small", { class: "nx-grid__v-hint" }, ` · ${p.hint}`) : null),
+            () => {
+              host.togglePreset(p);
+              done();
+            },
+            { "aria-current": host.presetOn(p) ? "true" : null, "data-preset": p.id },
+          ),
+        ),
+      ),
+    ].filter((x): x is HTMLDivElement | HTMLParagraphElement | HTMLHRElement => !!x);
   }
 
   #cancel(): HTMLButtonElement {

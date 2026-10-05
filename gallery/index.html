@@ -236,6 +236,12 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
       <nx-grid id="grid-links" locale="es-CO" height="320" filename="pedidos"></nx-grid>
       <ol class="stage__log btn-events" id="grid-links-log"></ol>
 
+      <h2>La tabla como página</h2>
+      <p>Con <code>heading</code> el título va en la primera fila de la tabla, y los atajos, como botones a su derecha: la flecha pasa a ✕ al marcarlos. Un atajo con <code>menu</code> va en «Vistas» → «Seguimiento», sin conteo. Con <code>height="fill"</code> la tabla ocupa el alto de su contenedor (aquí, un marco de 560 px) y es lo único que se desplaza, así que su barra horizontal siempre se ve. El total va arriba, con los filtros.</p>
+      <div class="grid-page-frame">
+        <nx-grid id="grid-page" locale="es-CO" heading="Pedidos" heading-level="3" height="fill" facets-open filename="pedidos"></nx-grid>
+      </div>
+
       <h2>Cómo se usa</h2>
       <div class="table-wrap">
         <table>

@@ -29,7 +29,7 @@ describe.skipIf(!hasDist)("dist/", () => {
 
   it("nx32-elements/core no registra ningún componente: registerIcons y nxFormat sin la librería", async () => {
     const out = await build({
-      stdin: { contents: 'import { registerIcons, nxFormat, allowOrigins } from "nx32-elements/core"; registerIcons({}); allowOrigins("https://a.co"); console.log(nxFormat("es").number(1));', resolveDir: process.cwd() },
+      stdin: { contents: 'import { registerIcons, nxFormat, allowOrigins, nxSupported } from "nx32-elements/core"; registerIcons({}); allowOrigins("https://a.co"); console.log(nxFormat("es").number(1), nxSupported().ok);', resolveDir: process.cwd() },
       bundle: true,
       minify: true,
       format: "esm",

@@ -158,8 +158,8 @@ registerIcons({ house: House, "chart-column": ChartColumn });
 ```
 
 `nx32-elements/core` trae las utilidades del núcleo sin ningún componente: `registerIcons`,
-`hasIcon`, `allowOrigins`, `safeEndpoint`, `safeHref`, `nxFormat`, `resolveLocale` y
-`canonicalLocale`. La raíz (`nx32-elements`) también las exporta, pero registra los 48 componentes:
+`hasIcon`, `allowOrigins`, `safeEndpoint`, `safeHref`, `nxFormat`, `resolveLocale`,
+`canonicalLocale` y `nxSupported`. La raíz (`nx32-elements`) también las exporta, pero registra los 48 componentes:
 úsala solo si de verdad quieres la librería entera.
 
 El CSS también va por pieza: `nx32-elements/<componente>.css` (`grid.css`, `tabs.css`…) más
@@ -2444,6 +2444,21 @@ gallery/             la galería (usa <nx-sidemenu> como su propia navegación)
 
 **Navegadores:** Chrome/Edge 123+, Safari 17.5+ y Firefox 125+. Importar la librería en el
 servidor (SSR) no lanza errores: los elementos solo se registran en el navegador.
+
+En uno más viejo no hay plan B por componente: los colores se pierden (todo sale de
+`light-dark()`) y los menús no abren (Popover API), sin un error a la vista. Que la app lo pregunte
+una vez al arrancar y avise con sus palabras:
+
+```js
+import { nxSupported } from "nx32-elements/core";
+const { ok, missing, minimum } = nxSupported();
+if (!ok) mostrarAviso(`Usa Chrome o Edge ${minimum.chrome}+, Safari ${minimum.safari}+ o Firefox ${minimum.firefox}+`, missing);
+```
+
+`missing` dice qué falta (`custom-elements`, `popover`, `light-dark`), útil para el registro de
+errores. Lo que se degrada solo (`@starting-style`, `field-sizing`) no cuenta. En el servidor
+responde `ok`. Un navegador que ni siquiera entiende ES2022 (anterior a 2021) no llega a ejecutar el
+bundle: si importa cubrirlo, el aviso tiene que ir en un `<script>` aparte, fuera del bundle.
 
 Los íconos de `nx32-elements/icons` y `nx32-elements/icons/lucide` son de [Lucide](https://lucide.dev)
 (licencia ISC, ver [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)). Para regenerarlos, también al

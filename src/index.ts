@@ -54,3 +54,4 @@ export * from "./components/keytips/index";
 export { registerIcons, hasIcon } from "./core/icons";
 export { nxFormat, resolveLocale, canonicalLocale, type NxFormat, type MoneyLike } from "./core/locale";
 export { allowOrigins, safeEndpoint, safeHref } from "./core/dom";
+export { nxSupported, type NxSupport, type NxFeature } from "./core/support";

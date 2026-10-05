@@ -393,7 +393,7 @@ export class ViewsUI {
     const list = h(
       "div",
       { class: "nx-grid__f-opts", role: "group", "aria-label": L.columnsTitle },
-      ...host.cols.map((c) => h("label", { class: "nx-grid__opt" }, h("input", { type: "checkbox", "data-col": c.key }), h("span", { class: "nx-grid__opt-label" }, c.label))),
+      ...host.cols.map((c) => h("label", { class: "nx-grid__opt" }, h("input", { type: "checkbox", "data-col": c.key }), h("span", { class: "nx-grid__opt-label", title: c.label }, c.label))),
     );
     list.addEventListener("change", (e) => {
       const t = e.target as HTMLInputElement;

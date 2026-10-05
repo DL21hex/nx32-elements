@@ -255,6 +255,7 @@ function cleanColumn(c: unknown): GridColumn | null {
   if (x.filter !== undefined && x.filter !== false && !KINDS.has(x.filter as string)) fix.filter = undefined;
   if (x.currency !== undefined && typeof x.currency !== "string") fix.currency = undefined;
   if (x.href !== undefined && (typeof x.href !== "string" || !x.href)) fix.href = undefined;
+  if (x.initials !== undefined && (typeof x.initials !== "string" || !x.initials)) fix.initials = undefined;
   for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
   if (x.avatar !== undefined && typeof x.avatar !== "boolean" && x.avatar !== "neutral") fix.avatar = !!x.avatar;
   if (!Object.keys(fix).length) return c as GridColumn;
@@ -291,6 +292,12 @@ const truthy = (v: unknown): boolean => !!v && v !== "0" && v !== "false";
 
 /** Ancho de la columna de acciones (px): 30 por botón de ícono, el texto a ojo, y el margen. */
 const actionsWidth = (list: readonly GridAction[]): number => list.reduce((w, a) => w + (a.icon ? 30 : Math.min(160, 18 + a.label.length * 7)), 14);
+
+/** Las iniciales del avatar: las que trae la fila en `initials` (hasta tres letras) o, si no, las del texto. */
+const avatarInitials = (c: GridColumn, r: GridRow, text: string): string => {
+  const v = c.initials ? r[c.initials] : undefined;
+  return (typeof v === "string" ? v.trim().slice(0, 3).toUpperCase() : "") || initials(text);
+};
 
 /** La copia de una fila que guarda la tabla: sin prototipo, para que una columna «constructor» o
  *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. */
@@ -1709,6 +1716,9 @@ export class NxGrid extends Base {
     // enfoca un scroller sin hijos enfocables.
     this.#hbar = h("div", { class: "nx-grid__hscroll", "aria-hidden": "true", tabindex: -1 }, h("div"));
     this.#hbar.addEventListener("scroll", () => this.#follow(this.#hbar!, this.#scroll!), { passive: true });
+    // La celda activa se enmarca sin foco (para saber dónde se iba) solo cuando alguien ya entró a
+    // la tabla: al cargar no la eligió nadie, y el recuadro en la primera celda parecía un borde suelto.
+    this.#scroll.addEventListener("focusin", () => this.#scroll!.classList.add("is-visited"), { once: true });
     this.#scroll.addEventListener("keydown", (e) => this.#onKey(e));
     this.#scroll.addEventListener("copy", (e) => this.#copy(e));
     this.#scroll.addEventListener("paste", (e) => this.#paste(e));
@@ -2075,7 +2085,7 @@ export class NxGrid extends Base {
                   "label",
                   { class: "nx-grid__opt" },
                   h("input", { type: "checkbox", checked: on, "data-key": f.key, "data-value": o.value, "data-focus": `${f.key}\u0000${o.value}` }),
-                  h("span", { class: "nx-grid__opt-label" }, o.label),
+                  h("span", { class: "nx-grid__opt-label", title: o.label }, o.label),
                   h("span", { class: "nx-grid__opt-n" }, this.#loc.number(o.count)),
                 ),
               );
@@ -2263,10 +2273,10 @@ export class NxGrid extends Base {
         if (text && (colType(c) === "status" || tone)) el.append(h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text));
         else if (text && (c.link || c.href || c.avatar)) {
           // El tono del avatar sale del texto: la misma persona, siempre el mismo color (o gris, `neutral`).
-          if (c.avatar === "neutral") el.append(h("span", { class: "nx-grid__avatar", "data-tone": "neutral", "aria-hidden": "true" }, initials(text)));
+          if (c.avatar === "neutral") el.append(h("span", { class: "nx-grid__avatar", "data-tone": "neutral", "aria-hidden": "true" }, avatarInitials(c, r, text)));
           else if (c.avatar) {
             const hue = [...text].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
-            el.append(h("span", { class: "nx-grid__avatar", style: `--_h:${hue}`, "aria-hidden": "true" }, initials(text)));
+            el.append(h("span", { class: "nx-grid__avatar", style: `--_h:${hue}`, "aria-hidden": "true" }, avatarInitials(c, r, text)));
           }
           // Con dirección, un enlace de verdad (fuera del orden del Tab: la tabla es una sola parada).
           const url = c.href ? safeHref(r[c.href]) : undefined;

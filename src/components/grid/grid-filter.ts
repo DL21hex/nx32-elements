@@ -387,7 +387,7 @@ export class FilterPanel {
       let it = made.get(v.value);
       if (!it) {
         const box = h("input", { type: "checkbox", "data-v": v.value });
-        const text = h("span", { class: "nx-grid__opt-label" });
+        const text = h("span", { class: "nx-grid__opt-label", title: v.label });
         const n = h("span", { class: "nx-grid__opt-n" });
         const only = h("button", { type: "button", class: "nx-grid__only", "data-only": v.value, "aria-label": fmt(L.onlyValue, { v: v.label }) }, L.only);
         const row = h("div", { class: "nx-grid__opt" }, h("label", { class: "nx-grid__opt-main" }, box, v.tone ? h("span", { class: "nx-grid__dot", "data-tone": v.tone }) : null, text, n), only);

@@ -532,7 +532,9 @@ Una tabla de datos que se explora sola:
   «seleccionar las n» filtradas); lo que la app ponga con `slot="bulk"` aparece junto al conteo.
   Una columna `link` abre el detalle (`nx-grid-open`, también con Enter) y `avatar` muestra las
   iniciales, cada persona con su color; `avatar: "neutral"` las pone todas en gris, para la columna
-  que más se lee. `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
+  que más se lee. Las iniciales salen de las dos primeras palabras del texto, que con dos nombres y
+  dos apellidos son dos nombres: `initials` nombra la clave de la fila que las trae ya hechas
+  (`{ key: "nombre", avatar: true, initials: "iniciales" }`, hasta tres letras). `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
 - **Atajos (`presets`).** Tarjetas sobre la tabla, cada una con un filtro con nombre y su conteo
   sobre todos los datos (con `source`, el servidor lo manda en `presets` de la respuesta): `{id,
   label, hint?, filters, tone?}`. Tocar una aplica sus filtros, y otra vez vuelve a los de antes; la

@@ -227,3 +227,52 @@ describe("nx-grid: título, «Seguimiento» y el total", () => {
     expect(el.style.getPropertyValue("--nx-grid-height")).toBe("");
   });
 });
+
+describe("nx-grid: atajos que llevan a otra página (`href`)", () => {
+  const LINK: GridPreset = { id: "correos", label: "Correos por corregir", hint: "no les llegan los avisos", tone: "warning", href: "/correos" } as GridPreset;
+
+  it("es un enlace de verdad con ↗, nunca marcado, que no filtra; sin conteo del servidor, sin número", () => {
+    const el = mount('heading="Pedidos"');
+    el.presets = [PRESETS[0], LINK];
+    const a = el.querySelector<HTMLAnchorElement>('a.nx-grid__preset[data-preset="correos"]')!;
+    expect(a.getAttribute("href")).toBe("/correos");
+    expect(a.hasAttribute("aria-pressed")).toBe(false);
+    expect(a.dataset.tone).toBe("warning");
+    expect(a.querySelector("strong")).toBeNull();
+    expect(a.textContent).toBe("Correos por corregirno les llegan los avisos");
+    const arrowOut = a.querySelector(".nx-grid__preset-go")!.innerHTML;
+    expect(arrowOut).not.toBe(cards(el)[0].querySelector(".nx-grid__preset-go")!.innerHTML);
+    // Seguirlo no toca los filtros (el navegador navega; aquí se evita).
+    document.addEventListener("click", (e) => e.preventDefault(), { once: true });
+    const before = el.filters;
+    a.click();
+    expect(el.filters).toEqual(before);
+    // Como tarjeta (sin título) también lleva ↗; un filtro, no.
+    el.heading = null;
+    expect(el.querySelector('[data-preset="correos"] .nx-grid__preset-go')).not.toBeNull();
+    expect(el.querySelector('[data-preset="pend"] .nx-grid__preset-go')).toBeNull();
+  });
+
+  it("una dirección insegura lo quita; sin `filters` vale, y nunca va al menú", () => {
+    const el = mount();
+    el.setAttribute("presets", JSON.stringify([{ id: "x", label: "X", href: "javascript:alert(1)" }, { id: "y", label: "Y", href: "/y", menu: true }]));
+    expect(el.presets.map((p) => p.id)).toEqual(["y"]);
+    expect(el.presets[0].menu).toBeUndefined();
+    expect(el.presets[0].filters).toEqual([]);
+    expect(el.querySelector<HTMLAnchorElement>('a[data-preset="y"]')!.getAttribute("href")).toBe("/y");
+  });
+
+  it("con `source`, su conteo llega del servidor", async () => {
+    let answer!: (r: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((r) => (answer = r))));
+    document.body.innerHTML = '<nx-grid source="/datos" heading="Pedidos"></nx-grid>';
+    const el = document.querySelector("nx-grid")!;
+    el.columns = COLS;
+    el.presets = [PRESETS[0], LINK];
+    await sleep(10);
+    expect(el.querySelector('a[data-preset="correos"] strong')).toBeNull();
+    answer(new Response(JSON.stringify({ rows: ROWS, total: 4, presets: { pend: 2, correos: 412 } })));
+    await sleep(10);
+    expect(el.querySelector('a[data-preset="correos"] strong')!.textContent).toBe("412");
+  });
+});

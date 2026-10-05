@@ -148,6 +148,7 @@ const DOWNLOAD = '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 
 const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
 const ARROW = '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>';
 const CHEVRON = '<path d="m9 18 6-6-6-6"/>';
+const OUT = '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>';
 const UNDO = '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>';
 const REDO = '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>';
 const BOOKMARK = '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>';
@@ -398,6 +399,9 @@ export class NxGrid extends Base {
   #actions: GridAction[] = [];
   /** Conteos de los atajos: del servidor, o calculados aquí sobre `#all` (se olvidan al cambiar los datos). */
   #presetN = new Map<string, number>();
+  /** Los conteos que mandó el servidor: los de los atajos que son enlaces solo salen de aquí, y se
+   *  conservan cuando la tabla pasa a contar en el navegador (`client-max`). */
+  #serverN = new Map<string, number>();
   #presetKey = "";
   /** Los filtros que había antes de tocar un atajo: tocarlo otra vez los devuelve. */
   #beforePreset: GridFilter[] | null = null;
@@ -678,10 +682,16 @@ export class NxGrid extends Base {
   set presets(v: GridPreset[] | null | undefined) {
     this.#presets = Array.isArray(v)
       ? v
-          .filter((p) => p && typeof p.id === "string" && typeof p.label === "string" && Array.isArray(p.filters))
+          .filter((p) => p && typeof p.id === "string" && typeof p.label === "string" && (Array.isArray(p.filters) || p.href !== undefined))
           // Un tono que no existe no pinta nada: se quita, como si no viniera.
           .map((p) => (p.tone === undefined || TONES.has(p.tone) ? p : (({ tone: _, ...rest }) => rest)(p)))
           .map((p) => (p.menu === undefined || typeof p.menu === "boolean" ? p : { ...p, menu: !!p.menu }))
+          // Un enlace: con una dirección segura (si no, fuera), sin filtros y nunca en el menú.
+          .flatMap((p) => {
+            if (p.href === undefined) return [p];
+            const href = safeHref(p.href);
+            return href ? [{ ...(({ menu: _, ...rest }) => rest)(p), href, filters: [] }] : [];
+          })
       : [];
     if (!this.#server) this.#presetN.clear();
     this.#presetKey = "";
@@ -947,6 +957,7 @@ export class NxGrid extends Base {
       // Lo que seguía en camino de la consulta anterior ya no sirve: un bloque que llegara después
       // indexaría filas del servidor en el modo cliente y cambiaría el total.
       this.#drop();
+      this.#serverN.clear();
       this.#local = this.#decided = false;
       // Sin `source` las filas vuelven a ser las de `rows`.
       if (!this.#server) this.#reindex();
@@ -1253,8 +1264,12 @@ export class NxGrid extends Base {
           selected: (this.#filters.find((x) => x.key === f.key && x.op === "in") as { values: string[] } | undefined)?.values ?? [],
         }));
     if (page.totals && typeof page.totals === "object") this.#totals = page.totals;
-    if (page.presets && typeof page.presets === "object")
-      this.#presetN = new Map(Object.entries(page.presets).filter((e): e is [string, number] => typeof e[1] === "number"));
+    if (page.presets && typeof page.presets === "object") {
+      const got = Object.entries(page.presets).filter((e): e is [string, number] => typeof e[1] === "number");
+      // Dos copias: la de la tabla se vacía al pasar a contar en el navegador; la del servidor no.
+      this.#presetN = new Map(got);
+      this.#serverN = new Map(got);
+    }
     // `client-max`: con la primera página se sabe el total (con los filtros, que nunca es mayor que
     // sin ellos). Si puede caber, se pide la consulta completa una vez, sin filtros.
     const max = this.clientMax;
@@ -1811,7 +1826,8 @@ export class NxGrid extends Base {
     this.#presetBar.addEventListener("click", (e) => {
       const id = (e.target as Element).closest<HTMLElement>("[data-preset]")?.dataset.preset;
       const p = this.#presets.find((x) => x.id === id);
-      if (p) this.#togglePreset(p);
+      // Un enlace lo sigue el navegador (o el router de la app).
+      if (p && !p.href) this.#togglePreset(p);
     });
     this.#top = h("div", { class: "nx-grid__top", hidden: true }, this.#presetBar);
     this.append(this.#top, bar, this.#selbar, this.#note, this.#chips, main, this.#foot, this.#live);
@@ -1933,6 +1949,7 @@ export class NxGrid extends Base {
   /** Si los filtros de ahora son los del atajo (en cualquier orden): su tarjeta queda marcada, y se
    *  desmarca sola si la persona cambia un filtro a mano o aplica una vista. */
   #presetOn(p: GridPreset): boolean {
+    if (p.href) return false;
     const canon = (fs: readonly GridFilter[]) =>
       fs
         .map((f) => JSON.stringify(f, Object.keys(f).sort()))
@@ -1985,10 +2002,13 @@ export class NxGrid extends Base {
     // Las tarjetas (o los botones junto al título); los de menú van en «Vistas», sin conteo.
     const list = this.#presets.filter((p) => !p.menu);
     const go = !!this.heading?.trim();
-    // Con las filas aquí, cada atajo se cuenta una vez por juego de datos (no en cada pintado).
-    if (!this.#server && list.some((p) => !this.#presetN.has(p.id)))
-      for (const p of list) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
-    const state = list.map((p) => [p.id, p.label, p.hint, p.tone, this.#presetN.get(p.id), this.#presetOn(p)]);
+    // Con las filas aquí, cada atajo se cuenta una vez por juego de datos (no en cada pintado). Los
+    // enlaces no: no tienen filtro; su conteo es el del servidor.
+    const counted = list.filter((p) => !p.href);
+    if (!this.#server && counted.some((p) => !this.#presetN.has(p.id)))
+      for (const p of counted) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
+    const countOf = (p: GridPreset) => (p.href ? this.#serverN.get(p.id) : this.#presetN.get(p.id));
+    const state = list.map((p) => [p.id, p.label, p.hint, p.tone, p.href, countOf(p), this.#presetOn(p)]);
     const key = JSON.stringify([this.#labels.presets, this.locale, go, state]);
     if (key === this.#presetKey) return;
     this.#presetKey = key;
@@ -1996,22 +2016,20 @@ export class NxGrid extends Base {
     bar.setAttribute("aria-label", this.#labels.presets);
     bar.replaceChildren(
       ...list.map((p) => {
-        const n = this.#presetN.get(p.id);
-        return h(
-          "button",
-          {
-            type: "button",
-            class: "nx-grid__preset",
-            "data-preset": p.id,
-            "data-tone": p.tone && p.tone !== "neutral" ? p.tone : null,
-            "aria-pressed": String(this.#presetOn(p)),
-          },
-          h("strong", null, n === undefined ? "—" : this.#loc.number(n)),
+        const n = countOf(p);
+        const tone = p.tone && p.tone !== "neutral" ? p.tone : null;
+        const body = [
+          // Un enlace sin conteo del servidor va sin número (no «—» para siempre).
+          n === undefined && p.href ? null : h("strong", null, n === undefined ? "—" : this.#loc.number(n)),
           h("span", null, p.label),
           p.hint ? h("small", null, p.hint) : null,
-          // Junto al título son botones: la flecha dice que llevan a algún lado; marcado, la ✕ que se quita.
-          go ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(this.#presetOn(p) ? X : CHEVRON)) : null,
-        );
+          // Junto al título son botones: la flecha dice que filtran ahí; marcado, la ✕ que se quita.
+          // Un enlace lleva ↗ siempre: sale de la tabla.
+          go || p.href ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(p.href ? OUT : this.#presetOn(p) ? X : CHEVRON)) : null,
+        ];
+        return p.href
+          ? h("a", { class: "nx-grid__preset", href: p.href, "data-preset": p.id, "data-tone": tone, "data-link": "" }, ...body)
+          : h("button", { type: "button", class: "nx-grid__preset", "data-preset": p.id, "data-tone": tone, "aria-pressed": String(this.#presetOn(p)) }, ...body);
       }),
     );
   }

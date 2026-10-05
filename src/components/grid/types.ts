@@ -214,8 +214,14 @@ export interface GridPreset {
   label: string;
   /** Una línea corta bajo el nombre: «próximos 30 días». */
   hint?: string;
-  /** Todos los filtros del atajo (reemplazan a los que haya). Un tramo con `rel` se recalcula cada día. */
+  /** Todos los filtros del atajo (reemplazan a los que haya). Un tramo con `rel` se recalcula cada día.
+   *  Con `href` no se usan (puede ir vacío). */
   filters: GridFilter[];
+  /** El atajo lleva a otra página en vez de filtrar: es un `<a href>` de verdad (Ctrl/⌘+clic abre
+   *  otra pestaña, el router de la app lo navega), con ↗ en lugar de la flecha, y nunca queda
+   *  marcado. Su conteo solo lo manda el servidor (`presets` de la respuesta): la tabla no tiene con
+   *  qué contarlo. Una dirección que no es segura (`javascript:`) quita el atajo. No va en el menú. */
+  href?: string;
   /** El tono del atajo: su conteo va en ese color y, marcado, la tarjeta también. Para el atajo que
    *  señala algo por resolver («Sin jefe asignado» en `warning`); los demás, sin tono. */
   tone?: GridTone;

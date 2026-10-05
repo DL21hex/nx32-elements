@@ -660,6 +660,42 @@ describe("<nx-grid>", () => {
     expect(el.querySelector<HTMLElement>(".nx-grid__avatar")!.dataset.tone).toBeUndefined();
   });
 
+  it("initials: las iniciales que trae la fila (hasta tres, en mayúsculas); sin ellas, las del texto", () => {
+    document.body.innerHTML = `<nx-grid></nx-grid>`;
+    const el = document.querySelector("nx-grid")!;
+    el.columns = [{ key: "nombre", label: "Empleado", avatar: "neutral", initials: "ini" }];
+    el.rows = [
+      { id: "1", nombre: "Abel Andres Hernandez Carrillo", ini: "ah" },
+      { id: "2", nombre: "Ana Maria Rincon", ini: " amrx " },
+      { id: "3", nombre: "Abel Dario de Luquez Epinayu" },
+    ];
+    expect([...el.querySelectorAll(".nx-grid__avatar")].map((a) => a.textContent)).toEqual(["AH", "AMR", "AD"]);
+    // De afuera (BDUI), una clave que no es texto se quita y vuelven las del texto.
+    el.setAttribute("columns", JSON.stringify([{ key: "nombre", label: "Empleado", avatar: true, initials: 3 }]));
+    expect("initials" in el.columns[0]).toBe(false);
+    expect(el.querySelector(".nx-grid__avatar")!.textContent).toBe("AA");
+  });
+
+  it("las opciones de las facetas y del filtro llevan el texto completo en `title`", async () => {
+    const el = mount("facets-open");
+    const labels = [...el.querySelectorAll<HTMLElement>(".nx-grid__facets .nx-grid__opts .nx-grid__opt-label")];
+    expect(labels.length).toBeGreaterThan(0);
+    expect(labels.every((l) => l.title && l.title === l.textContent)).toBe(true);
+    await el.openFilter("prov");
+    const pop = await panel(el, "Proveedor");
+    const opt = pop.querySelector('input[data-v="Químicos"]')!.closest(".nx-grid__opt")!;
+    expect(opt.querySelector<HTMLElement>(".nx-grid__opt-label")!.title).toBe("Químicos");
+  });
+
+  it("la celda activa no queda marcada al cargar: solo cuando alguien ya entró a la tabla", () => {
+    const el = mount();
+    const s = scroll(el);
+    expect(el.querySelector(".nx-grid__cell.is-active")).not.toBeNull();
+    expect(s.classList.contains("is-visited")).toBe(false);
+    s.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(s.classList.contains("is-visited")).toBe(true);
+  });
+
   it("deshacer y rehacer: Ctrl+Z, Ctrl+Y, Ctrl+Mayús+Z; un pegado es un solo paso", () => {
     const el = mount();
     const sources: string[] = [];

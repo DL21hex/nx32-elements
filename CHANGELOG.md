@@ -1,5 +1,21 @@
 # Registro de cambios
 
+## 0.3.3 — 2026-10-05
+
+### `<nx-grid>`
+
+- **Opciones completas en los filtros.** En el panel de facetas, el filtro por columna y
+  «Columnas», el texto de cada opción ocupa hasta dos líneas antes de cortarse y lleva el nombre
+  completo en `title`. En una sola línea, dos subdivisiones que empiezan igual
+  («ADMINISTRACION SM BAN…») se veían idénticas y nada mostraba el resto.
+- **Iniciales que trae la fila (`initials` en la columna).** Nombra la clave de la fila con las
+  iniciales del avatar, hasta tres letras y en mayúsculas. Sin ella siguen saliendo de las dos
+  primeras palabras del texto, que con dos nombres y dos apellidos son dos nombres («Abel Andres
+  Hernandez Carrillo» da AA, no AH). Una clave que no es texto se quita.
+- **La celda activa no aparece enmarcada al cargar.** El recuadro sin foco, que marca dónde se iba,
+  aparece solo cuando alguien ya entró a la tabla. Antes, el de la primera celda parecía un borde
+  suelto.
+
 ## 0.3.2 — 2026-10-04
 
 ### `<nx-grid>`

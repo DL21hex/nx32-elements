@@ -525,12 +525,18 @@ nx-grid .nx-glyph {
     accent-color: var(--nx-primary);
   }
 }
+/* Hasta dos líneas: dos empresas o subdivisiones que empiezan igual («ADMINISTRACION SM BAN…»)
+   quedaban idénticas en una sola. Lo que pase de dos se ve completo en el `title`. */
 .nx-grid__opt-label {
   flex: 1;
   min-inline-size: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 .nx-grid__opt-n {
   color: var(--nx-text-tertiary);
@@ -833,6 +839,9 @@ nx-grid .nx-grid__sort-icon {
   }
   .nx-grid__scroll:not(:focus-within) &.is-active {
     box-shadow: inset 0 0 0 1px var(--nx-primary-border);
+  }
+  .nx-grid__scroll:not(.is-visited) &.is-active {
+    box-shadow: none;
   }
   &.is-edited {
     background-image: linear-gradient(225deg, var(--nx-primary) 5px, transparent 5px);

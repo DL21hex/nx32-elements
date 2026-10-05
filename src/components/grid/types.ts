@@ -53,6 +53,12 @@ export interface GridColumn {
    *  persona tiene su color (sale del texto: la misma, siempre el mismo); con `"neutral"`, todos van
    *  en gris, para una columna que se lee mucho y no debe competir con los tonos de la tabla. */
   avatar?: boolean | "neutral";
+  /** Con `avatar`: la clave de la fila que trae las iniciales (`"iniciales"`), hasta tres letras.
+   *  Sin ella, o en una fila que no las trae, salen del texto: la primera letra de las dos primeras
+   *  palabras. Con dos nombres y dos apellidos eso da dos nombres («Abel Andres Hernandez Carrillo»
+   *  es AA, no AH), y partir un nombre completo a ciegas no tiene arreglo («Abel Dario de Luquez
+   *  Epinayu»): quien tiene nombres y apellidos por separado manda las iniciales. */
+  initials?: string;
 }
 
 /** Una acción de fila: un botón (o un enlace) en la columna de acciones, fija a la derecha. */

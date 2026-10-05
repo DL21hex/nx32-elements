@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## 0.4.1 — 2026-10-05
+
+### `<nx-grid>`
+
+- **Un atajo puede llevar a otra página (`href` en `GridPreset`).** Es un `<a href>` de verdad con
+  el aspecto de los demás (Ctrl/⌘+clic abre otra pestaña y el router de la app lo navega), con ↗
+  en lugar de la flecha, y nunca queda marcado porque no filtra. Su número solo lo manda el servidor
+  (`presets` de la respuesta) y se conserva cuando la tabla pasa a contar en el navegador
+  (`client-max`); sin él, el atajo va sin número. Una dirección que no es segura lo quita, `filters`
+  puede faltar y `menu` no aplica. Como tarjeta, la ↗ va en la esquina.
+
 ## 0.4.0 — 2026-10-05
 
 ### `<nx-grid>`

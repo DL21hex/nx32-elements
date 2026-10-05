@@ -1,5 +1,32 @@
 # Registro de cambios
 
+## 0.4.0 — 2026-10-05
+
+### `<nx-grid>`
+
+- **Título con los atajos como botones (`heading`, `heading-level`).** El título va en la primera
+  fila de la tabla y los atajos, como botones a su derecha: el número, el nombre, su línea corta y
+  una flecha que, marcado, pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se
+  desplazan de lado. Es para la tabla que es la página: el título y los atajos viven con el estado
+  de la tabla y no hay nada que sincronizar afuera. El nivel es 2 por defecto (1 si es el de la
+  página) y el tamaño sale de `--nx-grid-heading-size`. Sin `heading`, los atajos siguen siendo
+  tarjetas.
+- **Alto del contenedor (`height="fill"`).** La tabla ocupa el alto de su contenedor y es lo único
+  que se desplaza, así que su barra horizontal siempre se ve y la de arriba no se pone. El
+  contenedor tiene que tener alto. El panel «Filtros» se desplaza dentro del suyo, y la tabla no baja
+  de `--nx-grid-fill-min` (240 px). En Solid, `height="fill"`.
+- **Atajos de menú (`menu: true` en `GridPreset`).** Van en «Vistas», en el grupo «Seguimiento»
+  (`labels.viewTracking`), sin conteo: ni la tabla lo cuenta ni el servidor tiene que mandarlo. Se
+  marcan y se quitan como las tarjetas. Con atajos de menú, «Vistas» aparece aunque no haya
+  `views-storage`, y entonces solo trae ese grupo.
+- **El total va arriba, con los filtros.** «**9.704** filas» abre la fila de los filtros puestos,
+  con el número en negrita. El pie queda para los totales de los montos y las cuentas de un rango
+  marcado, y no ocupa nada si no tiene ninguno. Para quien leía el conteo en `.nx-grid__foot`: ahora
+  está en `.nx-grid__count`.
+- **Un solo «Limpiar todo».** Va en la fila de los filtros puestos; el del encabezado del panel
+  «Filtros» se quitó.
+- La galería tiene una sección «La tabla como página» con las cuatro cosas juntas.
+
 ## 0.3.3 — 2026-10-05
 
 ### `<nx-grid>`

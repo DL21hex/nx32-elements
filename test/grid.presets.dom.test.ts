@@ -135,7 +135,7 @@ describe("nx-grid: título, «Seguimiento» y el total", () => {
     expect(top.hidden).toBe(false);
     expect(top.hasAttribute("data-heading")).toBe(true);
     expect(top.querySelector("h2.nx-grid__heading")!.textContent).toBe("Pedidos");
-    // La flecha dice que llevan a algún lado; marcado, la ✕ que se quita.
+    // El embudo dice que filtran; marcado, la ✕ que se quita.
     expect(cards(el).every((b) => b.querySelector(".nx-grid__preset-go .nx-glyph"))).toBe(true);
     const glyphOf = (b: HTMLButtonElement) => b.querySelector(".nx-grid__preset-go")!.innerHTML;
     const arrow = glyphOf(cards(el)[0]);

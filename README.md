@@ -553,14 +553,14 @@ Una tabla de datos que se explora sola:
   servidor tiene que mandarlo), y se marca y se quita igual. Con atajos de menú, «Vistas» aparece
   aunque no haya `views-storage`, y entonces solo trae ese grupo. Con `href`, el atajo lleva a otra
   página en vez de filtrar: es un `<a href>` de verdad (Ctrl/⌘+clic, el router de la app), con ↗ en
-  lugar de la flecha, que nunca queda marcado; su número solo lo manda el servidor (en `presets` de
+  lugar del embudo, que nunca queda marcado; su número solo lo manda el servidor (en `presets` de
   la respuesta, también cuando la tabla pasa a contar en el navegador con `client-max`), porque no
   hay filtro con qué contarlo. Va bien al final, después de los que filtran.
 - **Título (`heading`).** La tabla que es la página lleva su título en la primera fila, y los atajos
-  pasan a ser botones a su derecha: el número, el nombre y su línea corta, y una flecha que, marcado,
-  pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se desplazan de lado.
+  pasan a ser botones a su derecha: el número, el nombre y su línea corta, y un embudo (filtran, no
+  llevan a otro lado) que, marcado, pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
-  El tamaño sale de `--nx-grid-heading-size` (32 px; 24 px si la tabla mide menos de 640 px).
+  El tamaño sale de `--nx-grid-heading-size` (22 px).
 - **El total, con los filtros.** «**9.704** filas» (o «12 de 9.704 filas» filtrando en el
   navegador) va al principio de la fila de los filtros puestos, con un solo «Limpiar todo» y
   «Guardar como vista». El pie queda para los totales de los montos y las cuentas de un rango
@@ -574,6 +574,12 @@ Una tabla de datos que se explora sola:
   `rel="noopener noreferrer"`. Una dirección que no es segura (`javascript:`, `data:`) no se pinta:
   la celda queda como `link`. El enlace va fuera del orden del Tab (la tabla sigue siendo una sola
   parada).
+- **Columnas fijas (`sticky: true`).** La columna no se va al desplazar la tabla a lo ancho (el
+  nombre de la persona en una tabla con muchas columnas). Las fijas van primero, en su orden, aunque
+  lleguen en medio, y la de las casillas (`selectable`) se fija con ellas. Son opacas, y la última
+  lleva una línea más marcada, donde las demás pasan por debajo. El teclado no deja la celda activa
+  tapada. Una etiqueta de grupo que ocupa varias columnas no se fija, y todas fijas es ninguna. Si
+  la tabla mide menos de 640 px no se fija nada: taparía casi todo.
 - **Acciones de fila (`actions`).** Botones en una columna fija a la derecha, opaca, que no se
   filtra, no se busca, no se exporta y no está en «Columnas». Cada acción tiene `key` y `label`;
   con `icon` (del registro) queda solo el ícono, con su nombre en `aria-label` y `title`; `tone:

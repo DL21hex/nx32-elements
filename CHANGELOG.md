@@ -1,5 +1,27 @@
 # Registro de cambios
 
+## 0.4.2 — 2026-10-05
+
+### `<nx-grid>`
+
+- **Columnas fijas (`sticky: true`).** La columna no se va al desplazar la tabla a lo ancho (el
+  nombre de la persona en una tabla con muchas columnas). Las fijas van primero, en su orden, y la
+  de las casillas se fija con ellas. Son opacas y la última lleva una línea más marcada. El teclado
+  no deja la celda activa tapada. Una etiqueta de grupo que ocupa varias columnas no se fija, todas
+  fijas es ninguna, y con la tabla bajo 640 px no se fija nada.
+- **Los atajos junto al título llevan un embudo**, no una flecha: filtran la tabla, no llevan a
+  otro lado. Marcados, la ✕; los enlaces, ↗.
+- **Las opciones de los filtros van en una línea con mouse** (el panel, el filtro de una columna y
+  «Columnas»): el texto completo sale al pasar por encima. En una pantalla táctil siguen hasta en
+  dos líneas, porque ahí no hay «encima».
+
+### Núcleo
+
+- **`nxSupported()`** dice si el navegador puede con la librería: `{ok, missing, minimum}`. En uno
+  viejo no hay plan B por componente (los colores salen de `light-dark()` y los menús de la Popover
+  API): la app lo pregunta al arrancar y avisa con claridad, con las versiones mínimas de `minimum`.
+  Desde `nx32-elements/core` y la raíz.
+
 ## 0.4.1 — 2026-10-05
 
 ### `<nx-grid>`

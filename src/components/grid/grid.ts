@@ -234,6 +234,11 @@ const TYPES = new Set(["text", "number", "money", "date", "status"]);
 const KINDS = new Set(["list", "range", "date", "text"]);
 const TONES = new Set<GridTone>(["neutral", "info", "success", "warning", "danger"]);
 
+/** ¿La consulta pide algo más que todas las filas (filtros, una búsqueda, un orden)? */
+function asksSomething(q: { sort: GridSort | null; filters: GridFilter[]; search?: string }): boolean {
+  return q.filters.length > 0 || !!q.sort || !!q.search?.trim();
+}
+
 /** Una columna que llega de afuera (BDUI: JSON). Sin `key` y `label` de texto no sirve; lo demás que
  *  no tenga la forma correcta se arregla o se quita: unas `options` que no son lista lanzaban al
  *  ordenar, y un `width` de texto se sumaba como texto («0200140px»). Una columna correcta queda
@@ -1238,9 +1243,20 @@ export class NxGrid extends Base {
     }
     if (gen !== this.#gen) return;
     if (!page || error) {
-      this.#blocks.delete(block);
       // Cortada porque la tabla salió del DOM: se pide otra vez al volver.
-      if (signal?.aborted) return;
+      if (signal?.aborted) return void this.#blocks.delete(block);
+      // `client-max`: la primera página traía algo que filtrar (filtros recordados al volver, una
+      // búsqueda, un orden). Un origen sin modo servidor solo sabe responder la consulta completa y
+      // rechaza eso; antes de dar el error se prueba la completa y, si cabe, se filtra aquí. El
+      // bloque sigue «cargando» mientras tanto: el scroll no lo vuelve a pedir.
+      if (block === 0 && this.clientMax && !this.#decided && asksSomething(q)) {
+        this.#decided = true;
+        const local = await this.#tryLocal(this.clientMax);
+        if (local || gen !== this.#gen) return;
+        // La tabla salió del DOM mientras tanto (deja `#decided` en falso): se pide otra vez al volver.
+        if (!this.#decided) return void this.#blocks.delete(block);
+      }
+      this.#blocks.delete(block);
       return this.#failed(block, error ?? new Error("la respuesta no trae rows"));
     }
     const rows = raw.filter((r): r is GridRow => !!r && typeof r === "object").map(own);
@@ -1354,28 +1370,30 @@ export class NxGrid extends Base {
     }
   }
 
-  /** Trae la consulta completa (hasta `max` + 1 filas) y, si cabe, sigue en el cliente con ella. */
-  async #tryLocal(max: number): Promise<void> {
+  /** Trae la consulta completa (hasta `max` + 1 filas) y, si cabe, sigue en el cliente con ella.
+   *  Devuelve si pasó al cliente. */
+  async #tryLocal(max: number): Promise<boolean> {
     const src = this.getAttribute("source");
     const ac = (this.#tryAc = new AbortController());
     let page: GridPage | null = null;
     try {
       page = await this.#request(0, max + 1, { sort: null, filters: [] }, ac.signal);
     } catch {
-      return; // se queda en el servidor
+      return false; // se queda en el servidor
     } finally {
       if (this.#tryAc === ac) this.#tryAc = undefined;
     }
     // Mientras tanto cambió el origen o el tope: esa respuesta ya no dice nada.
-    if (!page || src !== this.getAttribute("source") || !this.#server || !this.#decided) return;
+    if (!page || src !== this.getAttribute("source") || !this.#server || !this.#decided) return false;
     const rows = page.rows.filter((r) => r && typeof r === "object");
-    if (rows.length > max || rows.length < (Number(page.total) || 0)) return;
+    if (rows.length > max || rows.length < (Number(page.total) || 0)) return false;
     // Lo que falte por llegar del servidor se descarta.
     this.#drop();
     clearTimeout(this.#wait);
     this.#wait = undefined;
     this.#local = true;
     this.rows = rows;
+    return true;
   }
 
   /** Todas las filas de la consulta (para exportar), por bloques: nunca una sola respuesta con

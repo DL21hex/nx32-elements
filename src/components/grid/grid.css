@@ -4,7 +4,7 @@
  *     ocupa el alto del contenedor)
  *   --nx-grid-fill-min (240px): con `height="fill"`, lo mínimo que mide la tabla (si no cabe, la
  *     página se desplaza)
- *   --nx-grid-heading-size (32px; 24px bajo 640px de ancho): el tamaño del título (`heading`)
+ *   --nx-grid-heading-size (22px): el tamaño del título (`heading`)
  *   --nx-grid-facets-width (248px): ancho del panel de filtros
  */
 
@@ -180,7 +180,7 @@ nx-grid .nx-glyph {
   flex: 1 1 auto;
   min-inline-size: 0;
   margin: 0;
-  font-size: var(--nx-grid-heading-size, 32px);
+  font-size: var(--nx-grid-heading-size, 22px);
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.2;
@@ -1795,9 +1795,6 @@ nx-grid mark {
 }
 
 @container (width < 640px) {
-  .nx-grid__heading {
-    font-size: var(--nx-grid-heading-size, 24px);
-  }
   .nx-grid__scroll {
     scroll-padding-inline-start: 0;
   }

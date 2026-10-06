@@ -560,7 +560,7 @@ Una tabla de datos que se explora sola:
   pasan a ser botones a su derecha: el número, el nombre y su línea corta, y un embudo (filtran, no
   llevan a otro lado) que, marcado, pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
-  El tamaño sale de `--nx-grid-heading-size` (32 px; 24 px si la tabla mide menos de 640 px).
+  El tamaño sale de `--nx-grid-heading-size` (22 px).
 - **El total, con los filtros.** «**9.704** filas» (o «12 de 9.704 filas» filtrando en el
   navegador) va al principio de la fila de los filtros puestos, con un solo «Limpiar todo» y
   «Guardar como vista». El pie queda para los totales de los montos y las cuentas de un rango

@@ -545,6 +545,60 @@ describe("<nx-grid>", () => {
     expect(count(el)).toBe("50 de 250 filas");
   });
 
+  it("client-max: un origen sin modo servidor rechaza el filtro recordado; se prueba la consulta completa antes del error", async () => {
+    // Como las bandejas de Talento Humano en nx32: solo responden la bandeja entera, y un filtro, una
+    // búsqueda o un orden son 400. Al volver a la página, la tabla arranca con el filtro recordado.
+    const all = Array.from({ length: 40 }, (_, i) => ({ id: String(i), oc: `OC-${i}`, prov: i % 2 ? "Aceros" : "Empaques", estado: i % 4 ? "pend" : "apr", monto: 1000 }));
+    let max = 1000;
+    const fetch = vi.fn(async (_u: string, init: RequestInit) => {
+      const q = JSON.parse(init.body as string);
+      if (q.filters.length || q.sort || q.search) return new Response(JSON.stringify({ error: "pasó del tope" }), { status: 400 });
+      const rows = all.slice(0, Math.min(all.length, max + 1));
+      return new Response(JSON.stringify({ rows: rows.slice(q.offset, q.offset + q.limit), total: all.length }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    const errors: unknown[] = [];
+    const start = () => {
+      document.body.innerHTML = "";
+      const el = document.createElement("nx-grid");
+      el.addEventListener("nx-grid-error", (e) => errors.push((e as CustomEvent).detail));
+      el.columns = COLS;
+      el.filters = [{ key: "estado", op: "in", values: ["apr"] }];
+      el.setAttribute("client-max", "1000");
+      el.setAttribute("source", "/datos");
+      document.body.append(el);
+      return el;
+    };
+    const el = start();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(errors).toEqual([]);
+    expect(el.mode).toBe("client");
+    expect(count(el)).toBe("10 de 40 filas");
+    expect(el.querySelector(".nx-grid__empty")?.textContent ?? "").not.toContain("No se pudieron");
+    // Si la completa no cabe (la bandeja creció), el error de siempre.
+    max = 5;
+    const big = start();
+    big.clientMax = 5;
+    await new Promise((r) => setTimeout(r, 30));
+    expect(big.mode).toBe("server");
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it("client-max: sin nada que filtrar, un primer bloque que falla no pide la consulta completa", async () => {
+    const fetch = vi.fn(async () => new Response("caído", { status: 500 }));
+    vi.stubGlobal("fetch", fetch);
+    document.body.innerHTML = "";
+    const el = document.createElement("nx-grid");
+    el.columns = COLS;
+    el.setAttribute("client-max", "1000");
+    el.setAttribute("source", "/datos");
+    document.body.append(el);
+    await new Promise((r) => setTimeout(r, 30));
+    const limits = fetch.mock.calls.map((c) => JSON.parse((c as unknown as [string, RequestInit])[1].body as string).limit);
+    expect(limits).not.toContain(1001);
+    expect(el.mode).toBe("server");
+  });
+
   it("client-max: si la consulta pasa del tope, se queda en el servidor sin pedir de más", async () => {
     const fetch = vi.fn(async (_u: string, init: RequestInit) => {
       const q = JSON.parse(init.body as string);

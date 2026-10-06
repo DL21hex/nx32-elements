@@ -506,7 +506,10 @@ Una tabla de datos que se explora sola:
   vez (`{offset: 0, limit: 20001, sort: null, filters: []}`) y sigue en el cliente, con conteos
   exactos, filtros al instante y agrupación. `grid.mode` dice dónde quedó. Las filas traídas son
   una foto: `refresh()` las vuelve a pedir (y vuelve a mirar el total). Es opcional: sin
-  `client-max` nada cambia.
+  `client-max` nada cambia. Un origen sin modo servidor (que solo sabe responder la consulta
+  completa) también sirve: si la primera página trae filtros, búsqueda u orden (los recordados al
+  volver a la página) y el origen la rechaza, la tabla prueba la consulta completa antes de dar el
+  error y, si cabe, filtra aquí.
 - **Barra horizontal también arriba.** Una tabla ancha lleva su barra de desplazamiento horizontal
   también encima de las columnas: la propia queda al pie de su caja y había que bajar hasta allá
   para moverla. Viene encendida; `top-scrollbar="false"` (`topScrollbar={false}` en Solid y en BDUI)

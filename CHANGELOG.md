@@ -1,5 +1,17 @@
 # Registro de cambios
 
+## 0.4.3 — 2026-10-05
+
+### `<nx-grid>`
+
+- **Con `client-max`, un origen sin modo servidor aguanta los filtros recordados.** La primera
+  página sale con la consulta de ese momento; un origen que solo sabe responder la consulta
+  completa rechaza filtros, búsqueda u orden, y al volver a la página con un filtro recordado la
+  tabla se quedaba en «No se pudieron cargar las filas». Ahora, si esa primera página falla y pedía
+  algo, la tabla prueba la consulta completa antes de dar el error y, si cabe, filtra aquí.
+- **La fila del total y los filtros puestos va con sangría (18 px):** es de la tabla, no del mismo
+  nivel que la barra de arriba.
+
 ## 0.4.2 — 2026-10-05
 
 ### `<nx-grid>`

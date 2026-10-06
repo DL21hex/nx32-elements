@@ -487,7 +487,8 @@ a.nx-grid__preset {
 
 /* ---------------------------------------------------------------- chips */
 
-/* El resultado: el total, los filtros puestos, «Limpiar todo» y «Guardar como vista». */
+/* El resultado: el total, los filtros puestos, «Limpiar todo» y «Guardar como vista». Con sangría:
+   es de la tabla (lo que se está viendo de ella), no del mismo nivel que la barra de arriba. */
 .nx-grid__chips {
   display: flex;
   flex-wrap: wrap;
@@ -495,6 +496,7 @@ a.nx-grid__preset {
   gap: 6px;
   min-block-size: 26px;
   margin-block-end: 8px;
+  margin-inline-start: 18px;
 }
 .nx-grid__count {
   margin-inline-end: 4px;

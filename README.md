@@ -568,7 +568,11 @@ Una tabla de datos que se explora sola:
   navegador) va al principio de la fila de los filtros puestos, con un solo «Limpiar todo» y
   «Guardar como vista». El pie queda para los totales de los montos y las cuentas de un rango
   marcado, y no ocupa nada si no tiene ninguno. `labels.rows` y `labels.of` nombran las filas
-  («{n} empleados»).
+  («{n} empleados»), con «singular|plural» si hace falta («{n} desprendible|{n} desprendibles»;
+  `of` elige por el total).
+- **Sin filas.** Sin datos (nada filtrado ni buscado), la tabla dice `labels.noRows` («No hay
+  filas»): ahí va lo que la app quiera decir («Carga el catálogo con la carga masiva»). Si son los
+  filtros o la búsqueda los que no dejan ninguna, dice `labels.empty` y ofrece aflojarlos.
 - **Enlaces de verdad (`href`).** Una columna con `href: "url"` (la clave de la fila que trae la
   dirección) pinta un `<a href>` en las filas que la traen: Ctrl/⌘+clic o la rueda abren otra
   pestaña, el clic derecho da el menú del navegador (copiar el enlace) y un router de la app lo

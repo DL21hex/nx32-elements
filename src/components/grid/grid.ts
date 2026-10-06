@@ -83,6 +83,7 @@ export const GRID_LABELS: GridLabels = {
   more: "Ver {n} más",
   less: "Ver menos",
   empty: "Ninguna fila coincide con los filtros",
+  noRows: "No hay filas",
   loading: "Cargando…",
   loadError: "No se pudieron cargar las filas",
   retry: "Reintentar",
@@ -233,6 +234,12 @@ function validFilters(v: unknown): GridFilter[] {
 const TYPES = new Set(["text", "number", "money", "date", "status"]);
 const KINDS = new Set(["list", "range", "date", "text"]);
 const TONES = new Set<GridTone>(["neutral", "info", "success", "warning", "danger"]);
+
+/** «singular|plural»: el singular si `count` es 1; un texto sin «|», tal cual. */
+function plural(t: string, count: number): string {
+  const bar = t.indexOf("|");
+  return bar < 0 ? t : count === 1 ? t.slice(0, bar) : t.slice(bar + 1);
+}
 
 /** ¿La consulta pide algo más que todas las filas (filtros, una búsqueda, un orden)? */
 function asksSomething(q: { sort: GridSort | null; filters: GridFilter[]; search?: string }): boolean {
@@ -1980,6 +1987,8 @@ export class NxGrid extends Base {
     this.#fill!.hidden = !this.#count();
     this.#empty!.classList.toggle("is-loading", loading);
     if (failed) this.#emptyCell!.replaceChildren(L.loadError, h("span", { class: "nx-grid__relax" }, h("button", { type: "button", class: "nx-grid__btn", "data-retry": "" }, L.retry)));
+    // Sin datos (nada filtrado) no es «ninguna coincide»: su propio texto y nada que aflojar.
+    else if (!loading && !this.#filters.length && !this.#q.trim()) this.#emptyCell!.replaceChildren(L.noRows);
     else this.#emptyCell!.replaceChildren(loading ? L.loading : L.empty, ...(this.#empty!.hidden || loading ? [] : this.#relax()));
     this.#paintFacets();
     this.#paintHeading();
@@ -2018,7 +2027,7 @@ export class NxGrid extends Base {
     const of = (this.#filters.length || this.#q) && !this.#server;
     const n = this.#loc.number(this.#rowCount());
     const total = this.#loc.number(this.#server ? this.#total : this.#all.length);
-    const parts = (of ? L.of : L.rows).split(/(\{n\}|\{total\})/).filter(Boolean);
+    const parts = plural(of ? L.of : L.rows, of ? (this.#server ? this.#total : this.#all.length) : this.#rowCount()).split(/(\{n\}|\{total\})/).filter(Boolean);
     return h("span", { class: "nx-grid__count" }, ...parts.map((x) => (x === "{n}" ? h("strong", null, n) : x === "{total}" ? total : x)));
   }
 
@@ -2509,7 +2518,9 @@ export class NxGrid extends Base {
   #rowsText(): string {
     const n = this.#loc.number(this.#rowCount());
     const total = this.#server ? this.#total : this.#all.length;
-    return (this.#filters.length || this.#q) && !this.#server ? this.#fmt(this.#labels.of, { n, total: this.#loc.number(total) }) : this.#fmt(this.#labels.rows, { n });
+    return (this.#filters.length || this.#q) && !this.#server
+      ? this.#fmt(plural(this.#labels.of, total), { n, total: this.#loc.number(total) })
+      : this.#fmt(plural(this.#labels.rows, this.#rowCount()), { n });
   }
 
   /** El pie: conteo y totales, o las estadísticas del rango. Se recalcula solo si cambió el rango o

@@ -124,7 +124,9 @@ export interface GridLabels {
   exporting: string;
   exported: string;
   exportError: string;
+  /** «{n} filas». Con «singular|plural» («{n} empleado|{n} empleados»), el singular para 1. */
   rows: string;
+  /** «{n} de {total} filas». Con «singular|plural», elige por el total. */
   of: string;
   cells: string;
   sum: string;
@@ -139,7 +141,11 @@ export interface GridLabels {
   clearSearch: string;
   more: string;
   less: string;
+  /** Sin filas porque los filtros o la búsqueda no dejan ninguna. */
   empty: string;
+  /** Sin filas porque no hay datos (nada filtrado): lo que la app quiera decir ahí («Carga el
+   *  catálogo con la carga masiva»). */
+  noRows: string;
   loading: string;
   loadError: string;
   retry: string;

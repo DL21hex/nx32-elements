@@ -128,31 +128,45 @@ function mount(attrs = ""): NxGrid {
 }
 
 describe("nx-grid: título, «Seguimiento» y el total", () => {
-  it("heading: el título en la primera fila, con su nivel, y los atajos como botones a su lado", () => {
+  it("heading: el título en la primera fila, con su nivel, y los atajos como filtro segmentado debajo, con «Todos»", () => {
     const el = mount('heading="Pedidos"');
     el.presets = PRESETS;
     const top = el.querySelector<HTMLElement>(".nx-grid__top")!;
     expect(top.hidden).toBe(false);
     expect(top.hasAttribute("data-heading")).toBe(true);
     expect(top.querySelector("h2.nx-grid__heading")!.textContent).toBe("Pedidos");
-    // El embudo dice que filtran; marcado, la ✕ que se quita.
-    expect(cards(el).every((b) => b.querySelector(".nx-grid__preset-go .nx-glyph"))).toBe(true);
-    const glyphOf = (b: HTMLButtonElement) => b.querySelector(".nx-grid__preset-go")!.innerHTML;
-    const arrow = glyphOf(cards(el)[0]);
-    cards(el)[0].click();
-    expect(pressed(el)).toEqual(["true", "false"]);
-    expect(glyphOf(cards(el)[0])).not.toBe(arrow);
-    expect(glyphOf(cards(el)[1])).toBe(arrow);
+    const segs = () => [...el.querySelectorAll<HTMLButtonElement>(".nx-grid__segment")];
+    const text = () => segs().map((b) => b.textContent);
+    const on = () => segs().map((b) => b.getAttribute("aria-pressed"));
+    // «Todos» y uno por atajo, cada uno con su conteo; la línea corta, al pasar el mouse.
+    expect(text()).toEqual(["Todos4", "Pendientes2", "Grandes2"]);
+    expect(on()).toEqual(["true", "false", "false"]);
+    expect(segs()[1].title).toBe("por aprobar");
+    expect(el.querySelector(".nx-grid__preset")).toBeNull();
+    // Excluyentes: marcar uno quita «Todos»; otro lo reemplaza; «Todos» los quita.
+    segs()[1].click();
+    expect(on()).toEqual(["false", "true", "false"]);
+    expect(el.filters).toEqual(PRESETS[0].filters);
+    segs()[2].click();
+    expect(on()).toEqual(["false", "false", "true"]);
+    segs()[0].click();
+    expect(on()).toEqual(["true", "false", "false"]);
+    expect(el.filters).toEqual([]);
+    // Volver a pulsar el marcado también lo quita.
+    segs()[1].click();
+    segs()[1].click();
+    expect(on()).toEqual(["true", "false", "false"]);
     // Es el título de la página: h1. El nodo se cambia, el texto sigue.
     el.headingLevel = 1;
     expect(el.getAttribute("heading-level")).toBe("1");
     expect(top.querySelectorAll(".nx-grid__heading").length).toBe(1);
     expect(top.querySelector("h1.nx-grid__heading")!.textContent).toBe("Pedidos");
-    // Sin título, los atajos vuelven a ser tarjetas, sin flecha.
+    // Sin título, los atajos vuelven a ser tarjetas.
     el.heading = null;
     expect(top.querySelector(".nx-grid__heading")).toBeNull();
     expect(top.hasAttribute("data-heading")).toBe(false);
-    expect(el.querySelector(".nx-grid__preset-go")).toBeNull();
+    expect(el.querySelector(".nx-grid__segments")).toBeNull();
+    expect(cards(el)).toHaveLength(2);
     // Sin título ni tarjetas, la fila no se ve.
     el.presets = [];
     expect(top.hidden).toBe(true);
@@ -234,20 +248,22 @@ describe("nx-grid: atajos que llevan a otra página (`href`)", () => {
   it("es un enlace de verdad con ↗, nunca marcado, que no filtra; sin conteo del servidor, sin número", () => {
     const el = mount('heading="Pedidos"');
     el.presets = [PRESETS[0], LINK];
-    const a = el.querySelector<HTMLAnchorElement>('a.nx-grid__preset[data-preset="correos"]')!;
+    // Junto al título va después del segmentado, no como un segmento.
+    expect([...el.querySelectorAll(".nx-grid__segment")].map((b) => b.textContent)).toEqual(["Todos4", "Pendientes2"]);
+    const a = el.querySelector<HTMLAnchorElement>('a.nx-grid__preset-link[data-preset="correos"]')!;
+    expect(a.previousElementSibling!.classList.contains("nx-grid__segments")).toBe(true);
     expect(a.getAttribute("href")).toBe("/correos");
     expect(a.hasAttribute("aria-pressed")).toBe(false);
     expect(a.dataset.tone).toBe("warning");
+    expect(a.title).toBe("no les llegan los avisos");
     expect(a.querySelector("strong")).toBeNull();
-    expect(a.textContent).toBe("Correos por corregirno les llegan los avisos");
-    const arrowOut = a.querySelector(".nx-grid__preset-go")!.innerHTML;
-    expect(arrowOut).not.toBe(cards(el)[0].querySelector(".nx-grid__preset-go")!.innerHTML);
+    expect(a.querySelector(".nx-glyph")).not.toBeNull();
     // Seguirlo no toca los filtros (el navegador navega; aquí se evita).
     document.addEventListener("click", (e) => e.preventDefault(), { once: true });
     const before = el.filters;
     a.click();
     expect(el.filters).toEqual(before);
-    // Como tarjeta (sin título) también lleva ↗; un filtro, no.
+    // Como tarjeta (sin título) lleva ↗; un filtro, no.
     el.heading = null;
     expect(el.querySelector('[data-preset="correos"] .nx-grid__preset-go')).not.toBeNull();
     expect(el.querySelector('[data-preset="pend"] .nx-grid__preset-go')).toBeNull();

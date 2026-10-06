@@ -555,13 +555,15 @@ Una tabla de datos que se explora sola:
   «Vistas», en el grupo «Seguimiento» (`labels.viewTracking`), sin conteo (ni la tabla lo cuenta ni el
   servidor tiene que mandarlo), y se marca y se quita igual. Con atajos de menú, «Vistas» aparece
   aunque no haya `views-storage`, y entonces solo trae ese grupo. Con `href`, el atajo lleva a otra
-  página en vez de filtrar: es un `<a href>` de verdad (Ctrl/⌘+clic, el router de la app), con ↗ en
-  lugar del embudo, que nunca queda marcado; su número solo lo manda el servidor (en `presets` de
+  página en vez de filtrar: es un `<a href>` de verdad (Ctrl/⌘+clic, el router de la app), con ↗,
+  que nunca queda marcado; su número solo lo manda el servidor (en `presets` de
   la respuesta, también cuando la tabla pasa a contar en el navegador con `client-max`), porque no
   hay filtro con qué contarlo. Va bien al final, después de los que filtran.
 - **Título (`heading`).** La tabla que es la página lleva su título en la primera fila, y los atajos
-  pasan a ser botones a su derecha: el número, el nombre y su línea corta, y un embudo (filtran, no
-  llevan a otro lado) que, marcado, pasa a ✕. Si no caben al lado del título, bajan a la fila siguiente y se desplazan de lado.
+  pasan a ser un filtro segmentado debajo de él: «Todos» (`labels.presetsAll`) y uno por atajo, cada
+  uno con su conteo, excluyentes, como pestañas que no salen de la página. Pulsar el marcado (o
+  «Todos») lo quita. La línea corta (`hint`) sale al pasar el mouse. Los atajos que llevan a otra
+  página (`href`) van después, como enlaces con su número y ↗. Si no caben, se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
   El tamaño sale de `--nx-grid-heading-size` (22 px).
 - **El total, con los filtros.** «**9.704** filas» (o «12 de 9.704 filas» filtrando en el

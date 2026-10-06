@@ -1,5 +1,17 @@
 # Registro de cambios
 
+## 0.4.5 — 2026-10-06
+
+### `<nx-grid>`
+
+- **Junto al título, los atajos son un filtro segmentado con «Todos».** Eran botones con borde, del
+  mismo tamaño y aspecto que los botones de la cabecera de la página justo encima: dos pisos de
+  cajas a la derecha, con la línea corta cortada y tarjetas en «0» que no decían nada. Ahora van en
+  la fila de abajo del título: «Todos» (`labels.presetsAll`) y un segmento por atajo con su conteo,
+  excluyentes, como pestañas que no salen de la página; pulsar el marcado (o «Todos») lo quita. La
+  línea corta va al pasar el mouse. Los atajos que llevan a otra página (`href`) van después, como
+  enlaces con su número y ↗. Sin título siguen siendo tarjetas.
+
 ## 0.4.4 — 2026-10-06
 
 ### `<nx-grid>`

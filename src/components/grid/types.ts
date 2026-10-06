@@ -150,6 +150,8 @@ export interface GridLabels {
   loadError: string;
   retry: string;
   presets: string;
+  /** El segmento sin atajo, junto al título («Todos»). */
+  presetsAll: string;
   selected: string;
   selectedOne: string;
   selectAll: string;

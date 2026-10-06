@@ -49,6 +49,10 @@ export interface GridColumn {
   /** Empieza escondida: «Columnas» la muestra, y «Restablecer columnas» (o volver a la tabla
    *  original) la vuelve a esconder. Una vista guardada recuerda lo que eligió la persona. */
   hidden?: boolean;
+  /** Fija a la izquierda: no se va al desplazar la tabla a lo ancho (el nombre de la persona en una
+   *  tabla con muchas columnas). Las fijas van primero, en su orden, y con ellas la de las casillas.
+   *  Si la tabla mide menos de 640 px no se fija (taparía casi todo). */
+  sticky?: boolean;
   /** Un círculo con las iniciales del valor antes del texto (nombres de personas). Con `true`, cada
    *  persona tiene su color (sale del texto: la misma, siempre el mismo); con `"neutral"`, todos van
    *  en gris, para una columna que se lee mucho y no debe competir con los tonos de la tabla. */

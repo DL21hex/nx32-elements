@@ -1059,6 +1059,35 @@ nx-grid .nx-grid__sort-icon {
 .nx-grid__th.nx-grid__actions {
   z-index: 1;
 }
+/* Las columnas fijas (`sticky`): a la izquierda y opacas, como las acciones a la derecha. Dónde
+   empieza cada una (`--_s0`, `--_s1`…) y cuánto tapan juntas (`--_pin`) lo pone el componente. La
+   última lleva una línea más marcada: ahí pasan las demás por debajo. */
+.nx-grid__scroll {
+  scroll-padding-inline-start: var(--_pin, 0px);
+}
+.nx-grid__cell.is-sticky,
+.nx-grid__th.is-sticky {
+  position: sticky;
+  inset-inline-start: var(--_at);
+  z-index: 1;
+  background: var(--nx-card);
+}
+.nx-grid__cell.is-sticky-end,
+.nx-grid__th.is-sticky-end {
+  border-inline-end-color: var(--nx-border);
+}
+.nx-grid__row:hover > .nx-grid__cell.is-sticky {
+  background: linear-gradient(var(--nx-hover), var(--nx-hover)), var(--nx-card);
+}
+.nx-grid__row.is-picked > .nx-grid__cell.is-sticky {
+  background: linear-gradient(color-mix(in oklab, var(--nx-primary) 7%, transparent), color-mix(in oklab, var(--nx-primary) 7%, transparent)), var(--nx-card);
+}
+.nx-grid__cell.is-sticky.is-sel {
+  background: linear-gradient(var(--nx-primary-soft), var(--nx-primary-soft)), var(--nx-card) !important;
+}
+.nx-grid__cell.is-sticky.is-edited {
+  background-image: linear-gradient(225deg, var(--nx-primary) 5px, transparent 5px);
+}
 .nx-grid__act {
   display: inline-flex;
   flex: none;
@@ -1768,6 +1797,14 @@ nx-grid mark {
 @container (width < 640px) {
   .nx-grid__heading {
     font-size: var(--nx-grid-heading-size, 24px);
+  }
+  .nx-grid__scroll {
+    scroll-padding-inline-start: 0;
+  }
+  :is(.nx-grid__cell, .nx-grid__th).is-sticky {
+    position: relative;
+    inset-inline-start: auto;
+    z-index: auto;
   }
   .nx-grid__main {
     flex-direction: column;

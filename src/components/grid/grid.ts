@@ -147,7 +147,6 @@ const SLIDERS = '<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path
 const DOWNLOAD = '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>';
 const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
 const ARROW = '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>';
-const CHEVRON = '<path d="m9 18 6-6-6-6"/>';
 const OUT = '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>';
 const UNDO = '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>';
 const REDO = '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>';
@@ -258,7 +257,7 @@ function cleanColumn(c: unknown): GridColumn | null {
   if (x.currency !== undefined && typeof x.currency !== "string") fix.currency = undefined;
   if (x.href !== undefined && (typeof x.href !== "string" || !x.href)) fix.href = undefined;
   if (x.initials !== undefined && (typeof x.initials !== "string" || !x.initials)) fix.initials = undefined;
-  for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
+  for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden", "sticky"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
   if (x.avatar !== undefined && typeof x.avatar !== "boolean" && x.avatar !== "neutral") fix.avatar = !!x.avatar;
   if (!Object.keys(fix).length) return c as GridColumn;
   const out: Record<string, unknown> = { ...x, ...fix };
@@ -352,6 +351,8 @@ export class NxGrid extends Base {
   /** Todas las columnas (`#cols`) y las que se ven (`#columns`: sin las ocultas). */
   #cols: GridColumn[] = [];
   #columns: GridColumn[] = [];
+  /** Cuántas de `#columns` van fijas a la izquierda (`sticky`): las primeras. */
+  #stickyN = 0;
   #hidden = new Set<string>();
   #widths = new Map<string, number>();
   // Vistas guardadas (`views-storage`): la lista leída, la aplicada y la clave ya arrancada.
@@ -1401,11 +1402,26 @@ export class NxGrid extends Base {
    *  desde ella misma. */
   #syncColumns(): void {
     this.#forgetText();
-    this.#columns = this.#cols.filter((c) => !this.#hidden.has(c.key));
-    if (!this.#columns.length && this.#cols.length) {
+    let cols = this.#cols.filter((c) => !this.#hidden.has(c.key));
+    if (!cols.length && this.#cols.length) {
       this.#hidden.clear();
-      this.#columns = this.#cols;
+      cols = this.#cols;
     }
+    // Las fijas (`sticky`) van primero, en su orden. Todas fijas es ninguna: no habría nada que
+    // desplazar por debajo de ellas.
+    const pinned = cols.filter((c) => c.sticky);
+    this.#stickyN = pinned.length < cols.length ? pinned.length : 0;
+    this.#columns = this.#stickyN ? [...pinned, ...cols.filter((c) => !c.sticky)] : cols;
+  }
+
+  /** Una celda (o cabecera) de la columna `ci` fija a la izquierda, si lo es. Con columnas fijas, la
+   *  de las casillas (`ci = -1`) también: si se fuera, dejaría su hueco. */
+  #pin(el: HTMLElement, ci: number): HTMLElement {
+    if (ci >= this.#stickyN || !this.#stickyN) return el;
+    el.classList.add("is-sticky");
+    if (ci === this.#stickyN - 1) el.classList.add("is-sticky-end");
+    el.style.setProperty("--_at", ci < 0 ? "0px" : `var(--_s${ci})`);
+    return el;
   }
 
   /** Aplica una vista (guardada, con su `id`, o suelta). Lo de columnas que ya no existen se quita,
@@ -1503,6 +1519,14 @@ export class NxGrid extends Base {
     this.#scroll!.style.setProperty("--_cols", check + widths.map((w, i) => (i === widths.length - 1 ? `minmax(${w}px, 1fr)` : `${w}px`)).join(" ") + (acts ? ` ${acts}px` : ""));
     const w = `${widths.reduce((a, b) => a + b, (check ? 36 : 0) + acts)}px`;
     this.#scroll!.style.setProperty("--_w", w);
+    // Dónde empieza cada columna fija, y cuánto tapan juntas: el teclado no deja la celda activa
+    // debajo de ellas (`scroll-padding`, que respeta `scrollIntoView`).
+    let x = check ? 36 : 0;
+    for (let i = 0; i < this.#stickyN; i++) {
+      this.#scroll!.style.setProperty(`--_s${i}`, `${x}px`);
+      x += widths[i];
+    }
+    this.#scroll!.style.setProperty("--_pin", this.#stickyN ? `${x}px` : "0px");
     // El relleno de la barra de arriba mide lo mismo que las columnas: su barra nativa aparece justo
     // cuando la tabla desborda, en el mismo pase de maquetación (sin medir ni observar nada).
     this.#hbar!.style.setProperty("--_w", w);
@@ -1850,11 +1874,12 @@ export class NxGrid extends Base {
         h("span", { class: "nx-grid__resize", role: "separator", tabindex: -1, "aria-orientation": "vertical", "aria-valuemin": MIN_W, "aria-valuemax": MAX_W, "data-resize": ci }),
       ),
     );
+    this.#ths.forEach((th, ci) => this.#pin(th, ci));
     this.#applyWidths();
     this.#panel?.close();
     this.#headCheck = this.selectable ? h("input", { type: "checkbox", tabindex: -1, "data-pick-all": "", "data-nx-ephemeral": "" }) : undefined;
     const actsHead = acts ? h("div", { role: "columnheader", class: "nx-grid__th nx-grid__actions", "aria-colindex": cols.length + 1 + off }, h("span", { class: "nx-sr-only" }, this.#labels.actions)) : null;
-    this.#head!.replaceChildren(...(this.#headCheck ? [h("div", { role: "columnheader", class: "nx-grid__th nx-grid__check", "aria-colindex": 1 }, this.#headCheck)] : []), ...this.#ths, ...(actsHead ? [actsHead] : []));
+    this.#head!.replaceChildren(...(this.#headCheck ? [this.#pin(h("div", { role: "columnheader", class: "nx-grid__th nx-grid__check", "aria-colindex": 1 }, this.#headCheck), -1)] : []), ...this.#ths, ...(actsHead ? [actsHead] : []));
     this.#fill!.replaceChildren(...[...this.#head!.children].map(() => h("i")));
     this.#win = { start: -1, end: -1 };
   }
@@ -2023,9 +2048,9 @@ export class NxGrid extends Base {
           n === undefined && p.href ? null : h("strong", null, n === undefined ? "—" : this.#loc.number(n)),
           h("span", null, p.label),
           p.hint ? h("small", null, p.hint) : null,
-          // Junto al título son botones: la flecha dice que filtran ahí; marcado, la ✕ que se quita.
-          // Un enlace lleva ↗ siempre: sale de la tabla.
-          go || p.href ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(p.href ? OUT : this.#presetOn(p) ? X : CHEVRON)) : null,
+          // Junto al título son botones: el embudo dice que filtran ahí (una flecha prometía llevar a
+          // otro lado); marcado, la ✕ que se quita. Un enlace lleva ↗ siempre: sale de la tabla.
+          go || p.href ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(p.href ? OUT : this.#presetOn(p) ? X : FUNNEL)) : null,
         ];
         return p.href
           ? h("a", { class: "nx-grid__preset", href: p.href, "data-preset": p.id, "data-tone": tone, "data-link": "" }, ...body)
@@ -2310,12 +2335,13 @@ export class NxGrid extends Base {
     const rid = it && "r" in it ? (this.#ids.get(it.r) ?? "") : "";
     if (this.selectable) {
       const on = !!rid && this.#picked.has(rid);
-      row.append(h("div", { role: "gridcell", class: "nx-grid__cell nx-grid__check", "aria-colindex": 1 }, rid ? h("input", { type: "checkbox", "data-pick": "", "data-nx-ephemeral": "", checked: on, tabindex: -1, "aria-label": this.#labels.selectRow }) : null));
+      const box = rid ? h("input", { type: "checkbox", "data-pick": "", "data-nx-ephemeral": "", checked: on, tabindex: -1, "aria-label": this.#labels.selectRow }) : null;
+      row.append(this.#pin(h("div", { role: "gridcell", class: "nx-grid__cell nx-grid__check", "aria-colindex": 1 }, box), -1));
       row.classList.toggle("is-picked", on);
       row.setAttribute("aria-selected", String(on));
     }
     const off = this.selectable ? 1 : 0;
-    const cell = (c: GridColumn, ci: number) => h("div", { role: "gridcell", class: `nx-grid__cell${isNumeric(c) ? " is-num" : ""}`, id: `${u}-${i}-${ci}`, "aria-colindex": ci + 1 + off, "data-c": ci });
+    const cell = (c: GridColumn, ci: number) => this.#pin(h("div", { role: "gridcell", class: `nx-grid__cell${isNumeric(c) ? " is-num" : ""}`, id: `${u}-${i}-${ci}`, "aria-colindex": ci + 1 + off, "data-c": ci }), ci);
     if (!it) {
       row.classList.add("is-loading");
       row.append(...cols.map((c, ci) => cell(c, ci)));
@@ -2337,6 +2363,11 @@ export class NxGrid extends Base {
             el.setAttribute("aria-colindex", String(1 + off));
             if (span > 1) el.setAttribute("aria-colspan", String(span));
             el.style.gridColumn = `span ${span}`;
+            // Una etiqueta que ocupa varias columnas no se fija: taparía las que pasan por debajo.
+            if (span > 1) {
+              el.classList.remove("is-sticky", "is-sticky-end");
+              el.style.removeProperty("--_at");
+            }
             el.append(glyph("chevron", "nx-grid__chev"), h("span", { class: "nx-grid__g-label" }, g.label), h("span", { class: "nx-grid__g-n" }, this.#loc.number(g.rows.length)));
           } else if (isNumeric(c)) {
             el.append(h("span", null, formatCell(g.sums[c.key] ?? 0, c, this.#loc)));

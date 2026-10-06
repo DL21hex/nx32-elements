@@ -7,3 +7,4 @@
 export { registerIcons, hasIcon } from "./icons";
 export { nxFormat, resolveLocale, canonicalLocale, type NxFormat, type MoneyLike } from "./locale";
 export { allowOrigins, safeEndpoint, safeHref } from "./dom";
+export { nxSupported, type NxSupport, type NxFeature } from "./support";

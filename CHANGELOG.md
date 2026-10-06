@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## 0.4.6 — 2026-10-06
+
+### `<nx-grid>`
+
+- **El segmento marcado se ve en oscuro.** En claro es blanco sobre el gris del fondo; en oscuro
+  casi no se separaba de él. Ahora sube a un gris claro y lleva una línea.
+- **«Todos» ya no dice el total filtrado con `source`.** Con las filas en el servidor, «Todos» decía
+  el total de la consulta de ese momento, que con un atajo marcado es el del atajo («Todos 882» junto
+  a «Contratos que vencen 882»). Ahora dice el total sin filtros ni búsqueda, el último que vio, y si
+  todavía no lo vio (la tabla arrancó filtrada) va sin número.
+
 ## 0.4.5 — 2026-10-06
 
 ### `<nx-grid>`

@@ -1,5 +1,17 @@
 # Registro de cambios
 
+## 0.4.4 — 2026-10-06
+
+### `<nx-grid>`
+
+- **Un texto propio para «no hay datos» (`labels.noRows`, «No hay filas»).** Sin filas y sin nada
+  filtrado ni buscado, la tabla ya no dice «Ninguna fila coincide con los filtros» (que ahí era
+  falso y ofrecía aflojar filtros que no había): dice `noRows`, donde la app pone lo que haya que
+  hacer («Carga el catálogo con la carga masiva»). Con filtros o búsqueda que no dejan ninguna,
+  sigue `labels.empty`.
+- **`labels.rows` y `labels.of` aceptan «singular|plural»:** «1 desprendible», «2 desprendibles»
+  (`of` elige por el total). Un texto sin «|», tal cual.
+
 ## 0.4.3 — 2026-10-05
 
 ### `<nx-grid>`

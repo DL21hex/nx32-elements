@@ -584,6 +584,36 @@ describe("<nx-grid>", () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it("sin datos dice `noRows` (el texto de la app); con filtros que no dejan ninguna, `empty` y cómo aflojarlos", () => {
+    const el = mount();
+    el.labels = { noRows: "Carga el catálogo con la carga masiva" };
+    el.rows = [];
+    const empty = el.querySelector<HTMLElement>(".nx-grid__empty")!;
+    expect(empty.hidden).toBe(false);
+    expect(empty.textContent).toBe("Carga el catálogo con la carga masiva");
+    el.rows = ROWS;
+    el.filters = [{ key: "estado", op: "in", values: ["nadie"] }];
+    expect(empty.textContent).toContain("Ninguna fila coincide");
+    el.filters = [];
+    el.search = "zzzz-no-existe";
+    expect(empty.textContent).toContain("Ninguna fila coincide");
+  });
+
+  it("`rows` y `of` con «singular|plural»: 1 desprendible, 2 desprendibles; `of` elige por el total", () => {
+    const el = mount();
+    el.labels = { rows: "{n} desprendible|{n} desprendibles", of: "{n} de {total} desprendible|{n} de {total} desprendibles" };
+    el.rows = ROWS.slice(0, 1);
+    expect(count(el)).toBe("1 desprendible");
+    el.rows = ROWS.slice(0, 2);
+    expect(count(el)).toBe("2 desprendibles");
+    el.filters = [{ key: "oc", op: "in", values: [String(ROWS[0].oc)] }];
+    expect(count(el)).toBe("1 de 2 desprendibles");
+    // Un texto sin «|», tal cual.
+    el.labels = { rows: "{n} filas", of: "{n} de {total} filas" };
+    el.filters = [];
+    expect(count(el)).toBe("2 filas");
+  });
+
   it("client-max: sin nada que filtrar, un primer bloque que falla no pide la consulta completa", async () => {
     const fetch = vi.fn(async () => new Response("caído", { status: 500 }));
     vi.stubGlobal("fetch", fetch);

@@ -66,11 +66,11 @@ describe("nx-grid trabajando", () => {
     expect(empty.hidden).toBe(false);
     expect(empty.classList.contains("is-loading")).toBe(true);
     expect(empty.textContent).toBe("Cargando…");
-    // Sin filas en la respuesta: el aviso de siempre.
+    // Sin filas en la respuesta (y nada filtrado): no hay datos, no «ninguna coincide».
     answer(new Response(JSON.stringify({ rows: [], total: 0 })));
     await sleep(10);
     expect(empty.classList.contains("is-loading")).toBe(false);
-    expect(empty.textContent).toContain("Ninguna fila coincide");
+    expect(empty.textContent).toBe("No hay filas");
     // Con filas: sin aviso.
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ rows: ROWS, total: 2 }))));
     el.refresh();

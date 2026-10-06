@@ -88,6 +88,7 @@ export const GRID_LABELS: GridLabels = {
   loadError: "No se pudieron cargar las filas",
   retry: "Reintentar",
   presets: "Atajos",
+  presetsAll: "Todos",
   selected: "{n} seleccionadas",
   selectedOne: "1 seleccionada",
   selectAll: "Seleccionar las {n}",
@@ -1873,6 +1874,12 @@ export class NxGrid extends Base {
     this.#live = h("span", { class: "nx-sr-only", role: "status" });
     this.#presetBar = h("div", { class: "nx-grid__presets", role: "group", hidden: true });
     this.#presetBar.addEventListener("click", (e) => {
+      // «Todos» (junto al título): quita el atajo marcado, si hay uno.
+      if ((e.target as Element).closest("[data-preset-all]")) {
+        const on = this.#presets.find((x) => !x.href && this.#presetOn(x));
+        if (on) this.#togglePreset(on);
+        return;
+      }
       const id = (e.target as Element).closest<HTMLElement>("[data-preset]")?.dataset.preset;
       const p = this.#presets.find((x) => x.id === id);
       // Un enlace lo sigue el navegador (o el router de la app).
@@ -2061,11 +2068,13 @@ export class NxGrid extends Base {
       for (const p of counted) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
     const countOf = (p: GridPreset) => (p.href ? this.#serverN.get(p.id) : this.#presetN.get(p.id));
     const state = list.map((p) => [p.id, p.label, p.hint, p.tone, p.href, countOf(p), this.#presetOn(p)]);
-    const key = JSON.stringify([this.#labels.presets, this.locale, go, state]);
+    const all = this.#server ? this.#total : this.#all.length;
+    const key = JSON.stringify([this.#labels.presets, this.#labels.presetsAll, this.locale, go, all, state]);
     if (key === this.#presetKey) return;
     this.#presetKey = key;
     bar.hidden = !list.length;
     bar.setAttribute("aria-label", this.#labels.presets);
+    if (go) return this.#paintSegments(bar, list, countOf, all);
     bar.replaceChildren(
       ...list.map((p) => {
         const n = countOf(p);
@@ -2075,15 +2084,45 @@ export class NxGrid extends Base {
           n === undefined && p.href ? null : h("strong", null, n === undefined ? "—" : this.#loc.number(n)),
           h("span", null, p.label),
           p.hint ? h("small", null, p.hint) : null,
-          // Junto al título son botones: el embudo dice que filtran ahí (una flecha prometía llevar a
-          // otro lado); marcado, la ✕ que se quita. Un enlace lleva ↗ siempre: sale de la tabla.
-          go || p.href ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(p.href ? OUT : this.#presetOn(p) ? X : FUNNEL)) : null,
+          // Un enlace lleva ↗: sale de la tabla.
+          p.href ? h("span", { class: "nx-grid__preset-go", "aria-hidden": "true" }, glyph(OUT)) : null,
         ];
         return p.href
           ? h("a", { class: "nx-grid__preset", href: p.href, "data-preset": p.id, "data-tone": tone, "data-link": "" }, ...body)
           : h("button", { type: "button", class: "nx-grid__preset", "data-preset": p.id, "data-tone": tone, "aria-pressed": String(this.#presetOn(p)) }, ...body);
       }),
     );
+  }
+
+  /** Junto al título, los atajos son un filtro segmentado: «Todos» y uno por atajo, cada uno con su
+   *  conteo, excluyentes (como pestañas, pero sin salir de la página); su línea corta va al pasar el
+   *  mouse (`title`). Los que llevan a otra página van después, como enlaces con ↗. */
+  #paintSegments(bar: HTMLElement, list: GridPreset[], countOf: (p: GridPreset) => number | undefined, all: number): void {
+    const L = this.#labels;
+    const num = (n: number | undefined) => h("strong", null, n === undefined ? "—" : this.#loc.number(n));
+    const filters = list.filter((p) => !p.href);
+    const none = !filters.some((p) => this.#presetOn(p));
+    const seg = h(
+      "div",
+      { class: "nx-grid__segments" },
+      h("button", { type: "button", class: "nx-grid__segment", "data-preset-all": "", "aria-pressed": String(none) }, h("span", null, L.presetsAll), num(all)),
+      ...filters.map((p) =>
+        h(
+          "button",
+          { type: "button", class: "nx-grid__segment", "data-preset": p.id, "data-tone": p.tone && p.tone !== "neutral" ? p.tone : null, "aria-pressed": String(this.#presetOn(p)), title: p.hint || null },
+          h("span", null, p.label),
+          num(countOf(p)),
+        ),
+      ),
+    );
+    const links = list
+      .filter((p) => p.href)
+      .map((p) => {
+        const n = countOf(p);
+        const tone = p.tone && p.tone !== "neutral" ? p.tone : null;
+        return h("a", { class: "nx-grid__preset-link", href: p.href, "data-preset": p.id, "data-link": "", "data-tone": tone, title: p.hint || null }, h("span", null, p.label), n === undefined ? null : num(n), glyph(OUT));
+      });
+    bar.replaceChildren(...(filters.length ? [seg] : []), ...links);
   }
 
   /** Sin filas: qué filtro quitar (o la búsqueda), y cuántas volverían (en el cliente; en el

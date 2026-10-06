@@ -278,6 +278,36 @@ describe("nx-grid: atajos que llevan a otra página (`href`)", () => {
     expect(el.querySelector<HTMLAnchorElement>('a[data-preset="y"]')!.getAttribute("href")).toBe("/y");
   });
 
+  it("con `source`, «Todos» dice el total sin filtros (el último visto), nunca el filtrado; sin haberlo visto, va sin número", async () => {
+    const fetch = vi.fn(async (_u: string, init: RequestInit) => {
+      const q = JSON.parse(init.body as string);
+      const rows = q.filters.length ? ROWS.slice(0, 2) : ROWS;
+      return new Response(JSON.stringify({ rows, total: rows.length, presets: { pend: 2 } }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    const todos = (el: NxGrid) => el.querySelector<HTMLButtonElement>("[data-preset-all]")!.textContent;
+    // Arranca filtrado (un filtro recordado, una ruta que abre con su atajo): no sabe el total.
+    document.body.innerHTML = '<nx-grid heading="Pedidos"></nx-grid>';
+    let el = document.querySelector("nx-grid")!;
+    el.columns = COLS;
+    el.presets = [PRESETS[0]];
+    el.filters = PRESETS[0].filters;
+    el.setAttribute("source", "/datos");
+    await sleep(20);
+    expect(todos(el)).toBe("Todos");
+    // Sin filtros lo ve, y lo conserva al marcar un atajo.
+    document.body.innerHTML = '<nx-grid heading="Pedidos" source="/datos"></nx-grid>';
+    el = document.querySelector("nx-grid")!;
+    el.columns = COLS;
+    el.presets = [PRESETS[0]];
+    await sleep(20);
+    expect(todos(el)).toBe("Todos4");
+    el.querySelector<HTMLButtonElement>('.nx-grid__segment[data-preset="pend"]')!.click();
+    await sleep(400);
+    expect(JSON.parse((fetch.mock.calls.at(-1) as unknown as [string, RequestInit])[1].body as string).filters).toEqual(PRESETS[0].filters);
+    expect(todos(el)).toBe("Todos4");
+  });
+
   it("con `source`, su conteo llega del servidor", async () => {
     let answer!: (r: Response) => void;
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((r) => (answer = r))));

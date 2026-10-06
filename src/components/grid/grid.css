@@ -310,10 +310,14 @@ nx-grid .nx-glyph {
     outline: 2px solid var(--nx-ring);
     outline-offset: 1px;
   }
+  /* En oscuro la tarjeta casi no se separa del gris del fondo: el marcado sube a un gris claro y
+     lleva una línea, para que se vea cuál es. */
   &[aria-pressed="true"] {
-    background: var(--nx-card);
+    background: light-dark(var(--nx-card), oklch(1 0 0 / 0.14));
     color: var(--nx-foreground);
-    box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.08), rgb(0 0 0 / 0.3));
+    box-shadow:
+      0 1px 2px light-dark(rgb(15 20 30 / 0.08), rgb(0 0 0 / 0.3)),
+      inset 0 0 0 1px light-dark(transparent, oklch(1 0 0 / 0.1));
   }
   &[data-tone="success"] {
     --_ink: var(--nx-success);

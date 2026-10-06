@@ -416,6 +416,9 @@ export class NxGrid extends Base {
   /** Los conteos que mandó el servidor: los de los atajos que son enlaces solo salen de aquí, y se
    *  conservan cuando la tabla pasa a contar en el navegador (`client-max`). */
   #serverN = new Map<string, number>();
+  /** Con `source`: el total de la consulta sin filtros ni búsqueda, el último que llegó (el número de
+   *  «Todos» junto al título). Sin haberlo visto, «Todos» va sin número: el total filtrado no lo es. */
+  #scopeN: number | undefined;
   #presetKey = "";
   /** Los filtros que había antes de tocar un atajo: tocarlo otra vez los devuelve. */
   #beforePreset: GridFilter[] | null = null;
@@ -972,6 +975,7 @@ export class NxGrid extends Base {
       // indexaría filas del servidor en el modo cliente y cambiaría el total.
       this.#drop();
       this.#serverN.clear();
+      this.#scopeN = undefined;
       this.#local = this.#decided = false;
       // Sin `source` las filas vuelven a ser las de `rows`.
       if (!this.#server) this.#reindex();
@@ -1289,6 +1293,7 @@ export class NxGrid extends Base {
           selected: (this.#filters.find((x) => x.key === f.key && x.op === "in") as { values: string[] } | undefined)?.values ?? [],
         }));
     if (page.totals && typeof page.totals === "object") this.#totals = page.totals;
+    if (block === 0 && !this.#filters.length && !this.#q.trim()) this.#scopeN = this.#total;
     if (page.presets && typeof page.presets === "object") {
       const got = Object.entries(page.presets).filter((e): e is [string, number] => typeof e[1] === "number");
       // Dos copias: la de la tabla se vacía al pasar a contar en el navegador; la del servidor no.
@@ -2068,7 +2073,7 @@ export class NxGrid extends Base {
       for (const p of counted) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
     const countOf = (p: GridPreset) => (p.href ? this.#serverN.get(p.id) : this.#presetN.get(p.id));
     const state = list.map((p) => [p.id, p.label, p.hint, p.tone, p.href, countOf(p), this.#presetOn(p)]);
-    const all = this.#server ? this.#total : this.#all.length;
+    const all = this.#server ? this.#scopeN : this.#all.length;
     const key = JSON.stringify([this.#labels.presets, this.#labels.presetsAll, this.locale, go, all, state]);
     if (key === this.#presetKey) return;
     this.#presetKey = key;
@@ -2097,7 +2102,7 @@ export class NxGrid extends Base {
   /** Junto al título, los atajos son un filtro segmentado: «Todos» y uno por atajo, cada uno con su
    *  conteo, excluyentes (como pestañas, pero sin salir de la página); su línea corta va al pasar el
    *  mouse (`title`). Los que llevan a otra página van después, como enlaces con ↗. */
-  #paintSegments(bar: HTMLElement, list: GridPreset[], countOf: (p: GridPreset) => number | undefined, all: number): void {
+  #paintSegments(bar: HTMLElement, list: GridPreset[], countOf: (p: GridPreset) => number | undefined, all: number | undefined): void {
     const L = this.#labels;
     const num = (n: number | undefined) => h("strong", null, n === undefined ? "—" : this.#loc.number(n));
     const filters = list.filter((p) => !p.href);
@@ -2105,7 +2110,7 @@ export class NxGrid extends Base {
     const seg = h(
       "div",
       { class: "nx-grid__segments" },
-      h("button", { type: "button", class: "nx-grid__segment", "data-preset-all": "", "aria-pressed": String(none) }, h("span", null, L.presetsAll), num(all)),
+      h("button", { type: "button", class: "nx-grid__segment", "data-preset-all": "", "aria-pressed": String(none) }, h("span", null, L.presetsAll), all === undefined ? null : num(all)),
       ...filters.map((p) =>
         h(
           "button",

@@ -4,7 +4,7 @@
  *     ocupa el alto del contenedor)
  *   --nx-grid-fill-min (240px): con `height="fill"`, lo mínimo que mide la tabla (si no cabe, la
  *     página se desplaza)
- *   --nx-grid-heading-size (22px): el tamaño del título (`heading`)
+ *   --nx-grid-heading-size (32px; 24px bajo 640px de ancho): el tamaño del título (`heading`)
  *   --nx-grid-facets-width (248px): ancho del panel de filtros
  */
 
@@ -180,7 +180,7 @@ nx-grid .nx-glyph {
   flex: 1 1 auto;
   min-inline-size: 0;
   margin: 0;
-  font-size: var(--nx-grid-heading-size, 22px);
+  font-size: var(--nx-grid-heading-size, 32px);
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.2;
@@ -642,8 +642,9 @@ a.nx-grid__preset {
     accent-color: var(--nx-primary);
   }
 }
-/* Hasta dos líneas: dos empresas o subdivisiones que empiezan igual («ADMINISTRACION SM BAN…»)
-   quedaban idénticas en una sola. Lo que pase de dos se ve completo en el `title`. */
+/* Con mouse, una línea: el texto completo sale al pasar por encima (`title`), y la lista no se ve
+   escalonada. En una pantalla táctil no hay «encima»: hasta dos líneas, porque dos empresas que
+   empiezan igual («ADMINISTRACION SM BAN…») quedaban idénticas en una sola. */
 .nx-grid__opt-label {
   flex: 1;
   min-inline-size: 0;
@@ -654,6 +655,13 @@ a.nx-grid__preset {
   overflow: hidden;
   overflow-wrap: anywhere;
   line-height: 1.35;
+
+  @media (hover: hover) and (pointer: fine) {
+    display: block;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 .nx-grid__opt-n {
   color: var(--nx-text-tertiary);
@@ -1758,6 +1766,9 @@ nx-grid mark {
 }
 
 @container (width < 640px) {
+  .nx-grid__heading {
+    font-size: var(--nx-grid-heading-size, 24px);
+  }
   .nx-grid__main {
     flex-direction: column;
     align-items: stretch;

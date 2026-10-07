@@ -1,0 +1,414 @@
+/*
+ * <nx-field> y los controles de la casa. Etiqueta arriba (13 px), control de 36 px y, debajo, una
+ * sola línea: error, aviso o ayuda (12,5 px). El control es el mismo de <nx-number>: borde suave,
+ * anillo del acento al enfocar, rojo con error, ámbar con aviso, punteado si es de solo lectura.
+ *
+ * Sirven también sin <nx-field>: `.nx-input` (input, select, textarea), `.nx-check` (una casilla o
+ * un radio con su texto), `.nx-choices` (una lista de ellos), `.nx-segmented` (radios como botones
+ * pegados). Dentro de <nx-field>, un input, select o textarea hijo directo toma el estilo solo.
+ * `.nx-form-grid`: seis columnas; `<nx-field span="2">` ocupa dos (en angosto, más; en un teléfono,
+ * la fila).
+ * Variables: --nx-field-height (36px) · --nx-form-grid-gap (18px 16px)
+ */
+
+nx-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-inline-size: 0;
+  font-family: var(--nx-font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--nx-foreground);
+}
+nx-field [hidden] {
+  display: none !important;
+}
+/* La etiqueta arriba y el mensaje abajo aunque el control llegue después en el DOM. */
+.nx-field__top {
+  order: -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-block-size: 20px;
+}
+.nx-field__top:not(:has(> :not([hidden]))) {
+  display: none;
+}
+.nx-field__text,
+.nx-field__msg {
+  order: 1;
+}
+.nx-field__label {
+  font-size: 13px;
+  font-weight: 550;
+}
+.nx-field__opt {
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+}
+.nx-field__src {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  block-size: 20px;
+  margin-inline-start: auto;
+  padding-inline: 5px 7px;
+  border-radius: 999px;
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+
+  & svg {
+    display: block;
+    inline-size: 12px;
+    block-size: 12px;
+  }
+}
+
+.nx-field__msg {
+  font-size: 12.5px;
+  line-height: 1.4;
+
+  &:empty {
+    display: none;
+  }
+  & p {
+    margin: 0;
+  }
+  & svg {
+    display: block;
+    flex: none;
+    inline-size: 14px;
+    block-size: 14px;
+    margin-block-start: 1px;
+  }
+}
+.nx-field__hint {
+  color: var(--nx-text-tertiary);
+}
+.nx-field__err {
+  display: flex;
+  gap: 5px;
+  color: var(--nx-danger);
+}
+.nx-field__say {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+}
+.nx-field__act {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: text-decoration-color var(--nx-motion-fast);
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+.nx-field__warn {
+  display: flex;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-warning-soft);
+
+  & .nx-glyph {
+    color: var(--nx-warning-ink);
+  }
+}
+
+/* Lectura: el valor en lugar del control, con la etiqueta más tenue (como <nx-fields>). */
+nx-field[text] {
+  gap: 4px;
+
+  & > :not(.nx-field__top, .nx-field__text) {
+    display: none !important;
+  }
+  & .nx-field__label {
+    color: var(--nx-muted-foreground);
+    font-size: 12.5px;
+    font-weight: 400;
+  }
+}
+.nx-field__text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 21px;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.nx-field__empty {
+  color: var(--nx-text-quaternary);
+}
+.nx-field__lock svg {
+  display: block;
+  inline-size: 13px;
+  block-size: 13px;
+  color: var(--nx-text-quaternary);
+}
+nx-field[locked] .nx-field__text {
+  color: var(--nx-text-tertiary);
+}
+
+/* ---------------------------------------------------------------- controles */
+
+:is(.nx-input, nx-field > :is(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="image"]), select, textarea)) {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: var(--nx-field-height, 36px);
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color var(--nx-motion-fast),
+    box-shadow var(--nx-motion-fast);
+
+  &::placeholder {
+    color: var(--nx-text-tertiary);
+    opacity: 1;
+  }
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--nx-primary-border);
+    box-shadow: 0 0 0 3px var(--nx-primary-soft);
+  }
+  &[aria-invalid="true"] {
+    border-color: var(--nx-danger);
+  }
+  &[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px var(--nx-danger-soft);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  &:read-only:not(select) {
+    border-style: dashed;
+    background: transparent;
+  }
+}
+nx-field[data-warning] > :is(.nx-input, input, select, textarea) {
+  border-color: var(--nx-warning);
+
+  &:focus {
+    box-shadow: 0 0 0 3px var(--nx-warning-soft);
+  }
+}
+/* La flecha del select, con los colores del tema (sin imagen). */
+:is(select.nx-input, nx-field > select):not([multiple], [size]) {
+  appearance: none;
+  padding-inline-end: 30px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--nx-text-tertiary) 50%), linear-gradient(135deg, var(--nx-text-tertiary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+:is(select.nx-input, nx-field > select):is([multiple], [size]),
+:is(textarea.nx-input, nx-field > textarea) {
+  block-size: auto;
+  padding-block: 8px;
+  line-height: 1.45;
+}
+:is(textarea.nx-input, nx-field > textarea) {
+  min-block-size: 76px;
+  resize: vertical;
+}
+
+/* Los compuestos de la librería toman el rojo y el ámbar del campo. */
+nx-field[data-invalid] .nx-number__field,
+nx-field[data-invalid] .nx-select__field {
+  border-color: var(--nx-danger);
+}
+nx-field[data-warning] .nx-number__field,
+nx-field[data-warning] .nx-select__field {
+  border-color: var(--nx-warning);
+}
+
+/* Una casilla o un radio con su texto. */
+.nx-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-block-size: 22px;
+  font-size: 14px;
+  cursor: pointer;
+
+  & input {
+    flex: none;
+    inline-size: 16px;
+    block-size: 16px;
+    margin: 2px 0 0;
+    accent-color: var(--nx-primary);
+    cursor: inherit;
+  }
+  &:has(input:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+.nx-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-block: 4px;
+
+  &[data-inline] {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+  }
+}
+nx-field[data-invalid] :is(.nx-check, .nx-choices) input {
+  outline: 1px solid var(--nx-danger);
+  outline-offset: 1px;
+}
+
+/* Radios como botones pegados: pocas opciones cortas que se ven todas. */
+.nx-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-block-size: var(--nx-field-height, 36px);
+  padding: 2px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+
+  & label {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+  }
+  & input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: 0;
+    opacity: 0;
+  }
+  & span {
+    display: grid;
+    flex: 1;
+    place-items: center;
+    min-block-size: calc(var(--nx-field-height, 36px) - 6px);
+    padding-inline: 12px;
+    border-radius: var(--nx-radius-sm);
+    color: var(--nx-muted-foreground);
+    font-size: 13.5px;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background var(--nx-motion-fast),
+      color var(--nx-motion-fast);
+  }
+  & span:hover {
+    background: var(--nx-hover);
+    color: var(--nx-foreground);
+  }
+  & input:checked + span {
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--nx-primary-border);
+  }
+  & input:focus-visible + span {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 1px;
+  }
+  & input:disabled + span {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+nx-field[data-invalid] .nx-segmented {
+  border-color: var(--nx-danger);
+}
+nx-field[data-warning] .nx-segmented {
+  border-color: var(--nx-warning);
+}
+nx-field :is(button, a):focus-visible,
+.nx-check input:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- rejilla */
+
+.nx-form-grid {
+  container: nx-form-grid / inline-size;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--nx-form-grid-gap, 18px 16px);
+
+  & > * {
+    grid-column: 1 / -1;
+    min-inline-size: 0;
+  }
+  & > [span="1"] {
+    grid-column: span 1;
+  }
+  & > [span="2"] {
+    grid-column: span 2;
+  }
+  & > [span="3"] {
+    grid-column: span 3;
+  }
+  & > [span="4"] {
+    grid-column: span 4;
+  }
+  & > [span="5"] {
+    grid-column: span 5;
+  }
+}
+@container nx-form-grid (max-width: 720px) {
+  .nx-form-grid > [span="1"] {
+    grid-column: span 2;
+  }
+  .nx-form-grid > [span="2"] {
+    grid-column: span 3;
+  }
+  .nx-form-grid > :is([span="4"], [span="5"]) {
+    grid-column: 1 / -1;
+  }
+}
+@container nx-form-grid (max-width: 520px) {
+  .nx-form-grid > [span] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.nx-input, nx-field > :is(input, select, textarea), .nx-segmented span) {
+    transition: none;
+  }
+}

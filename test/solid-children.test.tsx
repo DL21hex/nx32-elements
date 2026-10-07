@@ -16,6 +16,8 @@ import { Tabs } from "../src/solid/tabs";
 import { Breadcrumb } from "../src/solid/breadcrumb";
 import { Notice } from "../src/solid/notice";
 import { Badge } from "../src/solid/badge";
+import { Field } from "../src/solid/field";
+import { Form } from "../src/solid/form";
 
 const CASES: [string, (kids: () => JSX.Element) => JSX.Element][] = [
   ["grid", (k) => <Grid columns={[{ key: "a", label: "A" }]} rows={[{ id: 1, a: "x" }]} selectable>{k()}</Grid>],
@@ -30,6 +32,8 @@ const CASES: [string, (kids: () => JSX.Element) => JSX.Element][] = [
   ["breadcrumb", (k) => <Breadcrumb items={[{ label: "Inicio", href: "/" }, { label: "Aquí" }]}>{k()}</Breadcrumb>],
   ["notice", (k) => <Notice tone="warning" action="Renovar">{k()}</Notice>],
   ["badge", (k) => <Badge label="Activa">{k()}</Badge>],
+  ["field", (k) => <Field label="Correo" hint="Ayuda"><input name="correo" />{k()}</Field>],
+  ["form", (k) => <Form heading="Nuevo" fields={[{ key: "a", label: "A", required: true }]}>{k()}</Form>],
 ];
 
 const own = (el: Element) => [...el.children].filter((x) => !x.classList.contains("autor") && x.localName !== "template");

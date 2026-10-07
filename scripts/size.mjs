@@ -66,6 +66,8 @@ const BUDGET = [
   ["dist/badge.js", 1 * 1024, "badge + núcleo (ESM)"],
   ["dist/notice.js", 1.75 * 1024, "notice + núcleo (ESM)"],
   ["dist/fields.js", 5.25 * 1024, "fields + núcleo (ESM; lectura, resumen y edición en la misma rejilla)"],
+  ["dist/field.js", 4 * 1024, "field + núcleo (ESM; el campo de la casa)"],
+  ["dist/form.js", 18 * 1024, "form + field + núcleo (ESM; nx-number y nx-select con import() si el esquema los usa)"],
   ["dist/tabs.js", 2.75 * 1024, "tabs + núcleo (ESM)"],
   ["dist/breadcrumb.js", 4.5 * 1024, "breadcrumb + núcleo (ESM; colapso y «‹ Padre»)"],
   // Importa el chunk del componente (ya cargado en la página): la cifra lo incluye; el menú solo son ~2,1 KB.
@@ -135,6 +137,8 @@ const BUDGET = [
   ["dist/badge.css", 0.5 * 1024, "badge (CSS)"],
   ["dist/notice.css", 1 * 1024, "notice (CSS)"],
   ["dist/fields.css", 1.75 * 1024, "fields (CSS)"],
+  ["dist/field.css", 2 * 1024, "field + controles de la casa + .nx-form-grid (CSS)"],
+  ["dist/form.css", 3.75 * 1024, "form (CSS, con field.css)"],
   ["dist/tabs.css", 1 * 1024, "tabs (CSS)"],
   ["dist/breadcrumb.css", 1.5 * 1024, "breadcrumb (CSS)"],
   ["dist/org.css", 4 * 1024, "org (CSS)"],

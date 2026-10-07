@@ -10,6 +10,8 @@
 @import "../components/badge/badge.css";
 @import "../components/notice/notice.css";
 @import "../components/fields/fields.css";
+@import "../components/field/field.css";
+@import "../components/form/form.css";
 @import "../components/tabs/tabs.css";
 @import "../components/breadcrumb/breadcrumb.css";
 @import "../components/org/org.css";

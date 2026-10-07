@@ -29,8 +29,9 @@ function setters(tag: string): string[] {
 
 /** Atributos que no son prop a propósito, con el motivo. */
 const ATTR_ONLY: Record<string, string[]> = {};
-/** Elementos que no se pintan desde un payload. */
-const NOT_BDUI = ["nx-dialog", "nx-toaster"];
+/** Elementos que no se pintan desde un payload: lo suyo son los hijos (el contenido del diálogo, el
+ *  control del campo), y un nodo BDUI no los trae. `<nx-form>` pinta sus `<nx-field>` desde el esquema. */
+const NOT_BDUI = ["nx-dialog", "nx-toaster", "nx-field"];
 /** Props vivas que se están convirtiendo a algo serializable y todavía no se declaran en la clase
  *  (`localProps`). Una entrada que ya no es viva hace fallar la prueba: se quita de aquí. */
 const PENDING_LOCAL: Record<string, string[]> = {};

@@ -85,6 +85,10 @@ export interface CaptureLabels {
   tooBig: string;
   /** Un archivo que no cumple `accept`. */
   badType: string;
+  /** Con un `<nx-form>` de destino: el botón, y el origen de lo que llena («Factura.pdf», «Leído de {file}»). */
+  toForm: string;
+  formSource: string;
+  formDetail: string;
 }
 
 export type CaptureValues = Record<string, string | Record<string, string>[]>;

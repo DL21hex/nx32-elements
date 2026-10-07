@@ -1,0 +1,1725 @@
+<title>Formulario de ingreso</title>
+<style>
+/* Maqueta de <nx-form>: el formulario dentro de un marco de app (índice de secciones · secciones · pie fijo) y una guía al lado.
+   Tokens de nx32-elements (src/styles/tokens.css), recortados a lo que usa la maqueta. */
+:root {
+  color-scheme: light dark;
+  --_h: 262; --_c: 0.19; --_l: 0.54; --_ld: 0.72; --_n: 260; --_t: 1;
+  --nx-canvas: light-dark(oklch(0.985 calc(0.002 * var(--_t)) var(--_n)), oklch(0.165 calc(0.004 * var(--_t)) var(--_n)));
+  --nx-background: light-dark(oklch(1 0 0), oklch(0.185 calc(0.004 * var(--_t)) var(--_n)));
+  --nx-card: light-dark(oklch(1 0 0), oklch(0.225 calc(0.005 * var(--_t)) var(--_n)));
+  --nx-popover: light-dark(oklch(1 0 0), oklch(0.235 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-border-subtle: light-dark(oklch(0.925 calc(0.004 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.07));
+  --nx-border: light-dark(oklch(0.885 calc(0.005 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.11));
+  --nx-border-strong: light-dark(oklch(0.82 calc(0.006 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.17));
+  --nx-foreground: light-dark(oklch(0.2 calc(0.008 * var(--_t)) var(--_n)), oklch(0.955 calc(0.003 * var(--_t)) var(--_n)));
+  --nx-muted-foreground: light-dark(oklch(0.44 calc(0.01 * var(--_t)) var(--_n)), oklch(0.76 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-text-tertiary: light-dark(oklch(0.51 calc(0.01 * var(--_t)) var(--_n)), oklch(0.64 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-text-quaternary: light-dark(oklch(0.66 calc(0.008 * var(--_t)) var(--_n)), oklch(0.53 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-primary: light-dark(oklch(var(--_l) var(--_c) var(--_h)), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h)));
+  --nx-primary-ink: light-dark(oklch(calc(var(--_l) - 0.07) var(--_c) var(--_h)), oklch(calc(var(--_ld) + 0.05) calc(var(--_c) * 0.7) var(--_h)));
+  --nx-primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.17 calc(var(--_c) * 0.1) var(--_h)));
+  --nx-primary-soft: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.1), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.15));
+  --nx-primary-border: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.35), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.4));
+  --nx-hover: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.05), oklch(1 0 0 / 0.06));
+  --nx-nav-active-bg: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.09), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.13));
+  --nx-ring: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.6), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.7));
+  --nx-success: light-dark(oklch(0.49 0.13 150), oklch(0.74 0.14 150));
+  --nx-success-soft: light-dark(oklch(0.55 0.14 150 / 0.1), oklch(0.74 0.14 150 / 0.14));
+  --nx-danger: light-dark(oklch(0.52 0.2 27), oklch(0.72 0.16 27));
+  --nx-danger-foreground: light-dark(oklch(0.99 0 0), oklch(0.18 0.03 27));
+  --nx-danger-soft: light-dark(oklch(0.55 0.2 27 / 0.1), oklch(0.7 0.17 27 / 0.15));
+  --nx-warning: light-dark(oklch(0.74 0.15 70), oklch(0.8 0.14 78));
+  --nx-warning-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --nx-warning-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
+  --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
+    0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
+  --nx-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --nx-radius-sm: 5px; --nx-radius-md: 7px; --nx-radius-lg: 10px;
+  --nx-motion-fast: 140ms; --nx-motion-base: 220ms;
+  --nx-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* El visor de la cámara es oscuro en los dos temas. */
+  --vf-bg: oklch(0.2 0.012 260); --vf-card: oklch(0.92 0.012 95); --vf-ink: oklch(0.24 0.01 260);
+  --vf-mark: oklch(1 0 0 / 0.85); --vf-line: oklch(0.78 0.17 150);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--nx-canvas); color: var(--nx-foreground); font: 14px/1.45 var(--nx-font-sans); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea, output { font: inherit; color: inherit; }
+button { cursor: pointer; }
+code { font-family: var(--nx-font-mono); font-size: 0.88em; padding: 1px 5px; border-radius: 4px; background: var(--nx-hover); }
+svg.i { width: 16px; height: 16px; flex: none; display: block; }
+.vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+
+.page { max-width: 1480px; margin-inline: auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 64px; }
+
+/* ------------------------------------------------------------------ portada */
+.intro { max-width: 880px; margin-block-end: 22px; }
+.eyebrow { margin: 0 0 6px; color: var(--nx-text-tertiary); font-size: 12.5px; }
+.intro h1 { margin: 0; font-size: 26px; line-height: 1.15; font-weight: 650; letter-spacing: -0.015em; text-wrap: balance; }
+.lede { margin: 8px 0 0; max-width: 72ch; color: var(--nx-muted-foreground); text-wrap: pretty; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 28px; align-items: start; }
+
+/* ------------------------------------------------------------------ escenario */
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); height: clamp(640px, calc(100dvh - 40px), 940px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--nx-border); border-radius: 14px; background: var(--nx-canvas); container: stage / inline-size; }
+
+.f-head { position: relative; z-index: 4; display: flex; flex-direction: column; gap: 14px; padding: 18px 24px 14px; border-bottom: 1px solid var(--nx-border-subtle); background: var(--nx-background); }
+.head-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.f-eyebrow { margin: 0 0 2px; color: var(--nx-text-tertiary); font-size: 12.5px; }
+.f-title { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--nx-success-soft); color: var(--nx-success); font-size: 12px; font-weight: 600; letter-spacing: 0; }
+.draft { margin: 3px 0 0; display: inline-flex; align-items: center; gap: 7px; color: var(--nx-text-tertiary); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.draft .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--nx-border-strong); }
+.draft.is-saved .dot { background: var(--nx-success); }
+.draft.is-saving .dot { background: var(--nx-warning); }
+
+.fill-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fill-lbl { margin-inline-end: 2px; color: var(--nx-text-tertiary); font-size: 12.5px; }
+.chip-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); font-size: 13px; font-weight: 550; transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast); }
+.chip-btn .i { width: 15px; height: 15px; color: var(--nx-text-tertiary); }
+.chip-btn:hover { background: var(--nx-hover); }
+.chip-btn[aria-expanded="true"] { border-color: var(--nx-primary-border); background: var(--nx-primary-soft); color: var(--nx-primary-ink); }
+.chip-btn[aria-expanded="true"] .i { color: currentColor; }
+.fill-status { margin: 0 0 0 auto; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; color: var(--nx-muted-foreground); font-size: 13px; }
+.fill-status .i { width: 15px; height: 15px; color: var(--nx-success); }
+.fill-status > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Paneles de «Llenar con»: flotan bajo la fila, no empujan el formulario. */
+.fpanel { position: absolute; top: calc(100% - 8px); left: 24px; z-index: 5; width: min(460px, calc(100% - 48px)); display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--nx-border); border-radius: 12px; background: var(--nx-popover); box-shadow: var(--nx-shadow-popover); animation: rise var(--nx-motion-base) var(--nx-ease-out); }
+.fp-h { margin: 0; font-size: 13.5px; font-weight: 600; }
+.fp-msg { margin: 0; display: flex; align-items: center; gap: 6px; min-height: 19px; color: var(--nx-muted-foreground); font-size: 13px; }
+.fp-msg .i { width: 15px; height: 15px; color: var(--nx-success); }
+.fp-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.req-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.req { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border: 1px solid var(--nx-border); border-radius: 9px; background: var(--nx-card); text-align: left; transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast); }
+.req:hover { border-color: var(--nx-primary-border); background: var(--nx-primary-soft); }
+.req-id { grid-row: span 2; padding-top: 1px; color: var(--nx-primary-ink); font-family: var(--nx-font-mono); font-size: 12.5px; font-weight: 600; }
+.req-t { font-weight: 600; }
+.req-s { color: var(--nx-text-tertiary); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+/* Visor de la cámara (simulado). */
+.vf { position: relative; display: grid; place-items: center; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; background: radial-gradient(120% 90% at 50% 40%, oklch(0.3 0.015 260), var(--vf-bg)); }
+.vf-card { width: 66%; aspect-ratio: 85.6 / 54; display: flex; flex-direction: column; gap: 9%; padding: 8% 7%; border-radius: 8px; background: var(--vf-card); box-shadow: 0 10px 28px rgb(0 0 0 / 0.45); rotate: -2.5deg; }
+.vf-code { height: 46%; border-radius: 2px; background:
+  repeating-linear-gradient(0deg, transparent 0 5px, var(--vf-card) 5px 6px),
+  repeating-linear-gradient(90deg, var(--vf-ink) 0 2px, transparent 2px 4px, var(--vf-ink) 4px 5px, transparent 5px 8px, var(--vf-ink) 8px 11px, transparent 11px 12px, var(--vf-ink) 12px 13px, transparent 13px 17px); }
+.vf-lines { display: flex; flex-direction: column; gap: 7px; }
+.vf-lines i { display: block; height: 6px; border-radius: 3px; background: color-mix(in oklch, var(--vf-ink) 28%, transparent); }
+.vf-lines i:nth-child(1) { width: 78%; } .vf-lines i:nth-child(2) { width: 56%; } .vf-lines i:nth-child(3) { width: 68%; }
+.vf-c { position: absolute; width: 20px; height: 20px; border: 2px solid var(--vf-mark); }
+.vf-c.tl { top: 12%; left: 12%; border-right: 0; border-bottom: 0; border-top-left-radius: 6px; }
+.vf-c.tr { top: 12%; right: 12%; border-left: 0; border-bottom: 0; border-top-right-radius: 6px; }
+.vf-c.bl { bottom: 12%; left: 12%; border-right: 0; border-top: 0; border-bottom-left-radius: 6px; }
+.vf-c.br { bottom: 12%; right: 12%; border-left: 0; border-top: 0; border-bottom-right-radius: 6px; }
+.vf-scan { position: absolute; left: 14%; right: 14%; top: 22%; height: 2px; border-radius: 1px; background: var(--vf-line); box-shadow: 0 0 14px 2px var(--vf-line); animation: sweep 1.3s ease-in-out infinite alternate; }
+.vf.is-read .vf-scan { display: none; }
+.vf.is-read::after { content: ""; position: absolute; inset: 20% 19%; border: 2px solid var(--vf-line); border-radius: 8px; box-shadow: 0 0 0 999px oklch(0 0 0 / 0.25); animation: pop var(--nx-motion-base) var(--nx-ease-out); }
+
+/* Cuerpo: índice de secciones + formulario con su propio desplazamiento. */
+.f-body { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 0; }
+.idx { min-height: 0; overflow: auto; padding: 16px 10px; border-right: 1px solid var(--nx-border-subtle); background: var(--nx-background); }
+.idx ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.idx button { width: 100%; display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 1px 10px; padding: 8px 10px; border: 0; border-radius: var(--nx-radius-md); background: none; text-align: left; transition: background var(--nx-motion-fast); }
+.idx button:hover { background: var(--nx-hover); }
+.idx button[aria-current="true"] { background: var(--nx-nav-active-bg); }
+.ix-ring { grid-row: span 2; align-self: start; margin-top: 1px; display: grid; place-items: center; width: 18px; height: 18px; }
+.ix-t { font-weight: 550; }
+.ix-s { grid-column: 2; color: var(--nx-text-tertiary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ix-s.is-err { color: var(--nx-danger); }
+.ix-s.is-ok { color: var(--nx-success); }
+.ix-s.is-warn { color: var(--nx-warning-ink); }
+.ring { width: 18px; height: 18px; }
+.ring circle { fill: none; stroke-width: 2; }
+.ring .r-track { stroke: var(--nx-border-strong); }
+.ring.is-opt .r-track { stroke-dasharray: 2.5 2.5; }
+.ring .r-arc { stroke: var(--nx-primary); stroke-linecap: round; transition: stroke-dasharray var(--nx-motion-base) var(--nx-ease-out); }
+.dot-ok, .dot-err { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+.dot-ok { background: var(--nx-success); color: var(--nx-background); }
+.dot-ok .i { width: 11px; height: 11px; stroke-width: 3.2; }
+.dot-err { background: var(--nx-danger); color: var(--nx-danger-foreground); }
+
+.f-scroll { position: relative; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; padding: 20px clamp(14px, 3cqi, 28px) 48px; container: formcol / inline-size; }
+.sec { padding: 18px 20px 20px; border: 1px solid var(--nx-border-subtle); border-radius: 12px; background: var(--nx-card); }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-bottom: 16px; }
+.sec-head h3 { margin: 0; font-size: 15px; font-weight: 620; }
+.sec-head h3:focus { outline: none; }
+.sec-head p { margin: 0; color: var(--nx-text-tertiary); font-size: 13px; }
+.grid6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: start; gap: 18px 16px; }
+.grid6 > * { grid-column: 1 / -1; min-width: 0; }
+.grid6 > [data-span="2"] { grid-column: span 2; }
+.grid6 > [data-span="3"] { grid-column: span 3; }
+.grid6 > [data-span="4"] { grid-column: span 4; }
+@container formcol (max-width: 720px) { .grid6 > [data-span="2"] { grid-column: span 3; } .grid6 > [data-span="4"] { grid-column: 1 / -1; } }
+@container formcol (max-width: 520px) { .grid6 > [data-span] { grid-column: 1 / -1; } }
+
+/* El campo de la casa: etiqueta arriba, control, y debajo ayuda, error o aviso. */
+.fld { min-width: 0; }
+.fld-top { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 20px; margin-bottom: 6px; }
+.lbl { font-size: 13px; font-weight: 550; }
+.opt { color: var(--nx-text-tertiary); font-size: 12px; }
+.src { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px 0 5px; border-radius: 999px; background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: help; }
+.src .i { width: 12px; height: 12px; }
+.ctl { position: relative; }
+.inp { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--nx-border-strong); border-radius: var(--nx-radius-md); background: var(--nx-background); color: var(--nx-foreground); font-size: 14px; font-variant-numeric: tabular-nums; transition: border-color var(--nx-motion-fast), box-shadow var(--nx-motion-fast); }
+.inp::placeholder { color: var(--nx-text-quaternary); }
+.inp:hover { border-color: var(--nx-text-quaternary); }
+.inp:focus { outline: none; border-color: var(--nx-primary); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+select.inp { appearance: none; padding-right: 30px; text-overflow: ellipsis; }
+.sel-chev { position: absolute; right: 9px; top: 50%; translate: 0 -50%; color: var(--nx-text-tertiary); pointer-events: none; }
+.ctl-money .adorn { position: absolute; left: 11px; top: 50%; translate: 0 -50%; color: var(--nx-text-tertiary); pointer-events: none; }
+.ctl-money .inp { padding-left: 24px; }
+.inp.mono { font-family: var(--nx-font-mono); font-size: 13.5px; }
+textarea.inp { height: auto; padding: 8px 10px; line-height: 1.45; resize: vertical; }
+.ctl.is-busy::after { content: ""; position: absolute; right: 10px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border: 2px solid var(--nx-border-strong); border-top-color: var(--nx-primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.has-err .inp, .has-err .seg { border-color: var(--nx-danger); }
+.has-err .inp:focus { box-shadow: 0 0 0 3px var(--nx-danger-soft); }
+.has-warn .inp, .has-warn .seg { border-color: var(--nx-warning); }
+.has-warn .inp:focus { box-shadow: 0 0 0 3px var(--nx-warning-soft); }
+
+.seg { display: flex; flex-wrap: wrap; gap: 2px; min-height: 36px; padding: 2px; border: 1px solid var(--nx-border-strong); border-radius: var(--nx-radius-md); background: var(--nx-background); }
+.seg-o { position: relative; flex: 1 1 auto; display: flex; }
+.seg-o input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+.seg-o span { flex: 1; display: grid; place-items: center; min-height: 30px; padding: 0 12px; border-radius: 5px; color: var(--nx-muted-foreground); font-size: 13.5px; text-align: center; white-space: nowrap; cursor: pointer; transition: background var(--nx-motion-fast), color var(--nx-motion-fast); }
+.seg-o span:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.seg-o input:checked + span { background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--nx-primary-border); }
+.seg-o input:focus-visible + span { outline: 2px solid var(--nx-ring); outline-offset: 1px; }
+
+.computed { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border: 1px dashed var(--nx-border-strong); border-radius: var(--nx-radius-md); font-variant-numeric: tabular-nums; }
+.computed .i { width: 15px; height: 15px; color: var(--nx-text-tertiary); }
+.ro-ctl { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border-radius: var(--nx-radius-md); background: var(--nx-hover); color: var(--nx-muted-foreground); }
+.ro-ctl .i { width: 14px; height: 14px; }
+.ro { margin: 0; min-height: 22px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+
+.msg { margin-top: 6px; font-size: 12.5px; line-height: 1.4; }
+.msg:empty { display: none; }
+.m-hint { margin: 0; color: var(--nx-text-tertiary); }
+.m-err { margin: 0; display: flex; align-items: flex-start; gap: 5px; color: var(--nx-danger); }
+.m-err .i { width: 14px; height: 14px; margin-top: 1px; }
+.m-warn { display: flex; align-items: flex-start; gap: 8px; padding: 7px 10px; border-radius: var(--nx-radius-sm); background: var(--nx-warning-soft); }
+.m-warn .i { width: 15px; height: 15px; margin-top: 1px; color: var(--nx-warning-ink); }
+.m-warn p { margin: 0; }
+.m-warn .m-acts { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 4px; }
+
+.lnk { padding: 0; border: 0; background: none; color: var(--nx-primary-ink); font-weight: 600; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 2px; transition: text-decoration-color var(--nx-motion-fast); }
+.lnk:hover { text-decoration-color: currentColor; }
+.lnk .i { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--nx-radius-md); font-size: 13.5px; font-weight: 550; white-space: nowrap; transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast), filter var(--nx-motion-fast); }
+.btn .i { width: 15px; height: 15px; }
+.btn-primary { background: var(--nx-primary); color: var(--nx-primary-foreground); }
+.btn-primary:hover { filter: brightness(1.07); }
+.btn-ghost { border-color: var(--nx-border); background: var(--nx-card); }
+.btn-ghost:hover { background: var(--nx-hover); }
+.btn-danger { background: var(--nx-danger); color: var(--nx-danger-foreground); }
+.btn-sm { height: 30px; padding: 0 12px; font-size: 13px; }
+
+/* Aviso en línea (reingreso). */
+.inote { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--nx-primary-border); border-radius: 10px; background: var(--nx-primary-soft); }
+.inote > .i { width: 18px; height: 18px; margin-top: 1px; color: var(--nx-primary-ink); }
+.inote p { margin: 0; text-wrap: pretty; }
+.inote .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 10px; }
+
+/* Filas de beneficiarios. */
+.rows { display: flex; flex-direction: column; }
+.rows-empty { margin: 0 0 12px; color: var(--nx-text-tertiary); }
+.brow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.35fr) minmax(0, 1.35fr) auto; align-items: start; gap: 12px; padding-block: 14px; border-top: 1px solid var(--nx-border-subtle); }
+.brow:first-child { padding-top: 0; border-top: 0; }
+.icon-btn { display: grid; place-items: center; width: 34px; height: 34px; margin-top: 27px; border: 0; border-radius: var(--nx-radius-md); background: none; color: var(--nx-text-tertiary); }
+.icon-btn:hover { background: var(--nx-danger-soft); color: var(--nx-danger); }
+@container formcol (max-width: 560px) { .brow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } .brow > [data-b="nombre"] { grid-column: 1 / -1; } .brow > [data-b="fechaNac"] { grid-column: 1 / 3; } .brow > .icon-btn { grid-column: 3; grid-row: 2; } }
+
+.done-note { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--nx-success-soft); }
+.done-note .i { width: 18px; height: 18px; margin-top: 1px; color: var(--nx-success); }
+.done-note p { margin: 0; }
+
+/* Pie: un solo indicador a la izquierda, las acciones a la derecha. */
+.f-foot { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 24px; border-top: 1px solid var(--nx-border-subtle); background: var(--nx-background); }
+.foot-status { flex: 1 1 260px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; color: var(--nx-muted-foreground); font-size: 13.5px; }
+.foot-status > span { display: inline-flex; align-items: center; gap: 7px; }
+.foot-status b { color: var(--nx-foreground); font-variant-numeric: tabular-nums; }
+.foot-status .i { width: 16px; height: 16px; }
+.foot-status .ok { color: var(--nx-success); }
+.foot-status .warn { color: var(--nx-warning-ink); }
+.foot-acts { display: flex; gap: 8px; margin-inline-start: auto; }
+
+/* Resumen antes de crear (como <nx-review>): sobre el botón, sin modal. */
+.review { position: absolute; right: 16px; bottom: 72px; z-index: 6; width: min(470px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow: auto; padding: 18px 18px 16px; border: 1px solid var(--nx-border); border-radius: 12px; background: var(--nx-popover); box-shadow: var(--nx-shadow-popover); animation: rise var(--nx-motion-base) var(--nx-ease-out); }
+.review h3 { margin: 0 0 12px; font-size: 15.5px; font-weight: 650; text-wrap: balance; }
+.review h3:focus { outline: none; }
+.rv-list { margin: 0; display: flex; flex-direction: column; }
+.rv-list > div { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 10px; padding-block: 7px; border-top: 1px solid var(--nx-border-subtle); }
+.rv-list dt { color: var(--nx-text-tertiary); font-size: 13px; }
+.rv-list dd { margin: 0; font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.rv-warns { list-style: none; margin: 12px 0 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; border-radius: 8px; background: var(--nx-warning-soft); font-size: 13px; }
+.rv-warns li { display: flex; gap: 8px; }
+.rv-warns .i { width: 15px; height: 15px; margin-top: 1px; color: var(--nx-warning-ink); }
+.rv-auto { margin-top: 14px; }
+.bar { height: 6px; overflow: hidden; border-radius: 3px; background: var(--nx-border); }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--nx-primary); }
+.rv-auto p { margin: 8px 0 0; color: var(--nx-muted-foreground); font-size: 13px; text-wrap: pretty; }
+.rv-auto b { color: var(--nx-foreground); font-variant-numeric: tabular-nums; }
+.rv-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* Modo lectura: la misma rejilla, sin controles. */
+.is-read .ctl, .is-read .msg, .is-read .opt, .is-read .src, .is-read .inote, .is-read #add-row, .is-read .icon-btn { display: none !important; }
+.is-read .lbl { color: var(--nx-text-tertiary); font-size: 12.5px; font-weight: 500; }
+
+/* Animaciones: el llenado recorre el formulario campo por campo. */
+.flash :is(.inp, .seg, .computed) { animation: flash 1.2s var(--nx-ease-out); }
+.reveal { animation: reveal var(--nx-motion-base) var(--nx-ease-out); }
+@keyframes flash { 0% { background-color: var(--nx-primary-soft); box-shadow: 0 0 0 3px var(--nx-primary-border); } 70% { box-shadow: 0 0 0 3px transparent; } }
+@keyframes reveal { from { opacity: 0; translate: 0 -4px; } }
+@keyframes rise { from { opacity: 0; translate: 0 6px; } }
+@keyframes pop { from { opacity: 0; scale: 1.06; } }
+@keyframes sweep { to { top: 74%; } }
+@keyframes spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; } }
+
+@container stage (max-width: 820px) {
+  .f-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .idx { overflow-x: auto; overflow-y: hidden; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--nx-border-subtle); }
+  .idx ol { flex-direction: row; gap: 4px; }
+  .idx button { grid-template-columns: 18px auto; padding: 6px 10px; white-space: nowrap; }
+  .ix-ring { grid-row: auto; margin-top: 0; }
+  .ix-s { display: none; }
+}
+@container stage (max-width: 560px) {
+  .f-head { padding: 14px 14px 12px; }
+  .fpanel { left: 12px; width: calc(100% - 24px); }
+  .fill-status { margin-inline-start: 0; flex-basis: 100%; }
+  .f-foot { padding: 10px 14px; }
+  .foot-acts { width: 100%; }
+  .foot-acts .btn { flex: 1; }
+  .review { right: 12px; width: calc(100% - 24px); }
+  .rv-list > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+
+/* ------------------------------------------------------------------ guía */
+.guide { display: flex; flex-direction: column; gap: 30px; }
+.g-sec h2 { margin: 0 0 12px; color: var(--nx-text-tertiary); font-size: 12.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: paso; }
+.steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; color: var(--nx-muted-foreground); line-height: 1.5; text-wrap: pretty; counter-increment: paso; }
+.steps li::before { content: counter(paso); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--nx-primary); color: var(--nx-primary-foreground); font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.steps b, .traits b { color: var(--nx-foreground); font-weight: 600; }
+.traits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.traits li { color: var(--nx-muted-foreground); line-height: 1.5; text-wrap: pretty; }
+.reuse { margin: 0; color: var(--nx-muted-foreground); line-height: 1.7; }
+.schema summary { color: var(--nx-primary-ink); font-weight: 600; cursor: pointer; }
+.schema pre { margin: 10px 0 0; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--nx-border-subtle); border-radius: 10px; background: var(--nx-card); font: 12px/1.55 var(--nx-font-mono); }
+.schema pre code { padding: 0; background: none; font-size: inherit; }
+.foot-note { margin: 0; color: var(--nx-text-tertiary); font-size: 12.5px; line-height: 1.5; }
+
+@media (max-width: 1120px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .stage { position: relative; top: auto; height: clamp(600px, calc(100dvh - 32px), 880px); }
+  .guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 28px 40px; }
+}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <p class="eyebrow">Maqueta de <code>&lt;nx-form&gt;</code> · nx32-elements</p>
+    <h1>Formulario de ingreso</h1>
+    <p class="lede">El formulario que junta lo que la librería ya sabe hacer por separado: leer la cédula, entender un texto pegado, traer lo habitual, detectar dedazos, explicar sus reglas y guardar el borrador solo. Se ve como un formulario sobrio; lo espectacular es lo que se ahorra quien lo llena.</p>
+  </header>
+
+  <div class="layout">
+    <section class="stage" id="stage" aria-labelledby="f-title">
+      <div class="f-head" id="f-head">
+        <div class="head-top">
+          <div>
+            <p class="f-eyebrow" id="f-eyebrow">Talento humano · Empleados</p>
+            <h2 class="f-title"><span id="f-title">Nuevo ingreso</span><span class="badge" id="f-badge" hidden></span></h2>
+          </div>
+          <p class="draft" id="draft"><span class="dot" aria-hidden="true"></span><span id="draft-t">Sin cambios</span></p>
+        </div>
+        <div class="fill-row" id="fill-row">
+          <span class="fill-lbl" id="fill-lbl">Llenar con</span>
+          <button type="button" class="chip-btn" id="b-scan" aria-expanded="false" aria-controls="p-scan"></button>
+          <button type="button" class="chip-btn" id="b-paste" aria-expanded="false" aria-controls="p-paste"></button>
+          <button type="button" class="chip-btn" id="b-req" aria-expanded="false" aria-controls="p-req"></button>
+          <p class="fill-status" id="fill-status"></p>
+        </div>
+
+        <div class="fpanel" id="p-scan" role="group" aria-labelledby="p-scan-h" hidden>
+          <p class="fp-h" id="p-scan-h">Escanear la cédula</p>
+          <div class="vf" id="vf" aria-hidden="true">
+            <div class="vf-card"><div class="vf-code"></div><div class="vf-lines"><i></i><i></i><i></i></div></div>
+            <span class="vf-c tl"></span><span class="vf-c tr"></span><span class="vf-c bl"></span><span class="vf-c br"></span>
+            <span class="vf-scan"></span>
+          </div>
+          <p class="fp-msg" id="vf-msg" aria-live="polite"></p>
+          <div class="fp-acts"><button type="button" class="btn btn-ghost btn-sm" data-act="close-panel">Cancelar</button></div>
+        </div>
+
+        <div class="fpanel" id="p-paste" role="group" aria-labelledby="p-paste-h" hidden>
+          <label class="fp-h" id="p-paste-h" for="paste-text">Pega el correo o el WhatsApp del candidato</label>
+          <textarea class="inp" id="paste-text" rows="6" placeholder="EPS, pensión, cesantías, cuenta bancaria, personas a cargo…"></textarea>
+          <p class="fp-msg" id="paste-msg" aria-live="polite"></p>
+          <div class="fp-acts">
+            <button type="button" class="btn btn-ghost btn-sm" id="paste-sample">Usar un ejemplo</button>
+            <button type="button" class="btn btn-primary btn-sm" id="paste-go">Llenar</button>
+          </div>
+        </div>
+
+        <div class="fpanel" id="p-req" role="group" aria-labelledby="p-req-h" hidden>
+          <p class="fp-h" id="p-req-h">Requisiciones aprobadas sin cubrir</p>
+          <ul class="req-list" id="req-list"></ul>
+        </div>
+      </div>
+
+      <div class="f-body">
+        <nav class="idx" aria-label="Secciones del formulario"><ol id="idx"></ol></nav>
+        <form class="f-scroll" id="form" novalidate autocomplete="off">
+          <div class="done-note" id="done-note" role="status" tabindex="-1" hidden></div>
+        </form>
+      </div>
+
+      <footer class="f-foot" id="f-foot">
+        <div class="foot-status" id="foot-status"></div>
+        <div class="foot-acts" id="acts-edit">
+          <button type="button" class="btn btn-ghost" id="btn-discard" hidden>Descartar</button>
+          <button type="button" class="btn btn-primary" id="btn-review" aria-controls="review" aria-expanded="false" aria-keyshortcuts="Control+S">Revisar y crear</button>
+        </div>
+        <div class="foot-acts" id="acts-read" hidden>
+          <button type="button" class="btn btn-ghost" id="btn-edit">Editar</button>
+          <button type="button" class="btn btn-primary" id="btn-new">Nuevo ingreso</button>
+        </div>
+      </footer>
+
+      <div class="review" id="review" role="dialog" aria-labelledby="rv-h" hidden>
+        <h3 id="rv-h" tabindex="-1"></h3>
+        <dl class="rv-list" id="rv-list"></dl>
+        <div id="rv-warn"></div>
+        <div class="rv-auto" id="rv-auto"></div>
+        <div class="rv-acts">
+          <button type="button" class="btn btn-ghost" id="rv-back">Seguir editando</button>
+          <button type="button" class="btn btn-primary" id="rv-go" aria-keyshortcuts="Control+Enter">Crear ingreso</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="guide" aria-label="Guía de la maqueta">
+      <section class="g-sec">
+        <h2>Pruébalo</h2>
+        <ol class="steps">
+          <li><span><b>Escanea la cédula.</b> Llena la identificación en un segundo, y el número revela que Andrés ya trabajó aquí: trae su contacto del registro anterior.</span></li>
+          <li><span><b>Corrige el correo.</b> El registro viejo traía «gmial.com». El formulario lo nota y lo arregla con un clic.</span></li>
+          <li><span><b>Trae la requisición REQ-118.</b> El 12 oct es festivo: pásalo al 13 y la terminación se corre sola para mantener los 6 meses. El periodo de prueba se recalcula y dice por qué.</span></li>
+          <li><span><b>Pega el mensaje del candidato,</b> con el botón o con Ctrl+V sobre el formulario: EPS, pensión, cesantías, la cuenta y su hija como beneficiaria.</span></li>
+          <li><span><b>Escribe 21000000 en el salario</b> y sal del campo. ¿Sobra un cero? También entiende «2,1 M».</span></li>
+          <li><span><b>Revisa y crea</b> (Ctrl+S). Te dice cuántos datos escribiste tú, y la ficha queda en lectura con la misma rejilla.</span></li>
+        </ol>
+      </section>
+
+      <section class="g-sec">
+        <h2>Lo que trae &lt;nx-form&gt;</h2>
+        <ul class="traits">
+          <li><b>Un esquema, no código.</b> Secciones, campos, reglas y fuentes en JSON: lo puede mandar el backend (BDUI).</li>
+          <li><b>El campo de la casa.</b> Etiqueta arriba, ayuda y error debajo, «Opcional» en vez de asteriscos, y lectura y edición en la misma rejilla.</li>
+          <li><b>Cada dato dice de dónde vino:</b> la cédula, la requisición, el registro anterior, el texto pegado o lo habitual del cargo. Si la persona lo cambia, deja de decirlo. Un llenado se deshace entero y nunca pisa lo que ya escribiste.</li>
+          <li><b>Reglas que se explican.</b> Campos que aparecen según el contrato, cálculos con su porqué y avisos que no bloquean.</li>
+          <li><b>Borrador solo.</b> Se guarda mientras escribes y se recupera al volver.</li>
+          <li><b>Teclado de ERP.</b> Enter pasa al siguiente campo, Ctrl+S revisa y Ctrl+Z deshace el último llenado.</li>
+        </ul>
+      </section>
+
+      <section class="g-sec">
+        <h2>Reutiliza lo que ya existe</h2>
+        <p class="reuse"><code>&lt;nx-scan&gt;</code> lee la cédula, <code>&lt;nx-paste-fill&gt;</code> el texto, <code>&lt;nx-guard&gt;</code> caza dedazos, <code>&lt;nx-number&gt;</code> entiende montos, <code>&lt;nx-review&gt;</code> resume antes de guardar y <code>&lt;nx-fields&gt;</code> muestra la ficha. <code>&lt;nx-handoff&gt;</code> y <code>&lt;nx-voice&gt;</code> serían dos fuentes más: el celular y el dictado.</p>
+      </section>
+
+      <section class="g-sec">
+        <details class="schema">
+          <summary>Ver el esquema de la sección Contrato</summary>
+<pre><code>{
+  "component": "nx-form",
+  "props": {
+    "heading": "Nuevo ingreso",
+    "draft": "ingreso",
+    "fill": ["scan:pdf417", "paste",
+             "source:/requisiciones?estado=aprobada"],
+    "sections": [{
+      "id": "contrato", "heading": "Contrato",
+      "fields": [
+        { "key": "cargo", "type": "select",
+          "source": "/cargos", "required": true,
+          "derive": ["area", "centroCosto", "riesgo"] },
+        { "key": "tipoContrato", "type": "segmented",
+          "options": ["Indefinido", "Término fijo",
+                      "Obra o labor", "Aprendizaje"] },
+        { "key": "fechaIngreso", "type": "date",
+          "guard": ["festivo", "domingo"] },
+        { "key": "fechaFin", "type": "date",
+          "when": { "tipoContrato": "Término fijo" } },
+        { "key": "prueba", "type": "computed",
+          "rule": "periodoDePrueba" },
+        { "key": "salario", "type": "money",
+          "guard": { "range": "/cargos/{cargo}/banda" } }
+      ]
+    }]
+  }
+}</code></pre>
+        </details>
+      </section>
+
+      <p class="foot-note">Simulado en la maqueta: la cámara, la búsqueda en empleados y las requisiciones. Todos los datos son de ejemplo, y la fecha de hoy está fija en el 7 oct 2026.</p>
+    </aside>
+  </div>
+</div>
+<p class="vh" id="live" aria-live="polite"></p>
+
+<script>
+(() => {
+  'use strict';
+
+  // ------------------------------------------------------------------ utilidades
+  const TODAY = '2026-10-07';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const calm = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const digits = (s) => String(s ?? '').replace(/\D/g, '');
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+  const PATHS = {
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    chev: '<path d="m6 9 6 6 6-6"/>',
+    scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+    clip: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    idcard: '<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><path d="M16 10h2"/><path d="M16 14h2"/>',
+    brief: '<rect width="20" height="14" x="2" y="6" rx="2"/><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    building: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>',
+    calc: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M16 14v4"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>',
+    lock: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+    tri: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+    down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  };
+  const ic = (n, c = '') => `<svg class="i${c ? ' ' + c : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[n]}</svg>`;
+
+  // Fechas como texto ISO y en UTC: nada de husos horarios.
+  const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+  const DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const pd = (s) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+    if (!m) return null;
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return d.getUTCMonth() === +m[2] - 1 ? d : null;
+  };
+  const isoOf = (d) => d.toISOString().slice(0, 10);
+  const addDays = (s, n) => { const d = pd(s); d.setUTCDate(d.getUTCDate() + n); return isoOf(d); };
+  const addMonths = (s, n) => {
+    const d = pd(s), day = d.getUTCDate();
+    const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
+    const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+    t.setUTCDate(Math.min(day, last));
+    return isoOf(t);
+  };
+  const diffDays = (a, b) => Math.round((pd(b) - pd(a)) / 864e5);
+  const fmtD = (s, wd) => {
+    const d = pd(s);
+    if (!d) return '';
+    const t = `${d.getUTCDate()} ${MES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    return wd ? `${DIA[d.getUTCDay()]} ${t}` : t;
+  };
+  const ageOn = (b, t) => {
+    const [by, bm, bd] = b.split('-').map(Number), [ty, tm, td] = t.split('-').map(Number);
+    return ty - by - (tm < bm || (tm === bm && td < bd) ? 1 : 0);
+  };
+  const durText = (a, b) => {
+    for (let n = 1; n <= 120; n++) {
+      const e = addDays(addMonths(a, n), -1);
+      if (e === b) return n % 12 === 0 ? plural(n / 12, 'año', 'años') : plural(n, 'mes', 'meses');
+      if (e > b) break;
+    }
+    return plural(diffDays(a, b) + 1, 'día', 'días');
+  };
+  const FESTIVOS = {
+    '2026-10-12': 'Día de la Raza', '2026-11-02': 'Todos los Santos', '2026-11-16': 'Independencia de Cartagena',
+    '2026-12-08': 'Inmaculada Concepción', '2026-12-25': 'Navidad', '2027-01-01': 'Año Nuevo', '2027-01-11': 'Reyes Magos',
+    '2027-03-22': 'San José', '2027-03-25': 'Jueves Santo', '2027-03-26': 'Viernes Santo',
+  };
+  const nextBiz = (s) => { let t = s; do t = addDays(t, 1); while (pd(t).getUTCDay() === 0 || FESTIVOS[t]); return t; };
+
+  // Montos con el formato de es-CO; se entiende «2.100.000», «2,1 M», «2100000», «3 mil».
+  const nf = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+  const fmtNum = (n) => nf.format(n);
+  const money = (n) => `$ ${nf.format(n)}`;
+  function parseMoney(s) {
+    let t = fold(s).replace(/cop|\$|\s| /g, '');
+    if (!t) return null;
+    let mult = 1;
+    const m = /(millones|millon|mm|m|mil|k)$/.exec(t);
+    if (m) { t = t.slice(0, -m[1].length); mult = m[1] === 'mil' || m[1] === 'k' ? 1e3 : m[1] === 'mm' ? 1e9 : 1e6; }
+    let n = null;
+    if (mult > 1 && /^\d+([.,]\d+)?$/.test(t)) n = parseFloat(t.replace(',', '.'));
+    else if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) n = parseFloat(t.replace(/\./g, '').replace(',', '.'));
+    else if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) n = parseFloat(t.replace(/,/g, ''));
+    else if (/^\d+(,\d{1,2})?$/.test(t)) n = parseFloat(t.replace(',', '.'));
+    else if (/^\d+\.\d{1,2}$/.test(t)) n = parseFloat(t);
+    return n == null || !isFinite(n) ? null : Math.round(n * mult);
+  }
+  const fmtCuenta = (d) => `${d.slice(0, 3)}-${d.slice(3, 9)}-${d.slice(9)}`;
+  const LOWER = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e']);
+  const tidyName = (s) => {
+    const t = s.replace(/\s+/g, ' ').trim();
+    if (!/[a-zñáéíóú]/i.test(t) || (t !== t.toUpperCase() && t !== t.toLowerCase())) return t;
+    return t.toLowerCase().replace(/\S+/g, (w, i) => (i > 0 && LOWER.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)));
+  };
+
+  // ------------------------------------------------------------------ datos de ejemplo
+  const CARGOS = {
+    'Soldador': { area: 'Producción', cc: 'CC-3104 · Soldadura', riesgo: 'IV · alto', band: [1900000, 2600000] },
+    'Operario de producción': { area: 'Producción', cc: 'CC-3101 · Ensamble', riesgo: 'III · medio', band: [1800000, 2300000] },
+    'Auxiliar de bodega': { area: 'Logística', cc: 'CC-2201 · Bodega', riesgo: 'II · bajo', band: [1800000, 2200000] },
+    'Conductor': { area: 'Logística', cc: 'CC-2205 · Transporte', riesgo: 'IV · alto', band: [2000000, 2700000] },
+    'Analista de nómina': { area: 'Talento humano', cc: 'CC-1102 · Nómina', riesgo: 'I · mínimo', band: [3800000, 5200000] },
+  };
+  const SEDES = { 'Planta Malambo': 'Combarranquilla', 'Bodega Soledad': 'Comfamiliar Atlántico', 'Oficina Barranquilla': 'Combarranquilla' };
+  const TIPOS_DOC = ['Cédula de ciudadanía', 'Cédula de extranjería', 'Permiso por protección temporal', 'Pasaporte'];
+  const RH = ['O+', 'O−', 'A+', 'A−', 'B+', 'B−', 'AB+', 'AB−'];
+  const CIUDADES = ['Barranquilla', 'Malambo', 'Soledad', 'Puerto Colombia', 'Galapa', 'Cartagena', 'Santa Marta', 'Bogotá', 'Medellín', 'Cali'];
+  const AREAS = ['Producción', 'Logística', 'Talento humano', 'Compras', 'Finanzas'];
+  const CCS = ['CC-1102 · Nómina', 'CC-2201 · Bodega', 'CC-2205 · Transporte', 'CC-3101 · Ensamble', 'CC-3104 · Soldadura'];
+  const JEFES = ['Carlos Pertuz', 'Marta Insignares', 'Laura Gómez', 'Jorge Villa'];
+  const TIPOS_CONTRATO = ['Indefinido', 'Término fijo', 'Obra o labor', 'Aprendizaje'];
+  const JORNADAS = ['Tiempo completo · 42 h semanales', 'Medio tiempo · 21 h semanales', 'Turnos rotativos · 42 h promedio'];
+  const EPS = ['Sura', 'Sanitas', 'Nueva EPS', 'Salud Total', 'Compensar', 'Famisanar', 'Coosalud', 'Mutual Ser'];
+  const AFP = ['Porvenir', 'Protección', 'Colfondos', 'Skandia', 'Colpensiones'];
+  const CES = ['Porvenir', 'Protección', 'Colfondos', 'Skandia', 'Fondo Nacional del Ahorro'];
+  const CAJAS = ['Combarranquilla', 'Comfamiliar Atlántico', 'Cajacopi'];
+  const RIESGOS = ['I · mínimo', 'II · bajo', 'III · medio', 'IV · alto', 'V · máximo'];
+  const BANCOS = ['Bancolombia', 'Davivienda', 'Banco de Bogotá', 'BBVA', 'Banco de Occidente', 'Banco Agrario', 'Nequi'];
+  const PARENTESCOS = ['Hija', 'Hijo', 'Cónyuge o compañero(a)', 'Madre', 'Padre'];
+
+  const CEDULA = { tipoDoc: 'Cédula de ciudadanía', numDoc: '1.143.456.789', nombres: 'Andrés Felipe', apellidos: 'Ortiz Medina', fechaNac: '1992-06-18', sexo: 'Masculino', rh: 'O+' };
+  const ANTERIOR = {
+    id: 'EMP-0613', doc: '1143456789', nombre: 'Andrés Felipe Ortiz Medina', cargo: 'Auxiliar de bodega', desde: '2023-02-02', hasta: '2025-03-14',
+    values: { correo: 'andres.ortiz@gmial.com', celular: '301 456 7890', direccion: 'Calle 12 # 9-45, barrio El Carmen', ciudad: 'Malambo', emergNombre: 'Luz Medina (madre)', emergTel: '310 555 1234' },
+  };
+  const REQS = [
+    { id: 'REQ-118', aprobada: '2026-10-02', meses: 6, titulo: 'Soldador · Planta Malambo', detalle: 'Término fijo, 6 meses · $ 2.100.000',
+      values: { cargo: 'Soldador', sede: 'Planta Malambo', area: 'Producción', centroCosto: 'CC-3104 · Soldadura', jefe: 'Carlos Pertuz', tipoContrato: 'Término fijo', fechaIngreso: '2026-10-12', fechaFin: '2027-04-11', jornada: JORNADAS[0], salario: '2.100.000' } },
+    { id: 'REQ-121', aprobada: '2026-10-05', meses: 0, titulo: 'Auxiliar de bodega · Bodega Soledad', detalle: 'Indefinido · $ 1.950.000',
+      values: { cargo: 'Auxiliar de bodega', sede: 'Bodega Soledad', area: 'Logística', centroCosto: 'CC-2201 · Bodega', jefe: 'Marta Insignares', tipoContrato: 'Indefinido', fechaIngreso: '2026-10-19', jornada: JORNADAS[0], salario: '1.950.000' } },
+  ];
+  const EJEMPLO = 'Buenas tardes, le envío mis datos para el ingreso:\nEPS: Sura\nPensión: Porvenir\nCesantías: Protección\nCuenta de ahorros Bancolombia 123-456789-01\nMi hija Sofía Ortiz Pérez nació el 03/05/2019.\nGracias. Andrés Ortiz';
+
+  // De dónde vino cada dato: se ve junto a la etiqueta hasta que la persona lo cambia.
+  const M = {
+    cedula: { label: 'Cédula', icon: 'idcard', title: 'Leído del código de barras de la cédula', from: 'la cédula' },
+    anterior: { label: ANTERIOR.id, icon: 'history', title: `Del registro anterior (${ANTERIOR.id}, retirado el ${fmtD(ANTERIOR.hasta)})`, from: `el registro ${ANTERIOR.id}` },
+    texto: { label: 'Texto pegado', icon: 'clip', title: 'Del texto que pegaste', from: 'el texto pegado' },
+    req: (r) => ({ label: r.id, icon: 'file', title: `De la requisición ${r.id}, aprobada el ${fmtD(r.aprobada)}`, from: `la requisición ${r.id}` }),
+    cargo: (c) => ({ label: 'Del cargo', icon: 'brief', title: `Lo habitual para ${c}`, from: 'el cargo' }),
+    sede: (s) => ({ label: 'De la sede', icon: 'building', title: `La caja de la sede ${s}`, from: 'la sede' }),
+    regla: (meses, id) => ({ label: 'Recalculada', icon: 'calc', title: `Se movió con la fecha de ingreso para mantener los ${meses} meses de ${id}`, from: 'las reglas' }),
+  };
+
+  // ------------------------------------------------------------------ esquema (lo que en la librería llegaría como JSON)
+  const SCHEMA = [
+    { id: 'ident', title: 'Identificación', desc: 'Como aparece en el documento.', fields: [
+      { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', span: 2, required: true, options: TIPOS_DOC, init: TIPOS_DOC[0] },
+      { key: 'numDoc', label: 'Número de documento', type: 'text', span: 2, required: true, inputmode: 'numeric', req: 'Escribe el número del documento' },
+      { key: 'rh', label: 'Grupo sanguíneo', type: 'select', span: 2, options: RH },
+      { key: '_rehire', type: 'notice', span: 6 },
+      { key: 'nombres', label: 'Nombres', type: 'text', span: 3, required: true },
+      { key: 'apellidos', label: 'Apellidos', type: 'text', span: 3, required: true },
+      { key: 'fechaNac', label: 'Fecha de nacimiento', type: 'date', span: 3, required: true },
+      { key: 'sexo', label: 'Sexo', type: 'seg', span: 3, required: true, options: ['Femenino', 'Masculino'], hint: 'Como figura en el documento' },
+    ] },
+    { id: 'contacto', title: 'Contacto', fields: [
+      { key: 'correo', label: 'Correo personal', type: 'email', span: 3, required: true, hint: 'Allí le llegan los desprendibles de pago' },
+      { key: 'celular', label: 'Celular', type: 'tel', span: 3, required: true },
+      { key: 'direccion', label: 'Dirección de residencia', type: 'text', span: 4, required: true },
+      { key: 'ciudad', label: 'Ciudad', type: 'select', span: 2, required: true, options: CIUDADES },
+      { key: 'emergNombre', label: 'Contacto de emergencia', type: 'text', span: 3, hint: 'Nombre y parentesco' },
+      { key: 'emergTel', label: 'Teléfono de emergencia', type: 'tel', span: 3 },
+    ] },
+    { id: 'contrato', title: 'Contrato', fields: [
+      { key: 'cargo', label: 'Cargo', type: 'select', span: 3, required: true, options: Object.keys(CARGOS) },
+      { key: 'sede', label: 'Sede', type: 'select', span: 3, required: true, options: Object.keys(SEDES) },
+      { key: 'area', label: 'Área', type: 'select', span: 2, required: true, options: AREAS },
+      { key: 'centroCosto', label: 'Centro de costo', type: 'select', span: 2, required: true, options: CCS },
+      { key: 'jefe', label: 'Jefe inmediato', type: 'select', span: 2, required: true, options: JEFES },
+      { key: 'tipoContrato', label: 'Tipo de contrato', type: 'seg', span: 6, required: true, options: TIPOS_CONTRATO },
+      { key: 'fechaIngreso', label: 'Fecha de ingreso', type: 'date', span: 2, required: true },
+      { key: 'fechaFin', label: 'Fecha de terminación', type: 'date', span: 2, required: true, when: (v) => v.tipoContrato === 'Término fijo' },
+      { key: 'institucion', label: 'Institución de formación', type: 'text', span: 2, required: true, hint: 'SENA u otra', when: (v) => v.tipoContrato === 'Aprendizaje' },
+      { key: 'prueba', label: 'Periodo de prueba', type: 'computed', span: 2 },
+      { key: 'jornada', label: 'Jornada', type: 'select', span: 3, required: true, options: JORNADAS },
+      { key: 'salario', label: 'Salario mensual', type: 'money', span: 3, required: true, req: 'Escribe el salario' },
+    ] },
+    { id: 'ss', title: 'Seguridad social', fields: [
+      { key: 'eps', label: 'EPS', type: 'select', span: 2, required: true, options: EPS },
+      { key: 'afp', label: 'Fondo de pensiones', type: 'select', span: 2, required: true, options: AFP },
+      { key: 'cesantias', label: 'Fondo de cesantías', type: 'select', span: 2, required: true, options: CES },
+      { key: 'caja', label: 'Caja de compensación', type: 'select', span: 2, required: true, options: CAJAS },
+      { key: 'arl', label: 'ARL', type: 'readonly', span: 2, value: 'Sura · póliza de la empresa', why: 'La ARL es la de la empresa: no se elige aquí' },
+      { key: 'riesgo', label: 'Clase de riesgo', type: 'select', span: 2, required: true, options: RIESGOS },
+    ] },
+    { id: 'pago', title: 'Pago de nómina', fields: [
+      { key: 'banco', label: 'Banco', type: 'select', span: 2, required: true, options: BANCOS },
+      { key: 'tipoCuenta', label: 'Tipo de cuenta', type: 'seg', span: 2, required: true, options: ['Ahorros', 'Corriente'] },
+      { key: 'numCuenta', label: 'Número de cuenta', type: 'text', span: 2, required: true, inputmode: 'numeric', mono: true },
+    ] },
+    { id: 'benef', title: 'Beneficiarios', desc: 'Personas a cargo, para la EPS y la caja de compensación.', rows: true },
+  ];
+  const FIELDS = {};
+  SCHEMA.forEach((sec) => (sec.fields || []).forEach((f) => { f.sec = sec.id; FIELDS[f.key] = f; }));
+  const INPUT_KEYS = Object.values(FIELDS).filter((f) => !['notice', 'computed', 'readonly'].includes(f.type)).map((f) => f.key);
+  const ROW_KEYS = ['nombre', 'parentesco', 'fechaNac'];
+  const TYPO = { 'gmial.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.co': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmal.com': 'hotmail.com', 'hotmail.co': 'hotmail.com', 'outlok.com': 'outlook.com', 'outlook.co': 'outlook.com', 'yaho.com': 'yahoo.com', 'yahoo.co': 'yahoo.com' };
+
+  // ------------------------------------------------------------------ estado
+  let rowSeq = 0;
+  const fresh = () => ({
+    v: Object.fromEntries(INPUT_KEYS.map((k) => [k, FIELDS[k].init || ''])),
+    marks: {}, benef: [], rehire: 'none', checkedDoc: '', accepted: [], reqMeses: 0, reqId: '',
+  });
+  const S = Object.assign(fresh(), {
+    touched: new Set(), submitted: false, last: null, status: null, mode: 'edit', saved: 0, saving: false,
+    panel: '', confirmDiscard: false, created: null, missing: [], warns: 0, lastFocus: null, prueba: '',
+  });
+  const R = {};
+  const stage = $('#stage'), form = $('#form');
+
+  // ------------------------------------------------------------------ pintar el esquema
+  function fieldHTML(f) {
+    const id = 'f-' + f.key, desc = `aria-describedby="m-${f.key} s-${f.key}"`, req = f.required ? ' aria-required="true"' : '';
+    let lab = `<label class="lbl" for="${id}" id="l-${f.key}">${esc(f.label)}</label>`, ctl;
+    switch (f.type) {
+      case 'select':
+        ctl = `<div class="ctl"><select class="inp" id="${id}" name="${f.key}" ${desc}${req}><option value="">Elige…</option>${f.options.map((o) => `<option>${esc(o)}</option>`).join('')}</select>${ic('chev', 'sel-chev')}</div>`;
+        break;
+      case 'seg':
+        lab = `<span class="lbl" id="l-${f.key}">${esc(f.label)}</span>`;
+        ctl = `<div class="ctl seg" role="radiogroup" id="${id}" aria-labelledby="l-${f.key}" ${desc}${req}>${f.options.map((o, j) => `<label class="seg-o"><input type="radio" name="${f.key}" id="${id}-${j}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}</div>`;
+        break;
+      case 'money':
+        ctl = `<div class="ctl ctl-money"><span class="adorn" aria-hidden="true">$</span><input class="inp" id="${id}" name="${f.key}" type="text" inputmode="decimal" autocomplete="off" ${desc}${req}></div>`;
+        break;
+      case 'computed':
+        lab = `<span class="lbl" id="l-${f.key}">${esc(f.label)}</span>`;
+        ctl = `<div class="ctl computed" title="Calculado">${ic('calc')}<output id="${id}" aria-labelledby="l-${f.key}" aria-describedby="m-${f.key}">—</output></div>`;
+        break;
+      case 'readonly':
+        lab = `<span class="lbl" id="l-${f.key}">${esc(f.label)}</span>`;
+        ctl = `<div class="ctl ro-ctl" title="${esc(f.why)}">${ic('lock')}<span id="${id}" aria-labelledby="l-${f.key}">${esc(f.value)}</span></div>`;
+        break;
+      default:
+        ctl = `<div class="ctl"><input class="inp${f.mono ? ' mono' : ''}" id="${id}" name="${f.key}" type="${f.type}"${f.inputmode ? ` inputmode="${f.inputmode}"` : ''} autocomplete="off" ${desc}${req}></div>`;
+    }
+    const opt = !f.required && !['computed', 'readonly'].includes(f.type) ? '<span class="opt">Opcional</span>' : '';
+    return `<div class="fld-top">${lab}${opt}<span class="src" id="s-${f.key}" hidden></span></div>${ctl}<p class="ro" hidden></p><div class="msg" id="m-${f.key}"></div>`;
+  }
+
+  function renderForm() {
+    for (const sec of SCHEMA) {
+      const s = document.createElement('section');
+      s.className = 'sec';
+      s.id = 'sec-' + sec.id;
+      s.setAttribute('aria-labelledby', 'h-' + sec.id);
+      s.innerHTML = `<header class="sec-head"><h3 id="h-${sec.id}" tabindex="-1">${sec.title}</h3>${sec.desc ? `<p>${sec.desc}</p>` : ''}</header>`;
+      if (sec.rows) {
+        s.insertAdjacentHTML('beforeend', `<div class="rows" id="rows"></div><button type="button" class="btn btn-ghost btn-sm" id="add-row">${ic('plus')}Agregar beneficiario</button>`);
+      } else {
+        const g = document.createElement('div');
+        g.className = 'grid6';
+        for (const f of sec.fields) {
+          const w = document.createElement('div');
+          w.dataset.span = f.span || 6;
+          if (f.type === 'notice') {
+            w.className = 'inote';
+            w.id = 'n-rehire';
+            w.hidden = true;
+            R[f.key] = { w };
+          } else {
+            w.className = 'fld';
+            w.dataset.key = f.key;
+            w.innerHTML = fieldHTML(f);
+            R[f.key] = { w, input: $('input:not([type=radio]), select, output', w), ctl: $('.ctl', w), src: $('.src', w), ro: $('.ro', w), msg: $('.msg', w) };
+          }
+          g.append(w);
+        }
+        s.append(g);
+      }
+      form.append(s);
+    }
+    $('#idx').innerHTML = SCHEMA.map((s) => `<li><button type="button" id="ix-${s.id}" data-sec="${s.id}"><span class="ix-ring"></span><span class="ix-t">${s.title}</span><span class="ix-s"></span></button></li>`).join('');
+    $('#req-list').innerHTML = REQS.map((r) => `<li><button type="button" class="req" data-req="${r.id}"><span class="req-id">${r.id}</span><span class="req-t">${esc(r.titulo)}</span><span class="req-s">${esc(r.detalle)} · aprobada el ${fmtD(r.aprobada)}</span></button></li>`).join('');
+    $('#b-scan').innerHTML = `${ic('scan')}Cédula`;
+    $('#b-paste').innerHTML = `${ic('clip')}Texto pegado`;
+    $('#b-req').innerHTML = `${ic('file')}Requisición`;
+  }
+
+  function renderRows(flashFrom = -1) {
+    const box = $('#rows');
+    if (!S.benef.length) { box.innerHTML = '<p class="rows-empty">Nadie a cargo todavía.</p>'; return; }
+    box.innerHTML = S.benef.map((b, i) => {
+      const id = (k) => `b${b.id}-${k}`;
+      const chip = b.mark ? `<span class="src" title="${esc(b.mark.title)}">${ic(b.mark.icon)}${esc(b.mark.label)}</span>` : '';
+      return `<div class="brow${i >= flashFrom && flashFrom >= 0 ? ' flash' : ''}" data-i="${i}">
+        <div class="fld" data-b="nombre"><div class="fld-top"><label class="lbl" for="${id('nombre')}">Nombre completo</label>${chip}</div><div class="ctl"><input class="inp" id="${id('nombre')}" data-row="${i}" data-k="nombre" value="${esc(b.nombre)}" autocomplete="off" aria-required="true" aria-describedby="m${id('nombre')}"></div><p class="ro" hidden></p><div class="msg" id="m${id('nombre')}"></div></div>
+        <div class="fld" data-b="parentesco"><div class="fld-top"><label class="lbl" for="${id('parentesco')}">Parentesco</label></div><div class="ctl"><select class="inp" id="${id('parentesco')}" data-row="${i}" data-k="parentesco" aria-required="true" aria-describedby="m${id('parentesco')}"><option value="">Elige…</option>${PARENTESCOS.map((p) => `<option${p === b.parentesco ? ' selected' : ''}>${esc(p)}</option>`).join('')}</select>${ic('chev', 'sel-chev')}</div><p class="ro" hidden></p><div class="msg" id="m${id('parentesco')}"></div></div>
+        <div class="fld" data-b="fechaNac"><div class="fld-top"><label class="lbl" for="${id('fechaNac')}">Fecha de nacimiento</label></div><div class="ctl"><input class="inp" type="date" id="${id('fechaNac')}" data-row="${i}" data-k="fechaNac" value="${esc(b.fechaNac)}" aria-required="true" aria-describedby="m${id('fechaNac')}"></div><p class="ro" hidden></p><div class="msg" id="m${id('fechaNac')}"></div></div>
+        <button type="button" class="icon-btn" data-del="${i}" aria-label="Quitar a ${esc(b.nombre || 'este beneficiario')}">${ic('trash')}</button>
+      </div>`;
+    }).join('');
+    if (flashFrom >= 0) setTimeout(() => $$('.brow.flash').forEach((r) => r.classList.remove('flash')), 1400);
+  }
+
+  // ------------------------------------------------------------------ leer y escribir valores
+  const get = (k) => String(S.v[k] ?? '').trim();
+  const visible = (f) => !f.when || f.when(S.v);
+
+  function setDom(k) {
+    const f = FIELDS[k], val = S.v[k] ?? '';
+    if (f.type === 'seg') $$(`input[name="${k}"]`, R[k].w).forEach((r) => { r.checked = r.value === val; });
+    else if (R[k].input) R[k].input.value = val;
+  }
+  function paintSrc(k) {
+    const el = R[k].src, m = S.marks[k];
+    el.hidden = !m;
+    if (m) { el.innerHTML = `${ic(m.icon)}${esc(m.label)}<span class="vh">: ${esc(m.title)}</span>`; el.title = m.title; }
+  }
+  function flash(w) {
+    if (!w) return;
+    w.classList.remove('flash');
+    void w.offsetWidth;
+    w.classList.add('flash');
+    clearTimeout(w._ft);
+    w._ft = setTimeout(() => w.classList.remove('flash'), 1300);
+  }
+
+  function normalize(k, raw) {
+    const t = String(raw ?? '').trim();
+    if (!t) return '';
+    switch (k) {
+      case 'nombres': case 'apellidos': return tidyName(t);
+      case 'correo': return t.toLowerCase();
+      case 'numDoc': {
+        if (/^Cédula/.test(S.v.tipoDoc) && /^[\d.\s]+$/.test(t)) { const d = digits(t); if (d.length >= 6 && d.length <= 10) return fmtNum(+d); }
+        return t;
+      }
+      case 'celular': case 'emergTel': {
+        let d = digits(t);
+        if (d.length === 12 && d.startsWith('57')) d = d.slice(2);
+        return d.length === 10 && !/[a-z]/i.test(t) ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : t;
+      }
+      case 'salario': { const n = parseMoney(t); return n != null && n > 0 ? fmtNum(n) : t; }
+      case 'numCuenta': { const d = digits(t); return S.v.banco === 'Bancolombia' && d.length === 11 && /^[\d\s-]+$/.test(t) ? fmtCuenta(d) : t; }
+      default: return FIELDS[k].type === 'text' ? t : raw;
+    }
+  }
+
+  // ------------------------------------------------------------------ reglas
+  function reqMsg(f) {
+    if (f.req) return f.req;
+    if (f.type === 'select' || f.type === 'seg') return 'Elige una opción';
+    if (f.type === 'date') return 'Escribe la fecha';
+    return 'Falta este dato';
+  }
+
+  function evalField(f, ignoreAccept = false) {
+    const k = f.key, v = get(k), r = { err: '', warn: null, info: f.hint || '' };
+    const acc = !ignoreAccept && S.accepted.includes(`${k}:${v}`);
+    if (!v) {
+      if (f.required) r.err = reqMsg(f);
+      if (k === 'salario' && CARGOS[S.v.cargo]) { const [lo, hi] = CARGOS[S.v.cargo].band; r.info = `Banda de ${S.v.cargo}: ${money(lo)} – ${money(hi)}`; }
+      return r;
+    }
+    switch (k) {
+      case 'numDoc': {
+        if (/^Cédula/.test(S.v.tipoDoc)) {
+          if (/[^\d.\s]/.test(v)) r.err = 'Solo números';
+          else if (digits(v).length < 6 || digits(v).length > 10) r.err = 'La cédula tiene entre 6 y 10 dígitos';
+        } else if (!/^[a-z0-9-]{5,15}$/i.test(v.replace(/\s/g, ''))) r.err = 'Letras y números, sin espacios';
+        if (!r.err) r.info = { checking: 'Buscando en empleados…', new: 'No está en la base de empleados', found: 'Ya trabajó en la empresa', dismissed: 'Ya trabajó en la empresa', applied: `Reingreso: ${ANTERIOR.id}` }[S.rehire] || '';
+        break;
+      }
+      case 'nombres': case 'apellidos':
+        if (/\d/.test(v)) r.err = 'Sin números';
+        break;
+      case 'fechaNac': {
+        if (!pd(v)) { r.err = 'Fecha no válida'; break; }
+        if (v > TODAY) { r.err = 'Es una fecha futura'; break; }
+        const age = ageOn(v, TODAY);
+        r.info = `${age} años`;
+        if (age < 15) r.err = `${age} años: la edad mínima para trabajar es 15`;
+        else if (age < 18 && !acc) r.warn = { msg: `${age} años: un menor de edad necesita la autorización del inspector de trabajo.`, accept: true };
+        else if (age >= 85 && !acc) r.warn = { msg: `${age} años: ¿la fecha está bien escrita?`, accept: true };
+        break;
+      }
+      case 'correo': {
+        const m = /^([^\s@]+)@([^\s@]+\.[^\s@]{2,})$/.exec(v);
+        if (!m) { r.err = 'Escribe un correo como nombre@dominio.com'; break; }
+        const fix = TYPO[m[2].toLowerCase()];
+        if (fix && !acc) r.warn = { msg: `¿Quisiste decir <b>${esc(m[1])}@${fix}</b>?`, fix: { label: `Usar ${fix}`, value: `${m[1]}@${fix}` }, accept: true };
+        break;
+      }
+      case 'celular': case 'emergTel': {
+        let d = digits(v);
+        if (d.length === 12 && d.startsWith('57')) d = d.slice(2);
+        const ok = !/[a-z]/i.test(v) && d.length === 10 && (d[0] === '3' || (k === 'emergTel' && d.startsWith('60')));
+        if (!ok) r.err = k === 'celular' ? 'El celular tiene 10 dígitos y empieza por 3' : 'Celular de 10 dígitos, o fijo con indicativo (60…)';
+        break;
+      }
+      case 'fechaIngreso': {
+        if (!pd(v)) { r.err = 'Fecha no válida'; break; }
+        r.info = cap(fmtD(v, true));
+        const fest = FESTIVOS[v], dom = pd(v).getUTCDay() === 0;
+        if ((fest || dom) && !acc) {
+          const nx = nextBiz(v);
+          r.warn = { msg: `El ${fmtD(v, true)} es ${fest ? `festivo (${fest})` : 'domingo'}.`, fix: { label: `Pasar al ${fmtD(nx, true)}`, value: nx }, accept: true };
+        } else if (v < TODAY && !acc) r.warn = { msg: 'Ya pasó: el ingreso quedará con fecha atrasada.', accept: true };
+        break;
+      }
+      case 'fechaFin': {
+        if (!pd(v)) { r.err = 'Fecha no válida'; break; }
+        const a = get('fechaIngreso');
+        if (pd(a)) { if (v <= a) r.err = 'Debe ser después del ingreso'; else r.info = `${cap(durText(a, v))} de contrato`; }
+        break;
+      }
+      case 'salario': {
+        const n = parseMoney(v);
+        if (n == null) { r.err = 'Escribe un monto: 2.100.000 o 2,1 M'; break; }
+        if (n <= 0) { r.err = 'Debe ser mayor que cero'; break; }
+        const c = CARGOS[S.v.cargo];
+        if (!c) { r.info = 'Elige el cargo para ver su banda salarial'; break; }
+        const [lo, hi] = c.band, cerca = (x) => x >= lo * 0.8 && x <= hi * 1.25;
+        r.info = `Banda de ${S.v.cargo}: ${money(lo)} – ${money(hi)}`;
+        if (acc) break;
+        if (n > hi * 3 && cerca(n / 10)) r.warn = { msg: `${money(n)} es 10 veces la banda de ${S.v.cargo}. ¿Sobra un cero?`, fix: { label: `Corregir a ${money(n / 10)}`, value: fmtNum(n / 10) }, accept: true };
+        else if (n < lo / 3 && cerca(n * 10)) r.warn = { msg: `${money(n)} es la décima parte de la banda. ¿Falta un cero?`, fix: { label: `Corregir a ${money(n * 10)}`, value: fmtNum(n * 10) }, accept: true };
+        else if (n > hi) r.warn = { msg: `Por encima de la banda de ${S.v.cargo} (hasta ${money(hi)}): irá a aprobación de Compensación.`, accept: true };
+        else if (n < lo) r.warn = { msg: `Por debajo de la banda de ${S.v.cargo} (desde ${money(lo)}).`, accept: true };
+        break;
+      }
+      case 'numCuenta': {
+        if (/[^\d\s-]/.test(v)) { r.err = 'Solo números y guiones'; break; }
+        const d = digits(v), b = S.v.banco;
+        if (b === 'Bancolombia' && d.length !== 11) r.err = 'En Bancolombia la cuenta tiene 11 dígitos';
+        else if (b === 'Nequi' && d.length !== 10) r.err = 'En Nequi la cuenta es el celular: 10 dígitos';
+        else if (d.length < 6 || d.length > 16) r.err = 'Revisa el número: tiene entre 6 y 16 dígitos';
+        break;
+      }
+    }
+    return r;
+  }
+
+  function evalRow(b, k) {
+    const v = String(b[k] ?? '').trim(), r = { err: '', warn: null, info: '' };
+    if (!v) { r.err = k === 'parentesco' ? 'Elige el parentesco' : k === 'nombre' ? 'Falta el nombre' : 'Escribe la fecha'; return r; }
+    if (k === 'fechaNac') {
+      if (!pd(v)) r.err = 'Fecha no válida';
+      else if (v > TODAY) r.err = 'Es una fecha futura';
+      else r.info = plural(ageOn(v, TODAY), 'año', 'años');
+    }
+    return r;
+  }
+
+  // Periodo de prueba (art. 78 del CST): dos meses como máximo; en un término fijo de menos de un año, la quinta parte.
+  function prueba() {
+    const t = S.v.tipoContrato, a = get('fechaIngreso');
+    if (t === 'Aprendizaje') return { text: 'No se calcula', why: 'Se define en el contrato de aprendizaje' };
+    if (!t || !pd(a)) return { text: '—', why: 'Sale del tipo de contrato y la fecha de ingreso' };
+    const dos = addDays(addMonths(a, 2), -1);
+    if (t === 'Término fijo') {
+      const b = get('fechaFin');
+      if (!pd(b) || b <= a) return { text: '—', why: 'Sale de la fecha de terminación' };
+      const dias = diffDays(a, b) + 1;
+      if (dias < 365) {
+        const n = Math.floor(dias / 5), fin = addDays(a, n - 1);
+        if (fin < dos) return { text: `Hasta el ${fmtD(fin)} · ${n} días`, why: `La quinta parte de un contrato de ${dias} días (art. 78 del CST)` };
+      }
+    }
+    return { text: `Hasta el ${fmtD(dos)} · 2 meses`, why: 'El máximo de la ley (art. 78 del CST)' };
+  }
+
+  // ------------------------------------------------------------------ pintar el estado
+  function syncVisibility() {
+    for (const f of Object.values(FIELDS)) {
+      if (!f.when) continue;
+      const w = R[f.key].w, show = visible(f);
+      if (w.hidden === !show) continue;
+      w.hidden = !show;
+      if (show && S.mode === 'edit') { w.classList.remove('reveal'); void w.offsetWidth; w.classList.add('reveal'); }
+    }
+  }
+
+  function setMsg(el, html) {
+    if (el._h === html) return;
+    el._h = html;
+    el.innerHTML = html;
+  }
+  function msgHTML(key, r, shown, warnOk) {
+    if (r.err && shown) return { cls: 'has-err', html: `<p class="m-err">${ic('alert')}<span>${esc(r.err)}</span></p>` };
+    if (r.warn && warnOk) {
+      const w = r.warn;
+      const acts = w.fix || w.accept ? `<p class="m-acts">${w.fix ? `<button type="button" class="lnk" data-fix="${key}">${esc(w.fix.label)}</button>` : ''}${w.accept ? `<button type="button" class="lnk" data-accept="${key}">Es correcto</button>` : ''}</p>` : '';
+      return { cls: 'has-warn', html: `<div class="m-warn">${ic('tri')}<div><p>${w.msg}</p>${acts}</div></div>` };
+    }
+    return { cls: '', html: r.info ? `<p class="m-hint">${esc(r.info)}</p>` : '' };
+  }
+  function paintField(k, r, shown) {
+    const ref = R[k], f = FIELDS[k];
+    const { cls, html } = msgHTML(k, r, shown, shown || !!S.marks[k]);
+    setMsg(ref.msg, html);
+    ref.w.classList.toggle('has-err', cls === 'has-err');
+    ref.w.classList.toggle('has-warn', cls === 'has-warn');
+    const target = f.type === 'seg' ? $('.seg', ref.w) : ref.input;
+    if (target) target.setAttribute('aria-invalid', String(cls === 'has-err'));
+  }
+
+  function update() {
+    syncVisibility();
+    const stats = {}, missing = [];
+    let warns = 0;
+    for (const sec of SCHEMA) {
+      const st = (stats[sec.id] = { req: 0, done: 0, err: 0, miss: 0, warn: 0 });
+      if (sec.rows) {
+        S.benef.forEach((b, i) => ROW_KEYS.forEach((k) => {
+          const r = evalRow(b, k), v = String(b[k] ?? '').trim(), shown = S.submitted || S.touched.has(`b:${b.id}:${k}`);
+          st.req++;
+          if (v && !r.err) st.done++; else { missing.push({ row: i, k }); if (v) { if (shown) st.err++; } else if (shown) st.miss++; }
+          const el = $(`#mb${b.id}-${k}`), fw = el && el.closest('.fld');
+          if (!el) return;
+          const { cls, html } = msgHTML('', r, shown, false);
+          setMsg(el, html);
+          fw.classList.toggle('has-err', cls === 'has-err');
+          $(`#b${b.id}-${k}`).setAttribute('aria-invalid', String(cls === 'has-err'));
+        }));
+        continue;
+      }
+      for (const f of sec.fields) {
+        if (f.type === 'notice' || f.type === 'readonly') continue;
+        if (f.type === 'computed') { paintPrueba(); continue; }
+        if (!visible(f)) { paintField(f.key, { err: '', warn: null, info: '' }, false); continue; }
+        const r = evalField(f), v = get(f.key), shown = S.submitted || S.touched.has(f.key);
+        if (f.required) st.req++;
+        if (f.required && v && !r.err) st.done++;
+        if ((f.required && !v) || (v && r.err)) {
+          missing.push({ k: f.key });
+          if (v) { if (shown) st.err++; } else if (shown) st.miss++;
+        }
+        if (r.warn && !r.err) { st.warn++; warns++; }
+        paintField(f.key, r, shown);
+      }
+    }
+    S.missing = missing;
+    S.warns = warns;
+    paintRehire();
+    paintIndex(stats);
+    paintFoot();
+    paintDraft();
+  }
+
+  function paintPrueba() {
+    const p = prueba(), out = R.prueba.input;
+    if (out.textContent !== p.text) {
+      const before = out.textContent;
+      out.textContent = p.text;
+      if (before !== '—' && before !== '' && S.mode === 'edit') flash(R.prueba.w);
+    }
+    S.prueba = p.text;
+    setMsg(R.prueba.msg, `<p class="m-hint">${esc(p.why)}</p>`);
+  }
+
+  function paintRehire() {
+    const n = R._rehire.w, show = (S.rehire === 'found' || S.rehire === 'applied') && S.mode === 'edit';
+    const was = !n.hidden;
+    n.hidden = !show;
+    if (!show) return;
+    const lapso = `${ANTERIOR.cargo}, ${ANTERIOR.id}, del ${fmtD(ANTERIOR.desde)} al ${fmtD(ANTERIOR.hasta)}`;
+    const html = S.rehire === 'found'
+      ? `${ic('history')}<div><p><b>${esc(ANTERIOR.nombre)} ya trabajó aquí:</b> ${lapso}.</p><p class="acts"><button type="button" class="btn btn-primary btn-sm" data-act="rehire">Traer sus datos de contacto</button><button type="button" class="lnk" data-act="rehire-no">Ahora no</button></p></div>`
+      : `${ic('history')}<div><p><b>Reingreso.</b> Conserva el historial de ${ANTERIOR.id} (${ANTERIOR.cargo}, ${pd(ANTERIOR.desde).getUTCFullYear()}–${pd(ANTERIOR.hasta).getUTCFullYear()}). Revisa que el contacto siga vigente.</p></div>`;
+    setMsg(n, html);
+    if (!was) { n.classList.remove('reveal'); void n.offsetWidth; n.classList.add('reveal'); }
+  }
+
+  const C = 2 * Math.PI * 7;
+  function ring(p, opt) {
+    const arc = p > 0 ? `<circle class="r-arc" cx="9" cy="9" r="7" stroke-dasharray="${(p * C).toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 9 9)"/>` : '';
+    return `<svg class="ring${opt ? ' is-opt' : ''}" viewBox="0 0 18 18" aria-hidden="true"><circle class="r-track" cx="9" cy="9" r="7"/>${arc}</svg>`;
+  }
+  function paintIndex(stats) {
+    for (const sec of SCHEMA) {
+      const st = stats[sec.id], b = $(`#ix-${sec.id}`), sub = $('.ix-s', b), rg = $('.ix-ring', b);
+      let txt, cls = '', html;
+      const bad = st.err + st.miss;
+      if (bad) {
+        txt = st.err ? plural(st.err, 'error', 'errores') : `Faltan ${st.miss}`;
+        if (st.err && st.miss) txt += ` · faltan ${st.miss}`;
+        cls = 'is-err';
+        html = `<span class="dot-err" aria-hidden="true">!</span>`;
+      } else if (sec.rows && !S.benef.length) {
+        txt = 'Opcional';
+        html = ring(0, true);
+      } else if (st.req && st.done === st.req) {
+        txt = st.warn ? `Completa · ${plural(st.warn, 'aviso', 'avisos')}` : sec.rows ? plural(S.benef.length, 'persona', 'personas') : 'Completa';
+        cls = st.warn ? 'is-warn' : 'is-ok';
+        html = `<span class="dot-ok" aria-hidden="true">${ic('check')}</span>`;
+      } else {
+        txt = `${st.done} de ${st.req}`;
+        html = ring(st.req ? st.done / st.req : 0, false);
+      }
+      if (rg._h !== html) { rg._h = html; rg.innerHTML = html; }
+      sub.textContent = txt;
+      sub.className = 'ix-s ' + cls;
+      b.setAttribute('aria-label', `${sec.title}: ${txt}`);
+    }
+  }
+
+  function paintFoot() {
+    const el = $('#foot-status');
+    let html;
+    if (S.mode === 'read') html = `<span>${ic('check', 'ok')}Creado: <b>${esc(S.created.id)}</b></span>`;
+    else if (S.confirmDiscard) html = `<span>¿Descartar todo lo escrito?</span><button type="button" class="btn btn-danger btn-sm" data-act="discard-yes">Descartar</button><button type="button" class="lnk" data-act="discard-no">No</button>`;
+    else if (S.missing.length) html = `<span>Faltan <b>${S.missing.length}</b> ${S.missing.length === 1 ? 'dato obligatorio' : 'datos obligatorios'}</span><button type="button" class="lnk" data-act="next">Ir al siguiente ${ic('down')}</button>`;
+    else if (S.warns) html = `<span>${ic('tri', 'warn')}Listo · ${plural(S.warns, 'aviso', 'avisos')} sin confirmar</span>`;
+    else html = `<span>${ic('check', 'ok')}Todo listo para crear</span>`;
+    setMsg(el, html);
+    $('#acts-edit').hidden = S.mode !== 'edit';
+    $('#acts-read').hidden = S.mode !== 'read';
+    $('#btn-discard').hidden = !hasContent() || S.confirmDiscard;
+  }
+
+  function rel(t) {
+    const s = (Date.now() - t) / 1000;
+    if (s < 10) return 'hace un momento';
+    if (s < 60) return `hace ${Math.floor(s)} s`;
+    if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+    return `a las ${new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' }).format(t)}`;
+  }
+  function paintDraft() {
+    const el = $('#draft'), t = $('#draft-t');
+    el.classList.toggle('is-saving', S.saving);
+    el.classList.toggle('is-saved', !S.saving && S.saved > 0);
+    if (S.mode === 'read') { el.hidden = true; return; }
+    el.hidden = false;
+    t.textContent = S.saving ? 'Guardando borrador…' : S.saved > 0 ? `Borrador guardado · ${rel(S.saved)}` : S.saved < 0 ? 'Sin borrador en este navegador' : 'Sin cambios';
+  }
+
+  function paintStatus() {
+    const el = $('#fill-status'), st = S.status;
+    if (!st) { setMsg(el, ''); return; }
+    const btn = S.last ? '<button type="button" class="lnk" data-act="undo">Deshacer</button>' : st.reset ? '<button type="button" class="lnk" data-act="reset">Empezar de cero</button>' : '';
+    setMsg(el, `<span>${st.ok ? ic('check') : ''}${st.text}</span>${btn}`);
+  }
+  function announce(m) {
+    const l = $('#live');
+    l.textContent = '';
+    setTimeout(() => { l.textContent = m; }, 30);
+  }
+
+  // ------------------------------------------------------------------ borrador
+  const KEY = 'nx-form-maqueta-ingreso';
+  let saveT = 0;
+  const snapshot = () => JSON.parse(JSON.stringify({ v: S.v, marks: S.marks, benef: S.benef, rehire: S.rehire, checkedDoc: S.checkedDoc, accepted: S.accepted, reqMeses: S.reqMeses, reqId: S.reqId }));
+  function restore(s) {
+    Object.assign(S, JSON.parse(JSON.stringify(s)));
+    if (S.rehire === 'checking') S.rehire = 'none';
+    S.benef.forEach((b) => { b.id = ++rowSeq; });
+    INPUT_KEYS.forEach((k) => { setDom(k); paintSrc(k); });
+    renderRows();
+  }
+  function hasContent() {
+    return INPUT_KEYS.some((k) => get(k) && get(k) !== (FIELDS[k].init || '')) || S.benef.length > 0;
+  }
+  function scheduleSave() {
+    clearTimeout(saveT);
+    S.saving = true;
+    paintDraft();
+    saveT = setTimeout(save, 700);
+  }
+  function save() {
+    S.saving = false;
+    if (S.mode !== 'edit') return;
+    try {
+      if (hasContent()) { localStorage.setItem(KEY, JSON.stringify({ ...snapshot(), t: Date.now() })); S.saved = Date.now(); }
+      else { localStorage.removeItem(KEY); S.saved = 0; }
+    } catch { S.saved = -1; }
+    paintDraft();
+    paintFoot();
+  }
+  function loadDraft() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { d = null; }
+    if (!d || !d.v) return;
+    restore(d);
+    if (!hasContent()) return;
+    S.saved = d.t || Date.now();
+    S.status = { text: `Recuperamos tu borrador, guardado ${rel(S.saved)}.`, reset: true };
+  }
+  function clearDraft() { try { localStorage.removeItem(KEY); } catch { /* sin almacenamiento */ } S.saved = 0; }
+
+  // ------------------------------------------------------------------ cambios
+  function changed() {
+    S.confirmDiscard = false;
+    scheduleSave();
+    update();
+  }
+  function dropUndo() {
+    if (!S.last) return;
+    S.last = null;
+    paintStatus();
+  }
+  function userSet(k, val) {
+    S.v[k] = val;
+    delete S.marks[k];
+    paintSrc(k);
+    setDom(k);
+    S.touched.add(k);
+    dropUndo();
+    after(k);
+    changed();
+  }
+  function after(k) {
+    if (k === 'cargo') deriveCargo();
+    if (k === 'sede') deriveSede();
+    if (k === 'fechaIngreso' || k === 'tipoContrato') refitFin();
+    if (k === 'numDoc' && digits(S.v.numDoc) !== S.checkedDoc) { S.checkedDoc = ''; if (S.rehire !== 'applied') S.rehire = 'none'; }
+  }
+  const machineOrEmpty = (k) => !get(k) || !!S.marks[k];
+  function deriveCargo() {
+    const c = CARGOS[S.v.cargo];
+    if (!c) return;
+    const m = M.cargo(S.v.cargo);
+    const list = [['area', c.area], ['centroCosto', c.cc], ['riesgo', c.riesgo]].filter(([k, v]) => machineOrEmpty(k) && S.v[k] !== v).map(([k, v]) => [k, v, m]);
+    if (list.length) fill(list, `de lo habitual para ${S.v.cargo}`, { scroll: false });
+  }
+  function deriveSede() {
+    const caja = SEDES[S.v.sede];
+    if (caja && machineOrEmpty('caja') && S.v.caja !== caja) fill([['caja', caja, M.sede(S.v.sede)]], `de la sede ${S.v.sede}`, { scroll: false });
+  }
+  function refitFin() {
+    if (S.v.tipoContrato !== 'Término fijo' || !S.reqMeses || !S.marks.fechaFin || !pd(get('fechaIngreso'))) return;
+    const nf2 = addDays(addMonths(get('fechaIngreso'), S.reqMeses), -1);
+    if (nf2 === S.v.fechaFin) return;
+    S.v.fechaFin = nf2;
+    S.marks.fechaFin = M.regla(S.reqMeses, S.reqId);
+    setDom('fechaFin');
+    paintSrc('fechaFin');
+    flash(R.fechaFin.w);
+    announce(`La terminación pasó al ${fmtD(nf2, true)} para mantener ${S.reqMeses} meses.`);
+  }
+
+  // Llenar: el estado cambia de una vez y la pantalla lo muestra campo por campo.
+  function fill(list, what, { rows = [], scroll = true } = {}) {
+    const snap = snapshot(), done = [];
+    let kept = 0;
+    for (const [k, val, mark] of list) {
+      const cur = S.v[k] ?? '';
+      if (cur === val) { if (!S.marks[k] && !S.touched.has(k)) { S.marks[k] = mark; done.push(k); } continue; }
+      if (cur && !S.marks[k] && S.touched.has(k) && cur !== (FIELDS[k].init || '')) { kept++; continue; }
+      S.v[k] = val;
+      S.marks[k] = mark;
+      done.push(k);
+    }
+    const nuevas = rows.filter((r) => !S.benef.some((b) => fold(b.nombre) === fold(r.nombre)));
+    const from = S.benef.length;
+    nuevas.forEach((r) => S.benef.push({ ...r, id: ++rowSeq }));
+    const n = done.length + nuevas.length * ROW_KEYS.length;
+    if (!n) {
+      S.status = { text: kept ? `Nada nuevo ${what}: respeté ${plural(kept, 'dato que ya escribiste', 'datos que ya escribiste')}.` : `Nada nuevo ${what}.`, ok: false };
+      paintStatus();
+      return 0;
+    }
+    S.last = { snap, what };
+    S.confirmDiscard = false;
+    S.status = { text: `${plural(n, 'dato', 'datos')} ${what}${kept ? ` · respeté ${kept} que ya escribiste` : ''}`, ok: true };
+    paintStatus();
+    announce(S.status.text);
+    syncVisibility();
+    const step = calm() ? 0 : 55;
+    if (scroll) { const first = done[0] ? R[done[0]].w : $('#rows'); scrollToEl(first.closest('.sec') || first); }
+    done.forEach((k, i) => {
+      const paint = () => { setDom(k); paintSrc(k); flash(R[k].w); };
+      step ? setTimeout(paint, i * step) : paint();
+    });
+    const end = () => { if (nuevas.length) renderRows(from); update(); };
+    step ? setTimeout(end, done.length * step + 20) : end();
+    scheduleSave();
+    return n;
+  }
+  function undo() {
+    if (!S.last) return;
+    const { snap, what } = S.last;
+    S.last = null;
+    restore(snap);
+    S.status = { text: `Se deshizo el llenado ${what}.`, ok: false };
+    paintStatus();
+    announce(S.status.text);
+    changed();
+  }
+
+  // ------------------------------------------------------------------ fuentes
+  let scanT = [];
+  function openPanel(name) {
+    closePanels();
+    S.panel = name;
+    $('#p-' + name).hidden = false;
+    $('#b-' + name).setAttribute('aria-expanded', 'true');
+    if (name === 'scan') startScan();
+    if (name === 'paste') { $('#paste-msg').textContent = ''; $('#paste-text').focus(); }
+    if (name === 'req') $('#req-list button').focus();
+  }
+  function closePanels(focusBack) {
+    scanT.forEach(clearTimeout);
+    scanT = [];
+    const was = S.panel;
+    S.panel = '';
+    ['scan', 'paste', 'req'].forEach((n) => { $('#p-' + n).hidden = true; $('#b-' + n).setAttribute('aria-expanded', 'false'); });
+    if (focusBack && was) $('#b-' + was).focus();
+  }
+  function startScan() {
+    const vf = $('#vf'), msg = $('#vf-msg');
+    vf.classList.remove('is-read');
+    msg.textContent = 'Apunta al código de barras del reverso de la cédula.';
+    scanT.push(setTimeout(() => {
+      vf.classList.add('is-read');
+      msg.innerHTML = `${ic('check')}Leída: ${esc(CEDULA.nombres)} ${esc(CEDULA.apellidos)}`;
+      scanT.push(setTimeout(() => {
+        closePanels();
+        const n = fill(Object.entries(CEDULA).map(([k, v]) => [k, v, M.cedula]), 'de la cédula');
+        if (n) setTimeout(checkDoc, calm() ? 0 : Object.keys(CEDULA).length * 55 + 120);
+      }, calm() ? 120 : 650));
+    }, calm() ? 250 : 1500));
+  }
+  function checkDoc() {
+    const d = digits(S.v.numDoc);
+    if (d.length < 6 || d === S.checkedDoc || !/^Cédula/.test(S.v.tipoDoc)) return;
+    S.checkedDoc = d;
+    S.rehire = 'checking';
+    R.numDoc.ctl.classList.add('is-busy');
+    update();
+    setTimeout(() => {
+      if (S.checkedDoc !== d) return;
+      R.numDoc.ctl.classList.remove('is-busy');
+      S.rehire = d === ANTERIOR.doc ? 'found' : 'new';
+      update();
+      scheduleSave();
+      if (S.rehire === 'found') announce(`${ANTERIOR.nombre} ya trabajó en la empresa.`);
+    }, calm() ? 200 : 700);
+  }
+  function applyRehire() {
+    fill(Object.entries(ANTERIOR.values).map(([k, v]) => [k, v, M.anterior]), `de ${ANTERIOR.id}`);
+    S.rehire = 'applied';
+    update();
+  }
+  function applyReq(r) {
+    closePanels();
+    const list = Object.entries(r.values).map(([k, v]) => [k, v, M.req(r)]);
+    const c = CARGOS[r.values.cargo];
+    if (c) list.push(['riesgo', c.riesgo, M.cargo(r.values.cargo)]);
+    const caja = SEDES[r.values.sede];
+    if (caja) list.push(['caja', caja, M.sede(r.values.sede)]);
+    fill(list, `de ${r.id}`);
+    S.reqMeses = r.meses;
+    S.reqId = r.id;
+  }
+
+  // Un extractor de maqueta: busca por línea (EPS, pensión, cesantías, cuenta, personas a cargo).
+  const PARENT = { hija: 'Hija', hijo: 'Hijo', esposa: 'Cónyuge o compañero(a)', esposo: 'Cónyuge o compañero(a)', companera: 'Cónyuge o compañero(a)', companero: 'Cónyuge o compañero(a)', mama: 'Madre', madre: 'Madre', papa: 'Padre', padre: 'Padre' };
+  function findOpt(line, opts) {
+    const fl = ' ' + fold(line).replace(/[^a-z0-9]+/g, ' ') + ' ';
+    let best = null;
+    for (const o of opts) {
+      const fo = ' ' + fold(o).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+      if (fl.includes(fo) && (!best || fo.length > fold(best).length + 2)) best = o;
+    }
+    return best;
+  }
+  function parseText(txt) {
+    const out = [], rows = [];
+    for (const line of txt.split(/\r?\n/)) {
+      const fl = fold(line);
+      if (/\b(eps|salud)\b/.test(fl)) { const o = findOpt(line, EPS); if (o) out.push(['eps', o]); }
+      else if (/pension/.test(fl)) { const o = findOpt(line, AFP); if (o) out.push(['afp', o]); }
+      else if (/cesantia/.test(fl)) { const o = findOpt(line, CES); if (o) out.push(['cesantias', o]); }
+      if (/\bcuenta\b|\bahorros\b|\bcorriente\b/.test(fl)) {
+        const b = findOpt(line, BANCOS);
+        if (b) out.push(['banco', b]);
+        if (/ahorro/.test(fl)) out.push(['tipoCuenta', 'Ahorros']);
+        else if (/corriente/.test(fl)) out.push(['tipoCuenta', 'Corriente']);
+        const m = /(\d[\d\s-]{4,}\d)/.exec(line);
+        if (m) { const d = digits(m[1]); out.push(['numCuenta', b === 'Bancolombia' && d.length === 11 ? fmtCuenta(d) : d]); }
+      } else {
+        const em = /[^\s@<>(),;:]+@[^\s@<>(),;:]+\.[a-z]{2,}/i.exec(line);
+        if (em) out.push(['correo', em[0].toLowerCase()]);
+        const cel = /(?:\+?57\s?)?\b(3\d{2})[\s.-]?(\d{3})[\s.-]?(\d{4})\b/.exec(line);
+        if (cel) out.push(['celular', `${cel[1]} ${cel[2]} ${cel[3]}`]);
+      }
+      const h = /\bmi\s+(hij[ao]|espos[ao]|compa[ñn]er[ao]|mam[aá]|madre|pap[aá]|padre)\s+([^\d,.]+?)\s+naci[oó]\s+el\s+(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/i.exec(line);
+      if (h) {
+        const iso = `${h[5]}-${h[4].padStart(2, '0')}-${h[3].padStart(2, '0')}`;
+        if (pd(iso)) rows.push({ nombre: tidyName(h[2]), parentesco: PARENT[fold(h[1])] || '', fechaNac: iso, mark: M.texto });
+      }
+    }
+    return { out, rows };
+  }
+  function applyPaste(txt) {
+    const { out, rows } = parseText(txt);
+    if (!out.length && !rows.length) {
+      if (S.panel === 'paste') $('#paste-msg').textContent = 'No encontré datos que este formulario use. Prueba con el ejemplo.';
+      else { S.status = { text: 'El texto pegado no trae datos que este formulario use.', ok: false }; paintStatus(); }
+      return;
+    }
+    closePanels();
+    fill(out.map(([k, v]) => [k, v, M.texto]), 'del texto pegado', { rows });
+  }
+
+  // ------------------------------------------------------------------ navegar
+  function scrollToEl(el, smooth = true) {
+    if (!el) return;
+    const top = el.getBoundingClientRect().top - form.getBoundingClientRect().top + form.scrollTop - 16;
+    const behavior = smooth && !calm() ? 'smooth' : 'auto';
+    if (form.scrollTo) form.scrollTo({ top, behavior }); else form.scrollTop = top;
+  }
+  function controlOf(k) {
+    const f = FIELDS[k];
+    if (f.type === 'seg') return $(`input[name="${k}"]:checked`, R[k].w) || $(`input[name="${k}"]`, R[k].w);
+    return R[k].input;
+  }
+  function focusField(k, scroll = true) {
+    const el = controlOf(k);
+    if (!el) return;
+    if (scroll) scrollToEl(R[k].w);
+    el.focus({ preventScroll: true });
+  }
+  function refEl(m) {
+    if (m.row != null) { const b = S.benef[m.row]; return b && $(`#b${b.id}-${m.k}`); }
+    return controlOf(m.k);
+  }
+  function goTo(m) {
+    const el = refEl(m);
+    if (!el) return;
+    scrollToEl(el.closest('.fld'));
+    el.focus({ preventScroll: true });
+  }
+  function goNext() {
+    if (!S.missing.length) return;
+    let target = S.missing[0];
+    const from = S.lastFocus;
+    if (from && form.contains(from)) {
+      const after = S.missing.find((m) => { const el = refEl(m); return el && el !== from && (from.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING); });
+      if (after) target = after;
+    }
+    goTo(target);
+  }
+  function focusables() {
+    return $$('input, select', form).filter((el) => !el.closest('[hidden]') && !el.disabled && (el.type !== 'radio' || el === (form.querySelector(`input[name="${el.name}"]:checked`) || form.querySelector(`input[name="${el.name}"]`))));
+  }
+  let spyQ = false;
+  function spy() {
+    spyQ = false;
+    const top = form.getBoundingClientRect().top;
+    let cur = SCHEMA[0].id;
+    for (const s of SCHEMA) if ($('#sec-' + s.id).getBoundingClientRect().top - top <= 90) cur = s.id;
+    if (form.scrollTop > 0 && form.scrollTop + form.clientHeight >= form.scrollHeight - 4) cur = SCHEMA[SCHEMA.length - 1].id;
+    SCHEMA.forEach((s) => $('#ix-' + s.id).setAttribute('aria-current', String(s.id === cur)));
+  }
+
+  // ------------------------------------------------------------------ revisar, crear, leer
+  function openReview() {
+    if (S.mode !== 'edit') return;
+    closePanels();
+    S.submitted = true;
+    update();
+    if (S.missing.length) {
+      const m = S.missing[0], name = m.row != null ? 'un beneficiario' : FIELDS[m.k].label.toLowerCase();
+      announce(`Faltan ${S.missing.length} datos. Empieza por ${name}.`);
+      goTo(m);
+      return;
+    }
+    buildReview();
+    const rv = $('#review');
+    rv.style.bottom = `${$('#f-foot').offsetHeight + 8}px`;
+    rv.hidden = false;
+    $('#btn-review').setAttribute('aria-expanded', 'true');
+    $('#rv-h').focus();
+  }
+  function closeReview(focusBack) {
+    const rv = $('#review');
+    if (rv.hidden) return;
+    rv.hidden = true;
+    $('#btn-review').setAttribute('aria-expanded', 'false');
+    if (focusBack) $('#btn-review').focus();
+  }
+  function buildReview() {
+    const v = S.v, p = prueba();
+    $('#rv-h').textContent = `Vas a crear el ingreso de ${get('nombres')} ${get('apellidos')}`;
+    const contrato = v.tipoContrato === 'Término fijo'
+      ? `Término fijo · ${fmtD(v.fechaIngreso)} – ${fmtD(v.fechaFin)} (${durText(v.fechaIngreso, v.fechaFin)})`
+      : `${v.tipoContrato} · desde el ${fmtD(v.fechaIngreso, true)}`;
+    const rows = [['Cargo', `${v.cargo} · ${v.sede}`], ['Contrato', contrato], ['Salario', `${money(parseMoney(v.salario))} · ${v.jornada.split(' · ')[0]}`], ['Periodo de prueba', p.text]];
+    if (S.rehire === 'applied') rows.push(['Reingreso', `Retoma el historial de ${ANTERIOR.id}`]);
+    if (S.benef.length) rows.push(['Beneficiarios', S.benef.map((b) => `${b.nombre} (${b.parentesco.toLowerCase()})`).join(', ')]);
+    $('#rv-list').innerHTML = rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join('');
+
+    const warns = [];
+    for (const f of Object.values(FIELDS)) {
+      if (!INPUT_KEYS.includes(f.key) || !visible(f) || !get(f.key)) continue;
+      const r = evalField(f, true);
+      if (!r.warn) continue;
+      const ok = S.accepted.includes(`${f.key}:${get(f.key)}`);
+      warns.push(`<li>${ic('tri')}<span>${esc(f.label)}: ${r.warn.msg.replace(/<[^>]+>/g, '')}${ok ? ' Lo confirmaste.' : ' Sin confirmar.'}</span></li>`);
+    }
+    $('#rv-warn').innerHTML = warns.length ? `<ul class="rv-warns">${warns.join('')}</ul>` : '';
+
+    let total = 0, auto = 0;
+    const fuentes = new Set();
+    for (const k of INPUT_KEYS) {
+      if (!visible(FIELDS[k]) || !get(k)) continue;
+      total++;
+      if (S.marks[k]) { auto++; fuentes.add(S.marks[k].from); }
+    }
+    for (const b of S.benef) { total += ROW_KEYS.length; if (b.mark) { auto += ROW_KEYS.length; fuentes.add(b.mark.from); } }
+    fuentes.delete('las reglas');
+    const lista = [...fuentes];
+    const de = lista.length > 1 ? `${lista.slice(0, -1).join(', ')} y ${lista[lista.length - 1]}` : lista[0];
+    $('#rv-auto').innerHTML = `<div class="bar" aria-hidden="true"><i style="width:${total ? Math.round((auto / total) * 100) : 0}%"></i></div><p>Escribiste <b>${total - auto}</b> de ${total} datos.${auto ? ` Los otros ${auto} llegaron de ${de}.` : ''}</p>`;
+  }
+  function create() {
+    if ($('#review').hidden) return;
+    S.created = { id: S.rehire === 'applied' ? ANTERIOR.id : 'EMP-0921' };
+    S.mode = 'read';
+    clearTimeout(saveT);
+    S.saving = false;
+    clearDraft();
+    closeReview();
+    S.status = null;
+    S.last = null;
+    paintStatus();
+    paintRead();
+    update();
+    form.scrollTop = 0;
+    $('#done-note').focus?.();
+    announce('Ingreso creado.');
+  }
+  function display(k) {
+    const f = FIELDS[k], v = get(k);
+    if (!v) return '—';
+    if (f.type === 'date') return fmtD(v);
+    if (f.type === 'money') { const n = parseMoney(v); return n != null ? money(n) : v; }
+    return v;
+  }
+  function paintRead() {
+    const read = S.mode === 'read';
+    stage.classList.toggle('is-read', read);
+    $('#fill-row').hidden = read;
+    $('#f-badge').hidden = !read;
+    const note = $('#done-note');
+    note.hidden = !read;
+    if (read) {
+      const nombre = `${get('nombres')} ${get('apellidos')}`;
+      $('#f-title').textContent = nombre;
+      $('#f-eyebrow').textContent = `Talento humano · Empleados · ${S.created.id}`;
+      $('#f-badge').textContent = `Ingresa el ${fmtD(S.v.fechaIngreso)}`;
+      note.innerHTML = `${ic('check')}<p><b>Ingreso creado.</b> ${esc(nombre)} entra el ${fmtD(S.v.fechaIngreso, true)}${S.rehire === 'applied' ? `, como reingreso de ${ANTERIOR.id}` : ''}.</p>`;
+      for (const k of INPUT_KEYS) { R[k].ro.textContent = display(k); R[k].ro.hidden = false; }
+      R.prueba.ro.textContent = S.prueba; R.prueba.ro.hidden = false;
+      R.arl.ro.textContent = FIELDS.arl.value; R.arl.ro.hidden = false;
+      S.benef.forEach((b) => ROW_KEYS.forEach((k) => {
+        const ro = $(`#b${b.id}-${k}`).closest('.fld').querySelector('.ro');
+        ro.textContent = k === 'fechaNac' ? fmtD(b[k]) : b[k];
+        ro.hidden = false;
+      }));
+    } else {
+      $('#f-title').textContent = 'Nuevo ingreso';
+      $('#f-eyebrow').textContent = 'Talento humano · Empleados';
+      $$('.ro', form).forEach((ro) => { ro.hidden = true; });
+    }
+  }
+  function resetAll() {
+    clearTimeout(saveT);
+    Object.assign(S, fresh(), { touched: new Set(), submitted: false, last: null, status: null, mode: 'edit', saving: false, confirmDiscard: false, created: null });
+    clearDraft();
+    closeReview();
+    closePanels();
+    INPUT_KEYS.forEach((k) => { setDom(k); paintSrc(k); });
+    R.numDoc.ctl.classList.remove('is-busy');
+    renderRows();
+    paintRead();
+    paintStatus();
+    update();
+    form.scrollTop = 0;
+  }
+
+  // ------------------------------------------------------------------ eventos
+  function onEdit(e) {
+    const t = e.target;
+    if (S.mode !== 'edit') return;
+    if (t.dataset.row != null) {
+      const b = S.benef[+t.dataset.row];
+      if (!b || b[t.dataset.k] === t.value) return;
+      b[t.dataset.k] = t.value;
+      if (b.mark) { b.mark = null; const chip = $('.src', t.closest('.brow')); if (chip) chip.remove(); }
+      dropUndo();
+      changed();
+      return;
+    }
+    const k = t.name;
+    if (!FIELDS[k] || (t.type === 'radio' && !t.checked) || S.v[k] === t.value) return;
+    S.v[k] = t.value;
+    if (S.marks[k]) { delete S.marks[k]; paintSrc(k); }
+    if (t.type === 'radio' || t.tagName === 'SELECT' || t.type === 'date') S.touched.add(k);
+    dropUndo();
+    after(k);
+    changed();
+  }
+  form.addEventListener('input', onEdit);
+  form.addEventListener('change', onEdit);
+  form.addEventListener('focusin', (e) => { if (e.target.matches('input, select')) S.lastFocus = e.target; });
+  form.addEventListener('focusout', (e) => {
+    const t = e.target;
+    if (S.mode !== 'edit' || !t.matches('input, select')) return;
+    if (t.dataset.row != null) {
+      const b = S.benef[+t.dataset.row];
+      if (!b) return;
+      S.touched.add(`b:${b.id}:${t.dataset.k}`);
+      if (t.dataset.k === 'nombre' && b.nombre) { const nv = tidyName(b.nombre); if (nv !== b.nombre) { b.nombre = nv; t.value = nv; scheduleSave(); } }
+      update();
+      return;
+    }
+    const k = t.name;
+    if (!FIELDS[k]) return;
+    if (t.type === 'radio' && e.relatedTarget && e.relatedTarget.name === k) return;
+    S.touched.add(k);
+    const nv = normalize(k, S.v[k]);
+    if (nv !== S.v[k]) { S.v[k] = nv; setDom(k); scheduleSave(); }
+    if (k === 'numDoc') checkDoc();
+    update();
+  });
+  form.addEventListener('submit', (e) => { e.preventDefault(); openReview(); });
+
+  // Enter pasa al siguiente campo, como en los formularios de captura de un ERP.
+  form.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    const t = e.target;
+    if (!t.matches('input, select')) return;
+    e.preventDefault();
+    const list = focusables();
+    let i = list.indexOf(t);
+    if (i < 0 && t.type === 'radio') i = list.findIndex((el) => el.name === t.name);
+    const next = list[i + 1];
+    if (next) { next.focus(); } else $('#btn-review').focus();
+  });
+
+  form.addEventListener('scroll', () => { if (!spyQ) { spyQ = true; requestAnimationFrame(spy); } }, { passive: true });
+
+  stage.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !stage.contains(b)) return;
+    const id = b.id, act = b.dataset.act;
+    if (id === 'b-scan' || id === 'b-paste' || id === 'b-req') { const n = id.slice(2); if (S.panel === n) closePanels(); else openPanel(n); return; }
+    if (b.dataset.sec) {
+      const sec = $('#sec-' + b.dataset.sec);
+      scrollToEl(sec);
+      $('#h-' + b.dataset.sec).focus({ preventScroll: true });
+      return;
+    }
+    if (b.dataset.req) { applyReq(REQS.find((r) => r.id === b.dataset.req)); return; }
+    if (b.dataset.fix) {
+      const k = b.dataset.fix, r = evalField(FIELDS[k]);
+      if (r.warn && r.warn.fix) { userSet(k, r.warn.fix.value); focusField(k, false); }
+      return;
+    }
+    if (b.dataset.accept) {
+      const k = b.dataset.accept;
+      S.accepted.push(`${k}:${get(k)}`);
+      dropUndo();
+      changed();
+      focusField(k, false);
+      return;
+    }
+    if (b.dataset.del != null) {
+      const i = +b.dataset.del, nombre = S.benef[i] && S.benef[i].nombre;
+      S.benef.splice(i, 1);
+      dropUndo();
+      renderRows();
+      changed();
+      announce(`Se quitó a ${nombre || 'un beneficiario'}.`);
+      $('#add-row').focus();
+      return;
+    }
+    switch (id || act) {
+      case 'add-row':
+        S.benef.push({ id: ++rowSeq, nombre: '', parentesco: '', fechaNac: '', mark: null });
+        dropUndo();
+        renderRows();
+        changed();
+        $(`#b${S.benef[S.benef.length - 1].id}-nombre`).focus();
+        break;
+      case 'paste-sample': $('#paste-text').value = EJEMPLO; $('#paste-msg').textContent = ''; $('#paste-text').focus(); break;
+      case 'paste-go': applyPaste($('#paste-text').value); break;
+      case 'close-panel': closePanels(true); break;
+      case 'undo': undo(); break;
+      case 'reset': resetAll(); break;
+      case 'rehire': applyRehire(); break;
+      case 'rehire-no': S.rehire = 'dismissed'; update(); focusField('nombres', false); break;
+      case 'next': goNext(); break;
+      case 'btn-discard': S.confirmDiscard = true; paintFoot(); $('#foot-status button').focus(); break;
+      case 'discard-yes': resetAll(); announce('Se descartó el borrador.'); break;
+      case 'discard-no': S.confirmDiscard = false; paintFoot(); $('#btn-discard').focus(); break;
+      case 'btn-review': if ($('#review').hidden) openReview(); else closeReview(true); break;
+      case 'rv-back': closeReview(true); break;
+      case 'rv-go': create(); break;
+      case 'btn-edit': S.mode = 'edit'; paintRead(); update(); focusField('nombres'); break;
+      case 'btn-new': resetAll(); focusField('numDoc'); break;
+    }
+  });
+
+  document.addEventListener('pointerdown', (e) => {
+    if (S.panel && !e.target.closest('.fpanel, .fill-row')) closePanels();
+    if (!$('#review').hidden && !e.target.closest('#review, #btn-review')) closeReview();
+  });
+
+  const editable = (el) => !!(el && el.matches && el.matches('input:not([type=radio]):not([type=checkbox]), textarea, select, [contenteditable="true"], [contenteditable=""]'));
+  document.addEventListener('keydown', (e) => {
+    const mod = e.ctrlKey || e.metaKey, key = e.key.toLowerCase();
+    if (mod && !e.shiftKey && !e.altKey && key === 's') { e.preventDefault(); if (S.mode === 'edit') { if (document.activeElement && document.activeElement.blur && form.contains(document.activeElement)) document.activeElement.blur(); openReview(); } return; }
+    if (mod && e.key === 'Enter' && !$('#review').hidden) { e.preventDefault(); create(); return; }
+    if (mod && key === 'z' && !e.shiftKey && !editable(e.target) && S.last) { e.preventDefault(); undo(); return; }
+    if (e.key === 'Escape') {
+      if (!$('#review').hidden) { e.preventDefault(); closeReview(true); }
+      else if (S.panel) { e.preventDefault(); closePanels(true); }
+    }
+  });
+  // Pegar sobre el formulario (fuera de un campo) lo llena, como <nx-paste-fill>.
+  document.addEventListener('paste', (e) => {
+    if (S.mode !== 'edit' || editable(e.target)) return;
+    if (!(e.target === document.body || stage.contains(e.target))) return;
+    const txt = (e.clipboardData && e.clipboardData.getData('text')) || '';
+    if (!txt.trim()) return;
+    e.preventDefault();
+    applyPaste(txt);
+  });
+
+  // ------------------------------------------------------------------ arranque
+  renderForm();
+  INPUT_KEYS.forEach(setDom);
+  renderRows();
+  loadDraft();
+  paintStatus();
+  update();
+  spy();
+  setInterval(paintDraft, 10000);
+  window.__nxForm = { S, fill, undo, parseText, parseMoney, prueba, evalField: (k) => evalField(FIELDS[k]) };
+})();
+</script>

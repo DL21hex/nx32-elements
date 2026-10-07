@@ -38,8 +38,10 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-checklist>` + núcleo (ESM); los campos de evidencia, el resumen y la firma se cargan aparte | ≈ 12,1 KB |
 | `<nx-recurrence>` + núcleo (ESM); el intérprete de frases y los controles se cargan aparte | ≈ 9,4 KB |
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
-| `nx32-elements.css` (tokens + todos los componentes) | ≈ 62,2 KB |
-| `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 369 KB |
+| `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
+| `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 17,8 KB |
+| `nx32-elements.css` (tokens + todos los componentes) | ≈ 66,9 KB |
+| `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 396 KB |
 
 Cada componente es una subruta (`nx32-elements/sidemenu`, `nx32-elements/button`): una app solo carga lo que importa.
 Los cambios de cada versión, y cómo migrar, están en [CHANGELOG.md](CHANGELOG.md).
@@ -400,7 +402,7 @@ que tiene dónde verse (un campo o una celda del `schema`). `endpoint` y `action
 
 | | |
 |---|---|
-| Propiedades / atributos | `schema`, `endpoint`, `action`, `review-below`, `accept`, `max-size` (bytes, 20 MB), `labels` |
+| Propiedades / atributos | `schema`, `endpoint`, `action`, `for` (un `<nx-form>` que se llena al confirmar: el botón dice «Pasar al formulario», las tablas llegan como filas y el origen es el nombre del archivo), `review-below`, `accept`, `max-size` (bytes, 20 MB), `labels` |
 | Métodos | `extract(file)`, `begin()`, `push(evento)`, `end()`, `setCheck()`, `reset()`, `values`, `pending`, `state` |
 | Eventos | `nx-doc-capture-file` (cancelable), `nx-doc-capture-start`, `nx-doc-capture-done`, `nx-doc-capture-change`, `nx-doc-capture-submit` (cancelable) |
 
@@ -1219,7 +1221,7 @@ WhatsApp o una firma —con Ctrl/⌘+V sobre el formulario, en la zona «Pega aq
 
 | | |
 |---|---|
-| Propiedades / atributos | `fields`, `endpoint`, `review-below`, `for` (el `id` de un formulario en otra parte), `locale`, `labels` · `state`, `text`, `pending` |
+| Propiedades / atributos | `fields`, `endpoint`, `review-below`, `for` (el `id` de un formulario en otra parte), `locale`, `labels` · `state`, `text`, `pending`. Con un `<nx-form>` de destino (el que envuelve o el de `for`), los campos salen de su esquema y lo encontrado se le entrega con `fill()`: chip «Texto pegado» con el tramo del texto de cada dato, y deshacer es el del formulario |
 | Métodos | `fill(text)`, `undo()`, `clear()` |
 | Eventos | `nx-paste-fill-start` `{text}` (cancelable), `nx-paste-fill-done` `{values, fields}`, `nx-paste-fill-undo` `{values}` |
 | Funciones | `extractPasteData(text)`, `matchPasteFields(fields, text)`, `nitCheckDigit(base)`: el mismo extractor, en el navegador o en un backend en JavaScript |
@@ -1422,7 +1424,7 @@ contar antes de 1,5 s, ni mientras siga quieto frente a la cámara.
 
 | | |
 |---|---|
-| Propiedades / atributos | `mode` (`single`, `count`), `formats` (lista con comas o JSON; `ean_13`, `ean_8`, `upc_a`, `upc_e`, `code_128`, `code_39`, `code_93`, `codabar`, `itf`, `qr_code`, `data_matrix`, `pdf417`, `aztec`), `source` (URL + código, o con `{code}`), `items` (`{code, qty, name?, unit?, expected?, format?}`), `muted`, `autostart`, `wedge` (`page`, `field`, `off`), `locale`, `labels` · `state`, `problem` (solo lectura) |
+| Propiedades / atributos | `mode` (`single`, `count`), `formats` (lista con comas o JSON; `ean_13`, `ean_8`, `upc_a`, `upc_e`, `code_128`, `code_39`, `code_93`, `codabar`, `itf`, `qr_code`, `data_matrix`, `pdf417`, `aztec`), `source` (URL + código, o con `{code}`), `items` (`{code, qty, name?, unit?, expected?, format?}`), `muted`, `autostart`, `wedge` (`page`, `field`, `off`), `field` (la clave de un `<nx-form>` que llena cada lectura, con el origen «Escáner»; `filas.campo` agrega una fila por código), `for` (el `id` de ese formulario; sin él, el que contiene al escáner), `locale`, `labels` · `state`, `problem` (solo lectura) |
 | Métodos | `start()`, `stop()`, `add(código, cantidad?)`, `undo()`, `clear()`, `focus()` |
 | Eventos | `nx-scan-read` `{code, format, via}` (cancelable; `via`: `camera`, `photo`, `manual`, `wedge`, `api`), `nx-scan-count` `{items}`, `nx-scan-error` `{problem}` (`nodetector`, `nocamera`, `insecure`, `denied`, `busy`, `failed`) |
 | `source` | `GET` → `{code, name, unit?, expected?}`; 404 si no existe («Código sin registrar»). Una vez por código |
@@ -2066,6 +2068,127 @@ guardar.onclick = async () => {
 | `<nx-notice>` | `tone` (`info`, `success`, `warning`, `danger`), `text`, `action`, `action-href` · `nx-notice-action` `{action}` |
 | `<nx-badge>` | `tone` (`neutral`, `success`, `info`, `warning`, `danger`), `label` (si no va como contenido) |
 | Tokens nuevos | `--nx-warning`, `--nx-warning-ink` (texto e íconos), `--nx-warning-soft` |
+
+## Formularios: `<nx-form>` y `<nx-field>`
+
+**Un formulario entero desde un esquema JSON**, con aspecto de formulario sobrio (etiqueta arriba,
+«Opcional» en vez de asteriscos, una sola línea debajo) y lo que ahorra trabajo a quien lo llena:
+los datos llegan de afuera y dicen de dónde vinieron, los errores no estorban mientras se escribe y
+lo escrito no se pierde.
+
+- **El esquema.** `sections` (`[{id?, heading?, description?, fields}]`) o `fields` para una sola
+  sección. Cada campo: `key`, `label`, `type`, `required`, `hint`, `placeholder`, `span` (de seis
+  columnas; en angosto se reparten solas), `value`, `options`, límites (`min`/`max`, también
+  `"today"` en fechas; `minLength`/`maxLength`; `pattern` con `patternMessage`), `rows`,
+  `currency`, `decimals`, `mono` y `autocomplete`. Tipos: `text`, `email`, `tel`, `url`, `textarea`,
+  `number`, `money` y `percent` (son `<nx-number>`, que se carga solo si el esquema los tiene),
+  `date`, `select`, `radio`, `segmented` (radios como botones pegados), `checkbox`, `checkboxes` y
+  `readonly` (un valor que no se edita aquí, con candado). Nada es una función: todo puede venir
+  del backend (BDUI).
+- **Aparecer según otros campos (`when`).** `{tipoContrato: "Término fijo"}`, una lista (alguno
+  de), `{not: …}` o `{filled: true}`, por clave. Lo oculto no se valida ni sale en `values`, y un
+  campo que depende de uno oculto también se oculta.
+- **Lo habitual de una opción (`options[].fills`).** Elegir «Soldador» llena el área, el centro de
+  costo y la clase de riesgo, con el chip «Soldador» («Lo habitual para Soldador»), solo en campos
+  vacíos o que llenó el sistema.
+- **Listas largas con buscador.** Un `select` con más de 12 opciones, con `search` (`true`, o las
+  columnas en las que busca: `[{key: "label", label: "Nombre"}, {key: "cedula", label: "Cédula",
+  kind: "digits"}]`, con esas claves en cada opción) o con `source` (busca en el servidor, del mismo
+  origen) es un `<nx-select>`, que se carga solo si el esquema lo usa.
+- **Filas (`type: "rows"`).** Un grupo de campos que se repite: los beneficiarios, las líneas de una
+  factura. `fields` son los de cada fila (con su `span`, sus reglas y sus `fills`, que llenan su misma
+  fila), `min`/`max` cuentan filas, `addLabel` es el botón. El valor es un arreglo de objetos;
+  `fill()` agrega las filas que no estaban, y los errores del servidor por fila van como
+  `"beneficiarios.0.nombre"`.
+- **Llenar desde afuera: `fill(valores, origen)`.** Una requisición del servidor, la cédula, lo que
+  dijo la app: cada dato lleva su chip (`origen` es `"Cédula"` o `{label, detail}`; `details` cambia
+  el detalle de alguno) hasta que la persona lo cambia, el formulario dice «7 datos de
+  Cédula · Deshacer», los campos se iluminan en orden y **nunca se pisa lo que la persona escribió**
+  («respeté 1 que ya escribiste»; `{force: true}` para la app). `undo()` o <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+  fuera de un campo deshacen el último llenado entero. `sources` dice de dónde vino cada dato, para
+  la bitácora.
+- **Las fuentes de la librería lo llenan solas.** `<nx-paste-fill>` que envuelve el formulario lee
+  sus campos del esquema y le entrega lo que encuentra en un texto pegado (chip «Texto pegado», con el
+  tramo del texto de cada dato); `<nx-scan field="guia">` llena ese campo con cada lectura
+  (`field="recibidos.codigo"` agrega una fila por código); `<nx-doc-capture for="id">` pasa la
+  factura leída al confirmar, con las tablas como filas y el nombre del archivo como origen. Las
+  fechas que llegan como «12/10/2026» se leen día/mes/año (mes/día con `locale="en-US"`).
+- **Revisar sin estorbar.** Un error sale al dejar el campo o al enviar, no mientras se escribe por
+  primera vez. Un aviso no bloquea y trae su arreglo: un correo «@gmial.com» dice «¿Quisiste decir
+  …@gmail.com?» con «Usar gmail.com». El texto se limpia al salir (espacios; el correo en
+  minúsculas; «https://» si falta). `errors` muestra los del servidor (se borran al cambiar el
+  campo); `warnings` y `hints`, los avisos y ayudas de la app.
+- **Cuánto falta.** Con tres secciones o más, un índice al lado (una franja arriba en angosto) con el
+  avance de cada sección («3 de 5», «Completa», «2 por llenar») y la sección que se ve. El pie,
+  pegado abajo: «Faltan 4 datos obligatorios · Ir al siguiente» (al que falta después del último
+  campo tocado) y el botón de enviar.
+- **Teclado de captura.** <kbd>Enter</kbd> pasa al campo siguiente que se ve (en el último, al botón
+  de enviar), <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> envía.
+- **Borrador solo (`draft`).** Lo que cambió se guarda en este navegador mientras se escribe
+  («Borrador guardado · hace 5 s») y se recupera al volver, encima del registro que cargue la app
+  («Recuperamos tu borrador… · Empezar de cero»). `clearDraft()` cuando el servidor confirme.
+- **Lectura (`mode="read"`).** La misma rejilla con los valores como texto: montos y fechas con el
+  locale, opciones con su texto, sí/no, «—» lo vacío.
+
+Al enviar (botón, <kbd>Ctrl</kbd>+<kbd>S</kbd> o `submit()`), si algo falta se muestran todos los
+errores, se anuncia cuántos y se enfoca el primero; si no, `nx-form-submit` lleva `{values,
+sources}`. Un hijo con `slot="tools"` (los botones para llenar desde afuera) se ve bajo el título, sin
+moverse.
+
+```html
+<nx-form id="ingreso" heading="Nuevo ingreso" submit-label="Crear ingreso" draft="ingreso" currency="COP">
+  <div slot="tools"><button id="cedula">Leer la cédula</button></div>
+</nx-form>
+```
+
+```js
+ingreso.sections = [{
+  heading: "Contrato",
+  fields: [
+    { key: "cargo", label: "Cargo", type: "select", required: true, span: 3,
+      options: [{ value: "Soldador", fills: { area: "Producción", riesgo: "IV" } }] },
+    { key: "area", label: "Área", type: "select", required: true, span: 3, options: ["Producción", "Logística"] },
+    { key: "tipoContrato", label: "Tipo de contrato", type: "segmented", options: ["Indefinido", "Término fijo"] },
+    { key: "fin", label: "Fecha de terminación", type: "date", required: true, when: { tipoContrato: "Término fijo" } },
+    { key: "salario", label: "Salario mensual", type: "money", required: true, min: 1 },
+  ],
+}];
+cedula.onclick = async () => ingreso.fill(await leerCedula(), { label: "Cédula", detail: "Leído del código de barras" });
+ingreso.addEventListener("nx-form-submit", async (e) => {
+  const r = await api.crear(e.detail.values, e.detail.sources);
+  if (r.errors) ingreso.errors = r.errors; // {correo: "Ya existe"}
+  else ingreso.clearDraft();
+});
+```
+
+Las reglas del negocio (un periodo de prueba, un total) las calcula la app al oír `nx-form-change`
+o `nx-form-fill` y las devuelve con `fill({prueba: …})` en un campo `readonly` y `hints` con su porqué.
+
+**`<nx-field>`, el campo de la casa.** Lo usa `<nx-form>` y sirve solo: envuelve un control tuyo
+(`<input>`, `<select>`, `<textarea>`, `<nx-number>`, `<nx-select>`… o un grupo de radios o casillas),
+sin moverlo, y le pone la etiqueta (`<label for>`, o el nombre del grupo con `role="radiogroup"`),
+«Opcional», el chip de origen y una sola línea debajo (error, aviso con su botón o ayuda), con
+`aria-describedby`, `aria-invalid` y `required`. Lo que la persona cambia borra el error, el aviso y
+el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices`, `.nx-segmented` y
+`.nx-form-grid` (seis columnas, `span` en cada campo) sirven también sin el elemento.
+
+```html
+<form class="nx-form-grid">
+  <nx-field label="Correo personal" hint="Allí llegan los desprendibles" span="3" required>
+    <input type="email" name="correo">
+  </nx-field>
+  <nx-field label="Salario mensual" span="3" source="REQ-118" source-detail="De la requisición">
+    <nx-number name="salario" format="money" currency="COP" value="2100000"></nx-number>
+  </nx-field>
+</form>
+```
+
+| | |
+|---|---|
+| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources` · `nx-form-change` `{key, value, values}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
+| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows)}` |
+| `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
+| Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |
 
 ## `<nx-breadcrumb>`
 

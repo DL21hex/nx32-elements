@@ -14,6 +14,7 @@
  */
 import { Base, upgrade } from "../../core/define";
 import { h, safeEndpoint, safeHref, setAttr } from "../../core/dom";
+import { fillTarget } from "../../core/fill";
 import { mergeLabels } from "../../core/labels";
 import { formatElapsed } from "../../core/format";
 import { resolveLocale } from "../../core/locale";
@@ -44,6 +45,9 @@ export const CAPTURE_LABELS: CaptureLabels = {
   zoomOut: "Alejar",
   tooBig: "El archivo pasa de {max}",
   badType: "Ese tipo de archivo no se admite",
+  toForm: "Pasar al formulario",
+  formSource: "Documento",
+  formDetail: "Leído de {file}",
 };
 
 const UPLOAD = '<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>';
@@ -69,7 +73,7 @@ function safeSrc(src: string): string | undefined {
 }
 
 export class NxDocCapture extends Base {
-  static observedAttributes = ["endpoint", "action", "review-below", "labels", "accept", "schema", "max-size"];
+  static observedAttributes = ["endpoint", "action", "review-below", "labels", "accept", "schema", "max-size", "for"];
 
   #schema: CaptureSchemaItem[] = [];
   #labels: CaptureLabels = CAPTURE_LABELS;
@@ -127,6 +131,15 @@ export class NxDocCapture extends Base {
   }
   set action(v: string | null) {
     this.#attr("action", v);
+  }
+  /** El `id` de un `<nx-form>` que se llena al confirmar (sin él, el que contiene o envuelve a la
+   *  captura). Con un formulario de destino, el botón dice «Pasar al formulario» y no se registra nada
+   *  aquí: lo guarda el formulario. Las claves del `schema` son las del formulario. */
+  get for(): string | null {
+    return this.getAttribute("for");
+  }
+  set for(v: string | null) {
+    this.#attr("for", v);
   }
   /** Confianza por debajo de la cual un campo exige revisión (0–1, por defecto 0,8). */
   get reviewBelow(): number {
@@ -658,7 +671,7 @@ export class NxDocCapture extends Base {
     const warnText = warns ? ` · ${this.#fmt(L.warnings, { n: warns })}` : "";
     this.#footMsg!.textContent =
       st !== "review" ? "" : errors.length ? errors[0].message : pending.length ? this.#fmt(L.pending, { n: pending.length }) + warnText : L.ready + warnText;
-    this.#submit!.label = L.submit;
+    this.#submit!.label = fillTarget(this, this.for) ? L.toForm : L.submit;
     this.#submit!.disabled = blocked;
     const again = this.querySelector<HTMLElement>(".nx-cap__again")!;
     again.textContent = L.again;
@@ -674,6 +687,13 @@ export class NxDocCapture extends Base {
       checks: [...this.#checks.values()].map(({ id, status, message }) => ({ id, status, message })),
     };
     const go = this.dispatchEvent(new CustomEvent("nx-doc-capture-submit", { detail, bubbles: true, composed: true, cancelable: true }));
+    const form = go ? fillTarget(this, this.for) : null;
+    if (form) {
+      const L = this.#labels;
+      const file = this.#fileName;
+      form.fill(detail.values, { label: file || L.formSource, detail: file ? L.formDetail.replace("{file}", file) : L.formSource });
+      return;
+    }
     const url = safeEndpoint(this.action);
     if (!go || !url) return;
     await this.#submit!.run(async () => {

@@ -15,6 +15,7 @@
  */
 import { Base, boolAttr, upgrade } from "../../core/define";
 import { h, safeEndpoint, safeHref } from "../../core/dom";
+import { fillTarget } from "../../core/fill";
 import { glyph } from "../../core/icons";
 import { nxFormat, resolveLocale } from "../../core/locale";
 import {
@@ -94,6 +95,8 @@ export const SCAN_LABELS: ScanLabels = {
   removed: "{name}: se quitó del conteo",
   result: "Código leído",
   again: "Escanear otro",
+  formSource: "Escáner",
+  formDetail: "Leído con el escáner ({format})",
 };
 
 const I_SCAN = '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/>';
@@ -135,7 +138,7 @@ let uid = 0;
 type Read = { code: string; qty: number; created: boolean };
 
 export class NxScan extends Base {
-  static observedAttributes = ["mode", "formats", "source", "muted", "wedge", "items", "labels", "locale"];
+  static observedAttributes = ["mode", "formats", "source", "muted", "wedge", "items", "labels", "locale", "for", "field"];
 
   #uid = `nx-scan${++uid}`;
   #labels: ScanLabels = SCAN_LABELS;
@@ -219,6 +222,23 @@ export class NxScan extends Base {
   set source(v: string | null) {
     if (v) this.setAttribute("source", v);
     else this.removeAttribute("source");
+  }
+  /** El campo de un `<nx-form>` que llena cada lectura (su `key`), con el origen «Escáner». Con
+   *  `filas.campo` (un campo `rows`), cada código nuevo agrega una fila. */
+  get field(): string | null {
+    return this.getAttribute("field");
+  }
+  set field(v: string | null) {
+    if (v) this.setAttribute("field", v);
+    else this.removeAttribute("field");
+  }
+  /** El `id` del `<nx-form>` que llena `field` (sin él, el que contiene al escáner). */
+  get for(): string | null {
+    return this.getAttribute("for");
+  }
+  set for(v: string | null) {
+    if (v) this.setAttribute("for", v);
+    else this.removeAttribute("for");
   }
   /** Sin el «bip» al leer (la vibración sigue). */
   get muted(): boolean {
@@ -541,6 +561,7 @@ export class NxScan extends Base {
   #accept(code: string, format: string, via: ScanVia, qty = 1): boolean {
     const detail: ScanDetail = { code, format, via };
     if (!this.dispatchEvent(new CustomEvent("nx-scan-read", { detail, bubbles: true, composed: true, cancelable: true }))) return false;
+    this.#toForm(code, format);
     const L = this.#labels;
     const sensed = via === "camera" || via === "photo";
     if (this.mode === "single") {
@@ -569,6 +590,17 @@ export class NxScan extends Base {
     this.#lookup(code);
     this.#toast(text, over, () => this.#lastRead === read && this.#undoRead(read));
     return true;
+  }
+
+  /** Con `field`, la lectura llena ese campo del `<nx-form>` (o agrega una fila), con su origen. */
+  #toForm(code: string, format: string): void {
+    const key = this.field?.trim();
+    const form = key ? fillTarget(this, this.for) : null;
+    if (!key || !form) return;
+    const L = this.#labels;
+    const dot = key.indexOf(".");
+    const values = dot > 0 ? { [key.slice(0, dot)]: [{ [key.slice(dot + 1)]: code }] } : { [key]: code };
+    form.fill(values, { label: L.formSource, detail: fill(L.formDetail, { format: format || "—" }) });
   }
 
   #undoRead(r: Read): void {

@@ -58,6 +58,8 @@ import { mountGuardDemo } from "./demo-guard";
 import "./pages/guard.css";
 import { mountImportDemo } from "./demo-import";
 import "./pages/import.css";
+import { mountFormDemo } from "./demo-form";
+import "./pages/form.css";
 import { mountKeytipsDemo } from "./demo-keytips";
 import "./pages/keytips.css";
 
@@ -178,6 +180,7 @@ const NAV: MenuItem[] = [
     icon: "upload",
     section: "Componentes",
     children: [
+      { id: "form", label: "Formularios", href: "#/form", icon: "clipboard-list" },
       { id: "capture", label: "Captura", href: "#/capture", icon: "receipt" },
       { id: "paste-fill", label: "Pegar y llenar", href: "#/paste-fill", icon: "file-text" },
       { id: "import", label: "Importar", href: "#/import", icon: "upload" },
@@ -259,6 +262,7 @@ const PAGES: Record<string, { template: string; mount?: (root: HTMLElement) => v
   "#/signature": { template: "page-signature", mount: mountSignatureDemo },
   "#/planner": { template: "page-planner", mount: mountPlannerDemo },
   "#/review": { template: "page-review", mount: mountReviewDemo },
+  "#/form": { template: "page-form", mount: mountFormDemo },
   "#/voice": { template: "page-voice", mount: mountVoiceDemo },
   "#/thread": { template: "page-thread", mount: mountThreadDemo },
   "#/checklist": { template: "page-checklist", mount: mountChecklistDemo },

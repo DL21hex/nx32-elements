@@ -274,6 +274,26 @@ describe("<nx-inbox>: aprobar exige conocer el impacto", () => {
     expect(el.querySelector(".nx-inbox__block")!.textContent).toBe("Ya tiene un pago");
   });
 
+  it("rechazar mientras A espera el impacto: el rechazo vale y la aprobación pendiente no sigue", async () => {
+    let release!: () => void;
+    const fetchMock = vi.fn(async () => {
+      await new Promise<void>((r) => (release = r));
+      return new Response('{"type":"impact","label":"1 pago"}\n{"type":"done"}\n');
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const el = mount();
+    const decided: string[] = [];
+    el.addEventListener("nx-inbox-decide", (e) => decided.push(`${e.detail.decision} ${e.detail.ids.join(",")}`));
+    key(el, "j");
+    const approve = el.decide("approve");
+    await until(() => fetchMock.mock.calls.length === 1);
+    await expect(el.decide("reject", undefined, "Proveedor sin papeles al día")).resolves.not.toBe("cancel");
+    release();
+    await expect(approve).resolves.toBe("cancel");
+    expect(decided).toEqual(["reject 2310"]);
+    expect(ids(el)).not.toContain("2310");
+  });
+
   it("en lote (Ctrl+A, A): pide los impactos que faltan y omite los bloqueados", async () => {
     vi.stubGlobal("fetch", blocking());
     const el = mount();

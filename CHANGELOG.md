@@ -1,5 +1,22 @@
 # Registro de cambios
 
+## 0.6.1 — 2026-10-07
+
+### `<nx-inbox>`
+
+- **Rechazar mientras A espera el impacto ya no se pierde.** Al aprobar un ítem cuyo impacto todavía
+  llegaba, el ítem quedaba «en revisión», y un rechazo con motivo en ese momento se descartaba sin
+  aviso. Ahora el rechazo vale y la aprobación pendiente no sigue (el ítem ya no está). Lo destapó
+  la verificación con la máquina cargada.
+
+### Desarrollo
+
+- **`npm run check` no falla por carga.** Playwright abre menos navegadores a la vez (según núcleos y
+  RAM; `NX_E2E_WORKERS` lo fija), da más margen a las esperas y reintenta una vez; lo que pasa al
+  reintentar se ve como «flaky». La galería se compila al arrancar Vite (`server.warmup`). Antes,
+  con seis navegadores, la swap se llenaba y en cada corrida vencían una o dos pruebas de Firefox
+  distintas.
+
 ## 0.6.0 — 2026-10-07
 
 ### `<nx-form>` (nuevo): un formulario entero desde un esquema

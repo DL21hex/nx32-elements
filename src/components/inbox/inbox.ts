@@ -173,7 +173,10 @@ export class NxInbox extends Base {
    */
   async decide(decision: InboxDecision, ids?: string[], reason?: string): Promise<InboxOutcome> {
     const want = ids ?? (this.#selected.size ? [...this.#selected] : this.#active ? [this.#active] : []);
-    let items = this.#visible().filter((i) => want.includes(i.id) && !this.#checking.has(i.id));
+    // Lo que espera su impacto para aprobarse no se aprueba dos veces; rechazarlo sí se puede (al
+    // llegar el impacto ya no está, y la aprobación pendiente no sigue). Antes se descartaba y el
+    // rechazo con motivo se perdía sin aviso si el impacto tardaba.
+    let items = this.#visible().filter((i) => want.includes(i.id) && (decision !== "approve" || !this.#checking.has(i.id)));
     let skipped = 0;
     let unverified = 0;
     if (decision === "approve") {

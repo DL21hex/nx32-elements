@@ -2615,6 +2615,12 @@ Las verificaciones corren en local. En GitHub solo corre el despliegue de la gal
 (`.githooks/`), que corre `npm run check` antes de cada `git push` y no deja enviar si algo falla.
 WebKit se prueba si la máquina lo puede abrir; en Linux necesita `sudo npx playwright install-deps webkit`.
 
+En `npm run check`, Playwright abre menos navegadores a la vez (uno por cada 4 núcleos y por cada
+2,5 GB de RAM, lo que alcance primero; `NX_E2E_WORKERS` lo fija), espera más (10 s por aserción,
+60 s por prueba) y reintenta una vez: así una máquina cargada por la propia verificación no hace
+vencer pruebas que no tienen nada roto. Lo que pasa al reintentar sale como «flaky» en el resumen:
+si una prueba aparece ahí seguido, hay algo que mirar (así salió la carrera de `<nx-inbox>` de la 0.6.1).
+
 ```bash
 npm run example:solid  # ejemplo con @solidjs/router sobre dist/ (hace falta build antes)
 ```

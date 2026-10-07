@@ -6,7 +6,9 @@ import { defineConfig } from "vite";
 // `vite build`               → librería ESM, una entrada por subruta del package
 // `vite build --mode iife`   → dist/nx32-elements.iife.js, todo-en-uno para <script>
 export default defineConfig(({ command, mode }) => {
-  if (command === "serve") return { root: "gallery", server: { port: 5173 } };
+  // `warmup`: la galería se compila al arrancar, no cuando la piden a la vez los primeros navegadores
+  // de las pruebas (en `npm run check` eso hacía vencer esperas).
+  if (command === "serve") return { root: "gallery", server: { port: 5173, warmup: { clientFiles: ["./main.ts"] } } };
 
   if (mode === "gallery") {
     // Rutas relativas: sirve en la raíz de un dominio o en una subcarpeta (usuario.github.io/nx32-elements/).

@@ -48,7 +48,8 @@ test("editar escribiendo, deshacer y rehacer (también con los botones)", async 
   await page.keyboard.press(`${mod(page)}+z`);
   await expect(monto).toHaveText(before!);
   await expect(monto).not.toHaveClass(/is-edited/);
-  await page.getByRole("button", { name: /Rehacer/ }).click();
+  // La de compras: la página trae también la tabla de horas, con su propio «Rehacer».
+  await grid(page).getByRole("button", { name: /Rehacer/ }).click();
   await expect(monto).toHaveText("$ 123");
 });
 

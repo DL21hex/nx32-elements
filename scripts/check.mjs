@@ -36,7 +36,8 @@ for (const [name, cmd, args] of steps) {
   const t0 = performance.now();
   // Playwright levanta su propia galería en un puerto aparte: una `vite` abierta en 5173 (quizá de
   // otro worktree) no se prueba por error.
-  const env = { ...process.env, NX_E2E_PORT: process.env.NX_E2E_PORT ?? "5199" };
+  // `NX_CHECK`: Playwright corre con menos navegadores a la vez y más margen (playwright.config.ts).
+  const env = { ...process.env, NX_E2E_PORT: process.env.NX_E2E_PORT ?? "5199", NX_CHECK: "1" };
   const r = spawnSync(cmd, args, { stdio: "inherit", shell: process.platform === "win32", env });
   const s = ((performance.now() - t0) / 1000).toFixed(1);
   done.push(`${r.status === 0 ? "✓" : "✗"} ${name} · ${s} s`);

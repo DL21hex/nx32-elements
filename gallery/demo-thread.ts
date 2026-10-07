@@ -46,7 +46,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function at(d: number, h: number, m = 0): string {
   const now = new Date();
   const t = new Date(now.getFullYear(), now.getMonth(), now.getDate() - d, h, m);
-  return (d === 0 && t > now ? new Date(now.getTime() - 20 * 60e3) : t).toISOString();
+  // Una hora de hoy que todavía no llega queda justo antes de ahora, en su orden: con «hace 20 min»
+  // para todas, abierta entre las 8:15 y las 9:05 la de las 9:05 quedaba antes que la de las 8:15.
+  return (d === 0 && t > now ? new Date(now.getTime() - (24 * 60 - (h * 60 + m))) : t).toISOString();
 }
 
 function seed(): ThreadComment[] {

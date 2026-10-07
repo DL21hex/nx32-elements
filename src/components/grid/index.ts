@@ -4,7 +4,8 @@ import { NxGrid } from "./grid";
 define("nx-grid", NxGrid);
 
 export { NxGrid, GRID_LABELS } from "./grid";
-export { applyFilters, crossfilter, filterLabel, formatCell, parseTSV, sortRows, toTSV } from "./logic";
+export { applyFilters, crossfilter, filterLabel, formatCell, parseTSV, sortRows, toHTMLTable, toTSV } from "./logic";
+export type { HtmlCell } from "./logic";
 export type {
   GridAccents,
   GridAction,

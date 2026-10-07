@@ -493,6 +493,14 @@ Una tabla de datos que se explora sola:
   de una celda de Excel) se recorta con «…».
 - **Copiar sin fórmulas.** Un texto que empieza con `=`, `+`, `-` o `@` se copia con un apóstrofo
   delante (Excel lo pega como texto, no como fórmula); al pegarlo de vuelta en la tabla se quita.
+- **Copiar como tabla.** Con varias celdas, Ctrl+C también deja una tabla HTML con los encabezados
+  de las columnas y el formato de la tabla (montos, fechas, estados con su nombre, enlaces que
+  siguen siendo enlaces): pegada en un correo o en un documento es una tabla, no texto con
+  tabuladores. Los estilos van en línea y son sobrios (bordes finos, cabecera en gris, montos a la
+  derecha, con la letra del destino). Excel y Sheets prefieren ese HTML: pegan la fila de
+  encabezados, cada monto como número (`x:num`, `data-sheets-value`) y cada texto como texto, así
+  que tampoco ahí nada se vuelve fórmula y «00123» conserva los ceros. Una sola celda se copia solo
+  como valor. `toHTMLTable` arma la misma tabla para quien la necesite fuera de la grilla.
 - **Cliente o servidor.** Con `rows`, todo pasa en el navegador. Con `source`, se pide por bloques
   al desplazarse, y el backend devuelve los agregados. En el servidor, el filtro de una columna
   espera 250 ms tras el último cambio antes de pedir. Si un bloque no llega, sale `nx-grid-error` y

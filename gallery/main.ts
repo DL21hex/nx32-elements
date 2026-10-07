@@ -4,7 +4,7 @@ import "./gallery.css";
 import { render, type BduiNode } from "../src/bdui";
 import { lucide } from "../src/icons/index";
 import { installDemoApi } from "./demo-api";
-import { registerIcons, type CaptureSchemaItem, type CommandItem, type MenuItem, type NxAiAnswer, type NxButton, type NxCommand, type NxDialog, type NxDocCapture, type GridRow, type NxAgent, type NxExplain, type NxGrid, type NxInbox, type NxSelect, type NxSurvey, aggregateSurvey, applyFilters, nxConfirm, nxToast, type NxSidemenu, type RunContext } from "../src/index";
+import { registerIcons, type CaptureSchemaItem, type CommandItem, type MenuItem, type NxAiAnswer, type NxButton, type NxCommand, type NxDialog, type NxDocCapture, type GridColumn, type GridRow, type NxAgent, type NxExplain, type NxGrid, type NxInbox, type NxSelect, type NxSurvey, aggregateSurvey, applyFilters, nxConfirm, nxToast, type NxSidemenu, type RunContext } from "../src/index";
 import { DEMO_ITEMS, EMPLOYEE_FIELDS, EMPLOYEES } from "./demo-data";
 import { PURCHASE_COLUMNS, purchaseRows } from "./demo-grid";
 import { HR_COLUMNS, HR_INBOX, TODAY, hrEmployees } from "./demo-hr";
@@ -757,6 +757,44 @@ function mountGridDemo(root: HTMLElement) {
     { id: "anulados", label: "Anulados", menu: true, filters: [{ key: "estado", op: "in", values: ["anulado"] }] },
     { id: "mes", label: "Del último mes", hint: "por fecha", menu: true, filters: [{ key: "fecha", op: "range", rel: "last30" }] },
   ];
+  // Horas de un proceso, guardadas a la vista contra un servidor de mentira.
+  const times = root.querySelector<NxGrid>("#grid-times")!;
+  const timesLog = root.querySelector<HTMLOListElement>("#grid-times-log")!;
+  const step = (key: string, label: string): GridColumn => ({ key, label, type: "time", editable: true, sequence: "empaque" });
+  times.columns = [
+    { key: "finca", label: "Finca", sticky: true },
+    { key: "cont", label: "Cont.", type: "number", width: 80 },
+    step("caja", "Primera caja"),
+    step("pallet", "Primer pallet"),
+    step("ultima", "Última caja"),
+    step("cierre", "Cierre contenedor"),
+    step("salida", "Salida"),
+    { key: "avance", label: "Avance del día", type: "timeline", sequence: "empaque", facet: false },
+  ];
+  // Los atajos filtran por cómo va el proceso (el valor de la línea).
+  times.heading = "Empacadoras";
+  times.presets = [
+    { id: "curso", label: "En curso", filters: [{ key: "avance", op: "in", values: ["live"] }] },
+    { id: "listas", label: "Terminadas", filters: [{ key: "avance", op: "in", values: ["done"] }] },
+    { id: "revisar", label: "Por revisar", tone: "warning", filters: [{ key: "avance", op: "in", values: ["review"] }] },
+  ];
+  times.rows = [
+    { id: "1", finca: "Remanso", cont: 2, caja: "06:40", pallet: "07:15", ultima: "13:20", cierre: "14:05", salida: "14:50" },
+    { id: "2", finca: "Don Fuad", cont: 1, caja: "07:05", pallet: null, ultima: "12:40", cierre: null, salida: null },
+    { id: "3", finca: "La Esperanza", cont: 3, caja: "06:55", pallet: "06:30", ultima: null, cierre: null, salida: null },
+    { id: "4", finca: "Patio Alieva", cont: 1, caja: null, pallet: null, ultima: null, cierre: null, salida: null },
+  ];
+  times.addEventListener("nx-grid-change", (e) => {
+    const { changes } = e.detail;
+    const late = changes.find((c) => c.key === "salida" && typeof c.value === "string" && c.value < "06:00");
+    const work = new Promise<void>((ok, fail) => setTimeout(() => (late ? fail(new Error("La salida no puede ser antes de las 06:00")) : ok()), 700));
+    void times.save(changes, work).then((saved) => {
+      const li = document.createElement("li");
+      li.textContent = `${saved ? "guardado" : "no se guardó"} → ${changes.map((c) => `${c.id}.${c.key} = ${JSON.stringify(c.value)}`).join(", ")}`;
+      timesLog.prepend(li);
+      while (timesLog.children.length > 5) timesLog.lastElementChild!.remove();
+    });
+  });
   links.addEventListener("nx-grid-action", (e) => {
     const li = document.createElement("li");
     li.textContent = `nx-grid-action → ${e.detail.action} · ${e.detail.row.oc}`;

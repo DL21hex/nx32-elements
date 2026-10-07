@@ -1,7 +1,7 @@
 /**
  * `<nx-grid>`: tipos. Todo es JSON (BDUI): columnas, filas, filtros, orden y agrupación.
  */
-export type GridColumnType = "text" | "number" | "money" | "date" | "status";
+export type GridColumnType = "text" | "number" | "money" | "date" | "time" | "status" | "timeline";
 export type GridTone = "neutral" | "info" | "success" | "warning" | "danger";
 /** Cómo compara la grilla lo escrito al buscar y filtrar (`accents`). `"fold"` (por omisión): sin
  *  tildes ni mayúsculas, «porteria» encuentra «Portería». `"exact"`: sin mayúsculas pero con sus
@@ -18,7 +18,12 @@ export interface GridOption {
 export interface GridColumn {
   key: string;
   label: string;
-  /** Por defecto `text`. `date` espera texto ISO (`2026-03-12`). */
+  /** Por defecto `text`. `date` espera texto ISO (`2026-03-12`); `time`, la hora del día como
+   *  «HH:MM» de 24 horas (`"07:30"`, `"19:05"`), y editable entiende «730», «7:30 pm», «ahora»,
+   *  «+20» o «-10» (ver `readTime`). `timeline` dibuja los pasos de su proceso (`sequence`) sobre
+   *  una línea de horas (`hours`), con la hora de ahora; no se edita y su valor lo pone la tabla:
+   *  cómo va el proceso (`idle`, `live`, `done` o `review`, ver `SequenceState`), con su nombre y
+   *  tono en `options` (por defecto, `labels.stateIdle`…). Por él se filtra y se cuenta (atajos). */
   type?: GridColumnType;
   /** Ancho en px (por defecto según el tipo). */
   width?: number;
@@ -63,6 +68,18 @@ export interface GridColumn {
    *  es AA, no AH), y partir un nombre completo a ciegas no tiene arreglo («Abel Dario de Luquez
    *  Epinayu»): quien tiene nombres y apellidos por separado manda las iniciales. */
   initials?: string;
+  /** Las columnas con el mismo nombre de `sequence` son los pasos de un proceso, en el orden en que
+   *  se declararon (primera caja → último pallet → salida). En cada fila, un paso vacío con uno
+   *  posterior ya registrado se ve «Faltante» (`labels.stepMissing`), y un valor anterior al del
+   *  paso previo, en ámbar (`labels.stepOrder`). Se recalcula al editar. Horas, fechas y números.
+   *  En un proceso de horas editables, la celda del paso que sigue se ve «--:--», la cabecera de
+   *  cada paso dice cuántas filas lo tienen, y al escribir se ve qué hora se entendió, con los
+   *  pasos vecinos (ver `readTime`: «2» después de las 06:31 son las 14:00). Una columna
+   *  `timeline` con el mismo `sequence` lo dibuja. */
+  sequence?: string;
+  /** `timeline`: las horas que abarca la línea, `["04:00", "23:00"]` por defecto. Lo que cae
+   *  fuera queda en el borde. */
+  hours?: [string, string];
 }
 
 /** Una acción de fila: un botón (o un enlace) en la columna de acciones, fija a la derecha. */
@@ -163,6 +180,53 @@ export interface GridLabels {
   redone: string;
   /** Se anuncia si la fila que se editaba deja de estar en los datos (o su columna) y lo escrito se descarta. */
   editLost: string;
+  /** Un paso de un proceso (`sequence`) vacío, con uno posterior ya registrado. */
+  stepMissing: string;
+  /** Un paso con valor anterior al del paso previo: «Antes de «{step}»». */
+  stepOrder: string;
+  /** Lo escrito en una celda de hora no se entiende. */
+  timeInvalid: string;
+  /** Bajo una celda de hora vacía, mientras se escribe: cómo se escribe. */
+  timeHint: string;
+  /** Bajo una celda de hora con valor que se vació: al confirmar queda sin hora. */
+  timeEmpty: string;
+  /** El botón que pone la hora de ahora: «Ahora · {time}». */
+  timeNowButton: string;
+  /** El botón que deja la celda de hora sin hora. */
+  timeClear: string;
+  /** Se escribió «ahora». */
+  timeIsNow: string;
+  /** Una hora sin a. m./p. m. que se tomó de la tarde por el orden: {step} y {time} del paso anterior. */
+  timeAfternoon: string;
+  /** «+20»: {d} (la duración) después de {step} ({time}). */
+  timeAfter: string;
+  /** «-10»: hace {d}. */
+  timeAgo: string;
+  /** La hora queda antes del paso anterior ({step}, {time}). */
+  timeBeforePrev: string;
+  /** La hora queda después del paso siguiente ({step}, {time}). */
+  timeAfterNext: string;
+  /** La hora es más tarde que ahora ({time}). */
+  timeFuture: string;
+  /** «+20» sin un paso anterior con hora. */
+  timeNoPrev: string;
+  /** El paso que sigue en una fila (la celda «--:--»). */
+  stepNext: string;
+  /** La cabecera de un paso: {n} de {total} filas lo tienen ({step}). */
+  stepCount: string;
+  /** Cómo va un proceso (`timeline`): sin empezar, en curso, terminado, por revisar. */
+  stateIdle: string;
+  stateLive: string;
+  stateDone: string;
+  stateReview: string;
+  /** La línea de `timeline`: la hora de ahora ({time}). */
+  timelineNow: string;
+  /** Una celda que se está guardando (`save()`). */
+  saving: string;
+  /** Se guardó (`save()`, se anuncia). */
+  saved: string;
+  /** No se guardó (`save()`): la celda vuelve a su valor y se anuncia con el motivo. */
+  saveError: string;
   views: string;
   columns: string;
   saveView: string;

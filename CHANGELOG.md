@@ -1,5 +1,18 @@
 # Registro de cambios
 
+## 0.4.7 — 2026-10-07
+
+### `<nx-grid>`
+
+- **Copiar como tabla.** Con varias celdas, Ctrl+C deja también una tabla HTML (`text/html`) con
+  los encabezados de las columnas y lo que se ve en la tabla: montos con su formato, estados con su
+  nombre y enlaces (`href` de la columna) que siguen siendo enlaces. Pegada en un correo o en un
+  documento es una tabla con bordes finos y la cabecera en gris, no texto con tabuladores. El TSV
+  sigue igual para quien pega texto (y para pegar de vuelta en la tabla). Excel y Sheets prefieren
+  el HTML: ahora pegan también la fila de encabezados, cada monto como número y cada texto como
+  texto (nada se vuelve fórmula, «00123» conserva los ceros). Una sola celda va solo como valor.
+- **`toHTMLTable(head, rows, right)`** y el tipo `HtmlCell`, exportados junto a `toTSV`.
+
 ## 0.4.6 — 2026-10-06
 
 ### `<nx-grid>`

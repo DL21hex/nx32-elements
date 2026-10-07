@@ -1,5 +1,6 @@
-/** Lógica pura de `<nx-grid>`: valores, filtros, orden, grupos, estadísticas y TSV. Las barras del
- *  filtro de una columna están en `bars.ts` (solo las usa el panel, que se carga aparte). */
+/** Lógica pura de `<nx-grid>`: valores, filtros, orden, grupos, estadísticas, TSV y la tabla HTML
+ *  que se copia. Las barras del filtro de una columna están en `bars.ts` (solo las usa el panel, que
+ *  se carga aparte). */
 import { foldText, matchText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
 import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridRow, GridSort } from "./types";
@@ -379,6 +380,42 @@ const FORMULA = /^[=+\-@\t\r]/;
  *  «-5» de verdad se copia como número). */
 export function formulaSafe(text: string): string {
   return FORMULA.test(text) ? `'${text}` : text;
+}
+
+/** Una celda de la tabla que va al portapapeles como HTML (`toHTMLTable`). */
+export interface HtmlCell {
+  /** Lo que se ve, con el formato de la tabla. */
+  text: string;
+  /** El número sin formato: Excel y Sheets lo pegan como número aunque el texto diga «$ 8.000.000». */
+  num?: number;
+  /** Fecha sin formato (AAAA-MM-DD): la celda no se marca como texto, para que la hoja la lea. */
+  date?: boolean;
+  /** Dirección ya revisada (`safeHref`): la celda va como enlace. */
+  href?: string;
+}
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const CELL = "border:1px solid #d4d4d8;padding:4px 8px;vertical-align:top";
+
+/** El rango copiado como una tabla HTML con encabezados, para pegarla en un correo o en un
+ *  documento. Los estilos van en línea (los correos quitan las hojas de estilo) y son sobrios: bordes
+ *  finos, cabecera en gris y montos a la derecha, con la letra del destino. Excel y Sheets también
+ *  leen este HTML: cada número lleva su valor sin formato (`x:num`, `data-sheets-value`) y cada texto
+ *  va marcado como texto (`x:str`), así que «=1+1» no se vuelve fórmula y «00123» no pierde los ceros. */
+export function toHTMLTable(head: readonly string[], rows: readonly (readonly HtmlCell[])[], right: readonly boolean[] = []): string {
+  const align = (j: number) => (right[j] ? ";text-align:right" : ";text-align:left");
+  const th = head.map((t, j) => `<th style="${CELL};background:#f4f4f5;font-weight:600${align(j)}">${esc(t)}</th>`).join("");
+  const td = (c: HtmlCell, j: number) => {
+    let attrs: string;
+    if (c.num !== undefined) attrs = ` x:num="${c.num}" data-sheets-value="${esc(JSON.stringify({ 1: 3, 3: c.num }))}"`;
+    else if (c.date || !c.text) attrs = "";
+    else attrs = ` x:str data-sheets-value="${esc(JSON.stringify({ 1: 2, 2: c.text }))}"`;
+    const body = esc(c.text).replace(/\r?\n/g, "<br>");
+    const inner = c.href ? `<a href="${esc(c.href)}">${body}</a>` : body;
+    return `<td style="${CELL}${right[j] ? ";text-align:right;white-space:nowrap" : ""}"${attrs}>${inner}</td>`;
+  };
+  const tr = rows.map((r) => `<tr>${r.map(td).join("")}</tr>`).join("");
+  return `<table style="border-collapse:collapse"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
 }
 
 /** Lo inverso al pegar en la tabla: quita ese apóstrofo (y solo ese). */

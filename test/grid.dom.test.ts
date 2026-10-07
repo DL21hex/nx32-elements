@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "../src/bdui";
-import { GRID_LABELS, type GridColumn, type GridRow, type NxGrid } from "../src/index";
+import { GRID_LABELS, toHTMLTable, type GridColumn, type GridRow, type NxGrid } from "../src/index";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -432,6 +432,37 @@ describe("<nx-grid>", () => {
     expect(el.rows[0].monto).toBe(2_000_000);
   });
 
+  it("copiar varias celdas también da una tabla HTML con encabezados; una sola, solo texto", () => {
+    const el = mount();
+    el.columns = COLS.map((c) => (c.key === "oc" ? { ...c, href: "url" } : c));
+    el.rows = ROWS.map((r, i) => (i === 0 ? { ...r, url: "/oc/1", prov: "<b>A&B</b>" } : i === 1 ? { ...r, url: "javascript:alert(1)" } : r));
+    key(el, "End", { shiftKey: true });
+    key(el, "ArrowDown", { shiftKey: true });
+    const dt = new DataTransfer();
+    scroll(el).dispatchEvent(new ClipboardEvent("copy", { clipboardData: dt, bubbles: true, cancelable: true }));
+    expect(dt.getData("text/plain").split("\n")[0]).toBe("OC-1\t<b>A&B</b>\tPendiente\t8000000");
+    const doc = new DOMParser().parseFromString(dt.getData("text/html"), "text/html");
+    expect([...doc.querySelectorAll("th")].map((t) => t.textContent)).toEqual(["Pedido", "Proveedor", "Estado", "Monto"]);
+    const rows = [...doc.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")]);
+    expect(rows.map((r) => r.map((td) => td.textContent))).toEqual([
+      ["OC-1", "<b>A&B</b>", "Pendiente", el.querySelector('[data-r="0"] > [data-c="3"]')!.textContent],
+      ["OC-2", "Empaques", "Aprobado", el.querySelector('[data-r="1"] > [data-c="3"]')!.textContent],
+    ]);
+    // El texto no se vuelve marcado; el enlace seguro va como enlace y el que no, como texto.
+    expect(doc.querySelector("b")).toBeNull();
+    expect(rows[0][0].querySelector("a")?.getAttribute("href")).toBe("/oc/1");
+    expect(rows[1][0].querySelector("a")).toBeNull();
+    // El monto lleva su número sin formato para Excel y Sheets, y va a la derecha.
+    expect(rows[0][3].getAttribute("x:num")).toBe("8000000");
+    expect(rows[0][3].getAttribute("style")).toContain("text-align:right");
+    // Una sola celda: solo el valor.
+    key(el, "ArrowUp");
+    const one = new DataTransfer();
+    scroll(el).dispatchEvent(new ClipboardEvent("copy", { clipboardData: one, bubbles: true, cancelable: true }));
+    expect(one.getData("text/plain")).toBe("8000000");
+    expect(one.getData("text/html")).toBe("");
+  });
+
   it("Supr borra las celdas editables del rango", () => {
     const el = mount();
     key(el, "End");
@@ -843,5 +874,30 @@ describe("<nx-grid>", () => {
     const [el] = render({ component: "Grid", props: { columns: COLS, rows: ROWS, labels: { rows: "{n} registros" } } }, document.getElementById("t")!) as NxGrid[];
     expect(count(el)).toBe("4 registros");
     expect(el.labels.clear).toBe(GRID_LABELS.clear);
+  });
+});
+
+describe("Tabla HTML al copiar", () => {
+  it("escapa el texto, marca números y textos para las hojas y respeta los saltos de línea", () => {
+    const html = toHTMLTable(
+      ["Nombre", "Monto", "Fecha"],
+      [
+        [{ text: "=1+1" }, { text: "$ 8.000.000", num: 8_000_000 }, { text: "5 oct 2026", date: true }],
+        [{ text: 'a "b"\n<c>', href: "https://x.co/?a=1&b=2" }, { text: "" }, { text: "" }],
+      ],
+      [false, true, false],
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const [a, b] = [...doc.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")]);
+    expect(a[0].textContent).toBe("=1+1");
+    expect(a[0].hasAttribute("x:str")).toBe(true);
+    expect(JSON.parse(a[0].getAttribute("data-sheets-value")!)).toEqual({ 1: 2, 2: "=1+1" });
+    expect(JSON.parse(a[1].getAttribute("data-sheets-value")!)).toEqual({ 1: 3, 3: 8_000_000 });
+    expect(a[2].hasAttribute("x:str")).toBe(false);
+    expect(b[0].querySelector("a")!.getAttribute("href")).toBe("https://x.co/?a=1&b=2");
+    expect(b[0].innerHTML).toContain("<br>");
+    expect(b[0].textContent).toBe('a "b"<c>');
+    expect(b[1].attributes.length).toBe(1); // vacía: solo el estilo
+    expect(doc.querySelector("th:nth-child(2)")!.getAttribute("style")).toContain("text-align:right");
   });
 });

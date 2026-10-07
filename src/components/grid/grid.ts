@@ -49,11 +49,13 @@ import {
   sortRows,
   stats,
   toggleFacet,
+  toHTMLTable,
   toTSV,
   unformulaSafe,
   withColumn,
   type GridFacet,
   type GridGroup,
+  type HtmlCell,
 } from "./logic";
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { ViewsHost, ViewsUI } from "./grid-views";
@@ -3363,25 +3365,38 @@ export class NxGrid extends Base {
     this.#apply(changes, "delete");
   }
 
-  /** Copia el rango como TSV: Excel y Sheets lo pegan en celdas. Los números van sin formato. */
+  /** Copia el rango como TSV: Excel y Sheets lo pegan en celdas. Los números van sin formato. Si son
+   *  varias celdas, también como tabla HTML con los encabezados y el formato de la tabla, para pegarla
+   *  en un correo o un documento (`toHTMLTable`). Una sola celda es un valor: va solo como texto. */
   #copy(e: ClipboardEvent): void {
     if (this.#editing || !e.clipboardData) return;
     const { r0, r1, c0, c1 } = this.#range();
     const out: string[][] = [];
+    const html: HtmlCell[][] = [];
     for (let r = r0; r <= r1; r++) {
       const it = this.#itemAt(r);
       if (!it || "g" in it) continue;
       const line: string[] = [];
+      const cells: HtmlCell[] = [];
       for (let c = c0; c <= c1; c++) {
         const col = this.#columns[c];
         const v = it.r[col.key];
+        const n = isNumeric(col) ? num(v) : null;
+        const date = colType(col) === "date";
         // Un texto que empieza con = + - @ se pegaría en Excel como fórmula (y una fórmula puede
         // sacar datos de las celdas vecinas): va con el apóstrofo que lo deja como texto.
-        line.push(isNumeric(col) ? String(num(v) ?? "") : formulaSafe(colType(col) === "date" ? String(v ?? "") : formatCell(v, col, this.#loc)));
+        line.push(isNumeric(col) ? String(n ?? "") : formulaSafe(date ? String(v ?? "") : formatCell(v, col, this.#loc)));
+        const href = col.href ? safeHref(it.r[col.href]) : undefined;
+        cells.push({ text: formatCell(v, col, this.#loc), ...(n !== null ? { num: n } : {}), ...(date ? { date } : {}), ...(href ? { href } : {}) });
       }
       out.push(line);
+      html.push(cells);
     }
     e.clipboardData.setData("text/plain", toTSV(out));
+    if (out.length * (c1 - c0 + 1) > 1) {
+      const cols = this.#columns.slice(c0, c1 + 1);
+      e.clipboardData.setData("text/html", toHTMLTable(cols.map((c) => c.label), html, cols.map(isNumeric)));
+    }
     e.preventDefault();
     // El destello dura lo que su animación (0,6 s); la clase se quita al terminar: si se quedara, cada
     // celda que pasa a ser activa (o cada fila recreada al desplazarse) volvería a destellar.

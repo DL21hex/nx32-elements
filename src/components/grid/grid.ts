@@ -57,6 +57,7 @@ import {
   type GridGroup,
   type HtmlCell,
 } from "./logic";
+import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequenceState, stepsAround, type StepMark, type TimeReading } from "./time";
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { ViewsHost, ViewsUI } from "./grid-views";
 import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
@@ -101,6 +102,31 @@ export const GRID_LABELS: GridLabels = {
   undone: "Deshecho",
   redone: "Rehecho",
   editLost: "Lo que se editaba ya no está: no se guardó lo escrito",
+  stepMissing: "Faltante",
+  stepOrder: "Antes de «{step}»",
+  timeInvalid: "Esa hora no se entiende: escribe 640, 6:40, 6:40 pm, +20 o ahora.",
+  timeHint: "Escribe la hora: 640, 6:40 pm, +20 o ahora.",
+  timeEmpty: "Al confirmar, la celda queda sin hora.",
+  timeNowButton: "Ahora · {time}",
+  timeClear: "Dejar vacía",
+  timeIsNow: "La hora de ahora.",
+  timeAfternoon: "Se tomó de la tarde: va después de «{step}» ({time}).",
+  timeAfter: "{d} después de «{step}» ({time}).",
+  timeAgo: "Hace {d}.",
+  timeBeforePrev: "Queda antes de «{step}» ({time}).",
+  timeAfterNext: "Queda después de «{step}» ({time}).",
+  timeFuture: "Es más tarde que ahora ({time}).",
+  timeNoPrev: "No hay un paso anterior con hora al cual sumarle.",
+  stepNext: "El paso que sigue",
+  stepCount: "{n} de {total} con «{step}»",
+  stateIdle: "Sin empezar",
+  stateLive: "En curso",
+  stateDone: "Terminado",
+  stateReview: "Por revisar",
+  timelineNow: "Ahora, {time}",
+  saving: "Guardando…",
+  saved: "Guardado",
+  saveError: "No se guardó",
   views: "Vistas",
   columns: "Columnas",
   saveView: "Guardar como vista",
@@ -185,7 +211,7 @@ const FACETS_BESIDE = 640;
 /** Exportar pide las filas al servidor de a este tanto, hasta el tope de filas de una hoja de Excel. */
 const EXPORT_BLOCK = 5000;
 const EXPORT_MAX = 1_048_575;
-const WIDTH: Record<string, number> = { text: 180, number: 110, money: 140, date: 120, status: 130 };
+const WIDTH: Record<string, number> = { text: 180, number: 110, money: 140, date: 120, time: 96, status: 130, timeline: 240 };
 const OPS = new Set(["in", "notIn", "range", "contains"]);
 
 type Item = { g: GridGroup } | { r: GridRow };
@@ -234,7 +260,7 @@ function validFilters(v: unknown): GridFilter[] {
   return resolveRel(out);
 }
 
-const TYPES = new Set(["text", "number", "money", "date", "status"]);
+const TYPES = new Set(["text", "number", "money", "date", "time", "status", "timeline"]);
 const KINDS = new Set(["list", "range", "date", "text"]);
 const TONES = new Set<GridTone>(["neutral", "info", "success", "warning", "danger"]);
 
@@ -272,6 +298,8 @@ function cleanColumn(c: unknown): GridColumn | null {
   if (x.currency !== undefined && typeof x.currency !== "string") fix.currency = undefined;
   if (x.href !== undefined && (typeof x.href !== "string" || !x.href)) fix.href = undefined;
   if (x.initials !== undefined && (typeof x.initials !== "string" || !x.initials)) fix.initials = undefined;
+  if (x.sequence !== undefined && (typeof x.sequence !== "string" || !x.sequence)) fix.sequence = undefined;
+  if (x.hours !== undefined && !(Array.isArray(x.hours) && x.hours.length === 2 && x.hours.every(isTime) && x.hours[0] < x.hours[1])) fix.hours = undefined;
   for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden", "sticky"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
   if (x.avatar !== undefined && typeof x.avatar !== "boolean" && x.avatar !== "neutral") fix.avatar = !!x.avatar;
   if (!Object.keys(fix).length) return c as GridColumn;
@@ -318,6 +346,15 @@ const avatarInitials = (c: GridColumn, r: GridRow, text: string): string => {
 /** La copia de una fila que guarda la tabla: sin prototipo, para que una columna «constructor» o
  *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. */
 const own = (r: GridRow): GridRow => Object.assign(Object.create(null) as GridRow, r);
+
+/** «HH:MM» → minutos desde la medianoche. */
+const minOf = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+/** Las horas que abarca una línea de `timeline` (o la regla del recuadro de una hora). */
+const DAY: [string, string] = ["04:00", "23:00"];
+/** Cada cuántas horas va una marca en la línea, y cuánto se aparta una marca de la hora de ahora
+ *  (si no, sus textos se pisan). */
+const TICK_H = 4;
+const NEAR_NOW = 80;
 
 const clampW = (w: number) => Math.round(Math.min(MAX_W, Math.max(MIN_W, w)));
 
@@ -433,6 +470,29 @@ export class NxGrid extends Base {
   #ids = new WeakMap<GridRow, string>();
   #byId = new Map<string, GridRow>();
   #edited = new Set<string>();
+  /** `save()`: las celdas que se están guardando (cuántos guardados lleva cada una en camino), las
+   *  que se acaban de guardar (un destello) y las que no se guardaron, con el motivo. Por id + clave. */
+  #saving = new Map<string, number>();
+  #saved = new Set<string>();
+  #saveFailed = new Map<string, string>();
+  #savedTimer?: ReturnType<typeof setTimeout>;
+  /** Los procesos (`sequence`) de las columnas actuales; se recalculan si cambian las columnas. */
+  #seqFor: GridColumn[] | null = null;
+  #seqs: GridColumn[][] = [];
+  /** Cuántas filas tienen cada paso de un proceso (la cabecera del paso), en el cliente. */
+  #stepN = new Map<string, number>();
+  /** Los pasos recién escritos: su punto en la línea (`timeline`) entra con un destello. */
+  #fresh = new Set<string>();
+  #freshTimer?: ReturnType<typeof setTimeout>;
+  /** Mueve la hora de ahora en las líneas (`timeline`) y en el recuadro de una hora, cada minuto. */
+  #tick?: ReturnType<typeof setInterval>;
+  /** Bajo la celda de hora que se escribe: qué hora se entendió, por qué y los pasos vecinos. */
+  #timePop?: HTMLElement;
+  /** Junto a deshacer: «Guardando…», «Guardado» o «No se guardó: …» (`save()`). */
+  #saveNote?: HTMLElement;
+  #saveNoteTimer?: ReturnType<typeof setTimeout>;
+  /** Columnas `timeline` a las que la tabla les puso los estados (sin `options` de la app). */
+  #autoStates = new WeakSet<GridColumn>();
   /** Valor antes de la primera edición de cada celda: si vuelve a él, la marca se quita. */
   #orig = new Map<string, unknown>();
   #undo: GridChange[][] = [];
@@ -526,11 +586,13 @@ export class NxGrid extends Base {
   }
   set columns(v: GridColumn[] | null | undefined) {
     const known = new Set(this.#cols.map((c) => c.key));
-    this.#cols = Array.isArray(v) ? v.map(cleanColumn).filter((c): c is GridColumn => !!c) : [];
+    this.#cols = Array.isArray(v) ? v.map(cleanColumn).filter((c): c is GridColumn => !!c).map((c) => this.#withStates(c)) : [];
     // Una columna `hidden` empieza escondida la primera vez que llega; si ya estaba, manda lo que
     // eligió la persona (reasignar las columnas no le vuelve a esconder lo que mostró).
     for (const c of this.#cols) if (c.hidden && !known.has(c.key)) this.#hidden.add(c.key);
     this.#syncColumns();
+    // Otro juego de columnas puede traer (o quitar) la línea de un proceso: su valor se recalcula.
+    this.#deriveStates(this.#all);
     // Con `source`, las columnas no viajan al servidor: se rehace la cabecera sin volver a pedir.
     this.#dataChanged(true, true);
   }
@@ -589,6 +651,8 @@ export class NxGrid extends Base {
     if (v !== this.#all) {
       this.#all = Array.isArray(v) ? v.filter((r) => r && typeof r === "object").map(own) : [];
       this.#edited.clear();
+      this.#saved.clear();
+      this.#saveFailed.clear();
       this.#orig.clear();
       this.#undo = [];
       this.#redo = [];
@@ -776,6 +840,9 @@ export class NxGrid extends Base {
     // Los textos de las vistas los toma su propio módulo (se carga aparte), de lo mismo que llegó.
     this.#labelsIn = v;
     this.#labels = mergeLabels(GRID_LABELS, v);
+    // Los nombres de los estados que puso la tabla siguen a los textos nuevos.
+    this.#cols = this.#cols.map((c) => (this.#autoStates.has(c) ? this.#withStates({ ...c, options: undefined }) : c));
+    this.#syncColumns();
     this.#paintAll();
   }
   get #server(): boolean {
@@ -908,6 +975,8 @@ export class NxGrid extends Base {
     } else this.#paintRows(true);
     // Lo escrito en la búsqueda que no alcanzó a aplicarse antes de salir del DOM.
     if (!first && this.#searchInput!.value !== this.#search) this.search = this.#searchInput!.value;
+    // La hora de ahora de las líneas (`timeline`) vuelve a moverse.
+    this.#clock();
   }
 
   /** Otra pestaña guardó vistas con la misma clave: la lista se vuelve a leer. */
@@ -920,6 +989,10 @@ export class NxGrid extends Base {
   disconnectedCallback(): void {
     this.#ro?.disconnect();
     this.#ro = undefined;
+    clearInterval(this.#tick);
+    this.#tick = undefined;
+    this.#hideTimePop();
+    if (this.#timePop?.parentNode === document.body) this.#timePop.remove();
     cancelAnimationFrame(this.#raf);
     this.#raf = 0;
     // Un popover abierto que sale del DOM se oculta sin avisar: el panel se da por cerrado.
@@ -1021,6 +1094,7 @@ export class NxGrid extends Base {
       this.#ids.set(r, id);
       this.#byId.set(id, r);
     });
+    this.#deriveStates(rows);
     if (dup !== undefined) console.warn(`[nx-grid] el id «${dup}» (de "${key}") se repite: esas filas se identifican por su posición`);
   }
 
@@ -1039,6 +1113,8 @@ export class NxGrid extends Base {
     const had = this.#picked.size > 0;
     this.#picked.clear();
     this.#edited.clear();
+    this.#saved.clear();
+    this.#saveFailed.clear();
     this.#orig.clear();
     this.#undo = [];
     this.#redo = [];
@@ -1688,6 +1764,7 @@ export class NxGrid extends Base {
     this.#redoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon" }, glyph(REDO));
     this.#undoBtn.addEventListener("click", () => this.undo());
     this.#redoBtn.addEventListener("click", () => this.redo());
+    this.#saveNote = h("span", { class: "nx-grid__save-note", hidden: true });
     // Buscar en la tabla: mientras se escribe (un momento después de la última tecla), o con Enter.
     const input = (this.#searchInput = h("input", { type: "search", class: "nx-grid__search-input", autocomplete: "off", spellcheck: "false", enterkeyhint: "search" }));
     const clear = (this.#searchClear = h("button", { type: "button", class: "nx-grid__search-clear", hidden: true }, glyph(X)));
@@ -1708,7 +1785,7 @@ export class NxGrid extends Base {
       this.search = "";
       input.focus();
     });
-    const bar = h("div", { class: "nx-grid__bar" }, this.#viewsBtn, search, this.#facetBtn, this.#groupSel, this.#colsBtn, this.#undoBtn, this.#redoBtn, this.#exportBtn);
+    const bar = h("div", { class: "nx-grid__bar" }, this.#viewsBtn, search, this.#facetBtn, this.#groupSel, this.#colsBtn, this.#undoBtn, this.#redoBtn, this.#saveNote, this.#exportBtn);
 
     this.#selbar = h("div", { class: "nx-grid__selbar", hidden: true }, h("strong"), h("button", { type: "button", class: "nx-grid__clear", "data-pick": "all" }), h("button", { type: "button", class: "nx-grid__clear", "data-pick": "none" }));
     this.#selbar.addEventListener("click", (e) => {
@@ -1904,15 +1981,21 @@ export class NxGrid extends Base {
     const off = this.selectable ? 1 : 0;
     const acts = this.#actions.length ? 1 : 0;
     this.#scroll!.setAttribute("aria-colcount", String(cols.length + off + acts));
-    this.#ths = cols.map((c, ci) =>
-      h(
+    const steps = new Set(this.#sequenceSteps().flat());
+    this.#ths = cols.map((c, ci) => {
+      // Un paso lleva debajo cuántas filas lo tienen; la línea de un proceso, sus horas.
+      const step = steps.has(c);
+      const line = c.type === "timeline";
+      return h(
         "div",
-        { role: "columnheader", class: `nx-grid__th${isNumeric(c) ? " is-num" : ""}`, "aria-colindex": ci + 1 + off },
+        { role: "columnheader", class: `nx-grid__th${isNumeric(c) ? " is-num" : ""}${step ? " is-step" : ""}${line ? " is-timeline" : ""}`, "aria-colindex": ci + 1 + off },
         h("button", { type: "button", class: "nx-grid__sort", tabindex: -1, "data-sort": ci }, h("span", { class: "nx-grid__th-label" }, c.label), glyph(ARROW, "nx-grid__sort-icon")),
         this.#filterable(c) ? h("button", { type: "button", class: "nx-grid__funnel", tabindex: -1, "data-filter": ci, "aria-haspopup": "dialog", "aria-expanded": "false" }, glyph(FUNNEL)) : null,
+        step ? h("span", { class: "nx-grid__step-n" }, h("span", { class: "nx-grid__step-bar" }, h("i")), h("span", { class: "nx-grid__step-of" })) : null,
+        line ? h("span", { class: "nx-grid__tl-axis", "aria-hidden": "true" }) : null,
         h("span", { class: "nx-grid__resize", role: "separator", tabindex: -1, "aria-orientation": "vertical", "aria-valuemin": MIN_W, "aria-valuemax": MAX_W, "data-resize": ci }),
-      ),
-    );
+      );
+    });
     this.#ths.forEach((th, ci) => this.#pin(th, ci));
     this.#applyWidths();
     this.#panel?.close();
@@ -1985,8 +2068,16 @@ export class NxGrid extends Base {
       ...(this.#filters.length ? [h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear)] : []),
       ...(this.viewsStorage && this.#filters.length ? [h("button", { type: "button", class: "nx-grid__save-view", "data-save-view": "" }, L.saveView)] : []),
     );
-    // Cabeceras.
+    // Cabeceras: cuántas filas tienen cada paso de un proceso (en el cliente, donde están todas).
+    this.#stepN.clear();
+    if (!this.#server)
+      for (const c of this.#sequenceSteps().flat()) {
+        let n = 0;
+        for (const r of this.#all) if (r[c.key] !== null && r[c.key] !== undefined && r[c.key] !== "") n++;
+        this.#stepN.set(c.key, n);
+      }
     this.#ths.forEach((th, ci) => this.#paintTh(th, this.#columns[ci]));
+    this.#clock();
     // Sin filas todavía porque el servidor no ha respondido: «Cargando…», no una tabla en blanco
     // (parecía que no había datos). Con filas ya contadas, las que faltan se pintan como esqueleto.
     const loading = this.#server && this.#blocks.get(0) === "loading" && !this.#count() && this.#columns.length > 0;
@@ -2197,6 +2288,28 @@ export class NxGrid extends Base {
 
   #paintTh(th: HTMLElement, c: GridColumn): void {
     th.querySelector(".nx-grid__resize")?.setAttribute("aria-label", this.#fmt(this.#labels.resize, { col: c.label }));
+    const stepN = th.querySelector<HTMLElement>(".nx-grid__step-n");
+    if (stepN) {
+      // En el servidor no se ven todas las filas: no hay conteo.
+      const n = this.#stepN.get(c.key);
+      stepN.hidden = n === undefined;
+      if (n !== undefined) {
+        const total = this.#all.length;
+        const of = `${this.#loc.number(n)}/${this.#loc.number(total)}`;
+        const label = stepN.lastElementChild!;
+        if (label.textContent && label.textContent !== of) {
+          label.classList.remove("is-bump");
+          void (label as HTMLElement).offsetWidth;
+          label.classList.add("is-bump");
+        }
+        label.textContent = of;
+        (stepN.firstElementChild!.firstElementChild as HTMLElement).style.inlineSize = `${total ? (n / total) * 100 : 0}%`;
+        stepN.classList.toggle("is-full", total > 0 && n === total);
+        stepN.title = this.#fmt(this.#labels.stepCount, { n: this.#loc.number(n), total: this.#loc.number(total), step: c.label });
+      }
+    }
+    const axis = th.querySelector<HTMLElement>(".nx-grid__tl-axis");
+    if (axis) this.#paintAxis(axis, c);
     const dir = this.#sort?.key === c.key ? this.#sort.dir : 0;
     th.setAttribute("aria-sort", dir === 1 ? "ascending" : dir === -1 ? "descending" : "none");
     th.dataset.sort = dir ? (dir === 1 ? "asc" : "desc") : "";
@@ -2207,6 +2320,47 @@ export class NxGrid extends Base {
     const label = own.length ? this.#fmt(this.#labels.filterOn, { col: c.label, filter: own.map((f) => this.#chipText(f)).join(", ") }) : this.#fmt(this.#labels.filterBy, { col: c.label });
     funnel.setAttribute("aria-label", label);
     funnel.title = label;
+  }
+
+  /** Las horas de la línea de un proceso, en su cabecera: una marca cada `TICK_H` horas y la de
+   *  ahora (las que caen cerca de ahora no van: sus textos se pisarían). */
+  #paintAxis(axis: HTMLElement, c: GridColumn): void {
+    const scale = this.#hoursOf(c);
+    const now = this.#nowMin();
+    const marks: HTMLElement[] = [];
+    for (let m = Math.ceil(scale[0] / 60 / TICK_H) * TICK_H * 60; m < scale[1]; m += TICK_H * 60) {
+      if (m <= scale[0] || Math.abs(m - now) < NEAR_NOW) continue;
+      marks.push(h("span", { style: `--_x:${this.#at(m, scale)}` }, String(m / 60).padStart(2, "0")));
+    }
+    if (now >= scale[0] && now <= scale[1]) marks.push(h("span", { class: "is-now", style: `--_x:${this.#at(now, scale)}`, title: this.#fmt(this.#labels.timelineNow, { time: clockTime(this.#now()) }) }, clockTime(this.#now())));
+    axis.replaceChildren(...marks);
+  }
+
+  /** Con una línea de proceso (`timeline`) a la vista, la hora de ahora se mueve sola cada minuto.
+   *  Fuera del DOM no corre (ver `disconnectedCallback`). */
+  #clock(): void {
+    const needed = this.isConnected && this.#columns.some((c) => c.type === "timeline");
+    if (!needed) {
+      clearInterval(this.#tick);
+      this.#tick = undefined;
+      return;
+    }
+    if (this.#tick) return;
+    let last = clockTime(this.#now());
+    this.#tick = setInterval(() => {
+      const now = clockTime(this.#now());
+      if (now === last) return;
+      last = now;
+      for (const el of this.querySelectorAll<HTMLElement>(".nx-grid__tl-now")) {
+        const c = this.#columns[Number(el.closest<HTMLElement>("[data-c]")?.dataset.c)];
+        if (c) el.style.setProperty("--_x", this.#at(this.#nowMin(), this.#hoursOf(c)));
+      }
+      this.#ths.forEach((th, ci) => {
+        const axis = th.querySelector<HTMLElement>(".nx-grid__tl-axis");
+        if (axis) this.#paintAxis(axis, this.#columns[ci]);
+      });
+      if (this.#editing) this.#paintTimePop();
+    }, 15_000);
   }
 
   /** `facets-open` abre el panel de arranque sólo si cabe AL LADO de la tabla: más angosto iría
@@ -2384,6 +2538,7 @@ export class NxGrid extends Base {
       box.append(...after);
     }
     this.#paintSel();
+    this.#placeTimePop();
   }
 
   /** Píxeles de la tabla por píxel de desplazamiento: 1, salvo que todas las filas pasen de `MAX_H`;
@@ -2454,13 +2609,21 @@ export class NxGrid extends Base {
     }
     const r = it.r;
     const id = this.#ids.get(r) ?? "";
+    const marks = this.#sequenceSteps().length ? sequenceMarks(r, this.#seqs) : null;
+    // El paso que sigue de cada proceso (la celda «--:--»), si se escribe en la tabla.
+    const next = new Set(this.#seqs.map((s) => nextStep(r, s)).filter((c): c is GridColumn => !!c?.editable));
     row.append(
       ...cols.map((c, ci) => {
         const el = cell(c, ci);
         const v = r[c.key];
         const text = formatCell(v, c, this.#loc);
         const tone = c.options?.find((o) => o.value === String(v))?.tone;
-        if (text && (colType(c) === "status" || tone)) el.append(h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text));
+        const mark = marks?.get(c.key);
+        if (colType(c) === "time") el.classList.add("is-time");
+        if (c.type === "timeline") this.#timeline(el, r, c, id);
+        else if (mark) this.#paintMark(el, mark, text);
+        else if (!text && next.has(c)) el.append(h("span", { class: "nx-grid__next", title: this.#labels.stepNext }, colType(c) === "time" ? "--:--" : "·"));
+        else if (text && (colType(c) === "status" || tone)) el.append(h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text));
         else if (text && (c.link || c.href || c.avatar)) {
           // El tono del avatar sale del texto: la misma persona, siempre el mismo color (o gris, `neutral`).
           if (c.avatar === "neutral") el.append(h("span", { class: "nx-grid__avatar", "data-tone": "neutral", "aria-hidden": "true" }, avatarInitials(c, r, text)));
@@ -2474,12 +2637,128 @@ export class NxGrid extends Base {
           else el.append(c.link || c.href ? h("span", { class: "nx-grid__link" }, text) : text);
         } else el.textContent = text;
         if (c.editable) el.classList.add("is-editable");
-        if (this.#edited.has(`${id}\u0000${c.key}`)) el.classList.add("is-edited");
+        const k = `${id}\u0000${c.key}`;
+        if (this.#edited.has(k)) el.classList.add("is-edited");
+        if (this.#saving.has(k)) {
+          el.classList.add("is-saving");
+          el.setAttribute("aria-busy", "true");
+          el.title = this.#labels.saving;
+        } else if (this.#saveFailed.has(k)) {
+          el.classList.add("is-failed");
+          el.title = `${this.#labels.saveError}: ${this.#saveFailed.get(k)}`;
+        } else if (this.#saved.has(k)) el.classList.add("is-saved");
         return el;
       }),
     );
     if (this.#actions.length) row.append(this.#actionsCell(r, cols.length + 1 + off));
     return row;
+  }
+
+  /** Los procesos (`sequence`) de las columnas: se calculan una vez por juego de columnas. */
+  #sequenceSteps(): GridColumn[][] {
+    if (this.#seqFor !== this.#cols) {
+      this.#seqFor = this.#cols;
+      this.#seqs = sequences(this.#cols);
+    }
+    return this.#seqs;
+  }
+
+  /** Los pasos del proceso de una columna (un paso o su `timeline`); vacío si no es de uno. */
+  #stepsOf(c: GridColumn | undefined): GridColumn[] {
+    if (!c?.sequence) return [];
+    return this.#sequenceSteps().find((s) => s[0].sequence === c.sequence) ?? [];
+  }
+
+  /** Una columna `timeline` sin `options` de la app lleva los cuatro estados, con los textos de la
+   *  tabla (`labels.stateIdle`…) y su tono. */
+  #withStates(c: GridColumn): GridColumn {
+    if (c.type !== "timeline" || c.options) return c;
+    const L = this.#labels;
+    const out: GridColumn = {
+      ...c,
+      options: [
+        { value: "idle", label: L.stateIdle, tone: "neutral" },
+        { value: "live", label: L.stateLive, tone: "info" },
+        { value: "done", label: L.stateDone, tone: "success" },
+        { value: "review", label: L.stateReview, tone: "warning" },
+      ],
+    };
+    this.#autoStates.add(out);
+    return out;
+  }
+
+  /** El valor de cada columna `timeline` es cómo va su proceso en la fila (`sequenceState`): lo
+   *  pone la tabla al llegar las filas y al editarlas, y por él se filtra, se cuenta y se ordena. */
+  #deriveStates(rows: Iterable<GridRow>): void {
+    const lines = this.#cols.filter((c) => c.type === "timeline");
+    if (!lines.length) return;
+    const steps = lines.map((c) => this.#stepsOf(c));
+    for (const r of rows) lines.forEach((c, i) => (r[c.key] = steps[i].length ? sequenceState(r, steps[i]) : null));
+  }
+
+  /** Las horas que abarca la línea de un proceso (las de su `timeline`), en minutos. */
+  #hoursOf(c: GridColumn | undefined): [number, number] {
+    const line = c?.type === "timeline" ? c : this.#cols.find((x) => x.type === "timeline" && !!c?.sequence && x.sequence === c.sequence);
+    const [a, b] = line?.hours ?? DAY;
+    return [minOf(a), minOf(b)];
+  }
+
+  /** Dónde cae una hora en la línea (en %), con lo que se sale del día pegado al borde. */
+  #at(min: number, [lo, hi]: [number, number]): string {
+    return `${((Math.max(lo, Math.min(hi, min)) - lo) / (hi - lo)) * 100}%`;
+  }
+
+  /** La hora del reloj en minutos. */
+  #nowMin(): number {
+    return minOf(clockTime(this.#now()));
+  }
+
+  /** La celda `timeline`: la línea del día con un punto por paso registrado (en ámbar el que va
+   *  fuera de orden; el recién escrito entra con un destello), el tramo del primero al último y la
+   *  hora de ahora. Lo que dice, para el lector de pantalla, va en `aria-label`. */
+  #timeline(el: HTMLElement, r: GridRow, c: GridColumn, id: string): void {
+    const steps = this.#stepsOf(c);
+    const scale = this.#hoursOf(c);
+    const marks = sequenceMarks(r, [steps]);
+    const state = String(r[c.key] ?? "");
+    const line = h("span", { class: "nx-grid__tl", "data-state": state, "aria-hidden": "true" }, h("i", { class: "nx-grid__tl-track" }));
+    const said: string[] = [];
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const s of steps) {
+      const v = r[s.key];
+      if (!isTime(v)) continue;
+      const m = minOf(v);
+      lo = Math.min(lo, m);
+      hi = Math.max(hi, m);
+      said.push(`${s.label} ${v}`);
+    }
+    if (said.length) line.append(h("i", { class: "nx-grid__tl-span", style: `--_x:${this.#at(lo, scale)};--_to:${this.#at(hi, scale)}` }));
+    for (const s of steps) {
+      const v = r[s.key];
+      if (!isTime(v)) continue;
+      const cls = `nx-grid__tl-dot${marks.get(s.key)?.kind === "order" ? " is-order" : ""}${this.#fresh.has(`${id}\u0000${s.key}`) ? " is-new" : ""}`;
+      line.append(h("i", { class: cls, style: `--_x:${this.#at(minOf(v), scale)}`, title: `${s.label} · ${v}` }));
+    }
+    line.append(h("i", { class: "nx-grid__tl-now", style: `--_x:${this.#at(this.#nowMin(), scale)}` }));
+    const label = formatCell(state, c, this.#loc);
+    el.classList.add("is-timeline");
+    el.setAttribute("aria-label", [label, ...said].filter(Boolean).join(" · "));
+    el.append(line);
+  }
+
+  /** Una celda de un paso: «Faltante» si se saltó; en ámbar, con el motivo, si va antes que el paso
+   *  previo. El motivo va también en el `title` (y lo lee el lector de pantalla). */
+  #paintMark(el: HTMLElement, mark: StepMark, text: string): void {
+    if (mark.kind === "missing") {
+      el.classList.add("is-missing");
+      el.append(h("span", { class: "nx-grid__pill", "data-tone": "warning" }, this.#labels.stepMissing));
+      return;
+    }
+    const why = this.#fmt(this.#labels.stepOrder, { step: mark.after });
+    el.classList.add("is-out-of-order");
+    el.title = why;
+    el.append(h("span", { class: "nx-grid__pill", "data-tone": "warning", "aria-label": `${text} · ${why}` }, text));
   }
 
   /** Las acciones que aplican a una fila (`when`), con la dirección de las que son enlace. Una
@@ -2909,6 +3188,12 @@ export class NxGrid extends Base {
       if (this.#menuFor(this.#act)) void this.#cellMenu(this.#act, rect?.left ?? 0, rect?.bottom ?? 0);
       return;
     }
+    // Ctrl+Mayús+: (Ctrl+: o Ctrl+;, como en Excel) pone la hora de ahora en las celdas de hora
+    // del rango (un solo paso para deshacer).
+    if (mod && (e.key === ":" || e.key === ";")) {
+      e.preventDefault();
+      return this.#fillNow();
+    }
     if (mod && e.key.toLowerCase() === "a") {
       e.preventDefault();
       this.#anchor = { r: 0, c: 0 };
@@ -3095,7 +3380,8 @@ export class NxGrid extends Base {
     this.#paintSel();
     const cell = this.#cell(this.#act);
     if (!cell) return false;
-    const input = h("input", { class: "nx-grid__input", "aria-label": col.label, autocomplete: "off", inputmode: isNumeric(col) ? "decimal" : null });
+    const time = colType(col) === "time";
+    const input = h("input", { class: "nx-grid__input", "aria-label": col.label, autocomplete: "off", inputmode: isNumeric(col) ? "decimal" : time ? "numeric" : null, placeholder: time ? "hh:mm" : null });
     const text = this.#inputText(it.r[col.key], col);
     input.value = initial ?? text;
     const ed: Editing = { r, c, key: col.key, row: it.r, id: this.#ids.get(it.r) ?? "", text: initial === undefined ? text : null, input, quick: initial !== undefined };
@@ -3107,9 +3393,29 @@ export class NxGrid extends Base {
       input.setAttribute("list", ed.list.id);
       cell.append(ed.list);
     }
+    input.addEventListener("input", () => {
+      input.removeAttribute("aria-invalid");
+      if (time) this.#paintTimePop();
+    });
     input.addEventListener("keydown", (e) => {
       e.stopPropagation();
       const arrows: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      // En una celda de hora, Ctrl+: escribe la de ahora; una hora que no se entiende no deja salir
+      // con Enter, Tab ni las flechas: el campo se queda y dice cómo escribirla.
+      if (time && (e.ctrlKey || e.metaKey) && (e.key === ":" || e.key === ";")) {
+        e.preventDefault();
+        input.value = clockTime(this.#now());
+        input.removeAttribute("aria-invalid");
+        this.#paintTimePop();
+        return;
+      }
+      const leaving = e.key === "Enter" || e.key === "Tab" || (ed.quick && !!arrows[e.key]);
+      if (time && leaving && parseInput(input.value, col, this.#loc, () => this.#now(), this.#around(ed.row, col)) === undefined) {
+        e.preventDefault();
+        input.setAttribute("aria-invalid", "true");
+        if (this.#live) this.#live.textContent = this.#labels.timeInvalid;
+        return;
+      }
       if (e.key === "Escape") this.#endEdit(false);
       else if (e.key === "Enter") this.#endEdit(true, e.shiftKey ? -1 : 1, 0);
       else if (e.key === "Tab") this.#endEdit(true, 0, e.shiftKey ? -1 : 1);
@@ -3123,7 +3429,187 @@ export class NxGrid extends Base {
     });
     input.focus();
     if (!ed.quick) input.select();
+    if (time) this.#showTimePop();
     return true;
+  }
+
+  /** El paso con hora anterior y el siguiente de una celda en su proceso (para leer la hora). */
+  #around(row: GridRow, col: GridColumn, values?: Record<string, unknown>) {
+    return stepsAround(row, this.#stepsOf(col), col, values);
+  }
+
+  /** «2:00 p. m.»: la hora en 12 horas, como la dice el locale (para confirmar de un vistazo). */
+  #h12(t: string): string {
+    try {
+      return new Intl.DateTimeFormat(this.#loc.locale, { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "UTC" }).format(Date.UTC(2000, 0, 1, Number(t.slice(0, 2)), Number(t.slice(3, 5))));
+    } catch {
+      return "";
+    }
+  }
+
+  /** «20 min», «1 h 30 min», en el locale. */
+  #duration(min: number): string {
+    const unit = (u: "hour" | "minute", n: number) => {
+      try {
+        return new Intl.NumberFormat(this.#loc.locale, { style: "unit", unit: u, unitDisplay: "short" }).format(n);
+      } catch {
+        return `${n} ${u === "hour" ? "h" : "min"}`;
+      }
+    };
+    const hrs = Math.floor(min / 60);
+    const m = min % 60;
+    return [hrs ? unit("hour", hrs) : "", m || !hrs ? unit("minute", m) : ""].filter(Boolean).join(" ");
+  }
+
+  /** Abre el recuadro de la hora bajo la celda que se escribe. Es un popover (capa de arriba) si el
+   *  navegador lo tiene; si no, un elemento fijo. Sus botones no le quitan el foco al campo. */
+  #showTimePop(): void {
+    const ed = this.#editing;
+    if (!ed) return;
+    let pop = this.#timePop;
+    if (!pop) {
+      pop = this.#timePop = h(
+        "div",
+        { class: "nx-grid__time", id: `${this.#uid}-time`, "data-nx-ephemeral": "" },
+        h("p", { class: "nx-grid__time-ctx" }),
+        h("p", { class: "nx-grid__time-read", id: `${this.#uid}-time-read` }, h("strong"), h("span")),
+        h("p", { class: "nx-grid__time-note", id: `${this.#uid}-time-note` }),
+        h("span", { class: "nx-grid__time-rule", "aria-hidden": "true" }, h("span"), h("i", { class: "nx-grid__time-me" })),
+        h("span", { class: "nx-grid__time-acts" }, h("button", { type: "button", class: "nx-grid__btn is-now", "data-time": "now", title: "Ctrl + :" }), h("button", { type: "button", class: "nx-grid__btn", "data-time": "clear" })),
+      );
+      if (typeof pop.showPopover === "function") pop.setAttribute("popover", "manual");
+      else pop.hidden = true;
+      const keep = (e: Event) => e.preventDefault();
+      pop.addEventListener("pointerdown", keep);
+      pop.addEventListener("mousedown", keep);
+      pop.addEventListener("click", (e) => {
+        const b = (e.target as Element).closest<HTMLElement>("[data-time]");
+        const cur = this.#editing;
+        if (!b || !cur) return;
+        cur.input.value = b.dataset.time === "now" ? clockTime(this.#now()) : "";
+        this.#endEdit(true, 0, 0);
+      });
+    }
+    // En la capa de arriba (popover) puede ir dentro de la tabla; sin popover va en `body`: la tabla
+    // es un contenedor (`container-type`) y un `fixed` dentro de ella se ubicaría respecto a ella.
+    const home = pop.hasAttribute("popover") ? this : document.body;
+    if (pop.parentNode !== home) home.append(pop);
+    ed.input.setAttribute("aria-describedby", `${pop.id}-read ${pop.id}-note`);
+    if (!pop.hasAttribute("data-open")) {
+      pop.toggleAttribute("data-open", true);
+      if (pop.hasAttribute("popover")) pop.showPopover();
+      else pop.hidden = false;
+      addEventListener("resize", this.#placeTimePop);
+      addEventListener("scroll", this.#placeTimePop, { capture: true, passive: true });
+    }
+    this.#paintTimePop();
+    this.#placeTimePop();
+  }
+
+  #hideTimePop(): void {
+    const pop = this.#timePop;
+    if (!pop?.hasAttribute("data-open")) return;
+    pop.removeAttribute("data-open");
+    if (pop.hasAttribute("popover")) {
+      try {
+        pop.hidePopover();
+      } catch {
+        /* ya estaba cerrado (salió del DOM) */
+      }
+    } else pop.hidden = true;
+    removeEventListener("resize", this.#placeTimePop);
+    removeEventListener("scroll", this.#placeTimePop, { capture: true });
+  }
+
+  /** Bajo la celda (o encima, si abajo no cabe), sin salirse de la ventana. Si la celda queda fuera
+   *  de la tabla al desplazarse, el recuadro se esconde hasta que vuelva. */
+  #placeTimePop = (): void => {
+    const ed = this.#editing;
+    const pop = this.#timePop;
+    if (!ed || !pop?.hasAttribute("data-open")) return;
+    const cell = this.#cell({ r: ed.r, c: ed.c });
+    if (!cell) return;
+    const c = cell.getBoundingClientRect();
+    const box = this.#scroll!.getBoundingClientRect();
+    pop.style.visibility = c.bottom > box.top && c.top < box.bottom && c.right > box.left && c.left < box.right ? "" : "hidden";
+    const vw = document.documentElement.clientWidth || innerWidth;
+    const x = Math.max(8, Math.min(c.left, vw - pop.offsetWidth - 8));
+    let y = c.bottom + 4;
+    if (y + pop.offsetHeight > innerHeight - 8 && c.top - pop.offsetHeight - 4 > 8) y = c.top - pop.offsetHeight - 4;
+    pop.style.left = `${x}px`;
+    pop.style.top = `${y}px`;
+  };
+
+  /** Lo que dice el recuadro mientras se escribe: la fila y el paso, la hora que se entendió (y en
+   *  12 horas), por qué (de la tarde por el orden, «+20», «hace 10») o qué no cuadra, y la regla del
+   *  día con los demás pasos, el tramo donde debería caer y la hora de ahora. */
+  #paintTimePop(): void {
+    const ed = this.#editing;
+    const pop = this.#timePop;
+    const col = ed && this.#cols.find((c) => c.key === ed.key);
+    if (!ed || !pop?.hasAttribute("data-open") || !col) return;
+    const L = this.#labels;
+    const now = this.#now();
+    const around = this.#around(ed.row, col);
+    const res = readTime(ed.input.value, { ...around, now: () => now });
+    const [where, read, note, rule, acts] = pop.children as HTMLCollectionOf<HTMLElement>;
+    const steps = this.#stepsOf(col);
+    const at = steps.indexOf(col);
+    // La fila se nombra por su primera columna (la que la identifica, como en la tabla).
+    const first = this.#columns.find((c) => c !== col && c.type !== "timeline");
+    const name = first ? formatCell(ed.row[first.key], first, this.#loc) : "";
+    where.replaceChildren(...(name ? [h("strong", null, name), " · "] : []), at >= 0 ? `${at + 1}. ${col.label}` : col.label);
+    const warn = res.kind === "ok" && !!res.warn && res.warn !== "future";
+    pop.dataset.state = res.kind === "ok" ? (warn ? "warn" : "ok") : res.kind === "bad" ? "bad" : "empty";
+    read.firstElementChild!.textContent = res.kind === "ok" ? res.value : "--:--";
+    read.lastElementChild!.textContent = res.kind === "ok" ? this.#h12(res.value) : "";
+    const had = ed.row[ed.key] !== null && ed.row[ed.key] !== undefined && ed.row[ed.key] !== "";
+    const said: string[] = [];
+    let tone = "";
+    if (res.kind === "empty" || res.kind === "partial") said.push(res.kind === "empty" && had ? L.timeEmpty : L.timeHint);
+    else if (res.kind === "bad") {
+      said.push(res.why === "noPrev" ? L.timeNoPrev : L.timeInvalid);
+      tone = "bad";
+    } else {
+      const p = around.prev;
+      const n = around.next;
+      if (res.how === "now") said.push(L.timeIsNow);
+      else if (res.how === "afternoon" && p) said.push(this.#fmt(L.timeAfternoon, { step: p.label, time: p.value }));
+      else if (res.how === "after" && p) said.push(this.#fmt(L.timeAfter, { d: this.#duration(res.minutes ?? 0), step: p.label, time: p.value }));
+      else if (res.how === "ago") said.push(this.#fmt(L.timeAgo, { d: this.#duration(res.minutes ?? 0) }));
+      if (res.how === "afternoon") tone = "inferred";
+      if (res.warn === "beforePrev" && p) said.push(this.#fmt(L.timeBeforePrev, { step: p.label, time: p.value }));
+      else if (res.warn === "afterNext" && n) said.push(this.#fmt(L.timeAfterNext, { step: n.label, time: n.value }));
+      else if (res.warn === "future") said.push(this.#fmt(L.timeFuture, { time: clockTime(now) }));
+      if (res.warn) tone = "warn";
+    }
+    note.textContent = said.join(" ");
+    if (tone) note.dataset.tone = tone;
+    else delete note.dataset.tone;
+    // La regla: lo fijo se rehace; el punto de la hora escrita es el mismo nodo (se desliza).
+    const scale = this.#hoursOf(col);
+    const nowMin = minOf(clockTime(now));
+    const layer: HTMLElement[] = [h("i", { class: "nx-grid__tl-track" })];
+    if (steps.length) {
+      const a = around.prev ? minOf(around.prev.value) : scale[0];
+      const b = around.next ? minOf(around.next.value) : Math.max(nowMin, a);
+      layer.push(h("i", { class: "nx-grid__time-band", style: `--_x:${this.#at(a, scale)};--_to:${this.#at(b, scale)}` }));
+      for (const s of steps) {
+        const v = ed.row[s.key];
+        if (s !== col && isTime(v)) layer.push(h("i", { class: "nx-grid__time-dot", style: `--_x:${this.#at(minOf(v), scale)}` }));
+      }
+    }
+    for (let m = Math.ceil(scale[0] / 60 / TICK_H) * TICK_H * 60; m < scale[1]; m += TICK_H * 60) if (m > scale[0]) layer.push(h("span", { style: `--_x:${this.#at(m, scale)}` }, String(m / 60).padStart(2, "0")));
+    layer.push(h("i", { class: "nx-grid__tl-now", style: `--_x:${this.#at(nowMin, scale)}` }));
+    rule.firstElementChild!.replaceChildren(...layer);
+    const me = rule.lastElementChild as HTMLElement;
+    me.hidden = res.kind !== "ok";
+    me.classList.toggle("is-warn", warn);
+    if (res.kind === "ok") me.style.setProperty("--_x", this.#at(minOf(res.value), scale));
+    const [nowBtn, clearBtn] = acts.children as HTMLCollectionOf<HTMLButtonElement>;
+    nowBtn.textContent = this.#fmt(L.timeNowButton, { time: clockTime(now) });
+    clearBtn.textContent = L.timeClear;
+    clearBtn.hidden = !had;
   }
 
   /** El texto con que el campo abre un valor (y que, sin tocarlo, no cambia nada al salir). */
@@ -3207,6 +3693,8 @@ export class NxGrid extends Base {
     const sel = [input.selectionStart, input.selectionEnd, input.selectionDirection] as const;
     cell.classList.add("is-editing");
     cell.replaceChildren(input, ...(ed.list ? [ed.list] : []));
+    this.#paintTimePop();
+    this.#placeTimePop();
     if (!focused) return;
     input.focus({ preventScroll: true });
     if (moved) input.scrollIntoView?.({ block: "nearest", inline: "nearest" });
@@ -3225,14 +3713,17 @@ export class NxGrid extends Base {
     const ed = this.#editing;
     if (!ed) return;
     this.#editing = null;
+    this.#hideTimePop();
     const focused = document.activeElement === ed.input;
     const col = this.#cols.find((c) => c.key === ed.key);
     const cur = this.#byId.get(ed.id);
     const row = cur === ed.row || (cur && !ed.id.startsWith("#")) ? cur : undefined;
     if (commit && row && col && ed.input.value !== ed.text) {
-      const value = parseInput(ed.input.value, col, this.#loc);
+      const value = parseInput(ed.input.value, col, this.#loc, () => this.#now(), this.#around(row, col));
       const old = row[col.key];
-      if (value !== old && !(value === "" && (old === null || old === undefined))) this.#apply([{ id: ed.id, key: col.key, value, old }]);
+      // Lo que no se entiende (una hora como «25:00») no se guarda: la celda queda como estaba.
+      if (value === undefined) queueMicrotask(() => this.#live && (this.#live.textContent = this.#labels.timeInvalid));
+      else if (value !== old && !(value === "" && (old === null || old === undefined))) this.#apply([{ id: ed.id, key: col.key, value, old }]);
     }
     this.#paintRows(true);
     if (!move) {
@@ -3249,10 +3740,14 @@ export class NxGrid extends Base {
    *  reordena ni refiltra las filas, como una hoja de cálculo; sí recalcula totales y facetas. */
   #apply(changes: GridChange[], source: GridChangeSource = "edit"): boolean {
     if (!changes.length || !this.#emit("nx-grid-change", { changes, source }, true)) return false;
+    const touched = new Set<GridRow>();
     for (const ch of changes) {
       const r = this.#byId.get(ch.id);
       if (!r) continue;
+      touched.add(r);
       const k = `${ch.id}\u0000${ch.key}`;
+      this.#saveFailed.delete(k);
+      this.#saved.delete(k);
       if (!this.#orig.has(k)) this.#orig.set(k, ch.old);
       r[ch.key] = ch.value;
       this.#hay.delete(r);
@@ -3268,11 +3763,28 @@ export class NxGrid extends Base {
       if (this.#undo.length > HISTORY) this.#undo.shift();
       this.#redo = [];
     }
-    if (!this.#server) this.#reaggregate(new Set(changes.map((c) => c.key)));
+    const lines = this.#restate(touched);
+    // El punto de cada paso escrito entra en su línea con un destello (una vez).
+    const steps = new Set(this.#sequenceSteps().flat().map((c) => c.key));
+    for (const ch of changes) if (steps.has(ch.key)) this.#fresh.add(`${ch.id}\u0000${ch.key}`);
+    clearTimeout(this.#freshTimer);
+    if (this.#fresh.size) this.#freshTimer = setTimeout(() => this.#fresh.clear(), 700);
+    if (!this.#server) this.#reaggregate(new Set([...changes.map((c) => c.key), ...lines]));
     // Una edición no reordena, pero el próximo filtro o búsqueda sí ve el valor nuevo.
-    if (this.#sort && changes.some((c) => c.key === this.#sort!.key)) this.#sortedAll = null;
+    if (this.#sort && (changes.some((c) => c.key === this.#sort!.key) || lines.includes(this.#sort.key))) this.#sortedAll = null;
     this.#paintAll();
     return true;
+  }
+
+  /** Tras editar unas filas, la línea de cada proceso (`timeline`) dice cómo va de nuevo, y los
+   *  atajos se vuelven a contar (filtran por ella). Devuelve las claves de esas columnas. */
+  #restate(rows: Set<GridRow>): string[] {
+    const lines = this.#cols.filter((c) => c.type === "timeline").map((c) => c.key);
+    if (!lines.length) return lines;
+    this.#deriveStates(rows);
+    for (const r of rows) this.#hay.delete(r);
+    if (!this.#server) this.#presetN.clear();
+    return lines;
   }
 
   /** Como una hoja de cálculo: una edición no reordena ni refiltra, pero sí mueve los agregados.
@@ -3356,6 +3868,130 @@ export class NxGrid extends Base {
     }
   }
 
+  /** La hora del reloj del equipo (la de «ahora»). */
+  #now(): Date {
+    return new Date();
+  }
+
+  /** Ctrl+: — la hora de ahora en la celda activa o, en un rango, en sus celdas de hora vacías (las
+   *  que ya tienen hora no se pisan), en un solo paso. */
+  #fillNow(): void {
+    this.#settle();
+    const now = clockTime(this.#now());
+    const { r0, r1, c0, c1 } = this.#range();
+    const one = r0 === r1 && c0 === c1;
+    const changes: GridChange[] = [];
+    this.#editableCells((row, col) => {
+      const v = row[col.key];
+      if (colType(col) === "time" && v !== now && (one || v === null || v === undefined || v === "")) changes.push({ id: this.#ids.get(row)!, key: col.key, value: now, old: v });
+    });
+    this.#apply(changes, "edit");
+  }
+
+  /**
+   * **Guardar en el servidor lo que se editó, a la vista.** La tabla aplica cada cambio al instante
+   * (`nx-grid-change`); la app lo manda y le pasa aquí la promesa de ese envío:
+   *
+   * ```js
+   * grid.addEventListener("nx-grid-change", (e) => grid.save(e.detail.changes, api.guardar(e.detail.changes)));
+   * ```
+   *
+   * Mientras va, las celdas se ven «guardando» (`labels.saving`). Si sale bien, destellan y se
+   * anuncia `labels.saved`. Si la promesa falla, cada celda vuelve a su valor anterior (sin otro
+   * `nx-grid-change`: no hay nada que mandar), sale del historial para deshacer, queda marcada en
+   * rojo con el motivo (el `message` del error) y se anuncia; la marca se va al editarla otra vez.
+   * Una celda que la persona volvió a editar mientras tanto no se toca: manda lo último que escribió.
+   * Responde si se guardó.
+   */
+  async save(changes: readonly GridChange[], work: PromiseLike<unknown>): Promise<boolean> {
+    const keys = changes.map((c) => `${c.id}\u0000${c.key}`);
+    for (const k of keys) {
+      this.#saving.set(k, (this.#saving.get(k) ?? 0) + 1);
+      this.#saved.delete(k);
+      this.#saveFailed.delete(k);
+    }
+    this.#saveSaid("saving");
+    this.#paintRows(true);
+    let error: unknown = null;
+    let ok = true;
+    try {
+      await work;
+    } catch (err) {
+      ok = false;
+      error = err;
+    }
+    for (const k of keys) {
+      const n = (this.#saving.get(k) ?? 1) - 1;
+      if (n > 0) this.#saving.set(k, n);
+      else this.#saving.delete(k);
+    }
+    if (ok) {
+      for (const k of keys) if (!this.#saving.has(k)) this.#saved.add(k);
+      clearTimeout(this.#savedTimer);
+      this.#savedTimer = setTimeout(() => {
+        this.#saved.clear();
+        this.#paintRows(true);
+      }, 1200);
+      if (this.#live) this.#live.textContent = this.#labels.saved;
+      this.#saveSaid(this.pendingSaves ? "saving" : "saved");
+      this.#paintRows(true);
+      return true;
+    }
+    const why = (error instanceof Error ? error.message : typeof error === "string" ? error : "") || this.#labels.saveError;
+    this.#saveSaid("failed", why);
+    this.#revert(changes, why);
+    if (this.#live) this.#live.textContent = `${this.#labels.saveError}: ${why}`;
+    return false;
+  }
+
+  /** Junto a deshacer, cómo va lo que se guarda: «Guardando…», «Guardado» (se va solo) o «No se
+   *  guardó: el motivo» (se queda hasta el próximo guardado). */
+  #saveSaid(state: "saving" | "saved" | "failed", why = ""): void {
+    const el = this.#saveNote;
+    if (!el) return;
+    const L = this.#labels;
+    clearTimeout(this.#saveNoteTimer);
+    if (state === "saved" && el.dataset.state === "failed") return;
+    el.hidden = false;
+    el.dataset.state = state;
+    el.textContent = state === "saving" ? L.saving : state === "saved" ? L.saved : `${L.saveError}: ${why}`;
+    el.title = el.textContent;
+    if (state === "saved") this.#saveNoteTimer = setTimeout(() => (el.hidden = true), 4000);
+  }
+
+  /** Cuántos guardados (`save()`) siguen en camino: la app puede avisar antes de salir de la página. */
+  get pendingSaves(): number {
+    let n = 0;
+    for (const v of this.#saving.values()) n += v;
+    return n;
+  }
+
+  /** Lo que no se guardó vuelve a como estaba (si nadie lo cambió después) y sale del historial. */
+  #revert(changes: readonly GridChange[], why: string): void {
+    const same = (a: unknown, b: unknown) => a === b || ((a === null || a === undefined || a === "") && (b === null || b === undefined || b === ""));
+    const back: GridChange[] = [];
+    for (const ch of changes) {
+      const row = this.#byId.get(ch.id);
+      if (!row || !same(row[ch.key], ch.value)) continue;
+      const k = `${ch.id}\u0000${ch.key}`;
+      row[ch.key] = ch.old;
+      this.#hay.delete(row);
+      if (same(ch.old, this.#orig.get(k))) this.#edited.delete(k);
+      this.#saveFailed.set(k, why);
+      back.push(ch);
+    }
+    if (!back.length) return;
+    const lines = this.#restate(new Set(back.map((c) => this.#byId.get(c.id)!)));
+    const gone = (c: GridChange) => back.some((b) => b.id === c.id && b.key === c.key && same(b.value, c.value));
+    const prune = (list: GridChange[][]) => list.map((batch) => batch.filter((c) => !gone(c))).filter((batch) => batch.length > 0);
+    this.#undo = prune(this.#undo);
+    this.#redo = prune(this.#redo);
+    this.#baseQ = null;
+    if (!this.#server) this.#reaggregate(new Set([...back.map((c) => c.key), ...lines]));
+    this.#paintHistory();
+    this.#paintAll();
+  }
+
   #clearRange(): void {
     this.#settle();
     const changes: GridChange[] = [];
@@ -3423,12 +4059,19 @@ export class NxGrid extends Base {
     this.#anchor = { r: r0, c: c0 };
     this.#act = { r: Math.min(this.#count() - 1, r0 + rows - 1), c: Math.min(this.#columns.length - 1, c0 + cols - 1) };
     const changes: GridChange[] = [];
+    // Lo pegado antes en la misma fila cuenta como paso anterior («1:20» después de «7:05» del
+    // mismo pegado son las 13:20).
+    const pasted = new Map<GridRow, Record<string, unknown>>();
     this.#editableCells((row, col, i, j) => {
       const t = fill ? m[0][0] : m[i]?.[j];
       if (t === undefined) return;
+      const mine = pasted.get(row) ?? {};
+      pasted.set(row, mine);
       // El apóstrofo con el que se copió un texto que parecía fórmula (ver `formulaSafe`) se quita.
-      const value = parseInput(isNumeric(col) ? t : unformulaSafe(t), col, this.#loc);
-      if (value === null && t.trim()) return; // texto que no es número en una columna numérica
+      const value = parseInput(isNumeric(col) ? t : unformulaSafe(t), col, this.#loc, () => this.#now(), colType(col) === "time" ? this.#around(row, col, mine) : undefined);
+      // Texto que no es número en una columna numérica, o que no es una hora: la celda se queda.
+      if (value === undefined || (value === null && t.trim())) return;
+      mine[col.key] = value;
       if (value !== row[col.key]) changes.push({ id: this.#ids.get(row)!, key: col.key, value, old: row[col.key] });
     });
     this.#apply(changes, "paste");

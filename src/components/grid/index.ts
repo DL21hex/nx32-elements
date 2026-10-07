@@ -6,6 +6,7 @@ define("nx-grid", NxGrid);
 export { NxGrid, GRID_LABELS } from "./grid";
 export { applyFilters, crossfilter, filterLabel, formatCell, parseTSV, sortRows, toHTMLTable, toTSV } from "./logic";
 export type { HtmlCell } from "./logic";
+export { nextStep, parseTime, readTime, sequenceMarks, sequenceState, stepsAround, type SequenceState, type StepMark, type TimeContext, type TimeReading, type TimeStep } from "./time";
 export type {
   GridAccents,
   GridAction,

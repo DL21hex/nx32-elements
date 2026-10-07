@@ -236,6 +236,11 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
       <nx-grid id="grid-links" locale="es-CO" height="320" filename="pedidos"></nx-grid>
       <ol class="stage__log btn-events" id="grid-links-log"></ol>
 
+      <h2>Horas, pasos y guardar a la vista</h2>
+      <p>Los hitos de empaque de cada finca: columnas de hora (<code>type: "time"</code>) que son los pasos de un proceso (<code>sequence</code>). Escribe «730», «7:30 pm» o «ahora», o pulsa <kbd>Ctrl</kbd>+<kbd>:</kbd> para la hora de ahora (también sobre un rango). Un paso vacío con uno posterior registrado dice «Faltante»; uno anterior al paso previo va en ámbar. Cada cambio se guarda con <code>save()</code> contra un servidor de mentira que tarda un momento y rechaza la «Salida» antes de las 06:00: la celda vuelve a su valor y queda en rojo con el motivo.</p>
+      <nx-grid id="grid-times" locale="es-CO" height="300" filename="empaque"></nx-grid>
+      <ol class="stage__log btn-events" id="grid-times-log"></ol>
+
       <h2>La tabla como página</h2>
       <p>Con <code>heading</code> el título va en la primera fila de la tabla, y los atajos, como filtro segmentado debajo: «Todos» y uno por atajo, con su conteo; se marcan de a uno. Uno con <code>href</code> lleva a otra página: va después, como enlace con ↗, y no filtra ni se marca. Un atajo con <code>menu</code> va en «Vistas» → «Seguimiento», sin conteo. Con <code>height="fill"</code> la tabla ocupa el alto de su contenedor (aquí, un marco de 560 px) y es lo único que se desplaza, así que su barra horizontal siempre se ve. El total va arriba, con los filtros.</p>
       <div class="grid-page-frame">
@@ -254,6 +259,7 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
             <tr><td>Panel de filtros</td><td>Las opciones de una faceta se suman y las facetas se combinan entre sí. Cada conteo refleja los demás filtros; una opción en 0 queda deshabilitada.</td></tr>
             <tr><td>Hoja de cálculo</td><td>Flechas, <kbd>Inicio</kbd>/<kbd>Fin</kbd>, <kbd>RePág</kbd>/<kbd>AvPág</kbd>, <kbd>Mayús</kbd> para seleccionar un rango (o arrastrar); el pie muestra suma, promedio, mínimo y máximo. <kbd>Ctrl</kbd>+<kbd>C</kbd> copia para pegar en Excel, y <kbd>Ctrl</kbd>+<kbd>V</kbd> pega desde Excel en las columnas editables.</td></tr>
             <tr><td>Editar</td><td>Doble clic, <kbd>Enter</kbd>, <kbd>F2</kbd> o simplemente escribir. <kbd>Enter</kbd> guarda y baja, <kbd>Tab</kbd> guarda y avanza, <kbd>Esc</kbd> cancela, <kbd>Supr</kbd> borra. Las celdas editadas llevan una marca. <kbd>Ctrl</kbd>+<kbd>Z</kbd> deshace y <kbd>Ctrl</kbd>+<kbd>Y</kbd> rehace (también con los botones de la barra).</td></tr>
+            <tr><td>Escribir una hora</td><td>«730», «7:30», «7:30 pm», «09:30:00» (de Excel) o «ahora»; <kbd>Ctrl</kbd>+<kbd>:</kbd> pone la de ahora. Una hora que no se entiende no deja salir del campo y dice cómo escribirla.</td></tr>
             <tr><td>Desplazar a lo ancho</td><td>La tabla lleva su barra horizontal también arriba (la propia queda al pie de su caja): sin bajar hasta el final para moverla. Es fina y se ensancha al acercar el puntero. Solo aparece si las columnas no caben; prueba a esconder columnas con «Columnas» hasta que quepan.</td></tr>
             <tr><td>Con el dedo</td><td>Un toque marca la celda y otro sobre la misma la edita o abre la fila. La pulsación larga abre el menú de la celda. Arrastrar desplaza la tabla y, al llegar a su final, sigue la página.</td></tr>
           </tbody>

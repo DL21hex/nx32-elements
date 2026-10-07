@@ -4,6 +4,7 @@
 import { foldText, matchText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
 import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridRow, GridSort } from "./types";
+import { parseTime, type TimeContext } from "./time";
 
 // Las funciones que muestran o leen valores reciben el formato del locale (`nxFormat`); sin él,
 // usan «es-CO».
@@ -57,17 +58,23 @@ export function formatCell(v: unknown, c: GridColumn, f: NxFormat = nxFormat()):
     }
     case "date":
       return f.date(String(v));
+    case "time":
+      return String(v);
     case "status":
+    case "timeline":
       return c.options?.find((o) => o.value === String(v))?.label ?? String(v);
     default:
       return String(v);
   }
 }
 
-/** Lo que alguien escribe en una celda editable, en el tipo de la columna. */
-export function parseInput(text: string, c: GridColumn, f: NxFormat = nxFormat()): unknown {
+/** Lo que alguien escribe en una celda editable, en el tipo de la columna. `undefined`: no se
+ *  entiende (una hora como «25:00»): la celda no cambia. `steps`: en una hora, el paso anterior y el
+ *  siguiente de su proceso (ver `readTime`). */
+export function parseInput(text: string, c: GridColumn, f: NxFormat = nxFormat(), now?: () => Date, steps?: Pick<TimeContext, "prev" | "next">): unknown {
   const t = text.trim();
   if (isNumeric(c)) return t ? f.parse(t) : null;
+  if (colType(c) === "time") return parseTime(t, now, steps);
   if (colType(c) === "status") {
     const k = foldText(t);
     return c.options?.find((o) => foldText(o.value) === k || foldText(o.label ?? "") === k)?.value ?? t;

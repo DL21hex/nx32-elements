@@ -1209,6 +1209,338 @@ nx-grid .nx-grid__sort-icon {
   font: inherit;
   text-align: inherit;
 }
+.nx-grid__input[aria-invalid="true"] {
+  outline-color: var(--nx-danger);
+  background: var(--nx-danger-soft);
+}
+/* La hora del día (`type: "time"`): cifras de ancho fijo, para que una columna de horas se lea
+   alineada. */
+.nx-grid__cell.is-time {
+  font-variant-numeric: tabular-nums;
+}
+/* `save()`: la esquina que marca «editada» dice también cómo va el guardado. Gris mientras va;
+   verde un momento al guardar; y en rojo, con el borde, lo que no se guardó (volvió a su valor). */
+.nx-grid__cell.is-saving {
+  background-image: linear-gradient(225deg, var(--nx-muted-foreground) 5px, transparent 5px);
+}
+.nx-grid__cell.is-saved {
+  background-image: linear-gradient(225deg, var(--nx-success) 6px, transparent 6px);
+  animation: nx-grid-saved 1.2s var(--nx-ease-out, ease-out) forwards;
+}
+.nx-grid__cell.is-failed {
+  background-image: linear-gradient(225deg, var(--nx-danger) 6px, transparent 6px);
+  box-shadow: inset 0 0 0 1px var(--nx-danger);
+}
+.nx-grid__cell.is-failed.is-active {
+  box-shadow: inset 0 0 0 2px var(--nx-danger);
+}
+/* Junto a deshacer: cómo va lo que se guarda (`save()`). */
+.nx-grid__save-note {
+  align-self: center;
+  max-inline-size: 28ch;
+  overflow: hidden;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-state="saved"] {
+    color: var(--nx-success);
+  }
+  &[data-state="failed"] {
+    color: var(--nx-danger);
+  }
+}
+/* El paso que sigue de un proceso: «--:--» tenue, donde va la próxima hora. */
+.nx-grid__next {
+  color: var(--nx-text-quaternary);
+  letter-spacing: 0.04em;
+}
+/* La cabecera de un paso: el nombre en dos líneas y, debajo, cuántas filas ya lo tienen. */
+.nx-grid__th.is-step .nx-grid__th-label {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.nx-grid__step-n {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: 6px;
+  color: var(--nx-text-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-grid__step-bar {
+  flex: 1;
+  block-size: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--nx-border-subtle);
+
+  & > i {
+    display: block;
+    block-size: 100%;
+    border-radius: inherit;
+    background: var(--nx-primary);
+    transition: inline-size 0.45s var(--nx-ease-out, ease-out);
+  }
+  .is-full > & > i {
+    background: var(--nx-success);
+  }
+}
+.nx-grid__step-of.is-bump {
+  animation: nx-grid-bump 0.5s var(--nx-ease-out, ease-out);
+}
+@keyframes nx-grid-bump {
+  30% {
+    color: var(--nx-primary-ink);
+  }
+}
+/* `timeline`: el proceso de la fila sobre una línea de horas. Cada punto se ubica con `--_x`; el
+   tramo va de `--_x` a `--_to`. */
+.nx-grid__cell.is-timeline {
+  padding-inline: 14px;
+}
+.nx-grid__tl,
+.nx-grid__time-rule > span {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.nx-grid__tl-track {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  block-size: 1px;
+  background: var(--nx-border);
+}
+.nx-grid__tl-span,
+.nx-grid__time-band {
+  position: absolute;
+  inset-inline-start: var(--_x);
+  inline-size: calc(var(--_to) - var(--_x));
+  inset-block-start: calc(50% - 2px);
+  block-size: 4px;
+  border-radius: 2px;
+  background: var(--nx-primary-border);
+}
+.nx-grid__tl[data-state="done"] .nx-grid__tl-span {
+  background: color-mix(in oklab, var(--nx-success) 55%, transparent);
+}
+.nx-grid__tl-dot,
+.nx-grid__time-dot {
+  position: absolute;
+  inset-inline-start: var(--_x);
+  inset-block-start: 50%;
+  inline-size: 8px;
+  block-size: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--nx-primary);
+  box-shadow: 0 0 0 2px var(--nx-card);
+}
+.nx-grid__tl[data-state="done"] .nx-grid__tl-dot {
+  background: var(--nx-success);
+}
+.nx-grid__tl-dot.is-order {
+  background: var(--nx-warning);
+}
+.nx-grid__tl-dot.is-new {
+  animation: nx-grid-dot 0.6s var(--nx-ease-out, ease-out);
+}
+@keyframes nx-grid-dot {
+  from {
+    scale: 0.2;
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--nx-primary) 30%, transparent);
+  }
+}
+.nx-grid__tl-now {
+  position: absolute;
+  inset-inline-start: var(--_x);
+  inset-block: 5px;
+  border-inline-start: 1px dashed var(--nx-primary-border);
+}
+.nx-grid__tl-axis {
+  position: relative;
+  flex-basis: 100%;
+  block-size: 14px;
+  color: var(--nx-text-quaternary);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+
+  & > span {
+    position: absolute;
+    inset-inline-start: var(--_x);
+    translate: -50% 0;
+  }
+  & > .is-now {
+    color: var(--nx-primary-ink);
+    font-weight: 600;
+  }
+}
+/* El recuadro bajo la celda de hora que se escribe: qué hora se entendió y por qué, y la regla
+   del día con los demás pasos. */
+.nx-grid__time {
+  position: fixed;
+  inset: auto;
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+  inline-size: min(300px, calc(100vw - 16px));
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-popover);
+  box-shadow: var(--nx-shadow-popover);
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+
+  &[popover]:not(:popover-open),
+  &[hidden] {
+    display: none;
+  }
+  & p {
+    margin: 0;
+  }
+}
+.nx-grid__time-ctx {
+  overflow: hidden;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  & strong {
+    color: var(--nx-muted-foreground);
+    font-weight: 500;
+  }
+}
+.nx-grid__time-read {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+
+  & strong {
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  & span {
+    color: var(--nx-muted-foreground);
+  }
+  [data-state="empty"] > & strong {
+    color: var(--nx-text-quaternary);
+  }
+  [data-state="bad"] > & strong {
+    color: var(--nx-danger);
+  }
+}
+.nx-grid__time-note {
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-wrap: pretty;
+
+  &:empty {
+    display: none;
+  }
+  &[data-tone="inferred"] {
+    color: var(--nx-primary-ink);
+  }
+  &[data-tone="warn"] {
+    color: var(--nx-warning-ink);
+  }
+  &[data-tone="bad"] {
+    color: var(--nx-danger);
+  }
+}
+.nx-grid__time-rule {
+  position: relative;
+  display: block;
+  block-size: 34px;
+  margin-inline: 6px;
+
+  & > span {
+    block-size: 20px;
+  }
+  & > span > span {
+    position: absolute;
+    inset-inline-start: var(--_x);
+    inset-block-start: 20px;
+    translate: -50% 0;
+    color: var(--nx-text-quaternary);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .nx-grid__time-band {
+    background: var(--nx-primary-soft);
+    block-size: 9px;
+    inset-block-start: calc(50% - 4.5px);
+  }
+  .nx-grid__time-dot {
+    background: var(--nx-text-quaternary);
+    box-shadow: none;
+    inline-size: 7px;
+    block-size: 7px;
+    margin: -3.5px 0 0 -3.5px;
+  }
+  .nx-grid__tl-now {
+    inset-block: 2px;
+  }
+}
+.nx-grid__time-me {
+  position: absolute;
+  inset-inline-start: var(--_x);
+  inset-block-start: 10px;
+  inline-size: 13px;
+  block-size: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  border-radius: 50%;
+  background: var(--nx-primary);
+  box-shadow:
+    0 0 0 3px var(--nx-popover),
+    0 0 0 4px var(--nx-primary-border);
+  transition: inset-inline-start 0.3s var(--nx-ease-out, ease-out);
+
+  &.is-warn {
+    background: var(--nx-warning);
+  }
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-grid__time-acts {
+  display: flex;
+  gap: 8px;
+
+  & .nx-grid__btn {
+    block-size: 30px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+  & .is-now {
+    border-color: var(--nx-primary-border);
+    color: var(--nx-primary-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  & > [hidden] {
+    display: none;
+  }
+}
 .nx-grid__pill {
   --_bg: var(--nx-hover);
   --_fg: var(--nx-muted-foreground);
@@ -1948,6 +2280,11 @@ nx-grid mark {
   from {
     opacity: 0;
     translate: 0 -3px;
+  }
+}
+@keyframes nx-grid-saved {
+  from {
+    background-color: var(--nx-success-soft);
   }
 }
 @keyframes nx-grid-copy {

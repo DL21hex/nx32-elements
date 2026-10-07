@@ -1,5 +1,40 @@
 # Registro de cambios
 
+## 0.5.0 — 2026-10-07
+
+### `<nx-grid>`
+
+- **Horas del día (`type: "time"`).** «HH:MM» de 24 horas, en cifras de ancho fijo. Editable, se
+  escribe como se teclea rápido («730», «7:30 pm», «09:30:00» de Excel, «ahora», «+20» después del
+  paso anterior, «-10» o «hace 10») y Ctrl+: pone la hora de ahora (en un rango, solo en las celdas
+  vacías). Lo que no se entiende no sale del campo con Enter ni Tab (se queda en rojo y dice cómo
+  escribirla) ni pisa una celda al pegar. `readTime()` y `parseTime()` se exportan para que el
+  servidor o la app lean igual.
+- **La hora se lee en su proceso.** Sin a. m./p. m. ni cero adelante, la hora es la que encaja
+  después del paso anterior: «2» después de las 06:31 son las 14:00, y «150» entre las 06:44 y las
+  14:02 son las 13:50. Al pegar una fila, lo pegado antes cuenta como paso anterior.
+- **Un recuadro bajo la celda mientras se escribe la hora.** Dice la hora que entendió (también en
+  12 horas), por qué (de la tarde por el orden, «20 min después de…», «hace 10 min») o qué no
+  cuadra, y dibuja la regla del día con los demás pasos, el tramo donde debería caer y la hora de
+  ahora. Botones «Ahora · 14:35» y «Dejar vacía».
+- **La línea de un proceso (`type: "timeline"`).** Dibuja los pasos de la fila sobre las horas del
+  día (`hours`, de 04:00 a 23:00 por defecto) con la hora de ahora, que se mueve sola; el punto que
+  se acaba de escribir entra con un destello. Su valor es cómo va el proceso (`idle`, `live`,
+  `done`, `review`) y por él se filtra y se cuentan los atajos. `sequenceState()` se exporta.
+- **El paso que sigue y cuántos van.** La celda del paso que sigue se ve «--:--», y la cabecera de
+  cada paso dice cuántas filas ya lo tienen («52/57»), con su barra.
+- **Los pasos de un proceso (`sequence`).** Las columnas con el mismo nombre son pasos en orden: un
+  paso vacío con uno posterior registrado dice «Faltante», y uno anterior al paso previo va en
+  ámbar con el motivo. Se recalcula al editar. `sequenceMarks()` se exporta.
+- **`save(changes, promesa)`: guardar a la vista.** La celda dice «guardando» (gris), «guardado»
+  (destello verde) o «no se guardó»: vuelve a su valor, sale del historial y queda en rojo con el
+  motivo. Lo que se volvió a editar mientras tanto no se toca. `pendingSaves` cuenta lo que va en
+  camino. Junto a deshacer se lee «Guardando…», «Guardado» o «No se guardó: …».
+- Etiquetas nuevas: `stepMissing`, `stepOrder`, `stepNext`, `stepCount`, `timeInvalid`, `timeHint`,
+  `timeEmpty`, `timeNowButton`, `timeClear`, `timeIsNow`, `timeAfternoon`, `timeAfter`, `timeAgo`,
+  `timeBeforePrev`, `timeAfterNext`, `timeFuture`, `timeNoPrev`, `stateIdle`, `stateLive`,
+  `stateDone`, `stateReview`, `timelineNow`, `saving`, `saved`, `saveError`.
+
 ## 0.4.7 — 2026-10-07
 
 ### `<nx-grid>`

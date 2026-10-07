@@ -465,6 +465,41 @@ Una tabla de datos que se explora sola:
   valor para la celda abierta y el campo sigue sin tocar, el campo muestra el nuevo. Con `source`,
   otra consulta trae otras filas: la edición se guarda antes de pedirla (reasignar los mismos
   filtros u orden no pide nada). Abrir una celda y salir sin tocarla no cambia nada.
+- **Horas del día (`type: "time"`).** El valor es «HH:MM» de 24 horas («07:30»), que ordena y se
+  compara como texto. Editable, se escribe como se teclea rápido: «730», «7:30», «7.30», «7h30»,
+  «7» (7:00), «7:30 pm», «730p», «09:30:00» (lo que pega Excel), «ahora», «+20» (20 min después
+  del paso anterior, también «+1:30») y «-10» o «hace 10» (hace 10 min). Ctrl+: (Ctrl+Mayús+. en un
+  teclado en español, o Ctrl+;, como en Excel) pone la hora de ahora: en el campo, en la celda
+  activa o, en un rango, en sus celdas de hora vacías, en un solo paso. Mientras se escribe, un
+  recuadro bajo la celda dice la hora que se entendió (también en 12 horas) y por qué, con la regla
+  del día; trae «Ahora · 14:35» y «Dejar vacía». Una hora que no se entiende («25:00») no deja salir
+  con Enter, Tab ni las flechas: el campo se queda en rojo y la tabla dice cómo escribirla
+  (`labels.timeInvalid`); si el foco se va, la celda queda como estaba. Al pegar, lo que no es una
+  hora no pisa la celda.
+- **Los pasos de un proceso (`sequence`).** Las columnas con el mismo `sequence` son los pasos de un
+  proceso, en el orden en que se declararon (primera caja → último pallet → salida). En cada fila,
+  un paso vacío con uno posterior registrado dice «Faltante» (`labels.stepMissing`) y un valor
+  anterior al del paso previo va en ámbar, con el motivo en el `title` («Antes de «Primera caja»»,
+  `labels.stepOrder`). Se recalcula al editar: llenar el paso que faltaba lo quita. Sirve con horas,
+  fechas y números; el último paso vacío no se marca (todavía no ha ocurrido). En un proceso de
+  horas, una hora sin a. m./p. m. ni cero adelante es la que encaja después del paso anterior
+  («2» después de las 06:31 son las 14:00; «0130» o «1:30 am» no se adivinan). La celda del paso que
+  sigue se ve «--:--» y la cabecera de cada paso dice cuántas filas lo tienen («52/57»).
+- **La línea de un proceso (`type: "timeline"`).** Una columna `timeline` con el mismo `sequence`
+  dibuja los pasos de la fila sobre las horas del día (`hours: ["04:00", "23:00"]` por defecto),
+  con la hora de ahora (se mueve sola cada minuto) y sus horas en la cabecera. Su valor lo pone la
+  tabla: cómo va el proceso (`idle`, `live`, `done`, `review`; `sequenceState()`), con los nombres
+  de `labels.stateIdle`… o los de sus `options`. Por él se filtra y se cuentan los atajos:
+  `{ id: "revisar", label: "Por revisar", filters: [{ key: "avance", op: "in", values: ["review"] }] }`.
+- **Guardar a la vista (`save()`).** La tabla aplica cada edición al instante; la app la manda al
+  servidor y le pasa la promesa: `grid.save(e.detail.changes, envío)`. Mientras va, la esquina de la
+  celda está en gris (`aria-busy`, `labels.saving`); al guardarse destella en verde y se anuncia
+  `labels.saved`. Si la promesa falla, cada celda vuelve a su valor anterior (sin otro
+  `nx-grid-change`), sale del historial para deshacer, queda con borde rojo y el motivo (el
+  `message` del error) en el `title`, y se anuncia `labels.saveError`; la marca se va al editarla
+  otra vez. Una celda que la persona volvió a editar mientras tanto no se toca. `pendingSaves`
+  cuenta los envíos en camino (para avisar antes de salir). Si dos envíos de la misma fila pueden
+  cruzarse en el servidor, la app los manda en fila.
 - **Teclado.** La tabla es una sola parada de Tab (el patrón grid de la APG): flechas entre celdas,
   ↑ desde la primera fila sube a las cabeceras y ←/→ (Inicio, Fin) las recorren; ahí Enter ordena,
   Alt+↓ abre el filtro, Ctrl+←/→ cambia el ancho (Mayús, de a más), Supr lo devuelve y ↓ vuelve a
@@ -626,7 +661,15 @@ grid.columns = [
   { key: "monto", label: "Monto", type: "money", editable: true },
 ];
 grid.rows = pedidos; // o grid.source = "/compras/pedidos/buscar"
-grid.addEventListener("nx-grid-change", (e) => guardar(e.detail.changes));
+grid.addEventListener("nx-grid-change", (e) => grid.save(e.detail.changes, guardar(e.detail.changes)));
+
+// Horas de un proceso: «Faltante» si se salta un paso, en ámbar si va antes del anterior.
+grid.columns = [
+  { key: "finca", label: "Finca" },
+  { key: "caja", label: "Primera caja", type: "time", editable: true, sequence: "empaque" },
+  { key: "salida", label: "Salida", type: "time", editable: true, sequence: "empaque" },
+  { key: "avance", label: "Avance del día", type: "timeline", sequence: "empaque" },
+];
 
 // Enlace por fila y acciones (cada fila trae `detalle_url`, `pdf_url` y `anulable`).
 grid.columns = [{ key: "oc", label: "Pedido", href: "detalle_url" }, ...];
@@ -657,7 +700,7 @@ lee lo que trae la fila, no `Object`.
 | | |
 |---|---|
 | Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-level`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
-| Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo` |
+| Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`

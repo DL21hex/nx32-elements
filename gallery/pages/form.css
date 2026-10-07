@@ -1,0 +1,77 @@
+/* Página «Formularios» de la galería: la fila «Llenar con» y el formulario suelto. */
+.frm-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.frm-tools__l {
+  margin-inline-end: 2px;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+}
+.frm-chip {
+  display: inline-flex;
+  align-items: center;
+  block-size: 30px;
+  padding-inline: 12px;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background var(--nx-motion-fast);
+}
+.frm-chip:hover {
+  background: var(--nx-hover);
+}
+.frm-chip:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+.frm-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+.frm-read input {
+  accent-color: var(--nx-primary);
+}
+.frm-tip {
+  max-inline-size: 72ch;
+  color: var(--nx-muted-foreground);
+}
+.frm-plain {
+  max-inline-size: 760px;
+  padding: 20px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+}
+.frm-cap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-block-end: 16px;
+}
+.frm-cap nx-doc-capture {
+  align-self: stretch;
+}
+.frm-scan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-inline-size: 520px;
+}
+.frm-scan nx-scan {
+  align-self: stretch;
+}

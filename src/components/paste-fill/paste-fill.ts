@@ -15,9 +15,14 @@
  *
  * Las marcas sobre los campos van en una capa propia, encima del formulario: no se inserta nada
  * dentro del formulario del autor (solo `data-nx-fill` y la descripción accesible del campo).
+ *
+ * Con un `<nx-form>` de destino (el que envuelve, o el de `for`), los campos salen de su esquema y
+ * lo encontrado se le entrega con `fill()`: cada dato lleva el chip «Texto pegado» con el tramo del
+ * texto de donde salió, el formulario respeta lo escrito y deshace el llenado entero.
  */
 import { Base, upgrade, attrProps } from "../../core/define";
 import { h, safeEndpoint, setAttr } from "../../core/dom";
+import { fillTarget, type FillTarget } from "../../core/fill";
 import { mergeLabels } from "../../core/labels";
 import { glyph } from "../../core/icons";
 import { nxFormat, resolveLocale } from "../../core/locale";
@@ -105,6 +110,20 @@ function labelOf(el: Control): string {
   return t.replace(/\s+/g, " ").replace(/[\s*:]+$/, "").trim();
 }
 
+/** Los campos que un texto puede llenar en un `<nx-form>`, desde su esquema (sin casillas, filas ni
+ *  los de solo lectura). */
+function schemaFields(form: FillTarget): PasteField[] {
+  const types: Record<string, string> = { text: "text", email: "email", tel: "tel", url: "url", date: "date", number: "number", percent: "number", money: "number", textarea: "textarea", select: "select", radio: "select", segmented: "select" };
+  const out: PasteField[] = [];
+  for (const sec of form.sections)
+    for (const f of sec.fields) {
+      const type = types[f.type ?? "text"];
+      if (!type) continue;
+      out.push({ name: f.key, label: f.label, type, kind: f.type === "money" ? "money" : undefined, options: type === "select" ? (f.options ?? []).map((o) => ({ value: o.value, label: o.label ?? o.value })) : undefined });
+    }
+  return out;
+}
+
 /** Escribe con el setter nativo: React y compañía vigilan `value` en la instancia y no se enteran
  *  de una asignación directa. */
 function writeValue(el: Control, v: string): void {
@@ -160,6 +179,8 @@ export class NxPasteFill extends Base {
    * enriquecidos con los que se asignan aquí por `name` (p. ej. `{name:"monto", kind:"money"}`).
    */
   get fields(): PasteField[] {
+    const form = this.#form();
+    if (form) return mergeFields(schemaFields(form), this.#explicit);
     return mergeFields(
       [...this.#controls().values()].map((el) => ({
         name: el.name,
@@ -240,6 +261,8 @@ export class NxPasteFill extends Base {
     if (!go) return null;
     this.#abort?.abort();
     if (!this.#built) this.#build();
+    const form = this.#form();
+    if (form) return this.#fillForm(form, text);
     const refocus = this.#bar!.contains(document.activeElement);
     const ses: Session = { text, marks: new Map(), before: new Map(), notes: [], failed: false };
     this.#clearMarks();
@@ -292,6 +315,12 @@ export class NxPasteFill extends Base {
   /** Devuelve los valores de antes del último llenado (los campos que la persona cambió después se
    *  respetan). `false` si no había nada que deshacer. */
   undo(): boolean {
+    const form = this.#form();
+    if (form && !this.#stack.length) {
+      const ok = form.undo();
+      if (ok) this.#say(this.#labels.undone);
+      return ok;
+    }
     const ses = this.#stack.pop();
     if (!ses) return false;
     this.#abort?.abort();
@@ -361,6 +390,71 @@ export class NxPasteFill extends Base {
   #attr(name: string, v: string | null | undefined): void {
     setAttr(this, name, v);
   }
+  /** El `<nx-form>` de destino: el que envuelve, o el de `for`. */
+  #form(): FillTarget | null {
+    return fillTarget(this, this.for);
+  }
+
+  /** Con un `<nx-form>`: lo que se encuentra se le entrega con su origen (y la evidencia de cada dato);
+   *  lo que mande el servidor llega como un segundo llenado. */
+  async #fillForm(form: FillTarget, text: string): Promise<PasteFillDoneDetail | null> {
+    const L = this.#labels;
+    const fields = this.fields;
+    const fmt = nxFormat(resolveLocale(this));
+    const all: PasteFill[] = [];
+    let n = 0;
+    const give = (list: PasteFill[]) => {
+      const values: Record<string, string> = {};
+      const details: Record<string, string> = {};
+      for (const f of list) {
+        const field = fields.find((x) => x.name === f.name);
+        if (!field) continue;
+        let value = f.value;
+        if (field.options?.length) {
+          const o = field.options.find((x) => x.value === value) ?? field.options.find((x) => same(x.label ?? x.value, value));
+          if (!o) continue;
+          value = o.value;
+        }
+        values[f.name] = value;
+        const ev = f.source && f.source.end <= text.length ? text.slice(f.source.start, f.source.end).replace(/\s+/g, " ").trim() : "";
+        details[f.name] = ev ? `${L.fromText}: «${ev.length > 60 ? `${ev.slice(0, 59)}…` : ev}»` : L.fromText;
+        all.push({ ...f, value });
+      }
+      n += form.fill(values, { label: L.pasted, detail: L.fromText }, { details });
+    };
+    give(matchFields(fields, text, { fmt, hints: L }));
+    // Solo del mismo origen (o uno de `allowOrigins`): el texto pegado no viaja a un tercero.
+    const url = safeEndpoint(this.endpoint);
+    let failed = false;
+    if (url) {
+      const ctrl = (this.#abort = new AbortController());
+      this.#state = "busy";
+      this.#busy = L.server;
+      this.#paint();
+      const more: PasteFill[] = [];
+      try {
+        const res = await fetch(url, { method: "POST", signal: ctrl.signal, credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/x-ndjson, text/event-stream" }, body: JSON.stringify({ text, fields }) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await readLines(res, (line) => {
+          const ev = parsePasteEvent(lineData(line));
+          if (ev?.type === "field") more.push(ev);
+          else if (ev?.type === "error") failed = true;
+        });
+      } catch {
+        if (ctrl.signal.aborted) return null;
+        failed = true;
+      }
+      if (more.length) give(more);
+    }
+    this.#state = "idle";
+    this.#busy = "";
+    this.#paint();
+    const detail: PasteFillDoneDetail = { values: Object.fromEntries(all.map((f) => [f.name, f.value])), fields: all.map((f) => ({ name: f.name, value: f.value, confidence: f.confidence })) };
+    this.#say([n === 1 ? L.filledOne : n ? fmtText(L.filled, { n }) : L.none, failed ? L.serverError : ""].filter(Boolean).join(". "));
+    this.dispatchEvent(new CustomEvent("nx-paste-fill-done", { detail, bubbles: true, composed: true }));
+    return detail;
+  }
+
   #top(): Session | undefined {
     return this.#stack[this.#stack.length - 1];
   }

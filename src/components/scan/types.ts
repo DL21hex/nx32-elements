@@ -167,4 +167,7 @@ export interface ScanLabels {
   removed: string;
   result: string;
   again: string;
+  /** El origen de lo que llena un `<nx-form>` (`field`): «Escáner» y «Leído con el escáner ({format})». */
+  formSource: string;
+  formDetail: string;
 }

@@ -38,6 +38,8 @@ export * from "./components/print/index";
 export * from "./components/badge/index";
 export * from "./components/notice/index";
 export * from "./components/fields/index";
+export * from "./components/field/index";
+export * from "./components/form/index";
 export * from "./components/tabs/index";
 export * from "./components/breadcrumb/index";
 export * from "./components/org/index";

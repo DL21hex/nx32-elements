@@ -18,6 +18,10 @@ import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, 
 import type { NxBadge } from "../components/badge/badge";
 import type { NxNotice } from "../components/notice/notice";
 import type { NoticeActionDetail } from "../components/notice/types";
+import type { NxField } from "../components/field/field";
+import type { FieldActionDetail, FieldLabels } from "../components/field/types";
+import type { NxForm } from "../components/form/form";
+import type { FormChangeDetail, FormField, FormFillDetail, FormLabels, FormMode, FormSection, FormSubmitDetail, FormValue, FormVariant } from "../components/form/types";
 import type { NxFields } from "../components/fields/fields";
 import type { FieldItem, FieldsActionDetail, FieldsLabels, FieldsVariant } from "../components/fields/types";
 import type { NxTabs } from "../components/tabs/tabs";
@@ -124,7 +128,10 @@ declare module "solid-js" {
       filter: AwardFilter | undefined;
       formats: string[] | undefined;
       anomalies: TrendAnomaly[] | undefined;
-      values: WhatIfValues | undefined;
+      values: WhatIfValues | Record<string, FormValue> | null | undefined;
+      sections: FormSection[] | null | undefined;
+      warnings: Record<string, string> | null | undefined;
+      hints: Record<string, string> | null | undefined;
       scenarios: WhatIfScenario[] | undefined;
       series: WhatIfSeries[] | TrendSeries[] | undefined;
       outputs: WhatIfMetric[] | undefined;
@@ -136,14 +143,14 @@ declare module "solid-js" {
       people: OrgPerson[] | null | undefined;
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
-      errors: Record<string, string> | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | undefined;
+      errors: Record<string, string> | null | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | undefined;
       schema: CaptureSchemaItem[] | undefined;
       suggestions: string[] | undefined;
       context: unknown;
       progress: number | null | undefined;
       options: SelectOption[];
-      fields: SelectField[] | HistoryField[] | PasteFieldInput[] | SyncField[] | GuardFields | CardsField[] | undefined;
+      fields: SelectField[] | HistoryField[] | PasteFieldInput[] | SyncField[] | GuardFields | CardsField[] | FormField[] | null | undefined;
       record: Record<string, unknown> | undefined;
       events: HistoryEvent[] | undefined;
       user: HistoryActor | AccountUser | null | undefined;
@@ -242,7 +249,7 @@ declare module "solid-js" {
       active: string | undefined;
       label: string | undefined;
       icon: string | undefined;
-      variant: ButtonVariant | FieldsVariant | undefined;
+      variant: ButtonVariant | FieldsVariant | FormVariant | undefined;
       type: "button" | "submit" | "reset" | undefined;
       "log-mode": LogMode | undefined;
       stream: string | undefined;
@@ -265,7 +272,7 @@ declare module "solid-js" {
       locale: string | undefined;
       heading: string | undefined;
       description: string | undefined;
-      mode: DialogMode | ScanMode | GuardMode | ReviewMode | ChecklistMode | undefined;
+      mode: DialogMode | ScanMode | GuardMode | ReviewMode | ChecklistMode | FormMode | undefined;
       size: DialogSize | string | undefined;
       url: string | undefined;
       hold: string | undefined;
@@ -305,6 +312,16 @@ declare module "solid-js" {
       today: string | undefined;
       "fiscal-start": string | undefined;
       "week-start": string | undefined;
+      hint: string | undefined;
+      error: string | undefined;
+      warning: string | undefined;
+      "source-detail": string | undefined;
+      span: string | undefined;
+      field: string | undefined;
+      draft: string | undefined;
+      "submit-label": string | undefined;
+      "cancel-label": string | undefined;
+      index: "auto" | "none" | undefined;
     }
     interface ExplicitBoolAttributes {
       sticky: boolean;
@@ -341,6 +358,9 @@ declare module "solid-js" {
       echo: boolean;
       words: boolean;
       readonly: boolean;
+      optional: boolean;
+      locked: boolean;
+      "no-footer": boolean;
     }
     interface CustomEvents {
       "nx-jobs-change": CustomEvent<{ jobs: Job[] }>;
@@ -471,6 +491,12 @@ declare module "solid-js" {
       "nx-paste-fill-start": CustomEvent<{ text: string }>;
       "nx-paste-fill-done": CustomEvent<PasteFillDoneDetail>;
       "nx-paste-fill-undo": CustomEvent<{ values: Record<string, string> }>;
+      "nx-field-action": CustomEvent<FieldActionDetail>;
+      "nx-form-change": CustomEvent<FormChangeDetail>;
+      "nx-form-fill": CustomEvent<FormFillDetail>;
+      "nx-form-undo": CustomEvent<{ keys: string[] }>;
+      "nx-form-submit": CustomEvent<FormSubmitDetail>;
+      "nx-form-cancel": CustomEvent<Record<string, never>>;
     }
     interface IntrinsicElements {
       "nx-jobs": HTMLAttributes<NxJobs>;
@@ -485,6 +511,8 @@ declare module "solid-js" {
       "nx-badge": HTMLAttributes<NxBadge>;
       "nx-notice": HTMLAttributes<NxNotice>;
       "nx-fields": HTMLAttributes<NxFields>;
+      "nx-field": HTMLAttributes<NxField> & { label?: string };
+      "nx-form": HTMLAttributes<NxForm> & { heading?: string };
       "nx-tabs": HTMLAttributes<NxTabs>;
       "nx-breadcrumb": HTMLAttributes<NxBreadcrumb>;
       "nx-org": HTMLAttributes<NxOrg> & { source?: string };

@@ -1,5 +1,66 @@
 # Registro de cambios
 
+## 0.6.0 — 2026-10-07
+
+### `<nx-form>` (nuevo): un formulario entero desde un esquema
+
+- **El esquema en JSON.** `sections` (o `fields`) con sus campos: `key`, `label`, `type`
+  (`text`, `email`, `tel`, `url`, `textarea`, `number`, `money`, `percent`, `date`, `select`,
+  `radio`, `segmented`, `checkbox`, `checkboxes`, `readonly`), `required`, `hint`, `span` de seis
+  columnas, `value`, `options`, límites (`min`/`max`, `"today"` en fechas, `minLength`/`maxLength`,
+  `pattern`). Montos y números son `<nx-number>`, que se carga solo si el esquema los tiene. En el
+  registro BDUI como `Form`.
+- **`when`**: un campo aparece según otros (un valor, una lista, `{not}`, `{filled}`); lo oculto no
+  se valida ni sale en `values`.
+- **Lo habitual de una opción (`options[].fills`)**: el cargo trae el área y la clase de riesgo, con
+  su chip, sin pisar lo que la persona escribió.
+- **`fill(valores, origen)` y `undo()`**: lo que llega de la cédula, una requisición o un texto
+  pegado se marca con su origen hasta que la persona lo cambia, se anuncia «7 datos de Cédula ·
+  Deshacer», ilumina los campos en orden, respeta lo escrito y se deshace entero (también
+  Ctrl+Z fuera de un campo). `sources` dice de dónde vino cada dato.
+- **Revisar sin estorbar**: los errores salen al dejar el campo o al enviar; un correo con el
+  dominio mal escrito avisa sin bloquear y se corrige con un clic; `errors` (servidor), `warnings`
+  y `hints` (la app).
+- **Índice y pie**: con tres secciones o más, el avance de cada una; el pie dice cuántos datos
+  faltan, con «Ir al siguiente». Enter pasa al campo siguiente y Ctrl+S envía.
+- **Borrador** (`draft`, `clearDraft()`): se guarda mientras se escribe y se recupera al volver,
+  encima del registro que cargue la app. **Lectura** (`mode="read"`): la misma rejilla como texto.
+- **Listas largas**: un `select` con más de 12 opciones, `search` (también en varias columnas) o
+  `source` es un `<nx-select>`, que se carga solo si el esquema lo usa.
+- **Filas (`type: "rows"`)**: un grupo de campos que se repite (beneficiarios, líneas), con agregar y
+  quitar, `min`/`max`, `fills` dentro de la fila, validación por fila y errores del servidor como
+  `"beneficiarios.0.nombre"`; `fill()` agrega las filas que no estaban.
+- **`fill(…, {details})`**: el detalle del origen por dato (de qué tramo del texto salió). Las fechas
+  como «12/10/2026» se leen día/mes/año (mes/día en `en-US`).
+- Eventos: `nx-form-change` (`{key, value, values}`; en una fila, también `row` y `field`),
+  `nx-form-fill`, `nx-form-undo`, `nx-form-submit` `{values, sources}`, `nx-form-cancel`. Solid:
+  `<Form>` en `nx32-elements/solid/form`.
+
+### Las fuentes llenan un `<nx-form>` con su origen
+
+- **`<nx-paste-fill>`**: con un `<nx-form>` de destino (el que envuelve o el de `for`), los campos
+  salen de su esquema y lo encontrado se le entrega con `fill()`: chip «Texto pegado» con el tramo del
+  texto de cada dato, sin sus propias marcas; `undo()` deshace en el formulario.
+- **`<nx-scan>`**: `field` (la clave que llena cada lectura, con el origen «Escáner»; `filas.campo`
+  agrega una fila por código) y `for` (el `id` del formulario). Etiquetas nuevas: `formSource`,
+  `formDetail`.
+- **`<nx-doc-capture>`**: `for`. Con un formulario de destino, el botón dice «Pasar al formulario» y
+  le entrega lo leído (las tablas como filas, el nombre del archivo como origen) en vez de registrarlo.
+  Etiquetas nuevas: `toForm`, `formSource`, `formDetail`.
+
+### `<nx-field>` (nuevo): el campo de la casa
+
+- Envuelve un control (nativo, `<nx-number>`, `<nx-select>`… o un grupo de radios o casillas) sin
+  moverlo: etiqueta arriba, «Opcional» (`optional`), el chip de origen (`source`, `source-detail`) y
+  una sola línea debajo: `error`, `warning` con su botón (`action`, `nx-field-action`) o `hint`.
+  Conecta `label for`, el grupo (`role="radiogroup"`), `aria-describedby`, `aria-invalid` y
+  `required`. Lo que la persona cambia borra el error, el aviso y el origen. Con `text` (y
+  `locked`), se lee.
+- Clases que sirven solas: `.nx-input` (input, select y textarea con el aspecto de `<nx-number>`),
+  `.nx-check`, `.nx-choices`, `.nx-segmented` y `.nx-form-grid` (seis columnas, `span` por campo).
+- No está en el registro BDUI (lo suyo es el control que envuelve): un payload usa `Form`. Solid:
+  `<Field>` en `nx32-elements/solid/field`.
+
 ## 0.5.0 — 2026-10-07
 
 ### `<nx-grid>`

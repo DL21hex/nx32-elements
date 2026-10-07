@@ -14,6 +14,8 @@ export interface DocCaptureProps extends Omit<JSX.HTMLAttributes<NxDocCapture>, 
   endpoint?: string;
   /** URL que registra lo capturado (POST JSON `{values, confirmed}`). */
   action?: string;
+  /** El `id` de un `<nx-form>` que se llena al confirmar (sin él, el que contiene o envuelve a la captura). */
+  for?: string;
   /** Confianza por debajo de la cual un campo exige revisión (0–1). */
   reviewBelow?: number;
   /** Tipos de archivo del selector (por defecto PDF e imágenes). */
@@ -29,7 +31,7 @@ export interface DocCaptureProps extends Omit<JSX.HTMLAttributes<NxDocCapture>, 
 }
 
 export function DocCapture(props: DocCaptureProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["schema", "endpoint", "action", "reviewBelow", "accept", "maxSize", "labels", "onDone", "onSubmit", "children"]);
+  const [local, rest] = splitProps(props, ["schema", "endpoint", "action", "for", "reviewBelow", "accept", "maxSize", "labels", "onDone", "onSubmit", "children"]);
   return (
     <nx-doc-capture
       {...rest}
@@ -37,6 +39,7 @@ export function DocCapture(props: DocCaptureProps): JSX.Element {
       prop:labels={local.labels}
       attr:endpoint={local.endpoint}
       attr:action={local.action}
+      attr:for={local.for}
       attr:review-below={local.reviewBelow === undefined ? undefined : String(local.reviewBelow)}
       attr:accept={local.accept}
       attr:max-size={local.maxSize === undefined ? undefined : String(local.maxSize)}

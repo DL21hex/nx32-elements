@@ -22,6 +22,10 @@ export interface ScanProps extends Omit<JSX.HTMLAttributes<NxScan>, "onError" | 
   autostart?: boolean;
   /** Dónde se escucha la pistola lectora: `page` (por defecto), `field` u `off`. */
   wedge?: ScanWedge;
+  /** El campo de un `<nx-form>` que llena cada lectura (`filas.campo` agrega una fila). */
+  field?: string;
+  /** El `id` de ese `<nx-form>` (sin él, el que contiene al escáner). */
+  for?: string;
   locale?: string;
   labels?: Partial<ScanLabels>;
   /** Cada lectura: `{code, format, via}`. Cancelable (en el conteo, no se suma). */
@@ -35,7 +39,7 @@ export interface ScanProps extends Omit<JSX.HTMLAttributes<NxScan>, "onError" | 
 }
 
 export function Scan(props: ScanProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["mode", "formats", "source", "items", "muted", "autostart", "wedge", "locale", "labels", "onRead", "onCount", "onError", "children"]);
+  const [local, rest] = splitProps(props, ["mode", "formats", "source", "items", "muted", "autostart", "wedge", "field", "for", "locale", "labels", "onRead", "onCount", "onError", "children"]);
   return (
     <nx-scan
       {...rest}
@@ -45,6 +49,8 @@ export function Scan(props: ScanProps): JSX.Element {
       attr:mode={local.mode}
       attr:source={local.source}
       attr:wedge={local.wedge}
+      attr:field={local.field}
+      attr:for={local.for}
       attr:locale={local.locale}
       bool:muted={!!local.muted}
       bool:autostart={!!local.autostart}

@@ -75,6 +75,8 @@ export default defineConfig(({ command, mode }) => {
           "badge": "src/components/badge/index.ts",
           "notice": "src/components/notice/index.ts",
           "fields": "src/components/fields/index.ts",
+          "field": "src/components/field/index.ts",
+          "form": "src/components/form/index.ts",
           "tabs": "src/components/tabs/index.ts",
           "breadcrumb": "src/components/breadcrumb/index.ts",
           "org": "src/components/org/index.ts",

@@ -3289,6 +3289,160 @@ import { Tabs } from "nx32-elements/solid/tabs";
           </div>
         </template>
 
+        <!-- ================================================================ Formularios -->
+        <template id="page-form">
+          <p class="eyebrow">Componentes</p>
+          <h1>Formularios <code class="tag">&lt;nx-form&gt;</code> <code class="tag">&lt;nx-field&gt;</code></h1>
+          <p class="lead">
+            Un formulario entero desde un esquema JSON, con aspecto de formulario sobrio: etiqueta arriba, «Opcional» en vez de
+            asteriscos y una sola línea debajo. Lo que impresiona es lo que se ahorra quien lo llena: los datos llegan de la
+            cédula, de una requisición o de un mensaje, cada uno dice de dónde vino, nada pisa lo que la persona escribió y un
+            llenado se deshace entero.
+          </p>
+
+          <h2>Un ingreso de personal</h2>
+          <p class="frm-tip">
+            Prueba los tres botones de «Llenar con» (el mensaje lo lee <code>&lt;nx-paste-fill&gt;</code>; también puedes pegar
+            cualquier texto con <kbd>Ctrl</kbd> <kbd>V</kbd> sobre el formulario), cambia el cargo, elige «Término fijo» o
+            «Aprendizaje», busca la ciudad, agrega una persona a cargo, corrige el correo y envía con <kbd>Ctrl</kbd> <kbd>S</kbd>.
+            <kbd>Enter</kbd> pasa al campo siguiente y <kbd>Ctrl</kbd> <kbd>Z</kbd> deshace el último llenado. Lo escrito queda
+            como borrador: recarga la página y sigue ahí.
+          </p>
+          <nx-paste-fill id="frm-paste" lang="es-CO">
+            <nx-form id="frm-demo" heading="Nuevo ingreso" submit-label="Crear ingreso" draft="galeria-ingreso" locale="es-CO" currency="COP">
+              <div slot="tools" class="frm-tools">
+                <span class="frm-tools__l">Llenar con</span>
+                <button type="button" class="frm-chip" data-fill="cedula">Cédula</button>
+                <button type="button" class="frm-chip" data-fill="req">Requisición REQ-118</button>
+                <button type="button" class="frm-chip" data-fill="texto">Mensaje del candidato</button>
+                <label class="frm-read"><input type="checkbox" id="frm-read" /> Ver en lectura</label>
+              </div>
+            </nx-form>
+          </nx-paste-fill>
+          <p class="stage__loglabel">Eventos</p>
+          <ol class="stage__log btn-events" id="frm-log"></ol>
+
+          <h2>Recepción de mercancía: la factura y el escáner</h2>
+          <p class="frm-tip">
+            <code>&lt;nx-doc-capture for="frm-recepcion"&gt;</code> lee la factura; al confirmar lo dudoso, «Pasar al formulario»
+            llena el encabezado y los ítems (como filas), con el nombre del archivo como origen. <code>&lt;nx-scan
+            field="recibidos.codigo"&gt;</code> agrega una fila por cada código que lee.
+          </p>
+          <div class="frm-cap">
+            <nx-button id="frm-cap-sample" label="Leer la factura de ejemplo" variant="secondary" log-mode="none"></nx-button>
+            <nx-doc-capture id="frm-cap" endpoint="/demo/capture" for="frm-recepcion"></nx-doc-capture>
+          </div>
+          <nx-form id="frm-recepcion" heading="Recepción de mercancía" submit-label="Registrar recepción" locale="es-CO" currency="COP" index="none">
+            <div slot="tools" class="frm-scan">
+              <nx-scan id="frm-scan" field="recibidos.codigo" wedge="field" muted lang="es-CO"></nx-scan>
+              <button type="button" class="frm-chip" id="frm-scan-try">Simular una lectura</button>
+            </div>
+          </nx-form>
+
+          <h2>El esquema</h2>
+          <p>
+            Todo es JSON, así que el formulario puede venir del backend (BDUI). Las reglas que necesitan al negocio (el periodo
+            de prueba) las calcula la app y las devuelve con <code>fill()</code> y <code>hints</code>: ninguna prop es una función.
+          </p>
+          <div class="tabs" data-tabs>
+            <div role="tablist">
+              <button role="tab" aria-selected="true">Módulos (ESM)</button>
+              <button role="tab" aria-selected="false">SolidJS</button>
+              <button role="tab" aria-selected="false">BDUI</button>
+            </div>
+            <pre role="tabpanel"><code>import "nx32-elements/form";
+
+form.sections = [{
+  heading: "Contrato",
+  fields: [
+    { key: "cargo", label: "Cargo", type: "select", required: true, span: 3,
+      options: [{ value: "Soldador", fills: { area: "Producción", riesgo: "IV" } }] },
+    { key: "tipoContrato", label: "Tipo de contrato", type: "segmented",
+      options: ["Indefinido", "Término fijo"] },
+    { key: "fin", label: "Fecha de terminación", type: "date", required: true,
+      when: { tipoContrato: "Término fijo" } },
+    { key: "salario", label: "Salario mensual", type: "money", required: true, min: 1 },
+  ],
+}];
+
+// Lo que llega de afuera: la cédula, una requisición, un texto pegado.
+form.fill({ cargo: "Soldador", salario: 2100000 }, { label: "REQ-118", detail: "De la requisición" });
+
+form.addEventListener("nx-form-submit", async (e) =&gt; {
+  const r = await api.crear(e.detail.values, e.detail.sources);
+  if (r.errors) form.errors = r.errors;   // {correo: "Ya existe"}
+  else form.clearDraft();
+});</code></pre>
+            <pre role="tabpanel" hidden><code>import { Form } from "nx32-elements/solid/form";
+
+&lt;Form heading="Nuevo ingreso" draft="ingreso" sections={esquema} errors={errores()}
+  onSubmit={(e) =&gt; guardar(e.detail.values)}&gt;
+  &lt;div slot="tools"&gt;&lt;button onClick={() =&gt; ref.fill(cedula(), "Cédula")}&gt;Cédula&lt;/button&gt;&lt;/div&gt;
+&lt;/Form&gt;</code></pre>
+            <pre role="tabpanel" hidden><code>{ "component": "Form",
+  "props": { "heading": "Nuevo ingreso", "draft": "ingreso", "submitLabel": "Crear ingreso",
+             "sections": [ … ], "values": { "tipoDoc": "Cédula de ciudadanía" } } }</code></pre>
+          </div>
+
+          <h2>El campo de la casa, sin <code>&lt;nx-form&gt;</code></h2>
+          <p>
+            <code>&lt;nx-field&gt;</code> envuelve un control tuyo (sin moverlo) y le pone la etiqueta, «Opcional», el origen del
+            dato, la ayuda o el error, y la accesibilidad. Las clases <code>.nx-input</code>, <code>.nx-check</code>,
+            <code>.nx-choices</code> y <code>.nx-segmented</code> sirven también solas, y <code>.nx-form-grid</code> reparte seis
+            columnas.
+          </p>
+          <form class="frm-plain nx-form-grid" id="frm-plain" novalidate lang="es-CO">
+            <nx-field label="Correo personal" hint="Allí le llegan los desprendibles de pago" span="3" required>
+              <input type="email" name="correo" autocomplete="off" />
+            </nx-field>
+            <nx-field label="Celular" span="3" optional>
+              <input type="tel" name="celular" autocomplete="off" />
+            </nx-field>
+            <nx-field label="Tipo de cuenta" span="3" required>
+              <div class="nx-segmented">
+                <label><input type="radio" name="cuenta" value="ahorros" checked /><span>Ahorros</span></label>
+                <label><input type="radio" name="cuenta" value="corriente" /><span>Corriente</span></label>
+              </div>
+            </nx-field>
+            <nx-field label="Salario mensual" span="3" source="REQ-118" source-detail="De la requisición REQ-118">
+              <nx-number format="money" currency="COP" value="2100000" name="salario"></nx-number>
+            </nx-field>
+            <nx-field label="Número de cuenta" span="3" error="En Bancolombia la cuenta tiene 11 dígitos">
+              <input name="numero" value="123-4567" autocomplete="off" />
+            </nx-field>
+            <nx-field label="ARL" text="Sura · póliza de la empresa" locked span="3"></nx-field>
+            <nx-field label="Observaciones" optional>
+              <textarea name="obs" rows="2"></textarea>
+            </nx-field>
+          </form>
+
+          <h2>API</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td colspan="2"><strong><code>&lt;nx-form&gt;</code></strong></td></tr>
+                <tr><td><code>sections</code>, <code>fields</code></td><td><code>[{id?, heading?, description?, fields}]</code>; cada campo: <code>{key, label, type?, required?, hint?, placeholder?, span?, value?, options?, when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?}</code>. <code>fields</code>: una sola sección.</td></tr>
+                <tr><td><code>type</code></td><td><code>text</code>, <code>email</code>, <code>tel</code>, <code>url</code>, <code>textarea</code>, <code>number</code>, <code>money</code>, <code>percent</code> (con <code>&lt;nx-number&gt;</code>), <code>date</code>, <code>select</code> (con buscador, <code>&lt;nx-select&gt;</code>, si tiene más de 12 opciones, <code>search</code> o <code>source</code>), <code>radio</code>, <code>segmented</code>, <code>checkbox</code>, <code>checkboxes</code>, <code>readonly</code> o <code>rows</code> (filas con sus <code>fields</code>; <code>min</code>, <code>max</code>, <code>addLabel</code>).</td></tr>
+                <tr><td><code>options[].fills</code>, <code>when</code></td><td>Lo habitual de una opción (llena campos vacíos o del sistema); la condición para que un campo aparezca: un valor, una lista, <code>{not}</code> o <code>{filled}</code> por clave.</td></tr>
+                <tr><td><code>values</code>, <code>errors</code>, <code>warnings</code>, <code>hints</code></td><td>Carga un registro y lee lo escrito (solo lo que se ve); errores del servidor (se borran al cambiar el campo); avisos y ayudas de la app.</td></tr>
+                <tr><td><code>fill(valores, origen?, {force?, details?})</code>, <code>undo()</code></td><td>Llena con un origen (<code>"Cédula"</code> o <code>{label, detail}</code>): chip por dato, «7 datos de Cédula · Deshacer», sin pisar lo escrito; en un <code>rows</code>, agrega las filas que no estaban. <kbd>Ctrl</kbd> <kbd>Z</kbd> fuera de un campo deshace.</td></tr>
+                <tr><td>Fuentes</td><td><code>&lt;nx-paste-fill&gt;</code> que envuelve el formulario (o con <code>for</code>), <code>&lt;nx-scan field="clave"&gt;</code> (o <code>filas.campo</code>) y <code>&lt;nx-doc-capture for="id"&gt;</code> lo llenan con su origen.</td></tr>
+                <tr><td><code>submit()</code>, <code>validate()</code>, <code>missing</code>, <code>sources</code>, <code>focusField(key)</code>, <code>reset()</code></td><td>Envía (también <kbd>Ctrl</kbd> <kbd>S</kbd>) o solo revisa; lo que falta; de dónde vino cada dato; vuelve al registro.</td></tr>
+                <tr><td><code>draft</code>, <code>clearDraft()</code></td><td>La clave del borrador en este navegador: se guarda solo y se recupera al volver, encima del registro que cargue la app.</td></tr>
+                <tr><td><code>heading</code>, <code>submit-label</code>, <code>cancel-label</code>, <code>no-footer</code></td><td>Título; el botón de enviar («Guardar»); un botón para cancelar; sin pie.</td></tr>
+                <tr><td><code>mode</code>, <code>variant</code>, <code>index</code></td><td><code>edit</code> o <code>read</code>; <code>cards</code> o <code>plain</code>; el índice con tres secciones o más (<code>auto</code>) o <code>none</code>.</td></tr>
+                <tr><td>Eventos</td><td><code>nx-form-change</code> <code>{key, value, values}</code> (la persona), <code>nx-form-fill</code> <code>{keys, source}</code>, <code>nx-form-undo</code> <code>{keys}</code>, <code>nx-form-submit</code> <code>{values, sources}</code>, <code>nx-form-cancel</code>.</td></tr>
+                <tr><td colspan="2"><strong><code>&lt;nx-field&gt;</code></strong></td></tr>
+                <tr><td><code>label</code>, <code>hint</code>, <code>required</code>, <code>optional</code>, <code>span</code></td><td>Etiqueta (con <code>for</code> o como grupo), ayuda, obligatorio en el control, «Opcional», columnas de <code>.nx-form-grid</code>.</td></tr>
+                <tr><td><code>error</code>, <code>warning</code>, <code>action</code>, <code>nx-field-action</code></td><td>Una sola línea debajo: el error (marca el control), o un aviso que no bloquea, con un botón para arreglarlo. Se borran al cambiar el control.</td></tr>
+                <tr><td><code>source</code>, <code>source-detail</code></td><td>De dónde vino el dato: un chip junto a la etiqueta hasta que la persona lo cambia.</td></tr>
+                <tr><td><code>text</code>, <code>locked</code></td><td>Lectura: el valor como texto en lugar del control («—» si está vacío), con candado.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
         <!-- ================================================================ Firma -->
         <template id="page-signature">
           <p class="eyebrow">Componentes</p>

@@ -1,0 +1,919 @@
+<title>Compartir, comparar y cruzar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens de nx32-elements (paleta «NX32», tono 210). Una página: título, barra de la tabla, la
+   matriz cuando está puesta y la tabla, que se desplaza dentro de su caja. */
+:root {
+  --canvas: oklch(0.982 0.003 250);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+  --border-subtle: oklch(0.93 0.004 250);
+  --border: oklch(0.89 0.005 250);
+  --border-strong: oklch(0.82 0.006 250);
+  --fg: oklch(0.2 0.008 250);
+  --muted: oklch(0.44 0.01 250);
+  --tertiary: oklch(0.51 0.01 250);
+  --quaternary: oklch(0.66 0.008 250);
+  --primary: oklch(0.52 0.16 210);
+  --primary-ink: oklch(0.45 0.16 210);
+  --primary-soft: oklch(0.52 0.16 210 / 0.09);
+  --primary-border: oklch(0.52 0.16 210 / 0.35);
+  --on-primary: oklch(1 0 0);
+  --hover: oklch(0.2 0.01 250 / 0.045);
+  --ring: oklch(0.52 0.16 210 / 0.6);
+  --backdrop: oklch(0.2 0.01 250 / 0.35);
+  --success: oklch(0.49 0.13 150);
+  --success-soft: oklch(0.55 0.14 150 / 0.1);
+  --warning-ink: oklch(0.5 0.12 60);
+  --warning-soft: oklch(0.75 0.15 70 / 0.16);
+  --neutral-soft: oklch(0.2 0.01 250 / 0.06);
+  --shadow: 0 1px 2px rgb(15 20 30 / 0.06), 0 10px 30px -4px rgb(15 20 30 / 0.16);
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 10px;
+  --row: 36px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: oklch(0.165 0.004 250); --card: oklch(0.205 0.005 250); --popover: oklch(0.235 0.006 250);
+    --border-subtle: oklch(1 0 0 / 0.07); --border: oklch(1 0 0 / 0.11); --border-strong: oklch(1 0 0 / 0.17);
+    --fg: oklch(0.955 0.003 250); --muted: oklch(0.76 0.006 250); --tertiary: oklch(0.66 0.007 250); --quaternary: oklch(0.53 0.007 250);
+    --primary: oklch(0.72 0.118 210); --primary-ink: oklch(0.77 0.112 210); --primary-soft: oklch(0.72 0.118 210 / 0.15);
+    --primary-border: oklch(0.72 0.118 210 / 0.4); --on-primary: oklch(0.18 0.02 210); --hover: oklch(1 0 0 / 0.055);
+    --ring: oklch(0.72 0.118 210 / 0.7); --backdrop: oklch(0 0 0 / 0.6);
+    --success: oklch(0.74 0.14 150); --success-soft: oklch(0.74 0.14 150 / 0.14);
+    --warning-ink: oklch(0.84 0.13 80); --warning-soft: oklch(0.8 0.14 78 / 0.15); --neutral-soft: oklch(1 0 0 / 0.07);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -4px rgb(0 0 0 / 0.55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: oklch(0.165 0.004 250); --card: oklch(0.205 0.005 250); --popover: oklch(0.235 0.006 250);
+  --border-subtle: oklch(1 0 0 / 0.07); --border: oklch(1 0 0 / 0.11); --border-strong: oklch(1 0 0 / 0.17);
+  --fg: oklch(0.955 0.003 250); --muted: oklch(0.76 0.006 250); --tertiary: oklch(0.66 0.007 250); --quaternary: oklch(0.53 0.007 250);
+  --primary: oklch(0.72 0.118 210); --primary-ink: oklch(0.77 0.112 210); --primary-soft: oklch(0.72 0.118 210 / 0.15);
+  --primary-border: oklch(0.72 0.118 210 / 0.4); --on-primary: oklch(0.18 0.02 210); --hover: oklch(1 0 0 / 0.055);
+  --ring: oklch(0.72 0.118 210 / 0.7); --backdrop: oklch(0 0 0 / 0.6);
+  --success: oklch(0.74 0.14 150); --success-soft: oklch(0.74 0.14 150 / 0.14);
+  --warning-ink: oklch(0.84 0.13 80); --warning-soft: oklch(0.8 0.14 78 / 0.15); --neutral-soft: oklch(1 0 0 / 0.07);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -4px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--fg); font: 14px/1.45 var(--font); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.num, td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.page { max-width: 1240px; margin: 0 auto; padding-block: 22px 40px; padding-inline: clamp(16px, 3vw, 32px); display: grid; gap: 12px; }
+.head h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.head p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+.try { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0; padding: 0; list-style: none; color: var(--tertiary); font-size: 13px; }
+.try b { color: var(--fg); font-weight: 500; }
+
+/* ------------------------------------------------------------ botones */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 11px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--card); cursor: pointer; white-space: nowrap; font-size: 13.5px;
+}
+.btn:hover { background: var(--hover); }
+.btn[aria-pressed="true"], .btn[aria-expanded="true"] { background: var(--primary-soft); border-color: var(--primary-border); color: var(--primary-ink); }
+.btn--primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn--primary:hover { background: var(--primary); filter: brightness(1.06); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn--ghost { border-color: transparent; background: transparent; }
+.btn--sm { height: 28px; padding: 0 9px; font-size: 13px; }
+.icon-btn { width: 30px; height: 30px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--primary); color: var(--on-primary); font-size: 11.5px; font-weight: 600; display: inline-grid; place-items: center; }
+.link { border: 0; background: none; padding: 0; color: var(--primary-ink); cursor: pointer; font-size: 13px; }
+.link:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------ llegada por enlace */
+.arrive {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px 10px 14px;
+  border: 1px solid var(--primary-border); background: var(--primary-soft); border-radius: var(--r-lg);
+}
+.arrive .txt { flex: 1 1 320px; min-width: 0; }
+.arrive strong { font-weight: 600; }
+.arrive .what { color: var(--muted); }
+.arrive .acts { display: flex; gap: 6px; align-items: center; }
+
+/* ------------------------------------------------------------ barra */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.search { position: relative; flex: 0 1 300px; min-width: 180px; }
+.search .i { position: absolute; left: 10px; top: 8px; color: var(--tertiary); }
+.search input { width: 100%; height: 32px; padding: 0 10px 0 33px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); }
+.search input::placeholder { color: var(--tertiary); }
+.spacer { flex: 1; }
+.anchor { position: relative; }
+
+.pop {
+  position: absolute; z-index: 20; top: calc(100% + 6px); min-width: 280px; padding: 12px;
+  background: var(--popover); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow);
+}
+.pop--right { right: 0; }
+.pop h2 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.pop .sub { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+
+/* filtros */
+.filters { width: min(560px, calc(100vw - 32px)); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+.filters fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.filters legend { padding: 0; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+.opt { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 6px; margin: 0 -6px; border-radius: var(--r-sm); cursor: pointer; }
+.opt:hover { background: var(--hover); }
+.opt span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt small { color: var(--tertiary); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.opt.zero { color: var(--quaternary); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); width: 15px; height: 15px; margin: 0; flex: none; }
+
+/* compartir */
+.share { width: min(420px, calc(100vw - 32px)); display: grid; gap: 12px; }
+.modes { display: grid; gap: 2px; margin: 0; padding: 0; border: 0; }
+.mode { display: grid; grid-template-columns: auto 1fr; gap: 0 9px; align-items: start; padding: 7px 8px; margin: 0 -8px; border-radius: var(--r-md); cursor: pointer; }
+.mode:hover { background: var(--hover); }
+.mode input { margin-top: 3px; }
+.mode b { font-weight: 500; }
+.mode small { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+.mode.off { opacity: 0.55; cursor: default; }
+.travels { margin: 0; padding: 8px 10px; border-radius: var(--r-md); background: var(--neutral-soft); font-size: 13px; color: var(--muted); }
+.travels b { color: var(--fg); font-weight: 500; }
+.url { display: flex; gap: 6px; }
+.url input { flex: 1; min-width: 0; height: 32px; padding: 0 9px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--canvas); color: var(--muted); font-size: 12.5px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.share .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.share .note { margin: 0; font-size: 12.5px; color: var(--tertiary); }
+
+/* ------------------------------------------------------------ total, chips y lote */
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding-left: 2px; min-height: 30px; }
+.count { color: var(--muted); margin-right: 4px; }
+.count b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 4px 0 10px; border-radius: 13px; background: var(--neutral-soft); font-size: 13px; }
+.chip button { width: 20px; height: 20px; border: 0; border-radius: 10px; background: none; display: grid; place-items: center; cursor: pointer; color: var(--tertiary); }
+.chip button:hover { background: var(--hover); color: var(--fg); }
+.chip .i { width: 13px; height: 13px; }
+
+.bulk {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 8px 6px 12px;
+  border-radius: var(--r-lg); background: var(--primary-soft); border: 1px solid var(--primary-border);
+}
+.bulk .n { font-weight: 600; margin-right: 6px; }
+.bulk .hint { color: var(--muted); font-size: 13px; }
+
+/* ------------------------------------------------------------ matriz */
+.matrix { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--card); padding: 10px 12px 12px; display: grid; gap: 10px; }
+.mx-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mx-head label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.mx-head select { height: 30px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); color: var(--fg); }
+.mx-head .x { color: var(--tertiary); }
+.mx-scroll { overflow-x: auto; }
+.mx { border-collapse: separate; border-spacing: 3px; font-variant-numeric: tabular-nums; margin: -3px; }
+.mx th { font-weight: 500; font-size: 12.5px; color: var(--muted); text-align: right; padding: 0; }
+.mx thead th { text-align: center; }
+.mx th button, .mx td button {
+  width: 100%; min-height: 32px; border: 1px solid transparent; border-radius: var(--r-sm); background: none; cursor: pointer; padding: 0 10px; white-space: nowrap;
+}
+.mx th button { color: var(--muted); font-size: 12.5px; }
+.mx th button:hover, .mx td button:hover { border-color: var(--border-strong); }
+.mx tbody th button { text-align: left; }
+.mx td { padding: 0; min-width: 84px; }
+.mx td button { background: color-mix(in oklch, var(--primary) calc(var(--w, 0) * 30%), transparent); font-variant-numeric: tabular-nums; text-align: right; }
+.mx td.z { text-align: right; padding-right: 11px; color: var(--quaternary); }
+.mx td.tot button, .mx tfoot button { background: var(--neutral-soft); font-weight: 600; }
+.mx [aria-pressed="true"] { border-color: var(--primary) !important; box-shadow: inset 0 0 0 1px var(--primary); color: var(--primary-ink); font-weight: 600; }
+.mx-note { margin: 0; font-size: 12.5px; color: var(--tertiary); }
+
+/* ------------------------------------------------------------ tabla */
+.tbl { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--card); overflow: auto; max-height: min(620px, 72vh); }
+table.grid { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1060px; font-variant-numeric: tabular-nums; }
+.grid th, .grid td { height: var(--row); padding: 0 12px; border-bottom: 1px solid var(--border-subtle); text-align: left; white-space: nowrap; }
+.grid thead th { position: sticky; top: 0; z-index: 2; background: var(--card); border-bottom-color: var(--border); font-weight: 500; color: var(--muted); font-size: 13px; }
+.grid th.ck, .grid td.ck { width: 40px; padding: 0 0 0 14px; }
+.grid th.ck { z-index: 3; }
+.sort { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; color: inherit; font-weight: 500; }
+.sort .i { width: 13px; height: 13px; opacity: 0; }
+.sort:hover .i, [aria-sort] .sort .i { opacity: 1; }
+[aria-sort="descending"] .sort .i { transform: rotate(180deg); }
+th.num .sort { flex-direction: row-reverse; }
+.grid tbody tr:hover td { background: var(--hover); }
+.grid tbody tr.is-sel td { background: var(--primary-soft); }
+.grid tbody tr:last-child td { border-bottom: 0; }
+.who { display: flex; align-items: center; gap: 9px; font-weight: 500; }
+.av { width: 26px; height: 26px; border-radius: 13px; display: inline-grid; place-items: center; background: var(--neutral-soft); color: var(--muted); font-size: 11px; font-weight: 600; flex: none; }
+.pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 12.5px; background: var(--neutral-soft); color: var(--muted); }
+.pill.success { background: var(--success-soft); color: var(--success); }
+.pill.info { background: var(--primary-soft); color: var(--primary-ink); }
+.pill.warning { background: var(--warning-soft); color: var(--warning-ink); }
+.dim { color: var(--tertiary); }
+.empty td { height: 120px; text-align: center; color: var(--muted); white-space: normal; }
+
+/* ------------------------------------------------------------ comparar */
+.scrim { position: fixed; inset: 0; z-index: 40; background: var(--backdrop); display: grid; place-items: center; padding: 16px; }
+.dlg {
+  width: min(980px, 100%); max-height: min(86vh, 860px); display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden;
+}
+.dlg-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 14px 14px 12px 18px; border-bottom: 1px solid var(--border-subtle); }
+.dlg-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.dlg-head .sum { color: var(--muted); font-size: 13px; }
+.dlg-head .grow { flex: 1; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.dlg-body { overflow: auto; }
+table.cmp { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 620px; font-variant-numeric: tabular-nums; }
+.cmp th, .cmp td { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
+.cmp thead th { position: sticky; top: 0; z-index: 1; background: var(--card); border-bottom-color: var(--border); vertical-align: bottom; font-weight: 400; }
+.cmp tbody th { width: 170px; color: var(--muted); font-weight: 400; font-size: 13px; }
+.cmp tbody tr.diff th { color: var(--fg); font-weight: 500; }
+.cmp tbody tr.same td { color: var(--tertiary); }
+.cmp td.is-diff { background: var(--warning-soft); }
+.cmp .delta { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+.person { display: grid; gap: 2px; min-width: 190px; }
+.person .top { display: flex; align-items: center; gap: 9px; }
+.person .nm { font-weight: 600; }
+.person .meta2 { color: var(--tertiary); font-size: 12.5px; }
+.person .ref { font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--primary-ink); }
+.person .acts { display: flex; gap: 10px; margin-top: 4px; }
+.cmp .eq td { color: var(--muted); font-size: 13px; }
+.cmp .eq th { color: var(--muted); }
+.dlg-foot { padding: 10px 18px; border-top: 1px solid var(--border-subtle); color: var(--tertiary); font-size: 12.5px; }
+
+/* ------------------------------------------------------------ aviso y notas */
+.toast {
+  position: fixed; z-index: 60; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  padding: 9px 14px; border-radius: var(--r-md); background: var(--fg); color: var(--canvas); font-size: 13.5px; box-shadow: var(--shadow); max-width: calc(100vw - 32px);
+}
+.notes { margin-top: 14px; border-top: 1px solid var(--border-subtle); padding-top: 14px; color: var(--muted); }
+.notes summary { cursor: pointer; color: var(--fg); font-weight: 500; }
+.notes dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 12px 0 0; max-width: 80ch; }
+.notes dt { color: var(--fg); font-weight: 500; }
+.notes dd { margin: 2px 0 0; }
+.notes code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; background: var(--neutral-soft); padding: 1px 4px; border-radius: 4px; }
+
+@media (max-width: 640px) {
+  .filters { grid-template-columns: minmax(0, 1fr); }
+  .pop { position: fixed; left: 16px; right: 16px; top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 75vh; overflow: auto; }
+  .search { flex: 1 1 100%; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-funnel" viewBox="0 0 24 24"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z"/></symbol>
+  <symbol id="i-matrix" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-cols" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></symbol>
+</svg>
+
+<div class="page">
+  <header class="head">
+    <h1>Empleados</h1>
+    <p>Maqueta de tres ideas para nx-grid: compartir lo que ves con un enlace, comparar dos o tres personas y cruzar dos columnas en una matriz que filtra. Datos de ejemplo.</p>
+    <ul class="try">
+      <li><b>Matriz:</b> toca una celda.</li>
+      <li><b>Comparar:</b> marca dos o tres filas.</li>
+      <li><b>Compartir:</b> filtra algo y abre el enlace como otra persona.</li>
+    </ul>
+  </header>
+
+  <div class="arrive" id="arrive" role="status" hidden></div>
+
+  <div class="bar">
+    <div class="search">
+      <svg class="i"><use href="#i-search"/></svg>
+      <label class="sr" for="q">Buscar en la tabla</label>
+      <input id="q" type="search" placeholder="Buscar nombre, documento, cargo…" autocomplete="off">
+    </div>
+    <div class="anchor">
+      <button class="btn" id="b-filters" aria-expanded="false" aria-controls="p-filters"><svg class="i"><use href="#i-funnel"/></svg>Filtros<span class="badge" id="f-badge" hidden></span></button>
+      <div class="pop" id="p-filters" role="dialog" aria-label="Filtros" hidden></div>
+    </div>
+    <button class="btn" id="b-matrix" aria-pressed="true"><svg class="i"><use href="#i-matrix"/></svg>Matriz</button>
+    <span class="spacer"></span>
+    <div class="anchor">
+      <button class="btn" id="b-share" aria-expanded="false" aria-controls="p-share"><svg class="i"><use href="#i-link"/></svg>Compartir</button>
+      <div class="pop pop--right" id="p-share" role="dialog" aria-labelledby="share-h" hidden></div>
+    </div>
+  </div>
+
+  <div class="meta" id="meta"></div>
+  <div class="bulk" id="bulk" hidden></div>
+
+  <section class="matrix" id="matrix" aria-label="Matriz">
+    <div class="mx-head">
+      <label>Filas <select id="mx-r"></select></label>
+      <span class="x" aria-hidden="true">×</span>
+      <label>Columnas <select id="mx-c"></select></label>
+      <label>Mostrar <select id="mx-m">
+        <option value="count">Personas</option>
+        <option value="sum">Nómina mensual</option>
+        <option value="avg">Salario promedio</option>
+      </select></label>
+      <span class="spacer"></span>
+      <button class="btn icon-btn" id="mx-close" aria-label="Quitar la matriz" title="Quitar la matriz"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="mx-scroll" id="mx-body"></div>
+    <p class="mx-note">Cuenta con la búsqueda y los demás filtros. Una celda filtra la tabla por las dos columnas; un encabezado, solo por la suya; «Total», ninguna.</p>
+  </section>
+
+  <div class="tbl" id="tbl"></div>
+
+  <details class="notes">
+    <summary>Cómo iría en la librería</summary>
+    <dl>
+      <div><dt>Compartir</dt><dd>La tabla ya sabe su estado (filtros, orden, búsqueda, vista). Faltaría <code>toQuery()</code> y <code>fromQuery()</code> con nombres legibles (<code>?area=ventas&amp;orden=-ingreso</code>), un botón opcional y el evento <code>nx-grid-share</code> con la dirección, para que la app ponga el dominio o un enlace corto. «Filas exactas» manda los <code>id</code> (hasta 200). El enlace no lleva datos: cada quien ve lo que su permiso le deja.</dd></div>
+      <div><dt>Comparar</dt><dd>Con <code>selectable</code>, el lote ganaría «Comparar» para 2 o 3 filas. Usa las columnas de la tabla, más las que la app quiera mostrar solo ahí (<code>compareFields</code>), y saca de la cuenta lo que identifica a la persona (documento, correo), que va en la cabecera.</dd></div>
+      <div><dt>Matriz</dt><dd>Sale de las facetas que ya hay: <code>matrix='{"rows":"area","cols":"estado"}'</code> y una medida (conteo, suma o promedio de una columna de montos). Con <code>source</code>, el servidor devolvería la matriz como hoy devuelve las facetas. Tocarla pone los mismos filtros y chips que el panel.</dd></div>
+    </dl>
+  </details>
+</div>
+
+<div class="scrim" id="cmp" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="cmp-h">
+    <div class="dlg-head">
+      <h2 id="cmp-h">Comparar</h2>
+      <span class="sum" id="cmp-sum"></span>
+      <span class="grow"></span>
+      <label class="switch"><input type="checkbox" id="cmp-only" checked> Solo lo que cambia</label>
+      <button class="btn icon-btn" id="cmp-close" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body" id="cmp-body"></div>
+    <div class="dlg-foot">Las diferencias se miden contra la primera persona. Documento y correo van en la cabecera y no cuentan como diferencia.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  // ---------------------------------------------------------------- utilidades
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const fold = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const slug = (s) => fold(s).replace(/\s+/g, "-");
+  const NF = new Intl.NumberFormat("es-CO");
+  const MF = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  const DF = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  const money = (n) => MF.format(n);
+  const millions = (n) => "$ " + (n / 1e6).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " M";
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parseISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmtDate = (s) => (/^\d{4}-\d\d-\d\d$/.test(s) ? DF.format(parseISO(s)) : s || "—");
+  const TODAY = new Date(2026, 9, 7);
+  const icon = (id) => `<svg class="i"><use href="#i-${id}"/></svg>`;
+  const plural = (n, one, many) => `${NF.format(n)} ${n === 1 ? one : many}`;
+
+  // ---------------------------------------------------------------- datos de ejemplo
+  let seed = 20261007;
+  const R = () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const pick = (a) => a[Math.floor(R() * a.length)];
+  const W = (pairs) => { let x = R() * pairs.reduce((a, p) => a + p[1], 0); for (const [v, w] of pairs) if ((x -= w) < 0) return v; return pairs[pairs.length - 1][0]; };
+
+  const DIMS = {
+    area: { label: "Área", values: ["Ventas", "Operaciones", "Logística", "Finanzas", "Tecnología", "Talento humano"] },
+    estado: { label: "Estado", values: ["Activo", "Vacaciones", "Licencia", "Incapacidad", "Retirado"] },
+    contrato: { label: "Contrato", values: ["Indefinido", "Término fijo", "Obra o labor", "Aprendizaje"] },
+    ciudad: { label: "Ciudad", values: ["Bogotá", "Medellín", "Cali", "Barranquilla", "Bucaramanga"] },
+  };
+  const DIM_KEYS = Object.keys(DIMS);
+  const TONE = { Activo: "success", Vacaciones: "info", Licencia: "", Incapacidad: "warning", Retirado: "" };
+  const HEADS = { Ventas: "Paola Ríos Arango", Operaciones: "Jorge Mejía Duque", "Logística": "Liliana Osorio Vélez", Finanzas: "Ricardo Henao Pardo", "Tecnología": "Natalia Restrepo Gil", "Talento humano": "Mauricio Salazar Mora" };
+  const CARGOS = {
+    Ventas: [["Asesor comercial", 2.1e6], ["Ejecutivo de cuenta", 3.8e6], ["Jefe de zona", 7.4e6]],
+    Operaciones: [["Operario de producción", 1.65e6], ["Supervisor de planta", 4.2e6], ["Jefe de turno", 6.1e6]],
+    "Logística": [["Auxiliar de bodega", 1.55e6], ["Analista de inventarios", 3.1e6], ["Coordinador logístico", 5.2e6]],
+    Finanzas: [["Auxiliar contable", 2.2e6], ["Analista financiero", 4.6e6], ["Contador", 6.8e6]],
+    "Tecnología": [["Analista de soporte", 3.4e6], ["Desarrollador", 6.2e6], ["Líder técnico", 10.5e6]],
+    "Talento humano": [["Analista de nómina", 3.6e6], ["Profesional de selección", 4.1e6], ["Coordinador de bienestar", 5.6e6]],
+  };
+  const FIRST = ["Abel", "Adriana", "Alejandro", "Ana María", "Andrés", "Ángela", "Camila", "Carlos", "Carolina", "Catalina", "Cristian", "Daniel", "Daniela", "David", "Diana", "Edwin", "Felipe", "Fernando", "Gabriela", "Héctor", "Isabel", "Jaime", "Javier", "Jennifer", "Jorge", "José", "Juan Camilo", "Juan David", "Julián", "Laura", "Liliana", "Luis", "Luisa", "Manuela", "Marcela", "María José", "Mauricio", "Natalia", "Nicolás", "Óscar", "Paola", "Patricia", "Ricardo", "Sandra", "Santiago", "Sebastián", "Sofía", "Valentina", "Viviana", "Wilson", "Yésica"];
+  const LAST = ["Acosta", "Agudelo", "Álvarez", "Arango", "Barrera", "Becerra", "Cárdenas", "Castaño", "Castro", "Díaz", "Duque", "Escobar", "Gaviria", "Gómez", "González", "Guerrero", "Gutiérrez", "Henao", "Hernández", "Herrera", "Jaramillo", "López", "Londoño", "Marín", "Martínez", "Mejía", "Montoya", "Mora", "Muñoz", "Ospina", "Osorio", "Pardo", "Pérez", "Quintero", "Ramírez", "Restrepo", "Ríos", "Rodríguez", "Rojas", "Salazar", "Sánchez", "Suárez", "Torres", "Valencia", "Vargas", "Vélez", "Zapata"];
+  const EPS = ["Sura", "Sanitas", "Compensar", "Nueva EPS", "Salud Total"];
+  const AFP = ["Porvenir", "Protección", "Colfondos", "Colpensiones"];
+
+  const PEOPLE = [];
+  const mails = new Set();
+  for (let i = 0; i < 168; i++) {
+    const first = pick(FIRST), l1 = pick(LAST), l2 = pick(LAST);
+    const area = W([["Ventas", 34], ["Operaciones", 40], ["Logística", 26], ["Finanzas", 18], ["Tecnología", 24], ["Talento humano", 14]]);
+    const contrato = W([["Indefinido", 55], ["Término fijo", 25], ["Obra o labor", 12], ["Aprendizaje", 8]]);
+    const estado = W([["Activo", 72], ["Vacaciones", 9], ["Licencia", 5], ["Incapacidad", 4], ["Retirado", 10]]);
+    let cargo, salario, y, m;
+    if (contrato === "Aprendizaje") {
+      cargo = "Aprendiz SENA"; salario = 1423500; y = R() < 0.5 ? 2025 : 2026;
+    } else {
+      const [c, base] = CARGOS[area][W([[0, 60], [1, 30], [2, 10]])];
+      cargo = c; salario = Math.round((base * (0.9 + R() * 0.22)) / 10000) * 10000; y = 2012 + Math.floor(R() * 15);
+    }
+    m = 1 + Math.floor(R() * 12);
+    if (y === 2026 && m > 9) m = 1 + Math.floor(R() * 9);
+    const d = 1 + Math.floor(R() * 28);
+    const ingreso = `${y}-${pad(m)}-${pad(d)}`;
+    let fin = "Sin fecha";
+    if (contrato === "Término fijo") fin = iso(new Date(2026, 9 + 1 + Math.floor(R() * 13), d));
+    else if (contrato === "Obra o labor") fin = "Al terminar la obra";
+    else if (contrato === "Aprendizaje") fin = iso(new Date(y, m - 1 + 18, d));
+    let mail = `${slug(first.split(" ")[0])}.${slug(l1)}`;
+    if (mails.has(mail)) mail += String(i);
+    mails.add(mail);
+    const doc = String(10 ** 9 + Math.floor(R() * 9e8));
+    PEOPLE.push({
+      id: 1001 + i, nombre: `${first} ${l1} ${l2}`, ini: (first[0] + l1[0]).toUpperCase(),
+      documento: doc.replace(/\B(?=(\d{3})+(?!\d))/g, "."), correo: `${mail}@empresa.co`,
+      area, cargo, jefe: HEADS[area], estado, contrato, fin, ciudad: W([["Bogotá", 40], ["Medellín", 22], ["Cali", 15], ["Barranquilla", 13], ["Bucaramanga", 10]]),
+      jornada: W([["Tiempo completo", 90], ["Medio tiempo", 10]]), ingreso, salario, eps: pick(EPS), afp: pick(AFP),
+    });
+  }
+  for (const p of PEOPLE) {
+    const s = parseISO(p.ingreso);
+    p.meses = Math.max(0, (TODAY.getFullYear() - s.getFullYear()) * 12 + TODAY.getMonth() - s.getMonth() - (TODAY.getDate() < s.getDate() ? 1 : 0));
+    p._t = fold(`${p.nombre} ${p.documento.replace(/\./g, "")} ${p.documento} ${p.cargo} ${p.correo}`);
+  }
+  const byId = new Map(PEOPLE.map((p) => [p.id, p]));
+  const tenure = (mo) => { const y = Math.floor(mo / 12), m = mo % 12; return [y ? plural(y, "año", "años") : "", m ? plural(m, "mes", "meses") : ""].filter(Boolean).join(", ") || "Menos de un mes"; };
+
+  // ---------------------------------------------------------------- columnas
+  const COLS = [
+    { k: "nombre", l: "Nombre" },
+    { k: "documento", l: "Documento" },
+    { k: "area", l: "Área" },
+    { k: "cargo", l: "Cargo" },
+    { k: "estado", l: "Estado" },
+    { k: "contrato", l: "Contrato" },
+    { k: "ciudad", l: "Ciudad" },
+    { k: "ingreso", l: "Ingreso" },
+    { k: "salario", l: "Salario", num: true },
+  ];
+  const colLabel = (k) => COLS.find((c) => c.k === k)?.l ?? k;
+
+  // ---------------------------------------------------------------- estado
+  const DEFAULT_SORT = { k: "nombre", dir: 1 };
+  const state = {
+    q: "",
+    f: Object.fromEntries(DIM_KEYS.map((k) => [k, new Set()])),
+    only: null, // Set de id: las filas exactas de un enlace
+    sort: { ...DEFAULT_SORT },
+    sel: new Set(),
+    mx: { on: true, r: "area", c: "estado", m: "count" },
+  };
+  let before = null; // el estado de quien abrió el enlace, para volver
+  let arrived = null;
+
+  const snapshot = () => ({ q: state.q, f: Object.fromEntries(DIM_KEYS.map((k) => [k, [...state.f[k]]])), only: state.only ? [...state.only] : null, sort: { ...state.sort }, sel: [...state.sel], mx: { ...state.mx } });
+  const restore = (s) => {
+    state.q = s.q; for (const k of DIM_KEYS) state.f[k] = new Set(s.f[k]);
+    state.only = s.only ? new Set(s.only) : null; state.sort = { ...s.sort }; state.sel = new Set(s.sel); state.mx = { ...s.mx };
+  };
+
+  function passes(p, except = []) {
+    if (state.only && !state.only.has(p.id)) return false;
+    for (const k of DIM_KEYS) { if (except.includes(k)) continue; const s = state.f[k]; if (s.size && !s.has(p[k])) return false; }
+    const words = fold(state.q).split(/\s+/).filter(Boolean);
+    return words.every((w) => p._t.includes(w));
+  }
+  const ORDER = Object.fromEntries(DIM_KEYS.map((k) => [k, Object.fromEntries(DIMS[k].values.map((v, i) => [v, i]))]));
+  function sortValue(p, k) {
+    if (k === "salario") return p.salario;
+    if (k === "documento") return Number(p.documento.replace(/\./g, ""));
+    if (ORDER[k]) return ORDER[k][p[k]];
+    return p[k];
+  }
+  function visible() {
+    const { k, dir } = state.sort;
+    return PEOPLE.filter((p) => passes(p)).sort((a, b) => {
+      const x = sortValue(a, k), y = sortValue(b, k);
+      const c = typeof x === "number" ? x - y : String(x).localeCompare(String(y), "es");
+      return c * dir || a.nombre.localeCompare(b.nombre, "es");
+    });
+  }
+  const anyFilter = () => !!state.q.trim() || !!state.only || DIM_KEYS.some((k) => state.f[k].size);
+
+  // ---------------------------------------------------------------- texto del estado
+  function sortText(s) {
+    if (s.k === DEFAULT_SORT.k && s.dir === DEFAULT_SORT.dir) return "";
+    const how = s.k === "ingreso" ? (s.dir < 0 ? "más recientes primero" : "más antiguos primero")
+      : s.k === "salario" ? (s.dir < 0 ? "mayor primero" : "menor primero") : (s.dir < 0 ? "Z a A" : "A a Z");
+    return `ordenado por ${colLabel(s.k)}, ${how}`;
+  }
+  function describe() {
+    const parts = [];
+    if (state.only) parts.push(`<b>${plural(state.only.size, "fila exacta", "filas exactas")}</b>`);
+    if (state.q.trim()) parts.push(`búsqueda <b>«${esc(state.q.trim())}»</b>`);
+    for (const k of DIM_KEYS) if (state.f[k].size) parts.push(`${DIMS[k].label}: <b>${esc([...state.f[k]].join(", "))}</b>`);
+    const st = sortText(state.sort);
+    if (st) parts.push(st);
+    return parts.join(" · ");
+  }
+
+  // ---------------------------------------------------------------- total, chips y lote
+  function renderMeta() {
+    const n = PEOPLE.filter((p) => passes(p)).length;
+    let html = `<span class="count">${anyFilter() ? `<b>${NF.format(n)}</b> de ${NF.format(PEOPLE.length)} personas` : `<b>${NF.format(n)}</b> personas`}</span>`;
+    if (state.only) html += chip("only", `Filas del enlace: ${NF.format(state.only.size)}`);
+    if (state.q.trim()) html += chip("q", `Búsqueda: «${state.q.trim()}»`);
+    for (const k of DIM_KEYS) if (state.f[k].size) html += chip(k, `${DIMS[k].label}: ${[...state.f[k]].join(", ")}`);
+    if (anyFilter()) html += `<button class="link" data-act="clear-all">Limpiar todo</button>`;
+    $("#meta").innerHTML = html;
+    const fb = $("#f-badge"), fc = DIM_KEYS.reduce((a, k) => a + state.f[k].size, 0);
+    fb.hidden = !fc; fb.textContent = fc;
+  }
+  const chip = (key, text) => `<span class="chip">${esc(text)}<button data-act="chip" data-key="${key}" aria-label="Quitar ${esc(text)}">${icon("x")}</button></span>`;
+
+  function renderBulk() {
+    const n = state.sel.size, el = $("#bulk");
+    el.hidden = !n;
+    if (!n) { el.textContent = ""; return; }
+    const can = n >= 2 && n <= 3;
+    const hint = n === 1 ? "Marca otra fila para comparar." : n > 3 ? "Se comparan hasta tres." : "";
+    el.innerHTML = `<span class="n">${plural(n, "seleccionada", "seleccionadas")}</span>
+      <button class="btn btn--sm btn--primary" id="b-compare" data-act="compare" ${can ? "" : "disabled"}>${icon("cols")}Comparar</button>
+      <button class="btn btn--sm" data-act="share-sel">${icon("link")}Enlace a estas filas</button>
+      ${hint ? `<span class="hint">${hint}</span>` : ""}
+      <span class="spacer"></span>
+      <button class="link" data-act="clear-sel">Quitar selección</button>`;
+  }
+
+  // ---------------------------------------------------------------- matriz
+  function measure(list) {
+    if (state.mx.m === "count") return list.length;
+    const sum = list.reduce((a, p) => a + p.salario, 0);
+    return state.mx.m === "sum" ? sum : list.length ? sum / list.length : 0;
+  }
+  const fmtMeasure = (v) => (state.mx.m === "count" ? NF.format(v) : millions(v));
+
+  function renderMatrix() {
+    const sec = $("#matrix"), m = state.mx;
+    sec.hidden = !m.on;
+    $("#b-matrix").setAttribute("aria-pressed", String(m.on));
+    if (!m.on) return;
+    for (const id of ["mx-r", "mx-c"]) {
+      const val = id === "mx-r" ? m.r : m.c;
+      $("#" + id).innerHTML = DIM_KEYS.map((k) => `<option value="${k}" ${k === val ? "selected" : ""}>${DIMS[k].label}</option>`).join("");
+    }
+    $("#mx-m").value = m.m;
+    const base = PEOPLE.filter((p) => passes(p, [m.r, m.c]));
+    const rv = DIMS[m.r].values, cv = DIMS[m.c].values;
+    const cell = (r, c) => base.filter((p) => (r == null || p[m.r] === r) && (c == null || p[m.c] === c));
+    const grid = rv.map((r) => cv.map((c) => cell(r, c)));
+    const max = Math.max(1, ...grid.flat().map(measure));
+    const fr = state.f[m.r], fc = state.f[m.c];
+    const markR = fr.size === 1 ? [...fr][0] : null, markC = fc.size === 1 ? [...fc][0] : null;
+    const rowName = DIMS[m.r].label, colName = DIMS[m.c].label;
+    let html = `<table class="mx"><caption class="sr">${rowName} por ${colName}</caption><thead><tr><th scope="col"><span class="sr">${rowName}</span></th>`;
+    for (const c of cv) html += `<th scope="col"><button data-act="mx" data-c="${esc(c)}" aria-pressed="${markC === c && !markR}" title="Solo ${colName}: ${esc(c)}">${esc(c)}</button></th>`;
+    html += `<th scope="col"><span style="padding:0 10px">Total</span></th></tr></thead><tbody>`;
+    rv.forEach((r, i) => {
+      html += `<tr><th scope="row"><button data-act="mx" data-r="${esc(r)}" aria-pressed="${markR === r && !markC}" title="Solo ${rowName}: ${esc(r)}">${esc(r)}</button></th>`;
+      cv.forEach((c, j) => {
+        const list = grid[i][j];
+        if (!list.length) { html += `<td class="z" aria-label="${esc(r)}, ${esc(c)}: ninguna">·</td>`; return; }
+        const v = measure(list);
+        html += `<td><button data-act="mx" data-r="${esc(r)}" data-c="${esc(c)}" style="--w:${(v / max).toFixed(3)}" aria-pressed="${markR === r && markC === c}" aria-label="${esc(r)}, ${esc(c)}: ${fmtMeasure(v)}">${fmtMeasure(v)}</button></td>`;
+      });
+      const tl = cell(r, null);
+      html += tl.length ? `<td class="tot"><button data-act="mx" data-r="${esc(r)}" aria-label="Total de ${esc(r)}: ${fmtMeasure(measure(tl))}">${fmtMeasure(measure(tl))}</button></td>` : `<td class="z">·</td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody><tfoot><tr><th scope="row"><span style="padding:0 10px">Total</span></th>`;
+    for (const c of cv) { const tl = cell(null, c); html += tl.length ? `<td class="tot"><button data-act="mx" data-c="${esc(c)}" aria-label="Total de ${esc(c)}: ${fmtMeasure(measure(tl))}">${fmtMeasure(measure(tl))}</button></td>` : `<td class="z">·</td>`; }
+    html += `<td class="tot"><button data-act="mx" data-all="1" aria-pressed="${!fr.size && !fc.size}" aria-label="Total: ${fmtMeasure(measure(base))}. Quita los dos filtros">${fmtMeasure(measure(base))}</button></td></tr></tfoot></table>`;
+    $("#mx-body").innerHTML = html;
+  }
+
+  function matrixClick(b) {
+    const m = state.mx, r = b.dataset.r ?? null, c = b.dataset.c ?? null;
+    const fr = state.f[m.r], fc = state.f[m.c];
+    const same = (set, v) => (v == null ? set.size === 0 : set.size === 1 && set.has(v));
+    if (b.dataset.all || (same(fr, r) && same(fc, c))) { fr.clear(); fc.clear(); }
+    else { state.f[m.r] = new Set(r == null ? [] : [r]); state.f[m.c] = new Set(c == null ? [] : [c]); }
+    renderAll();
+    const sel = `#mx-body button[data-act="mx"]${r == null ? ":not([data-r])" : `[data-r="${CSS.escape(r)}"]`}${c == null ? ":not([data-c])" : `[data-c="${CSS.escape(c)}"]`}`;
+    ($(b.dataset.all ? '#mx-body [data-all]' : sel) || $("#mx-body button"))?.focus();
+  }
+
+  // ---------------------------------------------------------------- tabla
+  function renderTable() {
+    const rows = visible();
+    const allSel = rows.length > 0 && rows.every((p) => state.sel.has(p.id));
+    const someSel = rows.some((p) => state.sel.has(p.id));
+    let html = `<table class="grid"><thead><tr><th class="ck"><input type="checkbox" id="ck-all" aria-label="Seleccionar las filas a la vista" ${allSel ? "checked" : ""}></th>`;
+    for (const c of COLS) {
+      const sorted = state.sort.k === c.k;
+      html += `<th class="${c.num ? "num" : ""}" ${sorted ? `aria-sort="${state.sort.dir > 0 ? "ascending" : "descending"}"` : ""}><button class="sort" data-act="sort" data-k="${c.k}">${c.l}${icon("up")}</button></th>`;
+    }
+    html += `</tr></thead><tbody>`;
+    if (!rows.length) html += `<tr class="empty"><td colspan="${COLS.length + 1}">Ninguna persona coincide con los filtros.</td></tr>`;
+    for (const p of rows) {
+      const on = state.sel.has(p.id);
+      html += `<tr class="${on ? "is-sel" : ""}"><td class="ck"><input type="checkbox" data-ck="${p.id}" aria-label="Seleccionar a ${esc(p.nombre)}" ${on ? "checked" : ""}></td>
+        <td><span class="who"><span class="av" aria-hidden="true">${p.ini}</span>${esc(p.nombre)}</span></td>
+        <td class="dim">${p.documento}</td><td>${esc(p.area)}</td><td>${esc(p.cargo)}</td>
+        <td><span class="pill ${TONE[p.estado]}">${p.estado}</span></td><td>${p.contrato}</td><td>${p.ciudad}</td>
+        <td>${fmtDate(p.ingreso)}</td><td class="num">${money(p.salario)}</td></tr>`;
+    }
+    html += `</tbody></table>`;
+    const box = $("#tbl"), top = box.scrollTop, left = box.scrollLeft;
+    box.innerHTML = html;
+    box.scrollTop = top; box.scrollLeft = left;
+    const all = $("#ck-all");
+    all.indeterminate = someSel && !allSel;
+  }
+
+  // ---------------------------------------------------------------- filtros
+  function renderFilters() {
+    const el = $("#p-filters");
+    let html = `<div class="filters">`;
+    for (const k of DIM_KEYS) {
+      const base = PEOPLE.filter((p) => passes(p, [k]));
+      html += `<fieldset><legend>${DIMS[k].label}</legend>`;
+      for (const v of DIMS[k].values) {
+        const n = base.filter((p) => p[k] === v).length, id = `f-${k}-${slug(v)}`;
+        html += `<label class="opt ${n ? "" : "zero"}" for="${id}"><input type="checkbox" id="${id}" data-fd="${k}" value="${esc(v)}" ${state.f[k].has(v) ? "checked" : ""}><span>${esc(v)}</span><small>${NF.format(n)}</small></label>`;
+      }
+      html += `</fieldset>`;
+    }
+    el.innerHTML = html + `</div>`;
+  }
+
+  // ---------------------------------------------------------------- compartir
+  const ORIGIN = "https://app.empresa.co";
+  let shareMode = "query";
+  function shareURL(mode) {
+    const parts = [];
+    const enc = (s) => encodeURIComponent(s).replace(/%2C/g, ",");
+    if (mode === "query") {
+      if (state.only) parts.push("filas=" + [...state.only].join("."));
+      if (state.q.trim()) parts.push("q=" + enc(state.q.trim()));
+      for (const k of DIM_KEYS) if (state.f[k].size) parts.push(`${k}=` + enc([...state.f[k]].map(slug).join(",")));
+    } else {
+      const ids = mode === "sel" ? [...state.sel] : visible().map((p) => p.id);
+      parts.push("filas=" + ids.join("."));
+    }
+    const s = state.sort;
+    if (s.k !== DEFAULT_SORT.k || s.dir !== DEFAULT_SORT.dir) parts.push("orden=" + (s.dir < 0 ? "-" : "") + s.k);
+    return `${ORIGIN}/hcm/empleados${parts.length ? "?" + parts.join("&") : ""}`;
+  }
+
+  function renderShare() {
+    const n = PEOPLE.filter((p) => passes(p)).length, nSel = state.sel.size;
+    if (shareMode === "sel" && !nSel) shareMode = "query";
+    if (shareMode === "rows" && n > 200) shareMode = "query";
+    const what = describe();
+    const mode = (val, title, hint, off = false) => `<label class="mode ${off ? "off" : ""}"><input type="radio" name="share-mode" value="${val}" ${shareMode === val ? "checked" : ""} ${off ? "disabled" : ""}><b>${title}</b><small>${hint}</small></label>`;
+    $("#p-share").innerHTML = `<div class="share">
+      <div><h2 id="share-h">Enlace a esta tabla</h2><p class="sub" style="margin:0">Quien lo abra ve la tabla como tú la tienes ahora.</p></div>
+      <fieldset class="modes"><legend class="sr">Qué abre el enlace</legend>
+        ${mode("query", "Lo que coincide con estos filtros", "Si alguien entra o sale del grupo, el enlace lo refleja.")}
+        ${mode("rows", `Estas ${plural(n, "fila", "filas")} exactas`, n > 200 ? "Solo hasta 200 filas: filtra un poco más." : "Las mismas personas aunque cambien los datos.", n > 200 || !n)}
+        ${nSel ? mode("sel", `Las ${plural(nSel, "seleccionada", "seleccionadas")}`, "Solo las filas que marcaste.") : ""}
+      </fieldset>
+      <p class="travels">${shareMode === "query" ? (what ? "Lleva: " + what : "Lleva la tabla sin filtros, búsqueda ni orden.") : `Lleva: <b>${plural(shareMode === "sel" ? nSel : n, "fila", "filas")}</b>${sortText(state.sort) ? " · " + sortText(state.sort) : ""}`}</p>
+      <div class="url"><label class="sr" for="share-url">Enlace</label><input id="share-url" readonly value="${esc(shareURL(shareMode))}"><button class="btn btn--primary" data-act="copy-url">${icon("copy")}Copiar</button></div>
+      <div class="foot"><p class="note">No lleva datos: cada quien ve lo que su permiso le deja.</p><button class="link" data-act="open-as">Abrirlo como otra persona</button></div>
+    </div>`;
+  }
+
+  function applyURL(url) {
+    before = snapshot();
+    const u = new URL(url);
+    state.q = u.searchParams.get("q") || "";
+    for (const k of DIM_KEYS) {
+      const raw = u.searchParams.get(k);
+      const bySlug = Object.fromEntries(DIMS[k].values.map((v) => [slug(v), v]));
+      state.f[k] = new Set(raw ? raw.split(",").map((s) => bySlug[s]).filter(Boolean) : []);
+    }
+    const filas = u.searchParams.get("filas");
+    state.only = filas ? new Set(filas.split(".").map(Number).filter((id) => byId.has(id))) : null;
+    const o = u.searchParams.get("orden");
+    state.sort = o && COLS.some((c) => c.k === o.replace(/^-/, "")) ? { k: o.replace(/^-/, ""), dir: o.startsWith("-") ? -1 : 1 } : { ...DEFAULT_SORT };
+    state.sel = new Set();
+    arrived = describe() || "la tabla completa";
+    renderAll();
+    const el = $("#arrive");
+    el.hidden = false;
+    el.innerHTML = `<div class="txt"><strong>Abriste un enlace compartido.</strong> <span class="what">Muestra ${arrived}.</span></div>
+      <div class="acts"><button class="btn btn--sm" data-act="save-view">Guardar como vista</button><button class="btn btn--sm" data-act="go-back">Volver a como estaba</button>
+      <button class="btn icon-btn" data-act="dismiss" aria-label="Cerrar el aviso">${icon("x")}</button></div>`;
+    $("#tbl").scrollTop = 0;
+    el.querySelector("button").focus();
+  }
+
+  // ---------------------------------------------------------------- comparar
+  const CMP_FIELDS = [
+    { k: "area", l: "Área" },
+    { k: "cargo", l: "Cargo" },
+    { k: "jefe", l: "Jefe" },
+    { k: "estado", l: "Estado" },
+    { k: "contrato", l: "Contrato" },
+    { k: "fin", l: "Fin del contrato", f: fmtDate },
+    { k: "jornada", l: "Jornada" },
+    { k: "ciudad", l: "Ciudad" },
+    { k: "ingreso", l: "Ingreso", f: fmtDate },
+    { k: "meses", l: "Antigüedad", f: tenure, delta: (d) => (d > 0 ? "+" : "−") + tenure(Math.abs(d)) },
+    { k: "salario", l: "Salario", f: money, delta: (d, ref) => `${d > 0 ? "+" : "−"} ${money(Math.abs(d))} (${d > 0 ? "+" : "−"}${Math.round(Math.abs(d / ref) * 100)} %)` },
+    { k: "eps", l: "EPS" },
+    { k: "afp", l: "Fondo de pensiones" },
+  ];
+  let cmpIds = [], cmpReturn = null;
+
+  function openCompare() {
+    if (state.sel.size < 2 || state.sel.size > 3) return;
+    cmpIds = [...state.sel];
+    cmpReturn = document.activeElement;
+    $("#cmp").hidden = false;
+    renderCompare();
+    $("#cmp-close").focus();
+  }
+  function closeCompare() {
+    $("#cmp").hidden = true;
+    (document.contains(cmpReturn) ? cmpReturn : $("#b-compare") || $("#q")).focus();
+  }
+  function renderCompare() {
+    const ps = cmpIds.map((id) => byId.get(id)), ref = ps[0], only = $("#cmp-only").checked;
+    const rows = CMP_FIELDS.map((f) => ({ f, vals: ps.map((p) => p[f.k]) })).map((r) => ({ ...r, diff: !r.vals.every((v) => v === r.vals[0]) }));
+    const nDiff = rows.filter((r) => r.diff).length;
+    $("#cmp-h").textContent = `Comparar ${ps.length} personas`;
+    $("#cmp-sum").textContent = nDiff ? `Cambian ${nDiff} de ${rows.length} datos` : "Coinciden en todo";
+    let html = `<table class="cmp"><thead><tr><th scope="col"><span class="sr">Dato</span></th>`;
+    ps.forEach((p, i) => {
+      html += `<th scope="col"><div class="person">${i === 0 ? `<span class="ref">Referencia</span>` : `<span class="ref" style="visibility:hidden" aria-hidden="true">·</span>`}
+        <div class="top"><span class="av" aria-hidden="true">${p.ini}</span><span class="nm">${esc(p.nombre)}</span></div>
+        <span class="meta2">CC ${p.documento} · ${esc(p.correo)}</span>
+        <div class="acts">${i > 0 ? `<button class="link" data-act="cmp-ref" data-id="${p.id}">Comparar contra esta</button>` : ""}${ps.length > 2 ? `<button class="link" data-act="cmp-drop" data-id="${p.id}">Quitar</button>` : ""}<button class="link" data-act="cmp-open" data-id="${p.id}">Abrir ficha</button></div></div></th>`;
+    });
+    html += `</tr></thead><tbody>`;
+    for (const r of rows) {
+      if (only && !r.diff) continue;
+      html += `<tr class="${r.diff ? "diff" : "same"}"><th scope="row">${r.f.l}</th>`;
+      r.vals.forEach((v, i) => {
+        const shown = esc(r.f.f ? r.f.f(v) : v);
+        const differs = r.diff && i > 0 && v !== r.vals[0];
+        const delta = differs && r.f.delta ? `<span class="delta">${esc(r.f.delta(v - r.vals[0], r.vals[0]))}</span>` : "";
+        html += `<td class="${differs ? "is-diff" : ""}">${shown}${delta}</td>`;
+      });
+      html += `</tr>`;
+    }
+    const same = rows.filter((r) => !r.diff);
+    if (only && same.length) {
+      html += `<tr class="eq"><th scope="row">Iguales</th><td colspan="${ps.length}">${esc(same.map((r) => `${r.f.l}: ${r.f.f ? r.f.f(r.vals[0]) : r.vals[0]}`).join(" · "))} <button class="link" data-act="cmp-all">Mostrar todo</button></td></tr>`;
+    }
+    html += `</tbody></table>`;
+    $("#cmp-body").innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------- aviso
+  let toastT;
+  function toast(text) {
+    const t = $("#toast");
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toastT);
+    toastT = setTimeout(() => (t.hidden = true), 2600);
+  }
+
+  // ---------------------------------------------------------------- paneles
+  let openPop = null;
+  function togglePop(name, force) {
+    const btn = $("#b-" + name), pop = $("#p-" + name);
+    const show = force ?? pop.hidden;
+    if (openPop && openPop !== name) togglePop(openPop, false);
+    pop.hidden = !show;
+    btn.setAttribute("aria-expanded", String(show));
+    openPop = show ? name : null;
+    if (show) {
+      name === "filters" ? renderFilters() : renderShare();
+      pop.querySelector("input:not([disabled])")?.focus();
+    }
+  }
+
+  function renderAll() {
+    renderMeta(); renderBulk(); renderMatrix(); renderTable();
+    if (openPop === "filters") {
+      const id = document.activeElement?.id;
+      renderFilters();
+      if (id) document.getElementById(id)?.focus();
+    }
+    if (openPop === "share") renderShare();
+  }
+
+  // ---------------------------------------------------------------- eventos
+  $("#q").addEventListener("input", (e) => { state.q = e.target.value; renderAll(); });
+  $("#b-filters").addEventListener("click", () => togglePop("filters"));
+  $("#b-share").addEventListener("click", () => togglePop("share"));
+  $("#b-matrix").addEventListener("click", () => { state.mx.on = !state.mx.on; renderMatrix(); });
+  $("#mx-close").addEventListener("click", () => { state.mx.on = false; renderMatrix(); $("#b-matrix").focus(); });
+  for (const id of ["mx-r", "mx-c"]) {
+    $("#" + id).addEventListener("change", (e) => {
+      const m = state.mx, mine = id === "mx-r" ? "r" : "c", other = mine === "r" ? "c" : "r";
+      if (e.target.value === m[other]) m[other] = m[mine];
+      m[mine] = e.target.value;
+      renderMatrix();
+      $("#" + id).focus();
+    });
+  }
+  $("#mx-m").addEventListener("change", (e) => { state.mx.m = e.target.value; renderMatrix(); });
+  $("#cmp-only").addEventListener("change", renderCompare);
+  $("#cmp-close").addEventListener("click", closeCompare);
+  $("#cmp").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeCompare(); });
+
+  document.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t.dataset.fd) {
+      const s = state.f[t.dataset.fd];
+      t.checked ? s.add(t.value) : s.delete(t.value);
+      renderAll();
+    } else if (t.dataset.ck) {
+      const id = Number(t.dataset.ck);
+      t.checked ? state.sel.add(id) : state.sel.delete(id);
+      renderBulk();
+      t.closest("tr").classList.toggle("is-sel", t.checked);
+      const rows = visible(), all = $("#ck-all");
+      all.checked = rows.length > 0 && rows.every((p) => state.sel.has(p.id));
+      all.indeterminate = !all.checked && rows.some((p) => state.sel.has(p.id));
+      if (openPop === "share") renderShare();
+    } else if (t.id === "ck-all") {
+      for (const p of visible()) t.checked ? state.sel.add(p.id) : state.sel.delete(p.id);
+      renderBulk(); renderTable();
+      $("#ck-all").focus();
+    } else if (t.name === "share-mode") {
+      shareMode = t.value;
+      renderShare();
+      $(`#p-share input[value="${shareMode}"]`).focus();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]");
+    if (openPop && !e.target.closest(".anchor") && !(b && b.dataset.act === "share-sel")) togglePop(openPop, false);
+    if (!b) return;
+    const act = b.dataset.act;
+    if (act === "sort") {
+      const k = b.dataset.k;
+      state.sort = state.sort.k === k ? { k, dir: -state.sort.dir } : { k, dir: k === "ingreso" || k === "salario" ? -1 : 1 };
+      renderAll();
+      $(`#tbl [data-k="${k}"]`).focus();
+    } else if (act === "chip") {
+      const k = b.dataset.key;
+      if (k === "q") { state.q = ""; $("#q").value = ""; }
+      else if (k === "only") state.only = null;
+      else state.f[k].clear();
+      renderAll();
+      ($("#meta [data-act]") || $("#q")).focus();
+    } else if (act === "clear-all") {
+      state.q = ""; $("#q").value = ""; state.only = null;
+      for (const k of DIM_KEYS) state.f[k].clear();
+      renderAll(); $("#q").focus();
+    } else if (act === "mx") matrixClick(b);
+    else if (act === "compare") openCompare();
+    else if (act === "clear-sel") { state.sel.clear(); renderAll(); $("#q").focus(); }
+    else if (act === "share-sel") { shareMode = "sel"; togglePop("share", true); }
+    else if (act === "copy-url") {
+      const input = $("#share-url"), done = () => toast("Enlace copiado");
+      const fallback = () => { input.focus(); input.select(); toast("Selecciona el enlace y cópialo con Ctrl+C"); };
+      try { navigator.clipboard.writeText(input.value).then(done, fallback); } catch { fallback(); }
+    } else if (act === "open-as") {
+      const url = shareURL(shareMode);
+      togglePop("share", false);
+      applyURL(url);
+    } else if (act === "go-back") {
+      if (before) restore(before);
+      before = null; $("#q").value = state.q; $("#arrive").hidden = true;
+      renderAll(); $("#b-share").focus();
+      toast("Volviste a tu tabla");
+    } else if (act === "save-view") {
+      const name = DIM_KEYS.flatMap((k) => [...state.f[k]]).slice(0, 2).join(" · ") || (state.only ? "Filas compartidas" : "Vista compartida");
+      $("#arrive").hidden = true; $("#b-share").focus();
+      toast(`Guardada en Vistas como «${name}»`);
+    } else if (act === "dismiss") { $("#arrive").hidden = true; $("#q").focus(); }
+    else if (act === "cmp-ref") { const id = Number(b.dataset.id); cmpIds = [id, ...cmpIds.filter((x) => x !== id)]; renderCompare(); $("#cmp-close").focus(); }
+    else if (act === "cmp-drop") {
+      const id = Number(b.dataset.id);
+      cmpIds = cmpIds.filter((x) => x !== id); state.sel.delete(id);
+      renderAll(); renderCompare(); $("#cmp-close").focus();
+    } else if (act === "cmp-all") { $("#cmp-only").checked = false; renderCompare(); $("#cmp-only").focus(); }
+    else if (act === "cmp-open") toast("En la app, esto abre la ficha de " + byId.get(Number(b.dataset.id)).nombre);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (!$("#cmp").hidden) { closeCompare(); return; }
+      if (openPop) { const name = openPop; togglePop(name, false); $("#b-" + name).focus(); }
+    } else if (e.key === "Tab" && !$("#cmp").hidden) {
+      const f = [...$("#cmp .dlg").querySelectorAll("button, input")].filter((x) => !x.disabled);
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+
+  // Arranca con la matriz puesta y dos personas de Ventas marcadas, listas para comparar.
+  const ventas = PEOPLE.filter((p) => p.area === "Ventas" && p.contrato !== "Aprendizaje").sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  for (const p of ventas.slice(0, 2)) state.sel.add(p.id);
+  renderAll();
+})();
+</script>

@@ -1,0 +1,476 @@
+/* <nx-timeline>: carriles sobre un eje de días. Las posiciones van en % del ancho y el alto de
+   cada carril es una variable: el tamaño de la ventana no se recalcula en JavaScript. */
+nx-timeline {
+  --nx-timeline-bars: 66px;
+  --nx-timeline-ranges: 32px;
+  --nx-timeline-points: 32px;
+  --nx-timeline-axis: 28px;
+  /* Ancho mínimo de un mes: por debajo, la cinta se desplaza a lo ancho. */
+  --nx-timeline-month: 54px;
+  --nx-timeline-label: 96px;
+  display: block;
+  container-type: inline-size;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+}
+nx-timeline [hidden] {
+  display: none !important;
+}
+.nx-timeline__root {
+  position: relative;
+}
+.nx-timeline__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-bottom: 14px;
+}
+.nx-timeline__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.nx-timeline__summary {
+  margin: 0;
+  color: var(--nx-muted-foreground);
+}
+.nx-timeline__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--nx-text-tertiary);
+}
+.nx-timeline__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- muestras de la leyenda ---------- */
+.nx-timeline__swatch {
+  display: inline-block;
+  flex: none;
+  width: 6px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--nx-primary);
+}
+.nx-timeline__swatch--bar-upcoming {
+  background: var(--nx-primary-soft);
+  box-shadow: inset 0 0 0 1.5px var(--nx-primary-border);
+}
+.nx-timeline__swatch--bar-extra {
+  background: linear-gradient(var(--nx-warning) 45%, var(--nx-primary) 45%);
+}
+.nx-timeline__swatch--range,
+.nx-timeline__swatch--range-pending,
+.nx-timeline__swatch--range-draft {
+  width: 16px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--nx-success-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--nx-success) 60%, transparent);
+}
+.nx-timeline__swatch--range-pending {
+  background: repeating-linear-gradient(135deg, var(--nx-warning-soft) 0 3px, transparent 3px 6px);
+  box-shadow: inset 0 0 0 1.5px var(--nx-warning);
+}
+.nx-timeline__swatch--range-draft {
+  background: repeating-linear-gradient(135deg, var(--nx-primary-soft) 0 3px, transparent 3px 6px);
+  box-shadow: inset 0 0 0 1.5px var(--nx-primary);
+}
+.nx-timeline__swatch--point,
+.nx-timeline__swatch--point-pending {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--nx-success);
+}
+.nx-timeline__swatch--point-pending {
+  background: var(--nx-warning);
+}
+.nx-timeline__swatch--diamond {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+.nx-timeline__swatch--holiday {
+  width: 2px;
+  height: 9px;
+  background: var(--nx-danger);
+}
+
+/* ---------- cuerpo: rótulos y pista ---------- */
+.nx-timeline__body {
+  display: grid;
+  grid-template-columns: var(--nx-timeline-label) minmax(0, 1fr);
+}
+.nx-timeline__labels {
+  display: grid;
+  grid-template-rows: var(--nx-timeline-rows);
+  font-size: 12px;
+  color: var(--nx-muted-foreground);
+}
+.nx-timeline__lane-label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-right: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-timeline__lane-label--bars {
+  align-items: flex-end;
+  padding-bottom: 8px;
+}
+.nx-timeline__scroll {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.nx-timeline__track {
+  position: relative;
+  display: grid;
+  grid-template-rows: var(--nx-timeline-rows);
+  min-width: calc(var(--nx-timeline-months) * var(--nx-timeline-month));
+}
+.nx-timeline__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.nx-timeline__month {
+  position: absolute;
+  top: 0;
+  bottom: var(--nx-timeline-axis);
+}
+.nx-timeline__month.is-alt {
+  background: light-dark(oklch(0.2 0.01 260 / 0.025), oklch(1 0 0 / 0.03));
+}
+.nx-timeline__past {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: var(--nx-timeline-axis);
+  background: linear-gradient(to right, transparent 30%, var(--nx-primary-soft));
+  opacity: 0.6;
+}
+.nx-timeline__lines {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: var(--nx-timeline-rows);
+}
+.nx-timeline__lines span:not(:last-child) {
+  border-bottom: 1px dashed var(--nx-border-subtle);
+}
+.nx-timeline__axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--nx-timeline-axis);
+  border-top: 1px solid var(--nx-border);
+  pointer-events: auto;
+}
+.nx-timeline__month-label {
+  position: absolute;
+  top: 8px;
+  padding-left: 4px;
+  font-size: 11.5px;
+  color: var(--nx-text-tertiary);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.nx-timeline__month-label b {
+  font-weight: 600;
+  color: var(--nx-muted-foreground);
+}
+.nx-timeline__holiday {
+  position: absolute;
+  top: -1px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%);
+}
+.nx-timeline__holiday::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--nx-danger);
+  opacity: 0.85;
+}
+.nx-timeline__today {
+  position: absolute;
+  top: 0;
+  bottom: calc(var(--nx-timeline-axis) - 2px);
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--nx-primary);
+}
+.nx-timeline__today-pill {
+  position: absolute;
+  top: 7px;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--nx-primary);
+  color: var(--nx-primary-foreground);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.nx-timeline__lane {
+  position: relative;
+  min-width: 0;
+}
+
+/* ---------- marcas ---------- */
+.nx-timeline__mark {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nx-timeline__mark:focus-visible {
+  outline: none;
+}
+button.nx-timeline__mark:not([href]) {
+  cursor: default;
+}
+
+/* Barras: un pago por día; el alto es su monto. */
+.nx-timeline__mark--bar {
+  top: 6px;
+  bottom: 0;
+  width: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.nx-timeline__bar {
+  display: flex;
+  flex-direction: column;
+  width: 6px;
+  height: calc(var(--h, 0) * 1%);
+  min-height: 3px;
+  overflow: hidden;
+  border-radius: 3px 3px 1.5px 1.5px;
+  background: var(--nx-primary);
+  transform-origin: bottom;
+  transition: filter var(--nx-motion-fast, 140ms);
+}
+.nx-timeline__bar-extra {
+  flex: none;
+  background: var(--nx-warning);
+}
+.nx-timeline__mark--bar:hover .nx-timeline__bar {
+  filter: brightness(1.12);
+}
+.nx-timeline__mark--bar.is-upcoming .nx-timeline__bar,
+.nx-timeline__mark--bar.is-draft .nx-timeline__bar {
+  background: var(--nx-primary-soft);
+  box-shadow: inset 0 0 0 1.5px var(--nx-primary-border);
+}
+.nx-timeline__mark--bar.is-upcoming .nx-timeline__bar-extra {
+  background: var(--nx-warning-soft);
+}
+.nx-timeline__mark--bar.is-pending .nx-timeline__bar {
+  background: var(--nx-warning);
+}
+.nx-timeline__mark--bar.is-rejected .nx-timeline__bar {
+  background: var(--nx-border-strong);
+}
+
+/* Franjas: de un día a otro; si se pisan, en renglones. */
+.nx-timeline__mark--range {
+  --pad: 8px;
+  top: calc(var(--pad) + (100% - 2 * var(--pad)) / var(--rows, 1) * var(--row, 0));
+  height: max(4px, calc((100% - 2 * var(--pad)) / var(--rows, 1) - 2px));
+  min-width: 6px;
+  border-radius: 5px;
+  background: var(--nx-success-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--nx-success) 60%, transparent);
+  transform-origin: left;
+}
+.nx-timeline__mark--range.is-upcoming {
+  box-shadow: inset 0 0 0 1.5px var(--nx-success);
+}
+.nx-timeline__mark--range.is-pending {
+  background: repeating-linear-gradient(135deg, var(--nx-warning-soft) 0 4px, transparent 4px 8px);
+  box-shadow: inset 0 0 0 1.5px var(--nx-warning);
+}
+.nx-timeline__mark--range.is-rejected {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--nx-border-strong);
+  opacity: 0.7;
+}
+.nx-timeline__mark--range.is-draft {
+  background: repeating-linear-gradient(135deg, var(--nx-primary-soft) 0 4px, transparent 4px 8px);
+  box-shadow: inset 0 0 0 1.5px var(--nx-primary);
+}
+.nx-timeline__mark--range.is-tone-info {
+  background: var(--nx-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--nx-primary-border);
+}
+.nx-timeline__mark--range.is-tone-danger {
+  background: var(--nx-danger-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--nx-danger) 55%, transparent);
+}
+.nx-timeline__mark--range.is-tone-neutral {
+  background: var(--nx-hover);
+  box-shadow: inset 0 0 0 1px var(--nx-border);
+}
+
+/* Puntos: un día; rombo con `shape: "diamond"`. */
+.nx-timeline__mark--point {
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+}
+.nx-timeline__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--nx-success);
+  box-shadow: 0 0 0 2px var(--nx-card, var(--nx-canvas));
+}
+.is-diamond .nx-timeline__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 1.5px;
+  rotate: 45deg;
+  background: var(--nx-primary);
+}
+.nx-timeline__mark--point.is-upcoming .nx-timeline__dot {
+  background: var(--nx-card, var(--nx-canvas));
+  box-shadow: inset 0 0 0 1.5px var(--nx-primary), 0 0 0 2px var(--nx-card, var(--nx-canvas));
+}
+.nx-timeline__mark--point.is-pending .nx-timeline__dot {
+  background: var(--nx-warning);
+}
+.nx-timeline__mark--point.is-rejected .nx-timeline__dot {
+  background: var(--nx-border-strong);
+}
+.nx-timeline__mark--point.is-draft .nx-timeline__dot {
+  background: var(--nx-card, var(--nx-canvas));
+  box-shadow: inset 0 0 0 2px var(--nx-primary), 0 0 0 2px var(--nx-card, var(--nx-canvas));
+}
+.nx-timeline__mark--point.is-tone-danger .nx-timeline__dot {
+  background: var(--nx-danger);
+}
+.nx-timeline__mark--point.is-tone-info .nx-timeline__dot {
+  background: var(--nx-primary);
+}
+
+/* Foco y resaltado: un anillo sobre lo visible de la marca. */
+.nx-timeline__mark:focus-visible .nx-timeline__bar,
+.nx-timeline__mark:focus-visible .nx-timeline__dot,
+.nx-timeline__mark--range:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+.nx-timeline__mark.is-highlight .nx-timeline__bar,
+.nx-timeline__mark.is-highlight .nx-timeline__dot,
+.nx-timeline__mark--range.is-highlight {
+  outline: 2px solid var(--nx-primary);
+  outline-offset: 2px;
+}
+.nx-timeline__caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--nx-primary-ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.nx-timeline__mark--bar .nx-timeline__caption {
+  bottom: calc(var(--h, 0) * 1% + 5px);
+}
+
+/* ---------- la lente (capa superior) ---------- */
+.nx-timeline__lens {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg, 10px);
+  background: var(--nx-popover, var(--nx-card));
+  color: var(--nx-foreground);
+  box-shadow: var(--nx-shadow-popover);
+  font: 12.5px/1.45 var(--nx-font-sans);
+  pointer-events: none;
+}
+.nx-timeline__lens p {
+  margin: 0;
+}
+.nx-timeline__lens-title {
+  font-size: 13px;
+  font-weight: 650;
+}
+.nx-timeline__lens-line {
+  margin-top: 2px;
+  color: var(--nx-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.nx-timeline__lens-action {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nx-primary-ink);
+}
+.nx-timeline__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@container (max-width: 560px) {
+  .nx-timeline__body {
+    --nx-timeline-label: 72px;
+  }
+  .nx-timeline__legend {
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-timeline__bar {
+    transition: none;
+  }
+}

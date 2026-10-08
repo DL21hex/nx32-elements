@@ -9,6 +9,7 @@
  * `Date` local se arma solo al final.
  */
 import { dayOf, dayOfISO, isoOf, jsDay, monthLen, startOfWeek, todayOf, validDay, ymd } from "../../core/days";
+import { colombiaHolidays } from "../../core/holidays";
 import type { RecurrenceFreq, RecurrenceHolidayMode, RecurrenceHolidays, RecurrenceOccurrence, RecurrenceParseOptions, RecurrenceRule, RecurrenceWeekday } from "./types";
 
 const DAY = 1440;
@@ -24,30 +25,9 @@ export const RRULE_RX = /^\s*(?:DTSTART|RRULE|FREQ=)/i;
 
 // ---------------------------------------------------------------- festivos
 
-/** El domingo de Pascua de un año (algoritmo anónimo gregoriano, Meeus/Jones/Butcher), como día. */
-export function easterDay(y: number): number {
-  const a = y % 19;
-  const b = Math.floor(y / 100);
-  const c = y % 100;
-  const h = (19 * a + b - Math.floor(b / 4) - Math.floor((b - Math.floor((b + 8) / 25) + 1) / 3) + 15) % 30;
-  const l = (32 + 2 * (b % 4) + 2 * Math.floor(c / 4) - h - (c % 4)) % 7;
-  const n = h + l - 7 * Math.floor((a + 11 * h + 22 * l) / 451) + 114;
-  return dayOf(y, Math.floor(n / 31), (n % 31) + 1);
-}
-
-/**
- * Los festivos de Colombia de un año, en ISO y en orden (Ley 51 de 1983, «Emiliani»): los fijos, los
- * que se corren al lunes siguiente y los que dependen de la Pascua (Jueves y Viernes Santo fijos;
- * Ascensión, Corpus Christi y Sagrado Corazón corridos al lunes). Dos que coinciden cuentan una vez.
- */
-export function colombiaHolidays(year: number): string[] {
-  const e = easterDay(year);
-  const monday = (d: number) => d + ((7 - wd(d)) % 7);
-  const f = (m: number, d: number) => dayOf(year, m, d);
-  const days = [f(1, 1), f(5, 1), f(7, 20), f(8, 7), f(12, 8), f(12, 25), e - 3, e - 2, monday(e + 39), monday(e + 60), monday(e + 68)];
-  for (const [m, d] of [[1, 6], [3, 19], [6, 29], [8, 15], [10, 12], [11, 1], [11, 11]]) days.push(monday(f(m, d)));
-  return uniq(days).map(isoOf);
-}
+// Los festivos de Colombia viven en `core/holidays` (los comparte con `<nx-timeline>`); se
+// reexportan aquí para no cambiar la API de `nx32-elements/recurrence`.
+export { colombiaHolidays, easterDay } from "../../core/holidays";
 
 const daySet = (it: Iterable<string>) => new Set([...it].map(dayOfISO));
 

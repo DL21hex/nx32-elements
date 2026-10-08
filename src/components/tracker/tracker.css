@@ -1,0 +1,312 @@
+/* <nx-tracker>: tarjetas de solicitudes con su estado, sus pasos y, si son días, la tira. */
+nx-tracker {
+  display: block;
+  container-type: inline-size;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13.5px;
+}
+nx-tracker[data-empty]:not([empty]) {
+  display: none;
+}
+.nx-tracker__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-tracker__card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: 12px;
+  background: var(--nx-card, var(--nx-background));
+}
+.nx-tracker__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.nx-tracker__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+}
+.nx-tracker__icon svg {
+  width: 18px;
+  height: 18px;
+}
+.nx-tracker__titles {
+  flex: 1;
+  min-width: 0;
+}
+.nx-tracker__eyebrow {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--nx-primary-ink);
+}
+.nx-tracker__title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.nx-tracker__title-link {
+  color: inherit;
+  text-decoration: none;
+}
+.nx-tracker__title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.nx-tracker__title-link:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.nx-tracker__subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--nx-muted-foreground);
+}
+.nx-tracker__status {
+  flex: none;
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  background: var(--nx-hover);
+  color: var(--nx-muted-foreground);
+}
+.nx-tracker__status.is-info {
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+}
+.nx-tracker__status.is-success {
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
+}
+.nx-tracker__status.is-warning {
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning-ink);
+}
+.nx-tracker__status.is-danger {
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+}
+
+/* ---------- pasos ---------- */
+.nx-tracker__steps {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-tracker__step {
+  position: relative;
+  min-width: 0;
+  padding: 18px 10px 0 0;
+  font-size: 12.5px;
+  color: var(--nx-text-tertiary);
+}
+.nx-tracker__step::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--nx-card, var(--nx-background));
+  box-shadow: inset 0 0 0 2px var(--nx-border-strong);
+}
+.nx-tracker__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 4px;
+  top: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--nx-border-subtle);
+}
+.nx-tracker__step.is-done::before {
+  background: var(--nx-success);
+  box-shadow: none;
+}
+.nx-tracker__step.is-done:not(:last-child)::after {
+  background: color-mix(in oklab, var(--nx-success) 50%, transparent);
+}
+.nx-tracker__step.is-current::before {
+  background: var(--nx-warning);
+  box-shadow: 0 0 0 4px var(--nx-warning-soft);
+  animation: nx-tracker-beat 2.2s ease-in-out infinite;
+}
+.nx-tracker__step.is-failed::before {
+  background: var(--nx-danger);
+  box-shadow: none;
+}
+@keyframes nx-tracker-beat {
+  50% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+.nx-tracker__step-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nx-foreground);
+}
+.nx-tracker__step.is-todo .nx-tracker__step-label {
+  color: var(--nx-muted-foreground);
+  font-weight: 500;
+}
+.nx-tracker__step-detail {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- la tira de días ---------- */
+.nx-tracker__days {
+  display: grid;
+  gap: 6px;
+}
+.nx-tracker__strip {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 2px;
+}
+.nx-tracker__day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+.nx-tracker__day.is-asked {
+  background: var(--nx-primary);
+  color: var(--nx-primary-foreground);
+}
+.nx-tracker__day.is-holiday::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--nx-danger);
+}
+.nx-tracker__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--nx-text-tertiary);
+}
+.nx-tracker__legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+  background: var(--nx-success-soft);
+}
+.nx-tracker__legend i.is-asked {
+  background: var(--nx-primary);
+}
+
+/* ---------- acciones ---------- */
+.nx-tracker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.nx-tracker__action {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md, 7px);
+  background: var(--nx-card, var(--nx-background));
+  color: var(--nx-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--nx-motion-fast, 140ms), border-color var(--nx-motion-fast, 140ms);
+}
+.nx-tracker__action:hover {
+  background: var(--nx-hover);
+  border-color: var(--nx-border-strong);
+}
+.nx-tracker__action.is-primary {
+  border-color: transparent;
+  background: var(--nx-primary);
+  color: var(--nx-primary-foreground);
+}
+.nx-tracker__action.is-primary:hover {
+  background: var(--nx-primary-ink);
+}
+.nx-tracker__action:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+.nx-tracker__empty {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--nx-border);
+  border-radius: 12px;
+  color: var(--nx-muted-foreground);
+}
+
+/* En una columna angosta los pasos van uno debajo de otro. */
+@container (max-width: 420px) {
+  .nx-tracker__steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .nx-tracker__step {
+    padding: 0 0 0 20px;
+  }
+  .nx-tracker__step::before {
+    top: 3px;
+  }
+  .nx-tracker__step:not(:last-child)::after {
+    display: none;
+  }
+  .nx-tracker__day {
+    font-size: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-tracker__step.is-current::before {
+    animation: none;
+  }
+  .nx-tracker__action {
+    transition: none;
+  }
+}

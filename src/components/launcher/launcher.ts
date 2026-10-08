@@ -23,7 +23,7 @@ import { h, safeHref } from "../../core/dom";
 import { glyph, icon } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
-import { balanceColumns, clampMeter, fill, firstTarget, fitColumns, formatBadge, groupBySection, itemHref, matchItem, moveIndex, progressParts, sparkPaths, type LauncherTarget } from "./logic";
+import { balanceColumns, clampMeter, fill, firstTarget, fitColumns, formatBadge, groupBySection, itemHref, itemNewTab, matchItem, moveIndex, progressParts, sparkPaths, type LauncherTarget } from "./logic";
 import type { LauncherItem, LauncherLabels, LauncherSelectDetail, LauncherSignal } from "./types";
 
 export const LAUNCHER_LABELS: LauncherLabels = {
@@ -408,7 +408,7 @@ export class NxLauncher extends Base {
     const described = [descId, sigId].filter(Boolean).join(" ") || null;
     const text = h("span", { class: "nx-launcher__label" }, label);
     const link = href
-      ? h("a", { class: "nx-launcher__link", href, "data-nx-open": "", "aria-describedby": described }, text)
+      ? h("a", { class: "nx-launcher__link", href, "data-nx-open": "", "aria-describedby": described, ...(itemNewTab(item) ? { target: "_blank", rel: "noopener" } : null) }, text)
       : h("button", { type: "button", class: "nx-launcher__link", "data-nx-open": "", "aria-describedby": described }, text);
 
     const views = (Array.isArray(item.views) ? item.views : []).filter((v) => v && typeof v === "object");
@@ -421,7 +421,7 @@ export class NxLauncher extends Base {
             const badge = formatBadge(v.badge);
             const content = [String(v.label ?? ""), v.hint ? h("span", { class: "nx-launcher__hint-text" }, String(v.hint)) : null, badge ? h("span", { class: "nx-launcher__badge" }, badge) : null];
             const attrs = { class: "nx-launcher__view", "data-nx-open": "", "data-nx-view": i };
-            return h("li", null, vHref ? h("a", { ...attrs, href: vHref }, ...content) : h("button", { ...attrs, type: "button" }, ...content));
+            return h("li", null, vHref ? h("a", { ...attrs, href: vHref, ...(v.newTab ? { target: "_blank", rel: "noopener" } : null) }, ...content) : h("button", { ...attrs, type: "button" }, ...content));
           }),
         )
       : null;
@@ -587,7 +587,7 @@ export class NxLauncher extends Base {
     }
     // Antes del evento: si la app anima con `startViewTransition` en su manejador, ya los encuentra.
     this.#mark(card.el, HOLD);
-    const detail: LauncherSelectDetail = { item: card.item, view, href };
+    const detail: LauncherSelectDetail = { item: card.item, view, href, newTab: opener.getAttribute("target") === "_blank" };
     if (!this.#emit("nx-launcher-select", detail, true)) e.preventDefault();
   };
 

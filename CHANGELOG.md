@@ -1,5 +1,51 @@
 # Registro de cambios
 
+## 0.7.0 — 2026-10-08
+
+El inicio de una persona: cuatro componentes nuevos y los festivos en el núcleo.
+
+### `<nx-timeline>` (nuevo): la cinta del tiempo
+
+- Carriles sobre un eje de días: `bars` (el alto es el monto; `extra` resaltado arriba), `ranges`
+  (franjas; si se pisan, en renglones) y `points` (punto o rombo). Meses, festivos, la línea de hoy
+  y lo pasado sombreado; `state` (`done`, `upcoming`, `pending`, `rejected`, `draft`) y `tone`.
+- La lente sale al pasar el puntero o al enfocar, en la capa superior (Popover API): ningún
+  `overflow` la recorta. Un solo <kbd>Tab</kbd> y las flechas recorren las marcas en el orden del
+  eje. Las marcas con `href` son `<a href>`; `nx-timeline-select` es cancelable.
+- Nada se mide en JavaScript: posiciones en % y altos por variable CSS. En pantallas angostas se
+  desplaza a lo ancho y arranca mostrando hoy (`scrollToDay()`). En el registro BDUI como `Timeline`.
+
+### `<nx-intent>` (nuevo): «¿Qué necesitas?»
+
+- Lee lo escrito y dice qué entendió (el trámite y cada dato, como chips) antes de llevar. Trámites
+  por `keywords`/`exclude`; datos por `slots`: `date`, `month`, `time`, `amount` y `option` (con su
+  propio destino, p. ej. un PDF en otra pestaña). Sin modelos ni servidor. `Escape` borra; `hotkey`
+  trae el foco. `nx-intent-submit` cancelable. En el registro BDUI como `Intent`.
+
+### `<nx-tracker>` (nuevo): lo que va en camino
+
+- Solicitudes con su estado y los pasos de su recorrido; con `days`, la tira de días desde el
+  primer día libre hasta el último, con los pedidos marcados (según `workdays` y `holidays`).
+  Sugerencias con `eyebrow` y acciones. En el registro BDUI como `Tracker`.
+
+### `<nx-stats>` (nuevo): las cifras de entrada
+
+- Cifras con nota, pastilla y una forma (tendencia, barra o anillo), en fila o en lista. En el
+  registro BDUI como `Stats`.
+
+### Núcleo: festivos, días hábiles y puentes
+
+- `nx32-elements/core` exporta `colombiaHolidayList` (con nombres), `colombiaHolidays`,
+  `holidayLookup`, `workdayTest`, `workdaysBetween`, `restAround` y `suggestBreaks`. Los festivos de
+  `<nx-recurrence>` salen de ahí (misma API).
+- **Festivo nuevo: la Virgen de Chiquinquirá** (Ley 2578 de 2026: 9 de julio, corrido al lunes),
+  desde 2026. Cambia los días hábiles de julio en `<nx-recurrence>` y en lo que use los festivos.
+
+### `<nx-launcher>`
+
+- `newTab` en una tarjeta o una vista: el enlace lleva `target="_blank"` (un PDF que el router de la
+  app no debe interceptar). `nx-launcher-select` trae `newTab`.
+
 ## 0.6.1 — 2026-10-07
 
 ### `<nx-inbox>`

@@ -1,0 +1,153 @@
+/* <nx-intent>: la caja de «¿Qué necesitas?», lo entendido y los ejemplos. */
+nx-intent {
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 14px;
+}
+nx-intent [hidden] {
+  display: none !important;
+}
+.nx-intent__box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 6px 6px 14px;
+  background: var(--nx-card, var(--nx-background));
+  border: 1px solid var(--nx-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.04), rgb(0 0 0 / 0.3)), 0 8px 24px -14px light-dark(rgb(15 20 30 / 0.18), rgb(0 0 0 / 0.6));
+  transition: border-color var(--nx-motion-fast, 140ms), box-shadow var(--nx-motion-base, 220ms);
+}
+.nx-intent__box:focus-within {
+  border-color: var(--nx-primary-border);
+  box-shadow: 0 0 0 4px var(--nx-primary-soft), 0 8px 24px -14px light-dark(rgb(15 20 30 / 0.18), rgb(0 0 0 / 0.6));
+}
+.nx-intent__spark {
+  display: grid;
+  flex: none;
+  color: var(--nx-primary);
+}
+.nx-intent__spark svg {
+  width: 20px;
+  height: 20px;
+}
+.nx-intent__input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+}
+.nx-intent__input:focus,
+.nx-intent__input:focus-visible {
+  outline: none;
+}
+.nx-intent__input::placeholder {
+  color: var(--nx-text-tertiary);
+}
+.nx-intent__go {
+  flex: none;
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--nx-radius-md, 7px);
+  background: var(--nx-primary);
+  color: var(--nx-primary-foreground);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--nx-motion-fast, 140ms), opacity var(--nx-motion-fast, 140ms);
+}
+.nx-intent__go:hover {
+  background: var(--nx-primary-ink);
+}
+.nx-intent__go:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+.nx-intent__go:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.nx-intent__read {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  margin: 10px 2px 0;
+  font-size: 13px;
+  color: var(--nx-muted-foreground);
+}
+.nx-intent__read:empty {
+  margin-top: 4px;
+  min-height: 0;
+}
+.nx-intent__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.nx-intent__chip.is-new {
+  animation: nx-intent-in 220ms var(--nx-ease-out, ease-out);
+}
+@keyframes nx-intent-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+}
+.nx-intent__examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.nx-intent__example {
+  padding: 5px 12px;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nx-muted-foreground);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--nx-motion-fast, 140ms), border-color var(--nx-motion-fast, 140ms), color var(--nx-motion-fast, 140ms);
+}
+.nx-intent__example:hover {
+  border-color: var(--nx-border-strong);
+  background: var(--nx-hover);
+  color: var(--nx-foreground);
+}
+.nx-intent__example:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+.nx-intent__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-intent__chip.is-new {
+    animation: none;
+  }
+  .nx-intent__box,
+  .nx-intent__go,
+  .nx-intent__example {
+    transition: none;
+  }
+}

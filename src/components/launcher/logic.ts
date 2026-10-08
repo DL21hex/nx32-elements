@@ -105,3 +105,10 @@ export function fill(template: string, name: string): string {
 export function itemHref(item: LauncherItem): string | undefined {
   return safeHref(item.href) ?? (Array.isArray(item.views) ? safeHref(item.views.find((v) => safeHref(v?.href))?.href) : undefined);
 }
+
+/** ¿El destino de la tarjeta abre en otra pestaña? El suyo, o el de la vista de la que toma el destino. */
+export function itemNewTab(item: LauncherItem): boolean {
+  if (safeHref(item.href)) return !!item.newTab;
+  const v = Array.isArray(item.views) ? item.views.find((x) => safeHref(x?.href)) : undefined;
+  return !!v?.newTab;
+}

@@ -414,3 +414,29 @@ describe("teclado", () => {
     expect(document.activeElement).toBe(link(el, "cert"));
   });
 });
+
+describe("<nx-launcher> con destinos en otra pestaña", () => {
+  it("la tarjeta y la vista llevan target y el evento lo dice", async () => {
+    const el = document.createElement("nx-launcher") as NxLauncher;
+    el.items = [
+      { id: "cert", label: "Certificados", views: [{ label: "Con salario", href: "/cert/con.pdf", newTab: true }, { label: "Sin salario", href: "/cert/sin.pdf" }] },
+      { id: "pagos", label: "Pagos", href: "/pagos" },
+    ];
+    document.body.append(el);
+    await tick();
+    const [card1, card2] = [...el.querySelectorAll<HTMLAnchorElement>(".nx-launcher__link")];
+    expect(card1.getAttribute("href")).toBe("/cert/con.pdf");
+    expect([card1.target, card1.rel]).toEqual(["_blank", "noopener"]);
+    expect(card2.target).toBe("");
+    const views = [...el.querySelectorAll<HTMLAnchorElement>(".nx-launcher__view")];
+    expect(views.map((v) => v.target)).toEqual(["_blank", ""]);
+    const seen: LauncherSelectDetail[] = [];
+    el.addEventListener("nx-launcher-select", (e) => {
+      seen.push(e.detail);
+      e.preventDefault();
+    });
+    views[0].dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    views[1].dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(seen.map((s) => s.newTab)).toEqual([true, false]);
+  });
+});

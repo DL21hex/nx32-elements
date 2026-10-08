@@ -1,0 +1,15 @@
+/* Demo del inicio del empleado: las cuatro piezas en una columna, como en la app. */
+.ho-demo {
+  display: grid;
+  gap: 22px;
+  padding: 20px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: 14px;
+  background: var(--nx-canvas);
+}
+.ho-demo nx-timeline {
+  padding: 16px 16px 10px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: 14px;
+  background: var(--nx-card);
+}

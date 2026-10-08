@@ -27,6 +27,8 @@ export interface LauncherView {
   badge?: string | number;
   /** Un texto corto al lado, más tenue: «15 sep 2026». */
   hint?: string;
+  /** Abre en otra pestaña (un PDF, un sitio externo): el enlace lleva `target="_blank"`. */
+  newTab?: boolean;
 }
 
 /** Una parte de la barra de una tarjeta destacada: «38 adjudicados». */
@@ -40,6 +42,8 @@ export interface LauncherItem {
   label: string;
   /** Destino. Sin él, el de la primera vista; sin ninguno, la tarjeta es un botón (`nx-launcher-select`). */
   href?: string;
+  /** El destino abre en otra pestaña. Sin `href`, manda el de la primera vista. */
+  newTab?: boolean;
   /** Nombre de un ícono registrado con `registerIcons`. Sin ícono se pintan las iniciales. */
   icon?: string;
   /** Para qué sirve el módulo. Con puntero, cede su lugar a las vistas al pasar por la tarjeta. */
@@ -64,6 +68,8 @@ export interface LauncherSelectDetail {
   /** La vista elegida, o `null` si se eligió la tarjeta. */
   view: LauncherView | null;
   href: string | undefined;
+  /** El enlace abre en otra pestaña: la app no debería navegar ella. */
+  newTab: boolean;
 }
 
 export interface LauncherLabels {

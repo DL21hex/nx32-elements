@@ -25,7 +25,11 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-handoff>` + QR + núcleo (ESM); el lado celular, ≈ 5 KB, se carga con `side="phone"` | ≈ 9,5 KB |
 | `<nx-award>` + núcleo (ESM) | ≈ 15,8 KB |
 | `<nx-account>` + núcleo (ESM), con «Ver como»; el panel, ≈ 3,2 KB, se carga aparte | ≈ 10,5 KB |
-| `<nx-launcher>` + núcleo (ESM) | ≈ 8,7 KB |
+| `<nx-launcher>` + núcleo (ESM) | ≈ 8,8 KB |
+| `<nx-timeline>` + festivos + núcleo (ESM) | ≈ 7,4 KB |
+| `<nx-intent>` + lector de fechas y montos + núcleo (ESM) | ≈ 6,8 KB |
+| `<nx-tracker>` + festivos + núcleo (ESM) | ≈ 4,5 KB |
+| `<nx-stats>` + núcleo (ESM) | ≈ 4 KB |
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
 | `<nx-org>` + núcleo (ESM) | ≈ 13,2 KB |
 | `<nx-breadcrumb>` + núcleo (ESM); el menú de hermanos, ≈ 1,8 KB, se carga al abrir el primero | ≈ 5,3 KB |
@@ -40,8 +44,8 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
 | `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 17,8 KB |
-| `nx32-elements.css` (tokens + todos los componentes) | ≈ 66,9 KB |
-| `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 396 KB |
+| `nx32-elements.css` (tokens + todos los componentes) | ≈ 70 KB |
+| `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 407 KB |
 
 Cada componente es una subruta (`nx32-elements/sidemenu`, `nx32-elements/button`): una app solo carga lo que importa.
 Los cambios de cada versión, y cómo migrar, están en [CHANGELOG.md](CHANGELOG.md).
@@ -1836,11 +1840,78 @@ un solo dato vivo, la señal: «3 de tu equipo por aprobar · el más antiguo, h
 
 | | |
 |---|---|
-| Propiedades / atributos | `items` (`[{id, label, href?, icon?, description?, section?, views?, signal?, featured?, eyebrow?, progress?, data?}]`; `views`: `[{label, href?, badge?, hint?}]`; `signal`: `{value?, label?, note?, tone?, meter?, trend?}`; `progress`: `[{label, value}]`), `search`, `query`, `columns` (4), `heading-level` (2), `locale`, `labels` |
+| Propiedades / atributos | `items` (`[{id, label, href?, newTab?, icon?, description?, section?, views?, signal?, featured?, eyebrow?, progress?, data?}]`; `views`: `[{label, href?, newTab?, badge?, hint?}]` (`newTab`: el enlace abre en otra pestaña, para un PDF); `signal`: `{value?, label?, note?, tone?, meter?, trend?}`; `progress`: `[{label, value}]`), `search`, `query`, `columns` (4), `heading-level` (2), `locale`, `labels` |
 | Métodos | `focusItem(id?)`, `reveal(id?)` |
-| Eventos | `nx-launcher-select` `{item, view, href}` (cancelable; un clic con modificador es del navegador y no se anuncia) |
+| Eventos | `nx-launcher-select` `{item, view, href, newTab}` (cancelable; un clic con modificador es del navegador y no se anuncia; con `newTab`, la app no debería navegar ella) |
 | CSS | `--nx-launcher-min` (240px), `--nx-launcher-gap` (12px), `--nx-launcher-warn` / `--nx-launcher-ink`; `.nx-launcher-hero`, `.nx-launcher-hero-icon`, `.nx-launcher-hero-label` para la página de destino |
 | Funciones | `matchItem()`, `firstTarget()`, `fitColumns()`, `balanceColumns()`, `moveIndex()`, `sparkPaths()` |
+
+## El inicio de una persona: `<nx-intent>`, `<nx-stats>`, `<nx-timeline>` y `<nx-tracker>`
+
+Cuatro piezas para la primera pantalla de un empleado (o de un cliente, un proveedor): lo que pide,
+lo que mira primero, su año y lo que tiene en camino. Todo llega en JSON.
+
+**`<nx-intent>`: «¿Qué necesitas?».** Se escribe con las palabras de cada quien y, mientras se
+escribe, dice qué entendió antes de llevar a algún lado: «Entendí: Certificado laboral · con
+salario». Cada trámite trae sus `keywords` (se comparan sin tildes ni mayúsculas, y una palabra vale
+como comienzo de otra: «vacacion» encuentra «vacaciones»), sus `exclude` y sus `slots`, los datos que
+se sacan del texto: `date` («mañana», «el viernes», «14 de octubre», «20/10»), `month` («en
+diciembre», hacia adelante o hacia atrás con `direction`), `time` («a las 3» es de la tarde; «en la
+mañana», 8:00), `amount` («5 millones», «$ 3.500.000») u `option` (una de sus `options`, por sus
+palabras; la que tiene `default` si no se nombra ninguna). Va a `href` con los datos como
+parámetros, o al destino de la opción elegida (un PDF, `newTab`). No usa modelos ni servidor: el
+servidor arma la lista de quien mira (sus desprendibles como opciones, cada uno con su enlace).
+
+```html
+<nx-intent id="pide" today="2026-10-08" currency="COP" hotkey="/"></nx-intent>
+<script>
+  pide.intents = [
+    { id: "cert", label: "Certificado laboral", keywords: ["certificado", "constancia"], exclude: ["retencion"], href: "/certificados",
+      slots: [{ name: "salario", type: "option", options: [
+        { value: "con", label: "con salario", keywords: ["banco", "arriendo", "con salario"], href: "/certificado-con-salario.pdf", newTab: true },
+        { value: "sin", label: "sin salario", keywords: ["sin salario"], href: "/certificado-sin-salario.pdf", newTab: true, default: true }] }] },
+    { id: "permiso", label: "Permiso", keywords: ["permiso", "cita"], href: "/permisos",
+      slots: [{ name: "dia", type: "date" }, { name: "hora", type: "time", label: "a las" }] },
+  ];
+  pide.examples = ["Certificado para el banco", "Permiso el viernes a las 3"];
+  pide.addEventListener("nx-intent-submit", (e) => { e.preventDefault(); router.go(e.detail.href); });
+</script>
+```
+
+**`<nx-stats>`**: pocas cifras con su nota y una forma que acompaña —la tendencia de los últimos
+valores (`trend`), una barra (`meter`) o un anillo (`ring`)—, en fila (`layout="row"`, se apilan
+cuando no caben) o en lista (`layout="list"`). Una con `href` es un enlace.
+
+**`<nx-timeline>`: la cinta del tiempo.** Carriles sobre un eje de días: `bars` (el alto es el
+monto y `extra` va resaltado arriba: una prima), `ranges` (franjas de `start` a `end`; si se pisan,
+van en renglones) y `points` (punto o rombo, `shape`). Meses, festivos (`holidays`, los de Colombia
+por defecto), la línea de hoy y lo pasado sombreado. Sin `state`, lo que terminó hasta hoy es
+`done` y lo demás `upcoming`; `pending`, `rejected` y `draft` cambian la marca. La lente (título,
+`detail` y `action`) sale al pasar el puntero o al llegar con el teclado, en la capa superior
+(Popover API). Un solo <kbd>Tab</kbd>: las flechas recorren las marcas en el orden del eje,
+<kbd>Inicio</kbd>/<kbd>Fin</kbd> van a la primera y la última. Las posiciones van en % y el alto de
+cada carril es una variable CSS: cambiar el tamaño no recalcula nada; bajo
+`--nx-timeline-month` × meses la cinta se desplaza a lo ancho y arranca mostrando hoy.
+
+**`<nx-tracker>`: lo que va en camino.** Cada solicitud con su estado (`status`, con tono) y los
+pasos de su recorrido (`steps`: `done`, `current`, `todo`, `failed`), como el seguimiento de un
+paquete. Con `days`, una tira va del primer al último día libre (los fines de semana y festivos
+pegados, según `workdays` y `holidays`) y marca los días que se piden. Una sugerencia lleva
+`eyebrow` («Para ti») y sus `actions`.
+
+**Festivos y puentes** (`nx32-elements/core`): `colombiaHolidayList(año)` con nombres (desde 2026,
+también la Virgen de Chiquinquirá, Ley 2578), `holidayLookup(fuente)`, `workdaysBetween(desde,
+hasta, {workdays, holidays})`, `restAround(desde, hasta)` (hasta dónde llega el descanso) y
+`suggestBreaks({from, to, available, minWorkdays?, maxBridge?, limit?, calendar?})`: primero el
+descanso más largo que rinde al menos el doble de lo que gasta («9 días hábiles → 18 de descanso»),
+después el mejor puente corto de cada mes.
+
+| | |
+|---|---|
+| `<nx-intent>` | `intents`, `examples`, `placeholder`, `today`, `currency`, `hotkey`, `value`, `locale`, `labels` · `match`, `focus()`, `clear()`, `submit()` · `nx-intent-change` `{text, match}`, `nx-intent-submit` `{text, id, intent, params, href, newTab}` (cancelable) · `understandIntent`, `findDate`, `findMonth`, `findTime`, `findAmount`, `withParams` |
+| `<nx-stats>` | `items` (`[{id?, label, value, format?, currency?, note?, badge?, trend?, meter?, ring?, href?, newTab?}]`), `layout`, `locale`, `labels` · `nx-stats-select` `{item, href}` (cancelable) |
+| `<nx-timeline>` | `lanes`, `items`, `legend` (`[{mark, label}]`), `holidays`, `start`, `end`, `today`, `heading`, `heading-level`, `summary`, `highlight`, `locale`, `labels` · `focusItem(id?)`, `scrollToDay(iso?)` · `nx-timeline-select` `{item, href}` (cancelable) · CSS `--nx-timeline-bars`/`-ranges`/`-points`/`-axis` (altos), `--nx-timeline-month`, `--nx-timeline-label` |
+| `<nx-tracker>` | `items` (`[{id, title, subtitle?, icon?, eyebrow?, status?, steps?, days?, href?, actions?}]`), `holidays`, `workdays`, `empty`, `heading-level`, `locale`, `labels` · `nx-tracker-select` `{item, action, href}` (cancelable) |
 
 ## `<nx-cards>`
 

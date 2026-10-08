@@ -39,6 +39,10 @@
 @import "../components/award/award.css";
 @import "../components/account/account.css";
 @import "../components/launcher/launcher.css";
+@import "../components/timeline/timeline.css";
+@import "../components/intent/intent.css";
+@import "../components/tracker/tracker.css";
+@import "../components/stats/stats.css";
 @import "../components/cards/cards.css";
 @import "../components/print/print.css";
 @import "../components/signature/signature.css";

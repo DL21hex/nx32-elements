@@ -2758,6 +2758,56 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
           </div>
         </template>
 
+        <!-- ================================================================ Inicio del empleado -->
+        <template id="page-home">
+          <p class="eyebrow">Componentes</p>
+          <h1>Inicio del empleado <code class="tag">&lt;nx-intent&gt;</code> <code class="tag">&lt;nx-stats&gt;</code> <code class="tag">&lt;nx-timeline&gt;</code> <code class="tag">&lt;nx-tracker&gt;</code></h1>
+          <p class="lead">
+            Cuatro piezas para la primera pantalla de una persona: una caja donde pide lo que necesita con sus palabras, las
+            pocas cifras que mira primero, su año en una cinta (pagos, descansos, permisos y cesantías sobre el mismo eje) y
+            lo que tiene en camino, paso a paso. «Hoy» está fijo en el jueves 8 de octubre de 2026.
+          </p>
+
+          <div class="ho-demo">
+            <nx-intent id="ho-intent" today="2026-10-08" currency="COP" hotkey="/"></nx-intent>
+            <nx-stats id="ho-stats" locale="es-CO"></nx-stats>
+            <nx-timeline id="ho-timeline" heading="Tu año" start="2026-01-01" end="2027-02-28" today="2026-10-08" locale="es-CO"></nx-timeline>
+            <nx-tracker id="ho-tracker" locale="es-CO" empty="Nada en camino."></nx-tracker>
+          </div>
+          <p class="sel-tip">
+            Escribe «certificado para el banco», «colilla de agosto» o «permiso mañana en la mañana»: los chips dicen lo que
+            entendió antes de ir. Pasa el puntero por la cinta (o llega con <kbd>Tab</kbd> y usa las flechas) para ver cada marca.
+          </p>
+          <ol class="stage__log btn-events" id="ho-log"></ol>
+
+          <h2>Cómo funciona</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Pieza</th><th>Qué hace</th></tr></thead>
+              <tbody>
+                <tr><td><code>&lt;nx-intent&gt;</code></td><td>Lee lo escrito y dice qué entendió: el trámite (por sus <code>keywords</code>, sin tildes ni mayúsculas, una palabra vale como comienzo de otra) y cada dato de sus <code>slots</code>: una fecha («mañana», «el viernes», «14 de octubre»), un mes, una hora («a las 3» es de la tarde), un monto («5 millones») o una opción por sus palabras. Va al destino con los datos como parámetros, o al de la opción elegida (un PDF, en otra pestaña). Sin modelos ni servidor: las palabras llegan en JSON.</td></tr>
+                <tr><td><code>&lt;nx-stats&gt;</code></td><td>Pocas cifras, cada una con su nota y una forma que acompaña: la tendencia de los últimos valores, una barra o un anillo. En fila (se apilan cuando no caben) o en lista.</td></tr>
+                <tr><td><code>&lt;nx-timeline&gt;</code></td><td>Carriles sobre un eje de días: barras cuyo alto es el monto (con lo extra resaltado arriba), franjas de un día a otro (en renglones si se pisan) y puntos o rombos. Meses, festivos (los de Colombia por defecto) y la línea de hoy. Un solo <kbd>Tab</kbd> y las flechas recorren las marcas en el orden del eje; la lente vive en la capa superior. En pantallas angostas se desplaza a lo ancho y arranca mostrando hoy.</td></tr>
+                <tr><td><code>&lt;nx-tracker&gt;</code></td><td>Cada solicitud con su estado y los pasos de su recorrido; con <code>days</code>, la tira de días desde el primer día libre hasta el último, con los que se piden marcados. Una sugerencia lleva <code>eyebrow</code> y su acción.</td></tr>
+                <tr><td>Festivos y puentes</td><td><code>nx32-elements/core</code>: <code>colombiaHolidayList(año)</code> (con nombre; desde 2026 la Virgen de Chiquinquirá), <code>workdaysBetween(desde, hasta, {workdays, holidays})</code>, <code>restAround(desde, hasta)</code> y <code>suggestBreaks({from, to, available})</code>, las fechas que más descanso dan.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>API</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>nx-intent</code></td><td><code>intents</code> (<code>[{id, label, keywords, exclude?, href, newTab?, icon?, slots?}]</code>; <code>slots</code>: <code>[{name, type: date | month | time | amount | option, options?, label?, direction?}]</code>), <code>examples</code>, <code>placeholder</code>, <code>today</code>, <code>currency</code>, <code>hotkey</code>, <code>value</code>, <code>locale</code>, <code>labels</code> · <code>match</code>, <code>focus()</code>, <code>clear()</code>, <code>submit()</code> · <code>nx-intent-change</code> <code>{text, match}</code>, <code>nx-intent-submit</code> <code>{text, id, intent, params, href, newTab}</code> (cancelable).</td></tr>
+                <tr><td><code>nx-stats</code></td><td><code>items</code> (<code>[{id?, label, value, format?, currency?, note?, badge?, trend?, meter?, ring?, href?, newTab?}]</code>), <code>layout</code> (<code>row</code> o <code>list</code>), <code>locale</code>, <code>labels</code> · <code>nx-stats-select</code> <code>{item, href}</code> (cancelable).</td></tr>
+                <tr><td><code>nx-timeline</code></td><td><code>lanes</code> (<code>[{id, label, kind: bars | ranges | points, shape?}]</code>), <code>items</code> (<code>[{id?, lane, date | start/end, value?, extra?, state?, tone?, label, detail?, action?, href?, caption?}]</code>), <code>legend</code>, <code>holidays</code>, <code>start</code>, <code>end</code>, <code>today</code>, <code>heading</code>, <code>heading-level</code>, <code>summary</code>, <code>highlight</code>, <code>locale</code>, <code>labels</code> · <code>focusItem(id?)</code>, <code>scrollToDay(iso?)</code> · <code>nx-timeline-select</code> <code>{item, href}</code> (cancelable).</td></tr>
+                <tr><td><code>nx-tracker</code></td><td><code>items</code> (<code>[{id, title, subtitle?, icon?, eyebrow?, status?, steps?, days?, href?, actions?}]</code>), <code>holidays</code>, <code>workdays</code>, <code>empty</code>, <code>heading-level</code>, <code>locale</code>, <code>labels</code> · <code>nx-tracker-select</code> <code>{item, action, href}</code> (cancelable).</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
         <!-- ================================================================ Launcher -->
         <template id="page-launcher">
           <p class="eyebrow">Componentes</p>

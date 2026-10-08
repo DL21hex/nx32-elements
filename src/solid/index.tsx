@@ -3,7 +3,7 @@
  * `<Select>`, `<AIAnswer>`, `<DocCapture>`, `<Grid>`, `<Dialog>`, `<Agent>`, `<Command>`, `<Explain>`,
  * `<Inbox>`, `<Survey>`, `<NumberInput>`, `<Kanban>`, `<History>`, `<DateRange>`,
  * `<PasteFill>`, `<Presence>`, `<WhatIf>`, `<Trend>`, `<Scan>`, `<Sync>`, `<Import>`,
- * `<Keytips>`, `<Guard>`, `<Handoff>`, `<Award>`, `<Account>`, `<Launcher>`, `<Cards>`, `<Print>`, `<Badge>`, `<Notice>`, `<Fields>`, `<Field>`, `<Form>`, `<Tabs>`, `<Breadcrumb>`, `<Signature>`, `<Planner>`, `<Review>`, `<Voice>`, `<Thread>`, `<Checklist>`, `<Recurrence>`, `<Jobs>`), y `nxToast` / `nxConfirm` / `nxSync`.
+ * `<Keytips>`, `<Guard>`, `<Handoff>`, `<Award>`, `<Account>`, `<Launcher>`, `<Timeline>`, `<Intent>`, `<Tracker>`, `<Stats>`, `<Cards>`, `<Print>`, `<Badge>`, `<Notice>`, `<Fields>`, `<Field>`, `<Form>`, `<Tabs>`, `<Breadcrumb>`, `<Signature>`, `<Planner>`, `<Review>`, `<Voice>`, `<Thread>`, `<Checklist>`, `<Recurrence>`, `<Jobs>`), y `nxToast` / `nxConfirm` / `nxSync`.
  *
  * Cada componente vive en su archivo y se puede importar solo (`nx32-elements/solid/grid`): así la app
  * carga únicamente lo que usa. Este índice los reexporta todos.
@@ -52,6 +52,10 @@ export * from "./handoff";
 export * from "./award";
 export * from "./account";
 export * from "./launcher";
+export * from "./timeline";
+export * from "./intent";
+export * from "./tracker";
+export * from "./stats";
 export * from "./cards";
 export * from "./org";
 export * from "./print";

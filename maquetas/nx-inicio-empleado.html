@@ -1,0 +1,1760 @@
+<title>Portal del empleado</title>
+<style>
+/* Tokens de nx32-elements (src/styles/tokens.css), recortados a lo que usa la maqueta. Al final, los
+   que la librería todavía no tiene: --nx-paper y --nx-paper-ink (la hoja de un documento).
+   Composición: arriba, la caja de intención y los saldos; en el centro, la cinta del año (pagos,
+   descansos y prestaciones en un mismo eje de tiempo); abajo, «Ahora» y los trámites. Cada trámite
+   se abre en una hoja a la derecha que empuja la página, así la cinta sigue a la vista y muestra lo
+   que vas eligiendo. */
+:root {
+  color-scheme: light dark;
+  --_h: 262; --_c: 0.19; --_l: 0.54; --_ld: 0.72; --_n: 260; --_t: 1;
+  --nx-canvas: light-dark(oklch(0.985 calc(0.002 * var(--_t)) var(--_n)), oklch(0.165 calc(0.004 * var(--_t)) var(--_n)));
+  --nx-card: light-dark(oklch(1 0 0), oklch(0.225 calc(0.005 * var(--_t)) var(--_n)));
+  --nx-popover: light-dark(oklch(1 0 0), oklch(0.235 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-border-subtle: light-dark(oklch(0.925 calc(0.004 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.07));
+  --nx-border: light-dark(oklch(0.885 calc(0.005 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.11));
+  --nx-border-strong: light-dark(oklch(0.82 calc(0.006 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.17));
+  --nx-foreground: light-dark(oklch(0.2 calc(0.008 * var(--_t)) var(--_n)), oklch(0.955 calc(0.003 * var(--_t)) var(--_n)));
+  --nx-muted-foreground: light-dark(oklch(0.44 calc(0.01 * var(--_t)) var(--_n)), oklch(0.76 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-text-tertiary: light-dark(oklch(0.51 calc(0.01 * var(--_t)) var(--_n)), oklch(0.64 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-text-quaternary: light-dark(oklch(0.66 calc(0.008 * var(--_t)) var(--_n)), oklch(0.53 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-primary: light-dark(oklch(var(--_l) var(--_c) var(--_h)), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h)));
+  --nx-primary-ink: light-dark(oklch(calc(var(--_l) - 0.07) var(--_c) var(--_h)), oklch(calc(var(--_ld) + 0.05) calc(var(--_c) * 0.7) var(--_h)));
+  --nx-primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.17 calc(var(--_c) * 0.1) var(--_h)));
+  --nx-primary-soft: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.1), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.15));
+  --nx-primary-border: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.35), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.4));
+  --nx-hover: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.05), oklch(1 0 0 / 0.06));
+  --nx-ring: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.6), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.7));
+  --nx-backdrop: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.4), oklch(0 0 0 / 0.6));
+  --nx-success: light-dark(oklch(0.49 0.13 150), oklch(0.74 0.14 150));
+  --nx-success-soft: light-dark(oklch(0.55 0.14 150 / 0.12), oklch(0.74 0.14 150 / 0.16));
+  --nx-danger: light-dark(oklch(0.52 0.2 27), oklch(0.72 0.16 27));
+  --nx-danger-soft: light-dark(oklch(0.55 0.2 27 / 0.1), oklch(0.7 0.17 27 / 0.15));
+  --nx-warning: light-dark(oklch(0.74 0.15 70), oklch(0.8 0.14 78));
+  --nx-warning-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --nx-warning-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
+  --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
+    0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
+  --nx-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --nx-radius-md: 7px; --nx-radius-lg: 10px;
+  --nx-motion-fast: 140ms; --nx-motion-base: 220ms;
+  --nx-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Nuevos */
+  --nx-paper: light-dark(oklch(1 0 0), oklch(0.93 0.004 260));
+  --nx-paper-ink: light-dark(oklch(0.24 0.01 260), oklch(0.24 0.01 260));
+  --sheet-w: min(540px, 42vw);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (max-width: 1099px) { :root { --sheet-w: min(520px, 100vw); } }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scrollbar-gutter: stable; }
+body { margin: 0; background: var(--nx-canvas); color: var(--nx-foreground); font: 14px/1.45 var(--nx-font-sans); -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+p { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* ---------- Armazón: la hoja empuja la página en pantallas anchas ---------- */
+.shell { transition: padding-right 420ms var(--nx-ease-out); }
+@media (min-width: 1100px) { .shell.has-sheet { padding-right: var(--sheet-w); } }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in oklab, var(--nx-canvas) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--nx-border-subtle); }
+.top__in { max-width: 1180px; margin-inline: auto; padding: 10px clamp(16px, 4vw, 40px); display: flex; align-items: center; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
+.brand__mark { width: 30px; height: 30px; border-radius: 8px; background: var(--nx-primary); color: var(--nx-primary-foreground); display: grid; place-items: center; font-weight: 700; font-size: 12px; letter-spacing: 0.03em; flex: none; }
+.brand__name { display: block; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand__sub { display: block; font-size: 12px; color: var(--nx-text-tertiary); }
+.top__search { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 11px; border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-muted-foreground); font-size: 13px; }
+.top__search:hover { border-color: var(--nx-border-strong); color: var(--nx-foreground); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-weight: 650; font-size: 12px; flex: none; }
+
+.page { max-width: 1180px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 72px; container: page / inline-size; }
+
+/* ---------- Encabezado: saludo, caja de intención y saldos ---------- */
+.hero { position: relative; display: grid; gap: 22px 32px; grid-template-columns: minmax(0, 1fr); padding-block: 30px 6px; }
+.hero::before { content: ""; position: absolute; inset: -30px auto auto -10%; width: 70%; height: 320px; pointer-events: none; z-index: -1;
+  background: radial-gradient(closest-side, var(--nx-primary-soft), transparent); opacity: 0.8; }
+@container page (min-width: 880px) { .hero { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); align-items: end; } }
+.eyebrow { font: 12px/1.3 var(--nx-font-mono); color: var(--nx-primary-ink); letter-spacing: 0.02em; }
+h1 { font-size: clamp(26px, 3.4vw, 32px); line-height: 1.12; font-weight: 650; letter-spacing: -0.015em; margin: 6px 0 8px; }
+.brief { color: var(--nx-muted-foreground); font-size: 15px; max-width: 60ch; }
+.brief b { color: var(--nx-foreground); font-weight: 600; }
+
+.ask { display: flex; align-items: center; gap: 10px; margin-top: 20px; padding: 6px 6px 6px 14px; background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 14px;
+  box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.04), rgb(0 0 0 / 0.3)), 0 8px 24px -14px light-dark(rgb(15 20 30 / 0.18), rgb(0 0 0 / 0.6));
+  transition: border-color var(--nx-motion-fast), box-shadow var(--nx-motion-base); }
+.ask:focus-within { border-color: var(--nx-primary-border); box-shadow: 0 0 0 4px var(--nx-primary-soft), 0 8px 24px -14px light-dark(rgb(15 20 30 / 0.18), rgb(0 0 0 / 0.6)); }
+.ask__spark { color: var(--nx-primary); display: grid; }
+.ask__spark svg.i { width: 20px; height: 20px; }
+.ask input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 16px; padding: 9px 0; }
+.ask input:focus, .ask input:focus-visible { outline: none; }
+.ask input::placeholder { color: var(--nx-text-tertiary); }
+.ask__read { min-height: 26px; margin: 10px 2px 0; font-size: 13px; color: var(--nx-muted-foreground); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tag { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-size: 12.5px; font-weight: 600; }
+.try { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.try button { border: 1px solid var(--nx-border); background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--nx-muted-foreground); transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast), color var(--nx-motion-fast); }
+.try button:hover { border-color: var(--nx-border-strong); color: var(--nx-foreground); background: var(--nx-hover); }
+
+/* Saldos */
+.bal { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 14px; padding: 4px; display: grid; }
+.bal__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 12px; border: 0; background: transparent; text-align: left; border-radius: 10px; transition: background var(--nx-motion-fast); }
+.bal__row + .bal__row { box-shadow: 0 -1px 0 var(--nx-border-subtle); }
+.bal__row:hover { background: var(--nx-hover); }
+.bal__k { display: block; font-size: 12.5px; color: var(--nx-muted-foreground); }
+.bal__v { display: block; font-size: 21px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.bal__s { display: block; font-size: 12.5px; color: var(--nx-text-tertiary); }
+.ring { width: 44px; height: 44px; }
+.ring circle { fill: none; stroke-width: 4; }
+.ring .bg { stroke: var(--nx-border-subtle); }
+.ring .fg { stroke: var(--nx-primary); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.ring text { font: 600 12px var(--nx-font-sans); fill: var(--nx-foreground); }
+.pills { display: grid; grid-template-columns: repeat(5, 7px); gap: 3px; }
+.pills i { height: 10px; border-radius: 2px; background: var(--nx-border); }
+.pills i.on { background: var(--nx-success); }
+.pills i.wait { background: var(--nx-warning); }
+.spark { width: 76px; height: 30px; overflow: visible; }
+.spark path { fill: none; stroke: var(--nx-primary); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.spark .area { fill: var(--nx-primary-soft); stroke: none; }
+.spark circle { fill: var(--nx-primary); }
+
+/* ---------- La cinta del año ---------- */
+.year { position: relative; margin-top: 26px; background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 14px; padding: 16px 16px 10px; }
+.year__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 14px; }
+.year__head h2 { font-size: 16px; margin: 0; font-weight: 650; }
+.year__sum { color: var(--nx-muted-foreground); font-size: 13px; }
+.year__sum b { color: var(--nx-foreground); font-weight: 600; font-variant-numeric: tabular-nums; }
+.legend { margin: 0 0 0 auto; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--nx-text-tertiary); }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.lg { display: inline-block; flex: none; }
+.lg-paid { width: 5px; height: 12px; border-radius: 2px; background: var(--nx-primary); }
+.lg-next { width: 5px; height: 12px; border-radius: 2px; border: 1.5px dashed var(--nx-primary); }
+.lg-extra { width: 5px; height: 12px; border-radius: 2px; background: linear-gradient(var(--nx-warning) 45%, var(--nx-primary) 45%); }
+.lg-vac { width: 16px; height: 9px; border-radius: 3px; background: var(--nx-success-soft); border: 1px solid color-mix(in oklab, var(--nx-success) 60%, transparent); }
+.lg-perm { width: 9px; height: 9px; border-radius: 50%; background: var(--nx-success); }
+.lg-fest { width: 2px; height: 9px; background: var(--nx-danger); }
+
+.rib { --lp: 66px; --lr: 32px; --lc: 32px; --ax: 28px; display: grid; grid-template-columns: 96px minmax(0, 1fr); }
+.rib__labels { display: grid; grid-template-rows: var(--lp) var(--lr) var(--lc) var(--ax); font-size: 12px; color: var(--nx-muted-foreground); }
+.rib__labels span { display: flex; align-items: center; }
+.rib__labels span:first-child { align-items: flex-end; padding-bottom: 8px; }
+.rib__scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; min-width: 0; }
+.rib__track { position: relative; min-width: 760px; height: calc(var(--lp) + var(--lr) + var(--lc) + var(--ax)); }
+.m-col { position: absolute; top: 0; height: calc(100% - var(--ax)); }
+.m-col.is-alt { background: light-dark(oklch(0.2 0.01 260 / 0.022), oklch(1 0 0 / 0.025)); }
+.m-lbl { position: absolute; top: calc(100% - var(--ax) + 9px); padding-left: 4px; font-size: 11.5px; color: var(--nx-text-tertiary); white-space: nowrap; }
+.m-lbl b { font-weight: 600; color: var(--nx-muted-foreground); }
+.past { position: absolute; left: 0; top: 0; height: calc(100% - var(--ax)); background: linear-gradient(to right, transparent 30%, var(--nx-primary-soft)); opacity: 0.6; pointer-events: none; }
+.lane-line { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--nx-border-subtle); }
+.axis { position: absolute; left: 0; right: 0; top: calc(100% - var(--ax)); height: 1px; background: var(--nx-border); }
+.fest { position: absolute; top: calc(100% - var(--ax)); width: 10px; height: 9px; transform: translateX(-50%); }
+.fest::before { content: ""; position: absolute; left: 4px; top: 1px; width: 2px; height: 6px; border-radius: 1px; background: var(--nx-danger); opacity: 0.8; }
+.today { position: absolute; top: 0; height: calc(100% - var(--ax) + 2px); width: 2px; margin-left: -1px; background: var(--nx-primary); border-radius: 2px; transform-origin: bottom; pointer-events: none; }
+.today-pill { position: absolute; top: calc(100% - var(--ax) + 7px); transform: translateX(-50%); background: var(--nx-primary); color: var(--nx-primary-foreground); font-size: 11px; font-weight: 650; padding: 1px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none; }
+.ces-line { position: absolute; left: 0; width: 100%; top: calc(var(--lp) + var(--lr) + 4px); height: calc(var(--lc) - 8px); overflow: visible; pointer-events: none; }
+.ces-line .area { fill: var(--nx-primary-soft); }
+.ces-line .done { fill: none; stroke: var(--nx-primary); stroke-width: 1.5; opacity: 0.7; }
+.ces-line .todo { fill: none; stroke: var(--nx-primary-border); stroke-width: 1.5; stroke-dasharray: 3 3; }
+
+.mk { position: absolute; border: 0; padding: 0; background: transparent; }
+.mk:focus-visible { outline: none; }
+.mk-pay { top: 6px; height: calc(var(--lp) - 6px); width: 16px; transform: translateX(-50%); display: flex; align-items: flex-end; justify-content: center; }
+.bar { position: relative; display: flex; flex-direction: column; width: 6px; height: calc(var(--h) * 1%); min-height: 3px; border-radius: 3px 3px 1.5px 1.5px; background: var(--nx-primary); overflow: hidden; transform-origin: bottom; transition: filter var(--nx-motion-fast), box-shadow var(--nx-motion-fast); }
+.bar__x { flex: none; background: var(--nx-warning); }
+.mk-pay:hover .bar { filter: brightness(1.12); }
+.mk-pay.is-future .bar { background: var(--nx-primary-soft); box-shadow: inset 0 0 0 1.5px var(--nx-primary-border); }
+.mk-pay.is-future .bar__x { background: var(--nx-warning-soft); }
+.mk-pay.is-next .bar { box-shadow: inset 0 0 0 1.5px var(--nx-primary); }
+.mk-pay .cap { position: absolute; left: 50%; bottom: calc(var(--h) * 1% + 5px); transform: translateX(-50%); font-size: 11px; font-weight: 650; color: var(--nx-primary-ink); white-space: nowrap; pointer-events: none; }
+.mk-band { top: calc(var(--lp) + 8px); height: calc(var(--lr) - 16px); min-width: 8px; border-radius: 5px; background: var(--nx-success-soft); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--nx-success) 60%, transparent); transform-origin: left; }
+.mk-band.is-pending { background: repeating-linear-gradient(135deg, var(--nx-warning-soft) 0 4px, transparent 4px 8px); box-shadow: inset 0 0 0 1.5px var(--nx-warning); }
+.mk-band.is-draft { background: repeating-linear-gradient(135deg, var(--nx-primary-soft) 0 4px, transparent 4px 8px); box-shadow: inset 0 0 0 1.5px var(--nx-primary); }
+.mk-band .cap { position: absolute; left: 50%; bottom: calc(100% + 3px); transform: translateX(-50%); font-size: 11px; font-weight: 650; color: var(--nx-primary-ink); white-space: nowrap; }
+.mk-dot { top: calc(var(--lp) + var(--lr) / 2); width: 22px; height: 22px; transform: translate(-50%, -50%); display: grid; place-items: center; }
+.mk-dot .v { width: 10px; height: 10px; border-radius: 50%; background: var(--nx-success); box-shadow: 0 0 0 2px var(--nx-card); }
+.mk-dot.is-pending .v { background: var(--nx-warning); }
+.mk-dot.is-draft .v { background: var(--nx-card); box-shadow: inset 0 0 0 2px var(--nx-primary), 0 0 0 2px var(--nx-card); }
+.mk-ces { top: calc(var(--lp) + var(--lr) + var(--lc) / 2); width: 22px; height: 22px; transform: translate(-50%, -50%); display: grid; place-items: center; }
+.mk-ces .v { width: 10px; height: 10px; border-radius: 2px; transform: rotate(45deg); background: var(--nx-primary); box-shadow: 0 0 0 2px var(--nx-card); }
+.mk-ces.is-future .v { background: var(--nx-card); box-shadow: inset 0 0 0 1.5px var(--nx-primary), 0 0 0 2px var(--nx-card); }
+.mk:focus-visible .bar, .mk:focus-visible .v, .mk-band:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+.mk.is-hl .bar, .mk.is-hl .v, .mk-band.is-hl { box-shadow: 0 0 0 2px var(--nx-card), 0 0 0 4px var(--nx-primary); }
+.rib__hint { margin: 6px 0 0 96px; font-size: 12px; color: var(--nx-text-tertiary); }
+
+.lens { position: absolute; z-index: 15; width: max-content; max-width: 260px; padding: 10px 12px; background: var(--nx-popover); border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); box-shadow: var(--nx-shadow-popover); pointer-events: none; transform: translateX(-50%); font-size: 12.5px; }
+.lens__t { font-weight: 650; font-size: 13px; }
+.lens__s { color: var(--nx-muted-foreground); margin-top: 2px; }
+.lens__s b { color: var(--nx-foreground); font-variant-numeric: tabular-nums; }
+.lens__a { margin-top: 6px; font-size: 12px; color: var(--nx-primary-ink); font-weight: 600; }
+
+/* ---------- Abajo: «Ahora» y trámites ---------- */
+.lower { display: grid; gap: 26px 32px; margin-top: 28px; grid-template-columns: minmax(0, 1fr); }
+@container page (min-width: 880px) { .lower { grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); align-items: start; } }
+.sec-h { font-size: 13px; font-weight: 650; margin: 0 0 10px; color: var(--nx-muted-foreground); }
+.feed { display: grid; gap: 10px; }
+.item { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 12px; padding: 14px 16px; display: grid; gap: 12px; }
+.item__head { display: flex; gap: 12px; align-items: flex-start; }
+.item__ico { width: 34px; height: 34px; border-radius: 9px; background: var(--nx-primary-soft); color: var(--nx-primary-ink); display: grid; place-items: center; flex: none; }
+.item__title { font-weight: 650; font-size: 14.5px; margin: 0; }
+.item__sub { color: var(--nx-muted-foreground); font-size: 13px; margin-top: 2px; max-width: 62ch; }
+.item__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.idea { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 650; color: var(--nx-primary-ink); }
+.idea svg.i { width: 14px; height: 14px; }
+.badge { margin-left: auto; font-size: 12px; font-weight: 650; padding: 2px 9px; border-radius: 999px; white-space: nowrap; flex: none; }
+.badge--warn { background: var(--nx-warning-soft); color: var(--nx-warning-ink); }
+.badge--ok { background: var(--nx-success-soft); color: var(--nx-success); }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; margin: 0; list-style: none; }
+.step { position: relative; padding: 18px 10px 0 0; font-size: 12.5px; color: var(--nx-text-tertiary); min-width: 0; }
+.step::before { content: ""; position: absolute; left: 0; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--nx-card); box-shadow: inset 0 0 0 2px var(--nx-border-strong); z-index: 1; }
+.step:not(:last-child)::after { content: ""; position: absolute; left: 14px; right: 4px; top: 6px; height: 2px; border-radius: 1px; background: var(--nx-border-subtle); }
+.step.is-done::before { background: var(--nx-success); box-shadow: none; }
+.step.is-done:not(:last-child)::after { background: color-mix(in oklab, var(--nx-success) 50%, transparent); }
+.step.is-now::before { background: var(--nx-warning); box-shadow: 0 0 0 4px var(--nx-warning-soft); animation: beat 2.2s ease-in-out infinite; }
+@keyframes beat { 50% { box-shadow: 0 0 0 7px transparent; } }
+.step b { display: block; color: var(--nx-foreground); font-weight: 600; font-size: 13px; }
+.who { display: inline-flex; align-items: center; gap: 6px; }
+.face { position: relative; width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--nx-warning-soft); color: var(--nx-warning-ink); font-size: 9.5px; font-weight: 700; flex: none; }
+.face.on::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 50%; background: var(--nx-success); box-shadow: 0 0 0 2px var(--nx-card); }
+.strip { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; }
+.strip span { height: 24px; border-radius: 4px; display: grid; place-items: center; font-size: 10.5px; font-variant-numeric: tabular-nums; background: var(--nx-success-soft); color: var(--nx-success); position: relative; }
+.strip span.v { background: var(--nx-primary); color: var(--nx-primary-foreground); }
+.strip span.f::after { content: ""; position: absolute; top: 3px; right: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--nx-danger); }
+.strip-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--nx-text-tertiary); }
+.strip-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.acts { display: grid; background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 12px; padding: 4px; }
+.act { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px; border: 0; background: transparent; border-radius: 9px; text-align: left; transition: background var(--nx-motion-fast); }
+.act + .act { box-shadow: 0 -1px 0 var(--nx-border-subtle); }
+.act:hover { background: var(--nx-hover); }
+.act.is-open { background: var(--nx-primary-soft); box-shadow: none; }
+.act.is-open + .act { box-shadow: none; }
+.act__ico { width: 36px; height: 36px; border-radius: 9px; background: var(--nx-primary-soft); color: var(--nx-primary-ink); display: grid; place-items: center; }
+.act__name { display: block; font-weight: 600; font-size: 14px; }
+.act__sig { display: block; font-size: 12.5px; color: var(--nx-muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act__sig .w { color: var(--nx-warning-ink); font-weight: 600; }
+.act > svg.i { color: var(--nx-text-quaternary); }
+.foot { margin-top: 36px; font-size: 12.5px; color: var(--nx-text-tertiary); max-width: 80ch; }
+
+/* ---------- Botones y campos ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: var(--nx-radius-md); border: 1px solid var(--nx-border); background: var(--nx-card); font-weight: 600; font-size: 13.5px; white-space: nowrap; transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast); }
+.btn:hover { background: var(--nx-hover); border-color: var(--nx-border-strong); }
+.btn--primary { background: var(--nx-primary); border-color: transparent; color: var(--nx-primary-foreground); }
+.btn--primary:hover { background: var(--nx-primary-ink); border-color: transparent; }
+.btn--ghost { background: transparent; border-color: transparent; color: var(--nx-muted-foreground); }
+.btn--ghost:hover { color: var(--nx-foreground); border-color: transparent; }
+.btn--sm { height: 30px; padding: 0 11px; font-size: 13px; }
+.btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+.icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: var(--nx-radius-md); background: transparent; color: var(--nx-muted-foreground); }
+.icon-btn:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ---------- La hoja ---------- */
+.scrim { position: fixed; inset: 0; z-index: 39; background: var(--nx-backdrop); }
+@media (min-width: 1100px) { .scrim { display: none !important; } }
+.sheet { position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; width: var(--sheet-w); display: flex; flex-direction: column; background: var(--nx-card); border-left: 1px solid var(--nx-border); box-shadow: -24px 0 48px -32px light-dark(rgb(15 20 30 / 0.35), rgb(0 0 0 / 0.8)); padding-top: env(safe-area-inset-top, 0px); }
+@media (max-width: 640px) {
+  .sheet { top: auto; left: 0; width: auto; height: min(92dvh, 100%); border-left: 0; border-top: 1px solid var(--nx-border); border-radius: 16px 16px 0 0; padding-top: 0; }
+  .sheet::before { content: ""; position: absolute; top: 7px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--nx-border-strong); }
+}
+.sheet__head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 14px 20px; border-bottom: 1px solid var(--nx-border-subtle); }
+.sheet__ico { width: 38px; height: 38px; border-radius: 10px; background: var(--nx-primary-soft); color: var(--nx-primary-ink); display: grid; place-items: center; flex: none; }
+.sheet__titles { flex: 1; min-width: 0; }
+.sheet__kicker { font-size: 12px; color: var(--nx-text-tertiary); }
+.sheet__head h2 { margin: 0; font-size: 17px; font-weight: 650; }
+.sheet__head h2:focus { outline: none; }
+.sheet__body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 20px 0; display: flex; flex-direction: column; }
+.f { display: flex; flex-direction: column; gap: 20px; flex: 1; }
+.sheet__foot { position: sticky; bottom: 0; margin: auto -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); background: color-mix(in oklab, var(--nx-card) 92%, transparent); backdrop-filter: blur(6px); border-top: 1px solid var(--nx-border-subtle); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
+.sheet__foot .grow { margin-right: auto; font-size: 12.5px; color: var(--nx-text-tertiary); }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend, .lbl { display: block; font-size: 13px; font-weight: 650; margin: 0 0 8px; padding: 0; }
+.opt-tag { font-weight: 400; color: var(--nx-text-tertiary); }
+.hint { font-size: 12.5px; color: var(--nx-text-tertiary); margin-top: 6px; }
+.err { font-size: 12.5px; color: var(--nx-danger); margin-top: 6px; }
+.k { font-size: 12.5px; color: var(--nx-muted-foreground); }
+.big { font-size: 24px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips label { position: relative; }
+.chips input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.chips span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border: 1px solid var(--nx-border); border-radius: 999px; font-size: 13px; background: var(--nx-card); transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast); }
+.chips label:hover span { border-color: var(--nx-border-strong); }
+.chips input:checked + span { background: var(--nx-primary-soft); border-color: var(--nx-primary-border); color: var(--nx-primary-ink); font-weight: 600; }
+.chips input:focus-visible + span { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--nx-hover); }
+.seg label { position: relative; }
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 13px; color: var(--nx-muted-foreground); }
+.seg input:checked + span { background: var(--nx-card); color: var(--nx-foreground); font-weight: 600; box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.1), rgb(0 0 0 / 0.4)); }
+.seg input:focus-visible + span { outline: 2px solid var(--nx-ring); }
+.inline { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.field { display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
+.field input, .field textarea { width: 100%; font-weight: 400; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-md); background: var(--nx-card); padding: 8px 10px; font-size: 14px; }
+.field input { height: 38px; }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--nx-primary-border); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.field input[aria-invalid="true"] { border-color: var(--nx-danger); }
+.field textarea { resize: vertical; min-height: 60px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; font-size: 13.5px; cursor: pointer; }
+.switch input { appearance: none; -webkit-appearance: none; margin: 0; width: 34px; height: 20px; border-radius: 999px; background: var(--nx-border-strong); position: relative; cursor: pointer; transition: background var(--nx-motion-fast); flex: none; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: oklch(1 0 0); box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform var(--nx-motion-base) var(--nx-ease-out); }
+.switch input:checked { background: var(--nx-primary); }
+.switch input:checked::after { transform: translateX(14px); }
+.drop { position: relative; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px dashed var(--nx-border-strong); border-radius: var(--nx-radius-lg); font-size: 13px; color: var(--nx-muted-foreground); }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop:focus-within { border-color: var(--nx-primary); }
+.drop.has-file { border-style: solid; border-color: var(--nx-success); color: var(--nx-foreground); }
+.money { display: flex; align-items: center; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-md); background: var(--nx-card); padding-left: 10px; }
+.money span { color: var(--nx-text-tertiary); font-weight: 400; }
+.money input { border: 0; box-shadow: none !important; padding-left: 6px; font-variant-numeric: tabular-nums; }
+.money:focus-within { border-color: var(--nx-primary-border); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.money[data-invalid] { border-color: var(--nx-danger); }
+.note-box { padding: 10px 12px; border-radius: var(--nx-radius-lg); background: var(--nx-hover); font-size: 13px; color: var(--nx-muted-foreground); }
+.note-box b { color: var(--nx-foreground); }
+.mini { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.mini li { display: flex; gap: 10px; align-items: center; font-size: 13px; }
+.mini .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--nx-success); flex: none; }
+.mini .dot.w { background: var(--nx-warning); }
+.mini .m { margin-left: auto; color: var(--nx-text-tertiary); white-space: nowrap; }
+.done-box { display: grid; gap: 10px; justify-items: start; padding: 18px; border-radius: 12px; background: var(--nx-success-soft); }
+.done-box .ok { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--nx-success); color: var(--nx-card); }
+.done-box h3 { margin: 0; font-size: 15.5px; }
+.done-box p { font-size: 13.5px; color: var(--nx-muted-foreground); }
+
+/* Certificado */
+.paper { background: var(--nx-paper); color: var(--nx-paper-ink); border: 1px solid var(--nx-border-subtle); border-radius: 6px; padding: 26px 26px 18px; font: 12.5px/1.65 Georgia, "Times New Roman", serif;
+  box-shadow: 0 1px 2px rgb(15 20 30 / 0.06), 0 16px 32px -18px rgb(15 20 30 / 0.35); }
+.paper__head { display: flex; align-items: center; gap: 10px; font-family: var(--nx-font-sans); }
+.paper__head .brand__mark { width: 26px; height: 26px; font-size: 10.5px; background: oklch(0.42 0.14 262); color: oklch(0.99 0 0); }
+.paper__org { font-size: 12px; font-weight: 650; line-height: 1.3; }
+.paper__org span { display: block; font-weight: 400; font-size: 11px; opacity: 0.7; }
+.paper h4 { font: 650 11px/1.3 var(--nx-font-sans); letter-spacing: 0.16em; text-transform: uppercase; text-align: center; margin: 22px 0 14px; }
+.paper p + p { margin-top: 10px; }
+.paper mark { background: oklch(0.54 0.19 262 / 0.16); color: inherit; border-radius: 2px; padding: 0 2px; }
+.paper__sig { margin-top: 18px; font-family: var(--nx-font-sans); font-size: 11.5px; line-height: 1.4; }
+.paper__sig svg { display: block; width: 120px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; opacity: 0.75; }
+.paper__verify { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgb(15 20 30 / 0.2); font: 11px/1.45 var(--nx-font-sans); }
+.qr { width: 64px; height: 64px; display: block; }
+.code { font-family: var(--nx-font-mono); letter-spacing: 0.04em; }
+.copy-out input { font-family: var(--nx-font-mono); font-size: 12.5px; }
+
+/* Desprendibles */
+.pchart { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: end; gap: 3px; height: 128px; border-bottom: 1px solid var(--nx-border); }
+.pchart button { height: 100%; border: 0; padding: 0; background: transparent; display: flex; align-items: flex-end; justify-content: center; border-radius: 3px; }
+.pchart .bar { width: min(10px, 80%); }
+.pchart button:hover .bar { filter: brightness(1.12); }
+.pchart button.is-future .bar { background: var(--nx-primary-soft); box-shadow: inset 0 0 0 1.5px var(--nx-primary-border); }
+.pchart button.is-future .bar__x { background: var(--nx-warning-soft); }
+.pchart button[aria-pressed="true"] .bar { box-shadow: 0 0 0 2px var(--nx-card), 0 0 0 4px var(--nx-primary); }
+.pchart button:focus-visible { outline: none; }
+.pchart button:focus-visible .bar { outline: 2px solid var(--nx-ring); outline-offset: 3px; }
+.pchart__axis { display: grid; grid-template-columns: repeat(var(--m), minmax(0, 1fr)); font-size: 11px; color: var(--nx-text-tertiary); margin-top: 4px; }
+.pchart__axis span { text-align: center; }
+.d-title { margin: 0; font-size: 15.5px; font-weight: 650; }
+.d-sub { font-size: 13px; color: var(--nx-muted-foreground); margin-top: 2px; }
+.delta { font-size: 13px; padding: 9px 12px; border-radius: var(--nx-radius-lg); background: var(--nx-hover); margin-top: 12px; }
+.delta b { font-variant-numeric: tabular-nums; }
+.delta.up b { color: var(--nx-success); }
+.delta.down b { color: var(--nx-warning-ink); }
+.lines { margin: 12px 0 0; }
+.lines .grp { font-size: 12px; font-weight: 650; color: var(--nx-text-tertiary); padding: 12px 0 4px; }
+.lines div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--nx-border-subtle); }
+.lines dt .m { color: var(--nx-text-tertiary); margin-left: 6px; font-size: 12px; }
+.lines dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lines .minus dd { color: var(--nx-muted-foreground); }
+.lines .tot { border-bottom: 0; font-weight: 650; font-size: 15.5px; padding-top: 10px; }
+.est { font-size: 11.5px; font-weight: 650; color: var(--nx-warning-ink); background: var(--nx-warning-soft); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 1px; }
+
+/* Vacaciones */
+.opts { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; text-align: left; padding: 10px 12px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); background: var(--nx-card); transition: border-color var(--nx-motion-fast), background var(--nx-motion-fast); }
+.opt:hover { border-color: var(--nx-border-strong); }
+.opt[aria-pressed="true"] { border-color: var(--nx-primary); background: var(--nx-primary-soft); }
+.opt b { font-size: 13.5px; }
+.opt .s { font-size: 12.5px; color: var(--nx-muted-foreground); grid-column: 1; }
+.opt .r { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-size: 12px; color: var(--nx-text-tertiary); line-height: 1.25; }
+.opt .r b { display: block; font-size: 18px; color: var(--nx-success); font-variant-numeric: tabular-nums; }
+.opt .tagline { font-size: 11.5px; font-weight: 650; color: var(--nx-primary-ink); }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.cal-nav p { font-size: 13px; color: var(--nx-muted-foreground); }
+.cal-wrap { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.cal__h { font-weight: 650; font-size: 13.5px; margin-bottom: 4px; }
+.cal__g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; }
+.cal__wd { font-size: 11px; color: var(--nx-text-tertiary); text-align: center; padding: 2px 0 4px; }
+.cal__d { position: relative; height: 32px; border: 0; padding: 0; background: transparent; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cal__d:hover:not([aria-disabled]) { background: var(--nx-hover); border-radius: 7px; }
+.cal__d.is-off { color: var(--nx-text-tertiary); }
+.cal__d.is-fest { color: var(--nx-danger); }
+.cal__d.is-fest::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%; background: currentColor; }
+.cal__d[aria-disabled] { cursor: default; }
+.cal__d.is-past { opacity: 0.4; }
+.cal__d.in-rest { background: var(--nx-success-soft); color: var(--nx-success); }
+.cal__d.in-vac { background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-weight: 650; }
+.cal__d.is-ra { border-radius: 8px 0 0 8px; }
+.cal__d.is-rb { border-radius: 0 8px 8px 0; }
+.cal__d.is-ra.is-rb { border-radius: 8px; }
+.cal__d.is-s, .cal__d.is-e { background: var(--nx-primary); color: var(--nx-primary-foreground); border-radius: 8px; }
+.cal__d:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: -2px; border-radius: 7px; z-index: 1; }
+.calc { min-height: 44px; padding: 10px 12px; border-radius: var(--nx-radius-lg); background: var(--nx-hover); font-size: 13.5px; }
+.calc b { font-variant-numeric: tabular-nums; }
+.calc .bad { color: var(--nx-danger); font-weight: 600; }
+
+/* Cesantías */
+.meter { height: 8px; border-radius: 999px; background: var(--nx-border-subtle); overflow: hidden; margin-top: 8px; }
+.meter i { display: block; height: 100%; border-radius: inherit; background: var(--nx-primary); }
+.tl { display: grid; gap: 0; padding: 0; margin: 0; list-style: none; }
+.tl li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--nx-border-subtle); font-size: 13px; }
+.tl li:last-child { border-bottom: 0; }
+.tl .v { width: 9px; height: 9px; border-radius: 2px; transform: rotate(45deg) translateY(1px); background: var(--nx-primary); }
+.tl .is-future .v { background: transparent; box-shadow: inset 0 0 0 1.5px var(--nx-primary); }
+.tl .d { color: var(--nx-text-tertiary); font-size: 12px; display: block; }
+.tl .a { font-variant-numeric: tabular-nums; white-space: nowrap; }
+details.wd { border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg); }
+details.wd > summary { list-style: none; cursor: pointer; padding: 12px 14px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+details.wd > summary::-webkit-details-marker { display: none; }
+details.wd > summary::after { content: ""; margin-left: auto; width: 7px; height: 7px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); transition: transform var(--nx-motion-base); }
+details.wd[open] > summary::after { transform: rotate(-135deg); }
+details.wd > summary span { font-weight: 400; font-size: 12.5px; color: var(--nx-text-tertiary); }
+details.wd .wd__in { padding: 2px 14px 14px; display: grid; gap: 16px; }
+
+/* Ingresos y retenciones */
+.years { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.years li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--nx-border-subtle); border-radius: var(--nx-radius-lg); }
+.years .y { font-size: 16px; font-weight: 650; }
+.years .y span { font-size: 12.5px; font-weight: 400; color: var(--nx-text-tertiary); margin-left: 8px; }
+.years dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.years dt { font-size: 11.5px; color: var(--nx-text-tertiary); }
+.years dd { margin: 0; font-variant-numeric: tabular-nums; font-size: 13px; }
+
+/* Avisos */
+.toasts { position: fixed; z-index: 60; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: grid; gap: 8px; justify-items: center; pointer-events: none; width: max-content; max-width: calc(100vw - 32px); }
+.toast { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: var(--nx-foreground); color: var(--nx-canvas); font-size: 13.5px; box-shadow: var(--nx-shadow-popover); }
+.toast .i { color: var(--nx-success); }
+
+@media (max-width: 640px) {
+  .rib { --lp: 60px; grid-template-columns: 70px minmax(0, 1fr); }
+  .rib__labels { font-size: 11.5px; }
+  .rib__hint { margin-left: 0; }
+  .legend { margin-left: 0; }
+  .top__search span { display: none; }
+  .top__search { padding: 0 10px; }
+  .brand__sub { display: none; }
+  .steps { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .step { padding: 0 0 0 20px; }
+  .step::before { top: 3px; }
+  .step:not(:last-child)::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
+}
+</style>
+
+<div class="shell" id="shell">
+  <header class="top">
+    <div class="top__in">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true">CP</span>
+        <span><span class="brand__name">Constructora del Parque</span><span class="brand__sub">Portal del empleado</span></span>
+      </div>
+      <button type="button" class="top__search" id="top-search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>Buscar o pedir algo</span></button>
+      <span class="avatar" title="Laura Gómez Charris" aria-label="Laura Gómez Charris">LG</span>
+    </div>
+  </header>
+
+  <main class="page" id="page">
+    <section class="hero" aria-labelledby="hi">
+      <div>
+        <p class="eyebrow" id="today"></p>
+        <h1 id="hi">Hola, Laura</h1>
+        <p class="brief" id="brief"></p>
+        <form class="ask" id="ask" role="search" autocomplete="off">
+          <span class="ask__spark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1-5.1-1.9 5.1-1.9z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg></span>
+          <label for="ask-q" class="sr">¿Qué necesitas?</label>
+          <input id="ask-q" name="q" type="text" placeholder="¿Qué necesitas? Por ejemplo: certificado para el banco" aria-describedby="ask-read">
+          <button class="btn btn--primary" type="submit" id="ask-go" disabled>Preparar</button>
+        </form>
+        <div class="ask__read" id="ask-read" aria-live="polite"></div>
+        <div class="try" id="ask-try" aria-label="Ejemplos"></div>
+      </div>
+      <aside class="bal" id="bal" aria-label="Tus saldos"></aside>
+    </section>
+
+    <section class="year" id="year" aria-labelledby="year-title">
+      <div class="year__head">
+        <h2 id="year-title">Tu año</h2>
+        <p class="year__sum" id="year-sum"></p>
+        <ul class="legend" aria-label="Convenciones">
+          <li><i class="lg lg-paid"></i>Pagado</li>
+          <li><i class="lg lg-next"></i>Por llegar</li>
+          <li><i class="lg lg-extra"></i>Prima, intereses o extras</li>
+          <li><i class="lg lg-vac"></i>Vacaciones</li>
+          <li><i class="lg lg-perm"></i>Permiso</li>
+          <li><i class="lg lg-fest"></i>Festivo</li>
+        </ul>
+      </div>
+      <div class="rib">
+        <div class="rib__labels" aria-hidden="true"><span>Pagos</span><span>Descansos</span><span>Cesantías</span><span></span></div>
+        <div class="rib__scroll" id="rib-scroll">
+          <div class="rib__track" id="rib-track" role="group" aria-label="Línea de tiempo de enero de 2026 a febrero de 2027. Usa las flechas para recorrerla.">
+            <div id="rib-static"></div>
+            <div id="rib-marks"></div>
+          </div>
+        </div>
+      </div>
+      <p class="rib__hint">Toca una marca para abrirla.</p>
+      <div class="lens" id="lens" hidden aria-hidden="true"></div>
+    </section>
+
+    <div class="lower">
+      <section aria-labelledby="now-title">
+        <h2 class="sec-h" id="now-title">Ahora</h2>
+        <div class="feed" id="feed"></div>
+      </section>
+      <section aria-labelledby="acts-title">
+        <h2 class="sec-h" id="acts-title">Trámites</h2>
+        <nav class="acts" id="acts" aria-labelledby="acts-title"></nav>
+      </section>
+    </div>
+
+    <p class="foot">Maqueta de nx32-elements con datos de ejemplo. Hoy es jueves 8 de octubre de 2026. Nada se descarga ni se envía: los avisos muestran lo que pasaría.</p>
+  </main>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="sheet" id="sheet" role="dialog" aria-labelledby="sheet-title" hidden>
+  <header class="sheet__head">
+    <span class="sheet__ico" id="sheet-ico" aria-hidden="true"></span>
+    <div class="sheet__titles">
+      <p class="sheet__kicker" id="sheet-kicker"></p>
+      <h2 id="sheet-title" tabindex="-1"></h2>
+    </div>
+    <button type="button" class="icon-btn" id="sheet-close" aria-label="Cerrar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <div class="sheet__body" id="sheet-body"></div>
+</aside>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- Íconos ----------
+  const ICONS = {
+    cert: '<path d="M14 21H6V3h9l4 4v6"/><path d="M15 3v4h4M9 9h5M9 12.5h6M9 16h3"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M16.2 18.6l-.7 3 2-1 2 1-.7-3"/>',
+    pay: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M14.6 8.4c-.5-.7-1.4-1.1-2.6-1.1-1.4 0-2.4.7-2.4 1.7 0 2.4 5.1 1.2 5.1 3.7 0 1.1-1.1 1.8-2.6 1.8-1.2 0-2.1-.4-2.7-1.2M12 6v1.3M12 14.5v1.4"/>',
+    vac: '<circle cx="12" cy="9.5" r="3.2"/><path d="M12 3v1.2M5.6 9.5H4.4M19.6 9.5h-1.2M7.5 5l.8.8M16.5 5l-.8.8"/><path d="M3 16.5c2 0 2-1.2 4.5-1.2s2.5 1.2 4.5 1.2 2-1.2 4.5-1.2 2.5 1.2 4.5 1.2M3 20c2 0 2-1.2 4.5-1.2S10 20 12 20s2-1.2 4.5-1.2S19 20 21 20"/>',
+    perm: '<rect x="3.5" y="5" width="13" height="14" rx="2"/><path d="M3.5 9.5h13M7.5 3v4M12.5 3v4"/><circle cx="17" cy="16.5" r="4"/><path d="M17 14.8v1.9l1.3.8"/>',
+    ces: '<rect x="3.5" y="4" width="17" height="15" rx="2"/><circle cx="12" cy="11.5" r="3.5"/><path d="M12 8v1M12 14v1M8.5 11.5h1M14.5 11.5h1M6.5 19v1.5M17.5 19v1.5"/>',
+    ret: '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9.5 16.5l5-6"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="16" r="1"/>',
+    spark: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1-5.1-1.9 5.1-1.9z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+    download: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
+    chevL: '<path d="M15 6l-6 6 6 6"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/>',
+    clip: '<path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/>',
+    bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  };
+  const icon = (k) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
+
+  // ---------- Formatos ----------
+  const nf = new Intl.NumberFormat("es-CO");
+  const nfEn = new Intl.NumberFormat("en-US");
+  const cop = (v) => `$ ${nf.format(Math.round(v))}`;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+  const anim = (el, kf, opt) => (el && typeof el.animate === "function" && !reduced() ? el.animate(kf, { easing: EASE, ...opt }) : null);
+  const after = (a, fn) => (a && a.finished ? a.finished.then(fn, fn) : fn());
+  const WORDS = ["cero", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete"];
+  const list = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+  // ---------- Fechas (con nombres propios: no dependen de cómo abrevie cada navegador) ----------
+  const MON = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const MONTH = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const WDAY = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const WD3 = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const pad = (n) => String(n).padStart(2, "0");
+  const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = (v) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const addD = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const diff = (a, b) => Math.round((b - a) / 864e5);
+  const yr = (d) => (d.getFullYear() !== 2026 ? ` de ${d.getFullYear()}` : "");
+  const short = (d) => `${d.getDate()} ${MON[d.getMonth()]}${d.getFullYear() !== 2026 ? ` ${d.getFullYear()}` : ""}`;
+  const long = (d) => `${WDAY[d.getDay()]} ${d.getDate()} de ${MONTH[d.getMonth()]}${yr(d)}`;
+  const dm = (d) => `${d.getDate()} de ${MONTH[d.getMonth()]}${yr(d)}`;
+  const wd = (d) => `${WDAY[d.getDay()]} ${d.getDate()}`;
+  const wds = (d) => `${WD3[d.getDay()]} ${d.getDate()}`;
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const span = (a, b) => (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear() ? `${a.getDate()} – ${short(b)}` : `${short(a)} – ${short(b)}`);
+  const hm = (t) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}:${pad(m)} ${h < 12 ? "a. m." : "p. m."}`; };
+  const hmRange = (a, b) => { const A = hm(a), B = hm(b); return A.slice(-5) === B.slice(-5) ? `${A.slice(0, -6)} a ${B}` : `${A} a ${B}`; };
+  const nowLabel = () => { const n = new Date(); return `Hoy, ${hm(`${n.getHours()}:${pad(n.getMinutes())}`)}`; };
+
+  const TODAY = new Date(2026, 9, 8);
+
+  // Festivos de Colombia: fijos, los que se corren al lunes (Ley Emiliani) y los que dependen de la Pascua.
+  function easter(y) {
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, mo - 1, da);
+  }
+  const toMonday = (d) => { const w = d.getDay(); return w === 1 ? d : addD(d, (8 - w) % 7); };
+  function holidays(y) {
+    const E = easter(y), H = {}, put = (d, n) => { H[keyOf(d)] = n; };
+    put(new Date(y, 0, 1), "Año Nuevo"); put(toMonday(new Date(y, 0, 6)), "Reyes Magos"); put(toMonday(new Date(y, 2, 19)), "San José");
+    put(addD(E, -3), "Jueves Santo"); put(addD(E, -2), "Viernes Santo"); put(new Date(y, 4, 1), "Día del Trabajo");
+    put(toMonday(addD(E, 39)), "Ascensión"); put(toMonday(addD(E, 60)), "Corpus Christi"); put(toMonday(addD(E, 68)), "Sagrado Corazón");
+    put(toMonday(new Date(y, 5, 29)), "San Pedro y San Pablo"); put(new Date(y, 6, 20), "Independencia"); put(new Date(y, 7, 7), "Batalla de Boyacá");
+    put(toMonday(new Date(y, 7, 15)), "Asunción de la Virgen"); put(toMonday(new Date(y, 9, 12)), "Día de la Raza"); put(toMonday(new Date(y, 10, 1)), "Todos los Santos");
+    put(toMonday(new Date(y, 10, 11)), "Independencia de Cartagena"); put(new Date(y, 11, 8), "Inmaculada Concepción"); put(new Date(y, 11, 25), "Navidad");
+    return H;
+  }
+  const FEST = { ...holidays(2026), ...holidays(2027) };
+  const isOff = (d) => d.getDay() === 0 || d.getDay() === 6 || !!FEST[keyOf(d)];
+  const prevWork = (d) => { while (isOff(d)) d = addD(d, -1); return d; };
+  const workdays = (s, e) => { let n = 0; for (let d = s; d <= e; d = addD(d, 1)) if (!isOff(d)) n++; return n; };
+  // El descanso de verdad: los días pedidos más los no laborables pegados a cada lado.
+  function restOf(s, e) {
+    let a = s, b = e;
+    while (isOff(addD(a, -1))) a = addD(a, -1);
+    while (isOff(addD(b, 1))) b = addD(b, 1);
+    return { a, b, rest: diff(a, b) + 1, back: addD(b, 1) };
+  }
+
+  // ---------- Datos de ejemplo ----------
+  const EMP = { first: "Laura", name: "Laura Gómez Charris", cc: "1.140.852.337", role: "Analista de compras", roleEn: "Purchasing Analyst", salary: 4200000, contract: "a término indefinido", contractEn: "an indefinite-term contract", boss: "Marcela" };
+  const ORG = { name: "Constructora del Parque S.A.S.", nit: "900.412.118-3", city: "Barranquilla", site: "constructoradelparque.co/verificar" };
+
+  // Nómina quincenal. Si el día de pago cae en fin de semana o festivo, se paga el día hábil anterior.
+  const BASE = EMP.salary / 2;
+  const BASE_NET = BASE * 0.92 - 50000;
+  const EXTRAS = {
+    "2026-01-31": [["Intereses de cesantías", "12 % de 2025", 468000, false]],
+    "2026-03-31": [["Horas extra nocturnas", "2 horas", 70000, true]],
+    "2026-06-30": [["Prima de servicios", "primer semestre", 2100000, false]],
+    "2026-09-15": [["Horas extra diurnas", "4 horas", 100000, true]],
+    "2026-10-15": [["Horas extra diurnas", "3 horas, 2 oct", 75000, true]],
+    "2026-12-15": [["Prima de servicios", "segundo semestre", 2100000, false]],
+    "2027-01-31": [["Intereses de cesantías", "12 % de 2026", 504000, false]],
+  };
+  const PAYS = [];
+  for (let m = 0; m < 14; m++) {
+    const y = 2026 + Math.floor(m / 12), mo = m % 12, last = new Date(y, mo + 1, 0).getDate();
+    for (const [day, from] of [[15, 1], [last, 16]]) {
+      const due = new Date(y, mo, day), paid = prevWork(due), key = keyOf(due), ex = EXTRAS[key] || [];
+      const plus = [["Salario básico", "15 días", BASE], ...ex.map((x) => [x[0], x[1], x[2]])];
+      const ibc = BASE + ex.filter((x) => x[3]).reduce((s, x) => s + x[2], 0); // la prima y los intereses no pagan salud ni pensión
+      const minus = [["Salud", "4 %", ibc * 0.04], ["Pensión", "4 %", ibc * 0.04], ["Fondo de empleados", "ahorro", 50000]];
+      const net = plus.reduce((s, x) => s + x[2], 0) - minus.reduce((s, x) => s + x[2], 0);
+      PAYS.push({ i: PAYS.length, key, due, paid, from: new Date(y, mo, from), to: due, plus, minus, net, done: paid <= TODAY, prima: ex.some((x) => /Prima/.test(x[0])) });
+    }
+  }
+  const PAY_MAX = Math.max(...PAYS.map((p) => p.net));
+  const NEXT_PAY = PAYS.find((p) => !p.done);
+  const LAST_PAY = PAYS.filter((p) => p.done).pop();
+  const PAID_2026 = PAYS.filter((p) => p.done && p.paid.getFullYear() === 2026);
+  const RECEIVED = PAID_2026.reduce((s, p) => s + p.net, 0);
+  const period = (p) => `${p.from.getDate()} al ${p.to.getDate()} de ${MONTH[p.to.getMonth()]}${yr(p.to)}`;
+
+  const VAC = {
+    available: 12, perMonth: "1,25",
+    taken: [{ id: "v1", s: new Date(2026, 2, 30), e: new Date(2026, 3, 1), note: "Semana Santa", low: "Semana Santa", status: "ok" }, { id: "v2", s: new Date(2026, 6, 13), e: new Date(2026, 6, 17), note: "Mitad de año", low: "mitad de año", status: "ok" }],
+    sel: null, hover: null, view: new Date(2026, 9, 1), sent: null, asked: false,
+  };
+  const MIN_START = new Date(2026, 9, 13); // se piden con tres días hábiles de anticipación
+  const HORIZON = new Date(2027, 1, 28);
+
+  const PERM_TYPES = {
+    cita: { label: "Cita médica u odontológica", noun: "cita médica", rule: "No se descuenta si subes el soporte de la cita." },
+    dili: { label: "Diligencia personal", noun: "diligencia personal", rule: `La compensas con tiempo o se descuenta, como acuerdes con ${EMP.boss}.` },
+    cala: { label: "Calamidad doméstica", noun: "calamidad doméstica", rule: "Hasta tres días. Sube el soporte cuando puedas." },
+    otro: { label: "Otro motivo", noun: "permiso", rule: `${EMP.boss} decide si se compensa o se descuenta.` },
+  };
+  const PERMS = [
+    { id: "p1", what: "Diligencia personal", date: new Date(2026, 4, 14), time: "8:00 a 11:00 a. m.", status: "ok" },
+    { id: "p2", what: "Cita médica", date: new Date(2026, 8, 3), time: "2:00 a 4:00 p. m.", status: "ok" },
+    { id: "p3", what: "Cita odontológica", date: new Date(2026, 9, 14), time: "7:00 a 9:00 a. m.", status: "pending" },
+  ];
+  const PERM = { type: "cita", date: null, mode: "hours", from: "08:00", to: "10:00", file: "", sent: null };
+
+  const days360 = (d) => d.getMonth() * 30 + Math.min(d.getDate(), 30);
+  const CES = {
+    balance: 11482300, at: "30 de septiembre de 2026", hist: [2650000, 5480000, 8410000, 11482300],
+    accrued: Math.round((EMP.salary * days360(TODAY)) / 360), perDay: Math.round(EMP.salary / 360),
+    reason: "viv", amount: "", file: "", request: null,
+  };
+  const CES_EVENTS = [
+    { id: "c1", d: new Date(2026, 0, 30), t: "Intereses de 2025", s: "Te llegaron con la nómina.", amt: 468000, done: true },
+    { id: "c2", d: new Date(2026, 1, 13), t: "Cesantías de 2025 al fondo", s: "La empresa las consignó en tu fondo.", amt: 3900000, done: true },
+    { id: "c3", d: new Date(2027, 0, 29), t: "Intereses de 2026", s: "Llegan con la nómina, antes del 31 de enero.", amt: 504000, done: false },
+    { id: "c4", d: new Date(2027, 1, 12), t: "Cesantías de 2026 al fondo", s: "Antes del 15 de febrero (el 14 es domingo).", amt: EMP.salary, done: false },
+  ];
+
+  const CERT_TO = {
+    all: { label: "A quien interese", salary: false, phrase: "a quien interese" },
+    bank: { label: "Un banco", salary: true, phrase: "para un banco" },
+    rent: { label: "Arriendo", salary: true, phrase: "para un arriendo" },
+    visa: { label: "Embajada o visa", salary: true, phrase: "para una embajada", lang: "en" },
+  };
+  const CERT = { to: "all", salary: false, lang: "es", entity: "", last: { date: new Date(2026, 8, 12), to: "bank" }, made: null };
+
+  const YEARS = [[2025, 3900000, "12 mar 2026"], [2024, 3600000, "14 mar 2025"], [2023, 3300000, "13 mar 2024"]].map(([y, s, issued]) => {
+    const prest = s + s + Math.round(s * 0.12);
+    return { y, issued, total: s * 12 + prest, aportes: Math.round(s * 12 * 0.08), ret: 0 };
+  });
+
+  // Solicitudes en curso: lo que se ve en «Ahora».
+  const REQS = [{ id: "r1", kind: "perm", ref: "p3", title: "Permiso · cita odontológica", when: "miércoles 14 de octubre · 7:00 a 9:00 a. m.", noun: "permiso del miércoles 14", sent: "Ayer, 4:12 p. m.", who: "Marcela", status: "pending" }];
+  let reqSeq = 1;
+
+  // ---------- Puentes: los días de vacaciones que más descanso dan ----------
+  function candidates(av) {
+    const C = [];
+    for (let s = MIN_START; s <= HORIZON; s = addD(s, 1)) {
+      if (isOff(s)) continue;
+      let k = 0;
+      for (let e = s; e <= HORIZON; e = addD(e, 1)) {
+        if (isOff(e)) continue;
+        if (++k > av) break;
+        if (k < 3) continue;
+        const r = restOf(s, e);
+        C.push({ s, e, k, ...r, ratio: r.rest / k });
+      }
+    }
+    return C;
+  }
+  const overlaps = (c, d) => c.a <= d.b && d.a <= c.b;
+  let CAND = [], LONG = null, BRIDGES = [];
+  function computeBridges() {
+    CAND = candidates(VAC.available);
+    LONG = CAND.filter((c) => c.ratio >= 2).sort((x, y) => y.rest - x.rest || x.k - y.k)[0] || null;
+    const per = [];
+    for (const [y, m] of [[2026, 9], [2026, 10], [2026, 11], [2027, 0]]) {
+      const best = CAND.filter((c) => c.k <= 5 && c.s.getFullYear() === y && c.s.getMonth() === m && !(LONG && overlaps(c, LONG)))
+        .sort((x, z) => z.ratio - x.ratio || z.rest - x.rest || x.s - z.s)[0];
+      if (best) per.push(best);
+    }
+    BRIDGES = [LONG, ...per].filter(Boolean).slice(0, 4);
+  }
+  function bestInMonth(m) {
+    if (LONG && LONG.s.getMonth() === m) return LONG;
+    const y = m >= 9 ? 2026 : 2027;
+    return CAND.filter((c) => c.s.getFullYear() === y && c.s.getMonth() === m).sort((x, z) => z.ratio - x.ratio || z.rest - x.rest || x.s - z.s)[0] || null;
+  }
+  const freeDays = (c) => {
+    const fests = [], wk = new Set();
+    for (let d = c.a; d <= c.b; d = addD(d, 1)) {
+      if (FEST[keyOf(d)]) fests.push(FEST[keyOf(d)]);
+      else if (d.getDay() === 6 || d.getDay() === 0) wk.add(keyOf(addD(d, d.getDay() === 0 ? -1 : 0)));
+    }
+    return { fests, weekends: wk.size };
+  };
+
+  // ---------- Aviso ----------
+  function toast(msg) {
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.innerHTML = `${icon("check")}<span>${msg}</span>`;
+    $("#toasts").append(t);
+    anim(t, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 220 });
+    setTimeout(() => after(anim(t, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: "forwards" }), () => t.remove()), 3400);
+  }
+
+  // ---------- Encabezado ----------
+  function renderBrief() {
+    const pend = REQS.filter((r) => r.status === "pending");
+    const fresh = REQS.find((r) => r.status === "ok" && r.okAt);
+    const vacTxt = VAC.available === 1 ? "1 día" : `${VAC.available} días`;
+    let s = `Te pagan el <b>${wd(NEXT_PAY.paid)}</b> y tienes <b>${vacTxt}</b> de vacaciones.`;
+    if (pend.length === 1) s += ` ${pend[0].who} tiene por aprobar tu ${pend[0].noun}.`;
+    else if (pend.length > 1) s += ` Tienes ${WORDS[pend.length] || pend.length} solicitudes por aprobar.`;
+    else if (fresh) s += ` ${fresh.who} aprobó tu ${fresh.noun}.`;
+    $("#brief").innerHTML = s;
+  }
+
+  function renderBal() {
+    const prev = PAYS[NEXT_PAY.i - 1];
+    const span0 = diff(prev.paid, NEXT_PAY.paid), gone = diff(prev.paid, TODAY), left = diff(TODAY, NEXT_PAY.paid);
+    const C = 2 * Math.PI * 18, frac = Math.min(1, gone / span0);
+    const ring = `<svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle class="bg" cx="22" cy="22" r="18"/><circle class="fg" cx="22" cy="22" r="18" stroke-dasharray="${(C * frac).toFixed(1)} ${C.toFixed(1)}"/><text x="22" y="26" text-anchor="middle">${left}d</text></svg>`;
+    const pendVac = VAC.sent && VAC.sent.status === "pending" ? VAC.sent.k : 0;
+    let pills = "";
+    for (let i = 0; i < 15; i++) pills += `<i class="${i < VAC.available - pendVac ? "on" : i < VAC.available ? "wait" : ""}"></i>`;
+    const h = CES.hist, max = Math.max(...h), pts = h.map((v, i) => [4 + (i * 68) / (h.length - 1), 26 - (v / max) * 22]);
+    const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+    const spark = `<svg class="spark" viewBox="0 0 76 30" aria-hidden="true"><path class="area" d="${line} L72 28 L4 28 Z"/><path d="${line}"/><circle cx="${pts[3][0]}" cy="${pts[3][1]}" r="2.6"/></svg>`;
+    const extra = NEXT_PAY.plus.length > 1 ? ` · con ${NEXT_PAY.plus.slice(1).map((x) => x[0].toLowerCase()).join(", ")}` : "";
+    $("#bal").innerHTML = `
+      <button type="button" class="bal__row" data-open="pay" data-key="${NEXT_PAY.key}">
+        <span><span class="bal__k">Próximo pago</span><span class="bal__v">${cap(wds(NEXT_PAY.paid))} ${MON[NEXT_PAY.paid.getMonth()]}</span><span class="bal__s">Unos ${cop(NEXT_PAY.net)}${extra}</span></span>${ring}</button>
+      <button type="button" class="bal__row" data-open="vac">
+        <span><span class="bal__k">Vacaciones</span><span class="bal__v">${VAC.available} días hábiles</span><span class="bal__s">${pendVac ? `${pendVac} por aprobar · ` : ""}sumas ${VAC.perMonth} cada mes</span></span><span class="pills" aria-hidden="true">${pills}</span></button>
+      <button type="button" class="bal__row" data-open="ces">
+        <span><span class="bal__k">Cesantías en tu fondo</span><span class="bal__v">${cop(CES.balance)}</span><span class="bal__s">+ ${cop(CES.accrued)} causadas en 2026</span></span>${spark}</button>`;
+  }
+
+  // ---------- La cinta del año ----------
+  const D0 = new Date(2026, 0, 1), D1 = new Date(2027, 2, 1), DAYS = diff(D0, D1);
+  const xs = (d) => (diff(D0, d) / DAYS) * 100; // borde izquierdo del día
+  const xc = (d) => ((diff(D0, d) + 0.5) / DAYS) * 100; // centro del día
+  const MARKS = new Map();
+  let HL = null;
+  let ribbonShown = false;
+
+  function ribbonStatic() {
+    let h = "";
+    for (let i = 0; i < 14; i++) {
+      const a = new Date(2026, i, 1), b = new Date(2026, i + 1, 1);
+      h += `<div class="m-col${i % 2 ? " is-alt" : ""}" style="left:${xs(a)}%;width:${xs(b) - xs(a)}%"></div>`;
+      const cur = a.getMonth() === TODAY.getMonth() && a.getFullYear() === TODAY.getFullYear();
+      if (!cur) h += `<span class="m-lbl" style="left:${xs(a)}%">${MON[a.getMonth()]}${a.getMonth() === 0 ? ` <b>${a.getFullYear()}</b>` : ""}</span>`;
+    }
+    h += `<div class="past" style="width:${xs(TODAY)}%"></div>`;
+    h += `<div class="lane-line" style="top:var(--lp)"></div><div class="lane-line" style="top:calc(var(--lp) + var(--lr))"></div><div class="axis"></div>`;
+    // Cesantías causadas: suben todo el año y vuelven a cero cuando se consignan.
+    const yEnd = diff(D0, new Date(2027, 0, 1)), tX = diff(D0, TODAY) + 0.5, top = 4, bot = 96;
+    const yAt = (x) => bot - ((bot - top) * x) / 365;
+    const x27 = DAYS - yEnd;
+    h += `<svg class="ces-line" viewBox="0 0 ${DAYS} 100" preserveAspectRatio="none" aria-hidden="true">
+      <path class="area" d="M0 ${bot} L${tX} ${yAt(tX)} L${tX} ${bot} Z"/>
+      <path class="done" vector-effect="non-scaling-stroke" d="M0 ${bot} L${tX} ${yAt(tX)}"/>
+      <path class="todo" vector-effect="non-scaling-stroke" d="M${tX} ${yAt(tX)} L${yEnd} ${top} M${yEnd} ${bot} L${DAYS} ${yAt(x27)}"/></svg>`;
+    for (const [k, name] of Object.entries(FEST)) {
+      const d = parse(k);
+      if (d >= D0 && d < D1) h += `<span class="fest" style="left:${xc(d)}%" data-fest="${k}"></span>`;
+    }
+    h += `<div class="today" style="left:${xc(TODAY)}%"></div><span class="today-pill" style="left:${xc(TODAY)}%">Hoy · ${short(TODAY)}</span>`;
+    $("#rib-static").innerHTML = h;
+  }
+
+  function payLens(p) {
+    const lines = [];
+    if (p.done) {
+      lines.push(`Pagada el ${long(p.paid)}`, `<b>${cop(p.net)}</b> netos`);
+    } else {
+      const n = diff(TODAY, p.paid);
+      lines.push(`${cap(long(p.paid))}${n <= 31 ? ` · en ${n} días` : ""}`, `Unos <b>${cop(p.net)}</b> netos`);
+      if (keyOf(p.paid) !== keyOf(p.due)) lines.push(`El ${p.due.getDate()} es ${FEST[keyOf(p.due)] ? "festivo" : WDAY[p.due.getDay()]}: te pagan el ${wd(p.paid)}.`);
+    }
+    if (p.plus.length > 1) lines.push(`Incluye ${p.plus.slice(1).map((x) => x[0].toLowerCase()).join(" y ")}`);
+    return { t: `Quincena del ${period(p)}`, s: lines, a: p.done ? "Abrir el desprendible" : "Ver cómo se calcula" };
+  }
+
+  function vacBands() {
+    const out = VAC.taken.map((v) => ({ ...v, k: workdays(v.s, v.e), ...restOf(v.s, v.e) }));
+    if (VAC.sent) out.push({ ...VAC.sent, id: "vsent" });
+    if (OPEN === "vac" && VAC.sel && VAC.sel.e && !VAC.sent) {
+      const k = workdays(VAC.sel.s, VAC.sel.e);
+      out.push({ id: "vdraft", s: VAC.sel.s, e: VAC.sel.e, k, ...restOf(VAC.sel.s, VAC.sel.e), status: "draft" });
+    }
+    return out;
+  }
+
+  function renderRibbon() {
+    const focusedId = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.mk;
+    MARKS.clear();
+    let h = "";
+    const put = (m) => { MARKS.set(m.id, m); h += m.html; };
+    for (const p of PAYS) {
+      const id = `pay-${p.key}`, hg = (p.net / PAY_MAX) * 100, ex = (Math.max(0, p.net - BASE_NET) / p.net) * 100;
+      const next = p === NEXT_PAY, n = diff(TODAY, p.paid);
+      const cls = `mk mk-pay${p.done ? "" : " is-future"}${next ? " is-next" : ""}${HL === id ? " is-hl" : ""}`;
+      const label = p.done ? `Quincena del ${period(p)}: ${cop(p.net)} netos, pagados el ${long(p.paid)}` : `Pago del ${long(p.paid)}: unos ${cop(p.net)} netos`;
+      put({ id, x: xc(p.paid), lens: () => payLens(p), act: () => openPanel("pay", { key: p.key }),
+        html: `<button type="button" class="${cls}" data-mk="${id}" style="left:${xc(p.paid)}%;--h:${hg.toFixed(1)}" aria-label="${label}" tabindex="-1"><span class="bar">${ex > 0.5 ? `<span class="bar__x" style="height:${ex.toFixed(1)}%"></span>` : ""}</span>${next ? `<span class="cap">en ${n} días</span>` : ""}</button>` });
+    }
+    for (const v of vacBands()) {
+      const id = `vac-${v.id}`, st = v.status;
+      const stTxt = st === "ok" ? (v.s > TODAY ? "aprobadas" : "tomadas") : st === "pending" ? `por aprobar (${EMP.boss})` : "lo que estás eligiendo";
+      const label = `Vacaciones ${stTxt}: ${v.k} días hábiles, del ${dm(v.s)} al ${dm(v.e)}; descanso de ${v.rest} días`;
+      put({ id, x: xs(v.a), act: () => openPanel("vac", st === "draft" ? {} : { show: v }),
+        lens: () => ({ t: v.note ? `Vacaciones · ${v.note}` : "Vacaciones", s: [`${cap(stTxt)}: ${v.k} días hábiles, ${span(v.s, v.e)}`, `Descanso de <b>${v.rest} días</b>, del ${wd(v.a)} de ${MONTH[v.a.getMonth()]} al ${wd(v.b)} de ${MONTH[v.b.getMonth()]}`], a: st === "draft" ? "" : "Abrir vacaciones" }),
+        html: `<button type="button" class="mk mk-band${st === "pending" ? " is-pending" : st === "draft" ? " is-draft" : ""}${HL === id ? " is-hl" : ""}" data-mk="${id}" style="left:${xs(v.a)}%;width:${xs(addD(v.b, 1)) - xs(v.a)}%" aria-label="${label}" tabindex="-1">${st === "draft" ? `<span class="cap">${v.rest} días</span>` : ""}</button>` });
+    }
+    const perms = [...PERMS];
+    if (OPEN === "perm" && PERM.date && !PERM.sent && PERM.date >= D0 && PERM.date < D1) perms.push({ id: "pdraft", what: PERM_TYPES[PERM.type].label, date: PERM.date, time: PERM.mode === "day" ? "todo el día" : hmRange(PERM.from, PERM.to), status: "draft" });
+    for (const p of perms) {
+      const id = `perm-${p.id}`, st = p.status;
+      const stTxt = st === "ok" ? "aprobado" : st === "pending" ? `por aprobar (${EMP.boss})` : "lo que estás pidiendo";
+      put({ id, x: xc(p.date), act: () => openPanel("perm", {}),
+        lens: () => ({ t: `Permiso · ${p.what.toLowerCase()}`, s: [`${cap(long(p.date))}`, `${p.time} · ${stTxt}`], a: st === "draft" ? "" : "Abrir permisos" }),
+        html: `<button type="button" class="mk mk-dot${st === "pending" ? " is-pending" : st === "draft" ? " is-draft" : ""}${HL === id ? " is-hl" : ""}" data-mk="${id}" style="left:${xc(p.date)}%" aria-label="Permiso, ${p.what.toLowerCase()}: ${long(p.date)}, ${p.time}, ${stTxt}" tabindex="-1"><span class="v"></span></button>` });
+    }
+    for (const c of CES_EVENTS) {
+      const id = `ces-${c.id}`;
+      put({ id, x: xc(c.d), act: () => openPanel("ces", {}),
+        lens: () => ({ t: c.t, s: [`${cap(long(c.d))}${c.done ? "" : " · por llegar"}`, `${c.done ? "" : "Unos "}<b>${cop(c.amt)}</b>`, c.s], a: "Abrir cesantías" }),
+        html: `<button type="button" class="mk mk-ces${c.done ? "" : " is-future"}${HL === "ces" ? " is-hl" : ""}" data-mk="${id}" style="left:${xc(c.d)}%" aria-label="${c.t}: ${cop(c.amt)}, ${long(c.d)}${c.done ? "" : ", por llegar"}" tabindex="-1"><span class="v"></span></button>` });
+    }
+    const marks = $("#rib-marks");
+    marks.innerHTML = h;
+    // Un solo punto de tabulación; las flechas recorren la cinta.
+    const ids = [...MARKS.values()].sort((a, b) => a.x - b.x).map((m) => m.id);
+    ORDER = ids;
+    const keep = focusedId && MARKS.has(focusedId) ? focusedId : MARKS.has(ROVE) ? ROVE : `pay-${NEXT_PAY.key}`;
+    ROVE = keep;
+    const el = marks.querySelector(`[data-mk="${keep}"]`);
+    if (el) el.tabIndex = 0;
+    if (focusedId && el) el.focus({ preventScroll: true });
+    if (!ribbonShown) { ribbonShown = true; intro(); }
+  }
+  let ORDER = [], ROVE = null;
+
+  function intro() {
+    if (reduced()) return;
+    $$("#rib-marks .mk-pay .bar").forEach((b) => {
+      const x = parseFloat(b.parentElement.style.left);
+      anim(b, [{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], { duration: 520, delay: 120 + x * 9, fill: "backwards" });
+    });
+    $$("#rib-marks .mk-band").forEach((b) => anim(b, [{ transform: "scaleX(0)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 480, delay: 120 + parseFloat(b.style.left) * 9, fill: "backwards" }));
+    $$("#rib-marks .mk-dot .v, #rib-marks .mk-ces .v").forEach((v) => {
+      const x = parseFloat(v.parentElement.style.left), rot = v.parentElement.classList.contains("mk-ces") ? " rotate(45deg)" : "";
+      anim(v, [{ transform: `scale(0)${rot}` }, { transform: `scale(1)${rot}` }], { duration: 380, delay: 160 + x * 9, fill: "backwards" });
+    });
+    anim($("#rib-static .today"), [{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], { duration: 600, delay: 120 + xc(TODAY) * 9, fill: "backwards" });
+  }
+
+  const lens = $("#lens"), yearEl = $("#year");
+  function showLens(el) {
+    let data;
+    if (el.dataset.fest) data = { t: FEST[el.dataset.fest], s: [cap(long(parse(el.dataset.fest))), "Festivo: no cuenta como día hábil."], a: "" };
+    else { const m = MARKS.get(el.dataset.mk); if (!m) return; data = m.lens(); }
+    lens.innerHTML = `<p class="lens__t">${data.t}</p><p class="lens__s">${data.s.filter(Boolean).join("<br>")}</p>${data.a ? `<p class="lens__a">${data.a}</p>` : ""}`;
+    lens.hidden = false;
+    const y = yearEl.getBoundingClientRect(), r = el.getBoundingClientRect(), w = lens.offsetWidth, hh = lens.offsetHeight;
+    const cx = Math.max(w / 2 + 8, Math.min(y.width - w / 2 - 8, r.left + r.width / 2 - y.left));
+    lens.style.left = `${cx}px`;
+    lens.style.top = `${r.top - y.top - hh - 8}px`;
+  }
+  const hideLens = () => { lens.hidden = true; };
+
+  function wireRibbon() {
+    const track = $("#rib-track");
+    track.addEventListener("pointerover", (e) => { const el = e.target.closest("[data-mk], [data-fest]"); if (el) showLens(el); });
+    track.addEventListener("pointerout", (e) => { const el = e.target.closest("[data-mk], [data-fest]"); if (el && !el.contains(e.relatedTarget)) hideLens(); });
+    track.addEventListener("focusin", (e) => { const el = e.target.closest("[data-mk]"); if (el) { ROVE = el.dataset.mk; $$("#rib-marks [data-mk]").forEach((b) => { b.tabIndex = b === el ? 0 : -1; }); showLens(el); } });
+    track.addEventListener("focusout", hideLens);
+    track.addEventListener("click", (e) => { const el = e.target.closest("[data-mk]"); if (el) { hideLens(); MARKS.get(el.dataset.mk).act(); } });
+    track.addEventListener("keydown", (e) => {
+      const el = e.target.closest("[data-mk]");
+      if (!el) return;
+      const i = ORDER.indexOf(el.dataset.mk);
+      let j = null;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") j = Math.min(ORDER.length - 1, i + 1);
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") j = Math.max(0, i - 1);
+      else if (e.key === "Home") j = 0;
+      else if (e.key === "End") j = ORDER.length - 1;
+      if (j === null) return;
+      e.preventDefault();
+      const next = $(`#rib-marks [data-mk="${ORDER[j]}"]`);
+      if (next) next.focus();
+    });
+  }
+
+  // ---------- Ahora ----------
+  function strip(c) {
+    let cells = "";
+    for (let d = c.a; d <= c.b; d = addD(d, 1)) {
+      const k = keyOf(d), v = !isOff(d);
+      cells += `<span class="${v ? "v" : ""}${FEST[k] ? " f" : ""}" title="${cap(long(d))}${FEST[k] ? ` · ${FEST[k]}` : ""}">${d.getDate()}</span>`;
+    }
+    return `<div class="strip" style="--n:${c.rest}" aria-hidden="true">${cells}</div>
+      <p class="strip-legend" aria-hidden="true"><span><i style="background:var(--nx-primary)"></i>Días que pides</span><span><i style="background:var(--nx-success-soft)"></i>Fines de semana y festivos</span></p>`;
+  }
+
+  function trackerHTML(r) {
+    const ok = r.status === "ok", face = r.who === "Marcela" ? "MR" : "TH";
+    const kindIcon = { perm: "perm", vac: "vac", ces: "ces" }[r.kind];
+    return `<article class="item" data-req="${r.id}">
+      <div class="item__head"><span class="item__ico">${icon(kindIcon)}</span>
+        <div><h3 class="item__title">${r.title}</h3><p class="item__sub">${r.when}</p></div>
+        <span class="badge ${ok ? "badge--ok" : "badge--warn"}">${ok ? "Aprobado" : "Por aprobar"}</span></div>
+      <ol class="steps">
+        <li class="step is-done"><b>Enviado</b>${r.sent}</li>
+        <li class="step ${ok ? "is-done" : "is-now"}"><b>Con ${r.who}</b>${ok ? "Lo revisó" : `<span class="who"><span class="face${r.who === "Marcela" ? " on" : ""}" aria-hidden="true">${face}</span>${r.who === "Marcela" ? "En línea · responde en unas 3 h" : "Responde en 2 días hábiles"}</span>`}</li>
+        <li class="step${ok ? " is-done" : ""}"><b>${r.kind === "ces" ? "Carta lista" : "Aprobado"}</b>${ok ? r.okAt : "Te avisamos aquí"}</li>
+      </ol>
+      <div class="item__actions">${ok ? "" : `<button type="button" class="btn btn--sm" data-nudge="${r.id}"${r.nudged ? " disabled" : ""}>${r.nudged ? "Recordado" : `Recordarle a ${r.who === "Marcela" ? "Marcela" : "Talento humano"}`}</button>`}
+        <button type="button" class="btn btn--sm btn--ghost" data-open="${r.kind}">Ver detalle</button></div>
+    </article>`;
+  }
+
+  function renderFeed() {
+    const out = [];
+    // Primero lo que espera respuesta; lo aprobado hoy se queda un rato a la vista.
+    for (const r of REQS) if (r.status === "pending" || r.okAt) out.push(trackerHTML(r));
+    if (LONG && !VAC.asked) {
+      const f = freeDays(LONG);
+      const wk = f.weekends === 1 ? "un fin de semana" : `${WORDS[f.weekends] || f.weekends} fines de semana`;
+      const puts = f.fests.length ? `${list(f.fests)}${f.weekends ? `, más ${wk},` : ""}` : cap(wk);
+      out.push(`<article class="item">
+        <p class="idea">${icon("spark")}Para ti</p>
+        <div><h3 class="item__title">${LONG.rest} días de descanso con ${LONG.k} de vacaciones</h3>
+        <p class="item__sub">Pide del ${dm(LONG.s)} al ${dm(LONG.e)}. ${puts} ponen el resto: descansas del ${long(LONG.a)} al ${long(LONG.b)}.</p></div>
+        ${strip(LONG)}
+        <div class="item__actions"><button type="button" class="btn btn--sm btn--primary" data-vac-pick="long">Pedir esas fechas</button><button type="button" class="btn btn--sm btn--ghost" data-open="vac">Ver otras opciones</button></div>
+      </article>`);
+    }
+    if (!CERT.made) {
+      out.push(`<article class="item">
+        <p class="idea">${icon("spark")}Para ti</p>
+        <div><h3 class="item__title">¿Otro certificado para el banco?</h3>
+        <p class="item__sub">El último lo sacaste el ${dm(CERT.last.date)}. Sale igual, con la fecha de hoy y un código para que el banco lo verifique.</p></div>
+        <div class="item__actions"><button type="button" class="btn btn--sm btn--primary" data-cert-again>Generarlo</button></div>
+      </article>`);
+    }
+    if (!out.length) out.push(`<p class="item__sub">Nada pendiente. Aquí verás tus solicitudes y lo que te convenga.</p>`);
+    $("#feed").innerHTML = out.join("");
+  }
+
+  function nudge(id) {
+    const r = REQS.find((x) => x.id === id);
+    if (!r || r.nudged) return;
+    r.nudged = true;
+    renderFeed();
+    toast(`Le recordamos a ${r.who === "Marcela" ? "Marcela" : "Talento humano"}.`);
+    // En la maqueta, la respuesta llega a los pocos segundos para ver el cambio en vivo.
+    setTimeout(() => approve(id), 3500);
+  }
+  function approve(id) {
+    const r = REQS.find((x) => x.id === id);
+    if (!r || r.status !== "pending") return;
+    r.status = "ok";
+    r.okAt = nowLabel();
+    if (r.kind === "perm") { const p = PERMS.find((x) => x.id === r.ref); if (p) p.status = "ok"; }
+    if (r.kind === "vac" && VAC.sent) {
+      VAC.available -= VAC.sent.k;
+      VAC.taken.push({ id: "v3", s: VAC.sent.s, e: VAC.sent.e, note: "Aprobadas", low: "las de fin de año", status: "ok" });
+      VAC.sent = null;
+      computeBridges();
+    }
+    if (r.kind === "ces" && CES.request) CES.request.status = "ok";
+    renderAll();
+    toast(`${r.who} aprobó tu ${r.noun}.`);
+    const el = $(`[data-req="${id}"]`);
+    if (el) anim(el, [{ boxShadow: "0 0 0 3px var(--nx-success-soft)" }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1200 });
+  }
+
+  // ---------- Trámites ----------
+  const ACTS = [
+    { id: "cert", name: "Certificado laboral", sig: () => (CERT.made ? `Hoy: ${CERT_TO[CERT.made.to].phrase}` : `El último: ${short(CERT.last.date)}, ${CERT_TO[CERT.last.to].phrase}`) },
+    { id: "pay", name: "Desprendibles de pago", sig: () => `El último: ${cop(LAST_PAY.net)} el ${short(LAST_PAY.paid)}` },
+    { id: "vac", name: "Vacaciones", sig: () => `${VAC.available} días disponibles${VAC.sent && VAC.sent.status === "pending" ? ` · <span class="w">${VAC.sent.k} por aprobar</span>` : ""}` },
+    { id: "perm", name: "Permisos", sig: () => { const n = PERMS.filter((p) => p.status === "pending").length; return n ? `<span class="w">${n} por aprobar</span>` : "Sin pendientes"; } },
+    { id: "ces", name: "Cesantías", sig: () => (CES.request ? (CES.request.status === "ok" ? "Carta para el fondo lista" : `<span class="w">Retiro en trámite</span>`) : `${cop(CES.balance)} en tu fondo`) },
+    { id: "ret", name: "Ingresos y retenciones", sig: () => "2025, listo para tu declaración" },
+  ];
+  function renderActs() {
+    $("#acts").innerHTML = ACTS.map((a) => `<button type="button" class="act${OPEN === a.id ? " is-open" : ""}" data-open="${a.id}"${OPEN === a.id ? ' aria-current="true"' : ""}>
+      <span class="act__ico">${icon(a.id)}</span><span><span class="act__name">${a.name}</span><span class="act__sig">${a.sig()}</span></span>${icon("chev")}</button>`).join("");
+  }
+
+  function renderAll() { renderBrief(); renderBal(); renderRibbon(); renderFeed(); renderActs(); }
+
+  // ---------- Piezas de formulario ----------
+  const chips = (name, opts, checked) => `<div class="chips">${opts.map(([v, l]) => `<label><input type="radio" name="${name}" value="${v}"${v === checked ? " checked" : ""}><span>${l}</span></label>`).join("")}</div>`;
+  const seg = (name, legend, opts, checked) => `<div class="seg" role="radiogroup" aria-label="${legend}">${opts.map(([v, l]) => `<label><input type="radio" name="${name}" value="${v}"${v === checked ? " checked" : ""}><span>${l}</span></label>`).join("")}</div>`;
+  const line = (k, m, v, cls = "") => `<div${cls ? ` class="${cls}"` : ""}><dt>${k}${m ? `<span class="m">${m}</span>` : ""}</dt><dd>${v}</dd></div>`;
+  const val = (root, name) => { const el = root.querySelector(`[name="${name}"]:checked`); return el ? el.value : null; };
+  const fade = (el) => anim(el, [{ opacity: 0.25, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }], { duration: 240 });
+
+  // Código de verificación y su QR (de muestra: el de verdad lo genera el servidor).
+  function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; }
+  function certCode() {
+    const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let h = hash(`${CERT.to}|${CERT.salary}|${CERT.lang}|${CERT.entity.trim()}|${keyOf(TODAY)}`), s = "";
+    for (let i = 0; i < 8; i++) { s += A[h % 32]; h = Math.floor(h / 32) || hash(s + i); }
+    return `CDP-${s.slice(0, 4)}-${s.slice(4)}`;
+  }
+  function qr(code) {
+    const n = 25;
+    let h = hash(code) || 1;
+    const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+    const finder = (x, y, x0, y0) => { const dx = x - x0, dy = y - y0; if (dx < 0 || dy < 0 || dx > 6 || dy > 6) return null; return dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4); };
+    let d = "";
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      let on = finder(x, y, 0, 0) ?? finder(x, y, n - 7, 0) ?? finder(x, y, 0, n - 7);
+      if (on === null) {
+        const sep = (x < 8 && y < 8) || (x >= n - 8 && y < 8) || (x < 8 && y >= n - 8);
+        on = sep ? false : x === 6 || y === 6 ? (x + y) % 2 === 0 : rnd() > 0.52;
+      }
+      if (on) d += `M${x} ${y}h1v1h-1z`;
+    }
+    return `<svg class="qr" viewBox="-1 -1 ${n + 2} ${n + 2}" aria-hidden="true"><path d="${d}" fill="currentColor"/></svg>`;
+  }
+
+  function certDoc() {
+    const en = CERT.lang === "en", ent = esc(CERT.entity.trim()), code = certCode();
+    const greet = en ? (ent ? `To ${ent}:` : "To whom it may concern:") : ent ? `Señores<br><b>${ent}</b>` : "A quien interese:";
+    const body = en
+      ? `${ORG.name}, tax ID (NIT) ${ORG.nit}, certifies that <b>${EMP.name}</b>, holder of Colombian citizenship card ${EMP.cc}, has worked for the company since February 3, 2021, as <b>${EMP.roleEn}</b>, under ${EMP.contractEn}${CERT.salary ? `, with a monthly base salary of <mark>COP ${nfEn.format(EMP.salary)}</mark>` : ""}.`
+      : `${ORG.name}, con NIT ${ORG.nit}, certifica que <b>${EMP.name}</b>, con cédula de ciudadanía ${EMP.cc}, trabaja en la empresa desde el 3 de febrero de 2021 en el cargo de <b>${EMP.role}</b>, con contrato ${EMP.contract}${CERT.salary ? ` y un salario básico mensual de <mark>${cop(EMP.salary)}</mark>` : ""}.`;
+    const issued = en ? `Issued in ${ORG.city}, Colombia, on October 8, 2026, at the employee's request.` : `Se expide en ${ORG.city} el 8 de octubre de 2026, a solicitud de la persona interesada.`;
+    return `<div class="paper__head"><span class="brand__mark" aria-hidden="true">CP</span><p class="paper__org">${ORG.name}<span>NIT ${ORG.nit} · ${ORG.city}</span></p></div>
+      <h4>${en ? "Employment certificate" : "Certificado laboral"}</h4>
+      <p>${greet}</p><p>${body}</p><p>${issued}</p>
+      <div class="paper__sig"><svg viewBox="0 0 120 30" aria-hidden="true"><path d="M4 22c8-14 14-16 16-10s-4 12 2 8 8-14 14-12-2 10 4 9 9-10 14-9 1 8 7 7 12-6 18-6 10 3 16 1"/></svg>
+        <b>${en ? "Human Resources" : "Talento Humano"}</b><br>${en ? "Digitally signed" : "Firma digital"} · <span class="code">${code.slice(4)}</span></div>
+      <div class="paper__verify">${qr(code)}<p>${en ? "Verify this certificate at" : "Verifica este certificado en"} <b>${ORG.site}</b> ${en ? "with the code" : "con el código"} <b class="code">${code}</b>.</p></div>`;
+  }
+
+  // ---------- Paneles ----------
+  const PANELS = {};
+
+  PANELS.cert = {
+    title: "Certificado laboral", kicker: "Documentos", icon: "cert",
+    html(p) {
+      if (p.to) { CERT.to = p.to; CERT.salary = p.salary ?? CERT_TO[p.to].salary; CERT.lang = p.lang ?? (CERT_TO[p.to].lang || "es"); }
+      return `<form class="f" id="f-cert" novalidate>
+        <fieldset><legend>¿Para quién es?</legend>${chips("to", Object.entries(CERT_TO).map(([k, v]) => [k, v.label]), CERT.to)}
+          <p class="hint" id="cert-hint"></p></fieldset>
+        <div class="inline">
+          <label class="switch"><input type="checkbox" id="cert-sal"${CERT.salary ? " checked" : ""}>Incluir mi salario</label>
+          ${seg("lang", "Idioma", [["es", "Español"], ["en", "Inglés"]], CERT.lang)}
+        </div>
+        <label class="field" for="cert-ent">Dirigido a <span class="opt-tag">(opcional)</span><input id="cert-ent" value="${esc(CERT.entity)}" placeholder="Nombre de la entidad"></label>
+        <div><p class="lbl">Así queda</p><div class="paper" id="cert-paper"></div></div>
+        <div class="copy-out field" id="cert-copy" hidden><label for="cert-url">Copia este enlace</label><input id="cert-url" readonly></div>
+        <div class="sheet__foot">
+          <button type="button" class="btn" id="cert-link">${icon("link")}Copiar enlace</button>
+          <button type="submit" class="btn btn--primary">${icon("download")}Descargar PDF</button>
+        </div>
+      </form>`;
+    },
+    wire(root) {
+      const paper = $("#cert-paper", root), hint = $("#cert-hint", root);
+      const HINTS = { all: "Confirma el cargo, la fecha de ingreso y el tipo de contrato.", bank: "Los bancos lo piden con salario.", rent: "Las inmobiliarias lo piden con salario.", visa: "Para la visa suele pedirse en inglés y con salario." };
+      const draw = (flash) => {
+        paper.innerHTML = certDoc();
+        hint.textContent = HINTS[CERT.to];
+        if (flash) { const m = paper.querySelector("mark"); if (m) anim(m, [{ background: "oklch(0.54 0.19 262 / 0.45)" }, { background: "oklch(0.54 0.19 262 / 0.16)" }], { duration: 700 }); }
+      };
+      draw();
+      root.addEventListener("change", (e) => {
+        if (e.target.name === "to") {
+          CERT.to = e.target.value;
+          CERT.salary = CERT_TO[CERT.to].salary;
+          $("#cert-sal", root).checked = CERT.salary;
+          if (CERT_TO[CERT.to].lang) { CERT.lang = CERT_TO[CERT.to].lang; root.querySelector(`[name="lang"][value="${CERT.lang}"]`).checked = true; }
+        }
+        if (e.target.id === "cert-sal") CERT.salary = e.target.checked;
+        if (e.target.name === "lang") CERT.lang = e.target.value;
+        draw(true);
+      });
+      $("#cert-ent", root).addEventListener("input", (e) => { CERT.entity = e.target.value; draw(); });
+      $("#cert-link", root).addEventListener("click", () => {
+        const url = `https://${ORG.site}/${certCode()}`;
+        const fallback = () => { const box = $("#cert-copy", root), inp = $("#cert-url", root); box.hidden = false; inp.value = url; inp.focus(); inp.select(); };
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => toast("Enlace copiado. Quien lo abra ve el certificado y lo verifica; vence el 7 de noviembre."), fallback);
+          else fallback();
+        } catch { fallback(); }
+      });
+      root.addEventListener("submit", (e) => {
+        e.preventDefault();
+        CERT.made = { to: CERT.to, date: TODAY };
+        renderFeed(); renderActs();
+        toast(`Listo: certificado-laboral-${CERT.lang === "en" ? "en-" : ""}2026-10-08.pdf`);
+      });
+    },
+  };
+
+  const PAYST = { sel: null };
+  PANELS.pay = {
+    title: "Desprendibles de pago", kicker: "Documentos", icon: "pay",
+    html(p) {
+      PAYST.sel = p.key || (PAYST.sel || LAST_PAY.key);
+      const months = [];
+      for (let i = 0; i < 14; i++) months.push(`<span>${i % 2 ? "" : MON[i % 12]}</span>`);
+      return `<div class="f">
+        <div class="duo"><div><p class="k">Recibido en 2026</p><p class="big">${cop(RECEIVED)}</p></div><div><p class="k">Quincenas pagadas</p><p class="big">${PAID_2026.length}</p></div></div>
+        <div><div class="pchart" id="pchart" style="--n:${PAYS.length}" role="group" aria-label="Pagos de enero de 2026 a febrero de 2027">${PAYS.map((q) => {
+          const ex = (Math.max(0, q.net - BASE_NET) / q.net) * 100;
+          return `<button type="button" class="${q.done ? "" : "is-future"}" data-pay="${q.key}" aria-pressed="${q.key === PAYST.sel}" tabindex="${q.key === PAYST.sel ? 0 : -1}" aria-label="${q.done ? `Quincena del ${period(q)}, ${cop(q.net)}` : `Proyección: quincena del ${period(q)}, unos ${cop(q.net)}`}"><span class="bar" style="--h:${((q.net / PAY_MAX) * 100).toFixed(1)}">${ex > 0.5 ? `<span class="bar__x" style="height:${ex.toFixed(1)}%"></span>` : ""}</span></button>`;
+        }).join("")}</div>
+        <div class="pchart__axis" style="--m:14" aria-hidden="true">${months.join("")}</div></div>
+        <section id="pay-detail" aria-live="polite"></section>
+        <div class="sheet__foot">
+          <button type="button" class="btn" id="pay-zip">${icon("download")}Los ${PAID_2026.length} de 2026</button>
+          <button type="button" class="btn btn--primary" id="pay-pdf">${icon("download")}Descargar PDF</button>
+        </div>
+      </div>`;
+    },
+    wire(root) {
+      const detail = $("#pay-detail", root), chart = $("#pchart", root);
+      const draw = () => {
+        const p = PAYS.find((q) => q.key === PAYST.sel);
+        HL = `pay-${p.key}`;
+        renderRibbon();
+        const q = PAYS[p.i - 1];
+        let delta = "";
+        if (q) {
+          const d = p.net - q.net;
+          if (Math.abs(d) < 1000) delta = `<p class="delta">Igual que la quincena anterior.</p>`;
+          else {
+            const now = p.plus.slice(1).map((x) => `${x[0].toLowerCase()} (${x[1]})`), before = q.plus.slice(1).map((x) => `${x[0].toLowerCase()} (${x[1]})`);
+            const why = d > 0 ? (now.length ? `, por ${list(now)}` : "") : before.length ? `: la anterior incluía ${list(before)}` : "";
+            delta = `<p class="delta ${d > 0 ? "up" : "down"}"><b>${d > 0 ? "↑" : "↓"} ${cop(Math.abs(d))}</b> frente a la quincena anterior${why}.</p>`;
+          }
+        }
+        detail.innerHTML = `<h3 class="d-title">Quincena del ${period(p)}${p.done ? "" : '<span class="est">Proyección</span>'}</h3>
+          <p class="d-sub">${p.done ? `Pagada el ${long(p.paid)}` : `Se paga el ${long(p.paid)}${keyOf(p.paid) !== keyOf(p.due) ? `, porque el ${p.due.getDate()} es ${FEST[keyOf(p.due)] ? "festivo" : WDAY[p.due.getDay()]}` : ""}`}</p>
+          ${delta}
+          <dl class="lines"><p class="grp">Devengado</p>${p.plus.map((x) => line(x[0], x[1], cop(x[2]))).join("")}
+            <p class="grp">Deducciones</p>${p.minus.map((x) => line(x[0], x[1], `− ${cop(x[2])}`, "minus")).join("")}
+            ${line(p.done ? "Neto pagado" : "Neto estimado", "", cop(p.net), "tot")}</dl>
+          ${p.done ? "" : '<p class="hint">Con lo registrado hasta hoy. Cambia si hay novedades antes del cierre.</p>'}`;
+        fade(detail);
+        $("#pay-pdf", root).disabled = !p.done;
+      };
+      draw();
+      const pick = (b) => {
+        PAYST.sel = b.dataset.pay;
+        $$("[data-pay]", chart).forEach((x) => { const on = x === b; x.setAttribute("aria-pressed", String(on)); x.tabIndex = on ? 0 : -1; });
+        draw();
+      };
+      chart.addEventListener("click", (e) => { const b = e.target.closest("[data-pay]"); if (b) pick(b); });
+      chart.addEventListener("keydown", (e) => {
+        const bs = $$("[data-pay]", chart), i = bs.indexOf(document.activeElement);
+        if (i < 0) return;
+        const j = e.key === "ArrowRight" ? Math.min(bs.length - 1, i + 1) : e.key === "ArrowLeft" ? Math.max(0, i - 1) : e.key === "Home" ? 0 : e.key === "End" ? bs.length - 1 : null;
+        if (j === null) return;
+        e.preventDefault(); bs[j].focus(); pick(bs[j]);
+      });
+      $("#pay-pdf", root).addEventListener("click", () => toast(`Listo: desprendible-${PAYST.sel}.pdf`));
+      $("#pay-zip", root).addEventListener("click", () => toast(`Listo: desprendibles-2026.zip, con ${PAID_2026.length} quincenas`));
+    },
+  };
+
+  PANELS.vac = {
+    title: "Vacaciones", kicker: "Solicitudes", icon: "vac",
+    html(p) {
+      if (p.pick) { VAC.sel = { s: p.pick.s, e: p.pick.e }; VAC.view = new Date(p.pick.s.getFullYear(), p.pick.s.getMonth(), 1); }
+      if (p.show) { HL = `vac-${p.show.id}`; }
+      if (VAC.sent && VAC.sent.status === "pending" && !p.again) return this.sentHTML();
+      const past = VAC.taken.filter((v) => v.s <= TODAY), done = past.map((v) => `${v.low} (${workdays(v.s, v.e)})`);
+      return `<form class="f" id="f-vac" novalidate>
+        <div class="duo"><div><p class="k">Disponibles</p><p class="big">${VAC.available} días hábiles</p><p class="hint">Sumas ${VAC.perMonth} por cada mes trabajado.</p></div>
+          <div><p class="k">Tomadas en 2026</p><p class="big">${past.reduce((s, v) => s + workdays(v.s, v.e), 0)} días</p><p class="hint">${cap(list(done))}.</p></div></div>
+        <fieldset><legend>Opciones que rinden</legend>
+          <div class="opts" id="vac-opts">${BRIDGES.map((b, i) => `<button type="button" class="opt" data-bridge="${i}" aria-pressed="false">
+            <span>${i === 0 ? '<span class="tagline">La más larga</span><br>' : ""}<b>${cap(span(b.s, b.e))}</b></span>
+            <span class="s">Pides ${b.k} días hábiles · del ${wds(b.a)} ${MON[b.a.getMonth()]} al ${wds(b.b)} ${MON[b.b.getMonth()]}</span>
+            <span class="r"><b>${b.rest}</b>días de descanso</span></button>`).join("")}</div>
+          <p class="hint">Cuentan los fines de semana y los festivos que quedan pegados a tus días.</p></fieldset>
+        <fieldset><legend>O elígelas en el calendario</legend>
+          <div class="cal-nav"><button type="button" class="icon-btn" id="cal-prev" aria-label="Meses anteriores">${icon("chevL")}</button><p id="cal-range"></p><button type="button" class="icon-btn" id="cal-next" aria-label="Meses siguientes">${icon("chev")}</button></div>
+          <div class="cal-wrap" id="cal"></div></fieldset>
+        <div class="calc" id="vac-calc" aria-live="polite"></div>
+        <label class="field" for="vac-note">Nota para ${EMP.boss} <span class="opt-tag">(opcional)</span><textarea id="vac-note" rows="2" placeholder="Por ejemplo: dejo a Andrés a cargo de las órdenes de compra"></textarea></label>
+        <div class="sheet__foot"><button type="button" class="btn btn--ghost" id="vac-clear">Borrar fechas</button><button type="submit" class="btn btn--primary" id="vac-send">${icon("send")}Enviar a ${EMP.boss}</button></div>
+      </form>`;
+    },
+    sentHTML() {
+      const v = VAC.sent;
+      return `<div class="f"><div class="done-box"><span class="ok">${icon("check")}</span><h3>Le llegó a ${EMP.boss}</h3>
+        <p>Pediste ${v.k} días hábiles, del ${dm(v.s)} al ${dm(v.e)}. Descansas ${v.rest} días y vuelves el ${long(v.back)}. Te avisamos en «Ahora» cuando responda.</p></div>
+        <div class="sheet__foot"><button type="button" class="btn btn--primary" data-close>Listo</button></div></div>`;
+    },
+    wire(root) {
+      const form = $("#f-vac", root);
+      if (!form) return;
+      const cal = $("#cal", root), calc = $("#vac-calc", root), send = $("#vac-send", root);
+      const firstView = new Date(2026, 9, 1), lastView = new Date(2027, 0, 1);
+      const range = () => {
+        const s = VAC.sel && VAC.sel.s, e = VAC.sel && (VAC.sel.e || VAC.hover);
+        return s && e && e >= s ? { s, e, ...restOf(s, e) } : s ? { s, e: s, a: s, b: s, rest: 1 } : null;
+      };
+      const month = (y, m) => {
+        const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate(), lead = (first.getDay() + 6) % 7;
+        let cells = "";
+        for (let i = 0; i < lead; i++) cells += "<span></span>";
+        for (let d = 1; d <= days; d++) {
+          const date = new Date(y, m, d), k = keyOf(date), off = isOff(date), f = FEST[k], past = date < MIN_START;
+          cells += `<button type="button" class="cal__d${off ? " is-off" : ""}${f ? " is-fest" : ""}${past ? " is-past" : ""}" data-day="${k}" tabindex="-1" aria-label="${cap(long(date))}${f ? `, festivo: ${f}` : off ? ", fin de semana" : ""}"${off || past ? ' aria-disabled="true"' : ""}${f ? ` title="${esc(f)}"` : ""}>${d}</button>`;
+        }
+        return `<div><p class="cal__h">${cap(MONTH[m])}${y !== 2026 ? ` ${y}` : ""}</p><div class="cal__g">${["L", "M", "M", "J", "V", "S", "D"].map((w) => `<span class="cal__wd" aria-hidden="true">${w}</span>`).join("")}${cells}</div></div>`;
+      };
+      const paint = () => {
+        const r = range();
+        let tab = null, first = null;
+        const foc = cal.contains(document.activeElement) ? document.activeElement : null;
+        $$(".cal__d", cal).forEach((b) => {
+          const d = parse(b.dataset.day), inR = r && d >= r.a && d <= r.b, inV = r && d >= r.s && d <= r.e && !isOff(d);
+          b.classList.toggle("in-rest", !!(inR && !inV));
+          b.classList.toggle("in-vac", !!inV);
+          b.classList.toggle("is-ra", !!(r && +d === +r.a));
+          b.classList.toggle("is-rb", !!(r && +d === +r.b));
+          b.classList.toggle("is-s", !!(VAC.sel && +d === +VAC.sel.s));
+          b.classList.toggle("is-e", !!(VAC.sel && VAC.sel.e && +d === +VAC.sel.e));
+          if (!b.hasAttribute("aria-disabled")) { first = first || b; if (VAC.sel && +d === +VAC.sel.s) tab = b; }
+        });
+        const t0 = foc || tab || first;
+        $$(".cal__d", cal).forEach((b) => { b.tabIndex = b === t0 ? 0 : -1; });
+        $$("[data-bridge]", root).forEach((b) => { const c = BRIDGES[+b.dataset.bridge]; b.setAttribute("aria-pressed", String(!!(VAC.sel && VAC.sel.e && +c.s === +VAC.sel.s && +c.e === +VAC.sel.e))); });
+      };
+      const drawCal = () => {
+        const v = VAC.view, n = new Date(v.getFullYear(), v.getMonth() + 1, 1);
+        cal.innerHTML = month(v.getFullYear(), v.getMonth()) + month(n.getFullYear(), n.getMonth());
+        $("#cal-range", root).textContent = `${cap(MONTH[v.getMonth()])} y ${MONTH[n.getMonth()]}${n.getFullYear() !== 2026 ? ` de ${n.getFullYear()}` : ""}`;
+        $("#cal-prev", root).disabled = v <= firstView;
+        $("#cal-next", root).disabled = v >= lastView;
+        paint();
+      };
+      const update = () => {
+        paint();
+        const r = range();
+        let ok = false;
+        if (!VAC.sel) calc.innerHTML = "Elige el primer día y luego el último.";
+        else if (!VAC.sel.e) calc.innerHTML = `Desde el ${long(VAC.sel.s)}. Ahora elige el último día.`;
+        else {
+          const k = workdays(VAC.sel.s, VAC.sel.e);
+          if (k > VAC.available) calc.innerHTML = `<span class="bad">Son ${k} días hábiles y tienes ${VAC.available}.</span> Acorta el rango o mira las opciones de arriba.`;
+          else {
+            ok = true;
+            const left = VAC.available - k;
+            calc.innerHTML = `<b>${k}</b> ${k === 1 ? "día hábil" : "días hábiles"} · descansas <b>${r.rest} días</b>, del ${wds(r.a)} ${MON[r.a.getMonth()]} al ${wds(r.b)} ${MON[r.b.getMonth()]} · vuelves el ${long(r.back)}. Te ${left === 1 ? "queda 1 día" : `quedan ${left} días`}.`;
+          }
+        }
+        send.disabled = !ok;
+        renderRibbon();
+      };
+      drawCal(); update();
+      $("#cal-prev", root).addEventListener("click", () => { VAC.view = new Date(VAC.view.getFullYear(), VAC.view.getMonth() - 1, 1); drawCal(); });
+      $("#cal-next", root).addEventListener("click", () => { VAC.view = new Date(VAC.view.getFullYear(), VAC.view.getMonth() + 1, 1); drawCal(); });
+      cal.addEventListener("click", (e) => {
+        const b = e.target.closest(".cal__d");
+        if (!b || b.hasAttribute("aria-disabled")) return;
+        const d = parse(b.dataset.day);
+        if (!VAC.sel || VAC.sel.e || d < VAC.sel.s) VAC.sel = { s: d, e: null };
+        else VAC.sel = { s: VAC.sel.s, e: d };
+        VAC.hover = null;
+        update();
+      });
+      cal.addEventListener("pointerover", (e) => {
+        const b = e.target.closest(".cal__d");
+        if (!b || !VAC.sel || VAC.sel.e || b.hasAttribute("aria-disabled")) return;
+        VAC.hover = parse(b.dataset.day);
+        paint();
+      });
+      cal.addEventListener("pointerleave", () => { if (VAC.hover) { VAC.hover = null; paint(); } });
+      cal.addEventListener("keydown", (e) => {
+        const b = e.target.closest(".cal__d");
+        if (!b) return;
+        const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        const t = addD(parse(b.dataset.day), step);
+        let nb = cal.querySelector(`[data-day="${keyOf(t)}"]`);
+        if (!nb) {
+          const v = new Date(t.getFullYear(), t.getMonth() - (step > 0 ? 1 : 0), 1);
+          if (v < firstView || v > lastView) return;
+          VAC.view = v; drawCal(); nb = cal.querySelector(`[data-day="${keyOf(t)}"]`);
+        }
+        if (nb) { $$(".cal__d", cal).forEach((x) => { x.tabIndex = x === nb ? 0 : -1; }); nb.focus(); }
+      });
+      $("#vac-opts", root).addEventListener("click", (e) => {
+        const b = e.target.closest("[data-bridge]");
+        if (!b) return;
+        const c = BRIDGES[+b.dataset.bridge];
+        VAC.sel = { s: c.s, e: c.e };
+        VAC.view = new Date(c.s.getFullYear(), c.s.getMonth(), 1);
+        drawCal(); update(); fade(cal);
+      });
+      $("#vac-clear", root).addEventListener("click", () => { VAC.sel = null; update(); });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (send.disabled) return;
+        const s = VAC.sel.s, en = VAC.sel.e, k = workdays(s, en), r = restOf(s, en);
+        VAC.sent = { id: "v3", s, e: en, k, ...r, status: "pending" };
+        VAC.asked = true;
+        const id = `r${++reqSeq}`;
+        REQS.unshift({ id, kind: "vac", title: "Vacaciones", when: `${cap(span(s, en))} · ${k} días hábiles · descanso de ${r.rest} días`, noun: `solicitud de vacaciones (${span(s, en)})`, sent: nowLabel(), who: EMP.boss, status: "pending" });
+        VAC.sel = null;
+        renderAll();
+        openPanel("vac", {});
+        toast(`Le enviamos tu solicitud a ${EMP.boss}.`);
+      });
+    },
+  };
+
+  PANELS.perm = {
+    title: "Permisos", kicker: "Solicitudes", icon: "perm",
+    html(p) {
+      if (p.type) PERM.type = p.type;
+      if (p.day) PERM.date = p.day;
+      if (p.full) PERM.mode = "day";
+      if (p.time) { PERM.mode = "hours"; [PERM.from, PERM.to] = p.time; }
+      if (PERM.sent && !p.again) return `<div class="f"><div class="done-box"><span class="ok">${icon("check")}</span><h3>Le llegó a ${EMP.boss}</h3><p>${PERM.sent}${/\.$/.test(PERM.sent) ? "" : "."} Te avisamos en «Ahora» cuando responda.</p></div>
+        <div class="sheet__foot"><button type="button" class="btn" data-perm-again>Pedir otro</button><button type="button" class="btn btn--primary" data-close>Listo</button></div></div>`;
+      const quick = [];
+      for (let d = addD(TODAY, 1); quick.length < 3; d = addD(d, 1)) if (!isOff(d)) quick.push(d);
+      const qv = PERM.date && quick.some((d) => +d === +PERM.date) ? keyOf(PERM.date) : PERM.date ? "other" : null;
+      const pend = PERMS.filter((x) => x.status === "pending"), okN = PERMS.filter((x) => x.status === "ok").length;
+      return `<form class="f" id="f-perm" novalidate>
+        <ul class="mini">${pend.map((x) => `<li><span class="dot w"></span>${x.what} · ${wds(x.date)} ${MON[x.date.getMonth()]}, ${x.time}<span class="m">por aprobar</span></li>`).join("")}
+          <li><span class="dot"></span>${okN} aprobados en 2026<span class="m">en tu cinta</span></li></ul>
+        <fieldset><legend>¿Para qué es?</legend>${chips("ptype", Object.entries(PERM_TYPES).map(([k, v]) => [k, v.label]), PERM.type)}</fieldset>
+        <fieldset><legend>¿Qué día?</legend>
+          ${chips("pday", [...quick.map((d, i) => [keyOf(d), i === 0 ? `Mañana, ${wds(d)}` : `${cap(wds(d))} ${MON[d.getMonth()]}`]), ["other", "Otro día"]], qv)}
+          <div class="field" id="perm-other"${qv === "other" ? "" : " hidden"} style="margin-top:10px"><label for="perm-date" class="sr">Fecha</label><input type="date" id="perm-date" min="${keyOf(addD(TODAY, 1))}" max="2027-02-28" value="${PERM.date ? keyOf(PERM.date) : ""}"></div>
+          <p class="err" id="perm-err-d" hidden></p></fieldset>
+        <fieldset><legend>¿Cuánto tiempo?</legend>${seg("pmode", "Duración", [["hours", "Unas horas"], ["day", "Todo el día"]], PERM.mode)}
+          <div class="duo" id="perm-hours" style="margin-top:12px"${PERM.mode === "day" ? " hidden" : ""}>
+            <label class="field" for="perm-from">Desde<input type="time" id="perm-from" value="${PERM.from}" step="900"></label>
+            <label class="field" for="perm-to">Hasta<input type="time" id="perm-to" value="${PERM.to}" step="900"></label></div>
+          <p class="err" id="perm-err-h" hidden></p></fieldset>
+        <div><p class="lbl">Soporte <span class="opt-tag">(puedes subirlo después)</span></p>
+          <label class="drop${PERM.file ? " has-file" : ""}" for="perm-file">${icon("clip")}<span data-doc>${PERM.file ? esc(PERM.file) : "Adjunta la orden o la cita (PDF o foto)"}</span><input type="file" id="perm-file" accept="image/*,application/pdf"></label></div>
+        <p class="note-box" id="perm-rule"></p>
+        <div class="sheet__foot"><span class="grow" id="perm-sum"></span><button type="submit" class="btn btn--primary">${icon("send")}Enviar a ${EMP.boss}</button></div>
+      </form>`;
+    },
+    wire(root) {
+      const again = root.querySelector("[data-perm-again]");
+      if (again) again.addEventListener("click", () => { PERM.sent = null; openPanel("perm", { again: true }); });
+      const form = $("#f-perm", root);
+      if (!form) return;
+      const errD = $("#perm-err-d", root), errH = $("#perm-err-h", root);
+      const sync = () => {
+        $("#perm-rule", root).innerHTML = `<b>${PERM_TYPES[PERM.type].label}.</b> ${PERM_TYPES[PERM.type].rule}`;
+        $("#perm-sum", root).textContent = PERM.date ? `${cap(wds(PERM.date))} ${MON[PERM.date.getMonth()]} · ${PERM.mode === "day" ? "todo el día" : hmRange(PERM.from, PERM.to)}` : "";
+        let bad = "";
+        if (PERM.date && isOff(PERM.date)) bad = `El ${wd(PERM.date)} es ${FEST[keyOf(PERM.date)] ? `festivo (${FEST[keyOf(PERM.date)]})` : "fin de semana"}: ese día no trabajas.`;
+        errD.textContent = bad; errD.hidden = !bad;
+        renderRibbon();
+        return !bad;
+      };
+      sync();
+      form.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t.name === "ptype") PERM.type = t.value;
+        if (t.name === "pday") { $("#perm-other", root).hidden = t.value !== "other"; if (t.value === "other") { const v = parse($("#perm-date", root).value); PERM.date = v; $("#perm-date", root).focus(); } else PERM.date = parse(t.value); }
+        if (t.id === "perm-date") PERM.date = parse(t.value);
+        if (t.name === "pmode") { PERM.mode = t.value; $("#perm-hours", root).hidden = t.value === "day"; }
+        if (t.id === "perm-from") PERM.from = t.value || PERM.from;
+        if (t.id === "perm-to") PERM.to = t.value || PERM.to;
+        if (t.id === "perm-file") { const f = t.files && t.files[0]; PERM.file = f ? f.name : ""; const drop = t.closest(".drop"); drop.classList.toggle("has-file", !!f); if (f) drop.querySelector("[data-doc]").textContent = f.name; }
+        errH.hidden = true;
+        sync();
+      });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!PERM.date) { errD.textContent = "Elige el día."; errD.hidden = false; return; }
+        if (!sync()) return;
+        if (PERM.mode === "hours" && PERM.from >= PERM.to) { errH.textContent = "La hora de salida va antes de la de regreso."; errH.hidden = false; $("#perm-to", root).focus(); return; }
+        const time = PERM.mode === "day" ? "todo el día" : hmRange(PERM.from, PERM.to), what = PERM_TYPES[PERM.type].label;
+        const pid = `p${PERMS.length + 1}`;
+        PERMS.push({ id: pid, what, date: PERM.date, time, status: "pending" });
+        const id = `r${++reqSeq}`;
+        REQS.unshift({ id, kind: "perm", ref: pid, title: `Permiso · ${PERM_TYPES[PERM.type].noun}`, when: `${long(PERM.date)} · ${time}`, noun: `permiso del ${wd(PERM.date)}`, sent: nowLabel(), who: EMP.boss, status: "pending" });
+        PERM.sent = `${what}, el ${long(PERM.date)}, ${time}`;
+        PERM.date = null; PERM.file = "";
+        renderAll();
+        openPanel("perm", {});
+        toast(`Le enviamos tu permiso a ${EMP.boss}.`);
+      });
+    },
+  };
+
+  PANELS.ces = {
+    title: "Cesantías", kicker: "Prestaciones", icon: "ces",
+    html(p) {
+      HL = "ces";
+      if (p.reason) CES.reason = p.reason;
+      if (p.amount) CES.amount = nf.format(p.amount);
+      const frac = Math.round((days360(TODAY) / 360) * 100);
+      const req = CES.request;
+      return `<div class="f">
+        <div><p class="k">En tu fondo de cesantías</p><p class="big">${cop(CES.balance)}</p><p class="hint">Saldo al ${CES.at}.</p></div>
+        <div><p><b class="num">${cop(CES.accrued)}</b> causadas en 2026 · cada día trabajado suma ${cop(CES.perDay)}</p>
+          <div class="meter" role="img" aria-label="${frac} % del año"><i style="width:${frac}%"></i></div>
+          <p class="hint">La empresa las consigna en tu fondo antes del 15 de febrero. Los intereses, el 12 % al año, te llegan con la nómina antes del 31 de enero.</p></div>
+        <ol class="tl">${CES_EVENTS.map((c) => `<li class="${c.done ? "" : "is-future"}"><span class="v"></span><span><b>${c.t}</b><span class="d">${cap(long(c.d))}</span></span><span class="a">${c.done ? "" : "≈ "}${cop(c.amt)}</span></li>`).join("")}</ol>
+        ${req ? `<div class="done-box"><span class="ok">${icon("check")}</span><h3>${req.status === "ok" ? "La carta para el fondo está lista" : "Talento humano está preparando la carta"}</h3>
+          <p>Retiro de ${cop(req.amount)} para ${req.reason === "viv" ? "vivienda" : "educación"}. ${req.status === "ok" ? "Ya la puedes radicar en tu fondo." : "Responde en 2 días hábiles; luego la radicas en tu fondo."}</p></div>` : `
+        <details class="wd" id="ces-wd"${p.withdraw ? " open" : ""}><summary>Retiro parcial <span>para vivienda o educación</span></summary>
+          <form class="wd__in" id="f-ces" novalidate>
+            <fieldset><legend>¿Para qué?</legend>${chips("creason", [["viv", "Vivienda: comprar, construir, mejorar o pagar crédito"], ["edu", "Educación: tuya, de tu pareja o tus hijos"]], CES.reason)}</fieldset>
+            <label class="field" for="ces-amt">¿Cuánto?<span class="money" id="ces-money"><span>$</span><input id="ces-amt" inputmode="numeric" value="${esc(CES.amount)}" placeholder="0" aria-describedby="ces-help"></span></label>
+            <p class="hint" id="ces-help">Hasta ${cop(CES.balance)}.</p><p class="err" id="ces-err" hidden></p>
+            <div><p class="lbl">Soporte</p><label class="drop" for="ces-file">${icon("clip")}<span data-doc id="ces-doc"></span><input type="file" id="ces-file" accept="image/*,application/pdf"></label></div>
+            <div class="sheet__foot"><button type="submit" class="btn btn--primary">${icon("send")}Pedir la carta para el fondo</button></div>
+          </form></details>`}
+      </div>`;
+    },
+    wire(root) {
+      renderRibbon();
+      const form = $("#f-ces", root);
+      if (!form) return;
+      const DOCS = { viv: "Promesa de compraventa, presupuesto de obra o extracto del crédito", edu: "Recibo de matrícula" };
+      const doc = $("#ces-doc", root), amt = $("#ces-amt", root), err = $("#ces-err", root), money = $("#ces-money", root);
+      const setDoc = () => { if (!CES.file) doc.textContent = DOCS[CES.reason]; };
+      setDoc();
+      form.addEventListener("change", (e) => {
+        if (e.target.name === "creason") { CES.reason = e.target.value; setDoc(); }
+        if (e.target.id === "ces-file") { const f = e.target.files && e.target.files[0]; CES.file = f ? f.name : ""; e.target.closest(".drop").classList.toggle("has-file", !!f); doc.textContent = f ? f.name : DOCS[CES.reason]; }
+      });
+      amt.addEventListener("input", () => {
+        const n = +(amt.value.replace(/\D/g, "") || 0);
+        amt.value = n ? nf.format(n) : "";
+        CES.amount = amt.value;
+        err.hidden = true; money.removeAttribute("data-invalid");
+      });
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const n = +(amt.value.replace(/\D/g, "") || 0);
+        const bad = !n ? "Escribe el monto." : n > CES.balance ? `Tu saldo es ${cop(CES.balance)}.` : "";
+        if (bad) { err.textContent = bad; err.hidden = false; money.setAttribute("data-invalid", ""); amt.focus(); return; }
+        CES.request = { amount: n, reason: CES.reason, status: "pending" };
+        const id = `r${++reqSeq}`;
+        REQS.unshift({ id, kind: "ces", title: `Cesantías · retiro para ${CES.reason === "viv" ? "vivienda" : "educación"}`, when: `${cop(n)} · carta para el fondo`, noun: "retiro de cesantías", sent: nowLabel(), who: "Talento humano", status: "pending" });
+        renderAll();
+        openPanel("ces", {});
+        toast("Le pedimos la carta a Talento humano.");
+      });
+    },
+  };
+
+  PANELS.ret = {
+    title: "Ingresos y retenciones", kicker: "Documentos", icon: "ret",
+    html() {
+      return `<div class="f"><p class="hint" style="margin:0">El certificado de cada año (formulario 220), para tu declaración de renta.</p>
+        <ul class="years">${YEARS.map((r) => `<li><p class="y">${r.y}<span>Expedido el ${r.issued}</span></p><button type="button" class="btn btn--sm" data-year="${r.y}">${icon("download")}Descargar</button>
+          <dl><div><dt>Ingresos</dt><dd>${cop(r.total)}</dd></div><div><dt>Salud y pensión</dt><dd>${cop(r.aportes)}</dd></div><div><dt>Retención</dt><dd>${cop(r.ret)}</dd></div></dl></li>`).join("")}</ul></div>`;
+    },
+    wire(root) { root.addEventListener("click", (e) => { const b = e.target.closest("[data-year]"); if (b) toast(`Listo: ingresos-y-retenciones-${b.dataset.year}.pdf`); }); },
+  };
+
+  // ---------- La hoja: se abre al lado y empuja la página ----------
+  const shell = $("#shell"), sheet = $("#sheet"), body = $("#sheet-body"), scrim = $("#scrim"), page = $("#page");
+  const wide = matchMedia("(min-width: 1100px)"), phone = matchMedia("(max-width: 640px)");
+  let OPEN = null, OPENER = null, CLOSING = null, bodyRef = body;
+  const modal = () => !wide.matches;
+  function syncModal() {
+    const on = !!OPEN && modal();
+    scrim.hidden = !on;
+    page.inert = on;
+    $(".top").inert = on;
+    sheet.setAttribute("aria-modal", String(on));
+  }
+  wide.addEventListener && wide.addEventListener("change", syncModal);
+
+  function openPanel(id, params = {}) {
+    const P = PANELS[id];
+    const was = OPEN;
+    if (!was) OPENER = openerSel(document.activeElement);
+    if (CLOSING) { CLOSING.cancel(); CLOSING = null; }
+    if (was !== id) { HL = null; VAC.hover = null; }
+    OPEN = id;
+    $("#sheet-title").textContent = P.title;
+    $("#sheet-kicker").textContent = P.kicker;
+    $("#sheet-ico").innerHTML = icon(P.icon);
+    // Re-crea el cuerpo para soltar los oyentes del trámite anterior.
+    const fresh = bodyRef.cloneNode(false);
+    bodyRef.replaceWith(fresh);
+    bodyRef = fresh;
+    fresh.innerHTML = P.html.call(P, params);
+    P.wire(fresh, params);
+    fresh.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closePanel(); });
+    if (!was) {
+      sheet.hidden = false;
+      shell.classList.add("has-sheet");
+      anim(sheet, phone.matches ? [{ transform: "translateY(100%)" }, { transform: "none" }] : [{ transform: "translateX(100%)" }, { transform: "none" }], { duration: 420 });
+    } else if (was !== id) fade(fresh);
+    syncModal();
+    renderActs();
+    renderRibbon();
+    $("#sheet-title").focus({ preventScroll: true });
+  }
+  function closePanel() {
+    if (!OPEN) return;
+    OPEN = null; HL = null; VAC.hover = null;
+    shell.classList.remove("has-sheet");
+    const a = anim(sheet, phone.matches ? [{ transform: "none" }, { transform: "translateY(100%)" }] : [{ transform: "none" }, { transform: "translateX(100%)" }], { duration: 300, fill: "forwards" });
+    CLOSING = a;
+    after(a, () => { if (!OPEN && CLOSING === a) { sheet.hidden = true; CLOSING = null; if (a) a.cancel(); } });
+    syncModal();
+    renderActs();
+    renderRibbon();
+    // Los botones se vuelven a pintar: el foco vuelve al equivalente de hoy, no al nodo viejo.
+    const back = (OPENER && $(OPENER)) || $("#acts [data-open]");
+    if (back) back.focus({ preventScroll: true });
+  }
+  function openerSel(el) {
+    if (!el || el === document.body || el.closest("#sheet")) return null;
+    if (el.id) return `#${el.id}`;
+    const box = el.closest("[id]");
+    for (const k of ["mk", "open", "nudge", "try"]) if (el.dataset && el.dataset[k]) return `${box ? `#${box.id} ` : ""}[data-${k}="${el.dataset[k]}"]`;
+    if (el.matches && el.matches("[data-vac-pick], [data-cert-again]")) return el.matches("[data-vac-pick]") ? "[data-vac-pick]" : "[data-cert-again]";
+    return null;
+  }
+  $("#sheet-close").addEventListener("click", closePanel);
+  scrim.addEventListener("click", closePanel);
+
+  // ---------- La caja de intención ----------
+  const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+  const MONTH_N = MONTH.map(norm);
+  function findMonth(t) {
+    for (let i = 0; i < 12; i++) if (new RegExp(`\\b${MONTH_N[i]}\\b`).test(t)) return i;
+    if (/fin de ano|navidad/.test(t)) return 11;
+    return -1;
+  }
+  function findDay(t) {
+    if (/\bpasado manana\b/.test(t)) return addD(TODAY, 2);
+    const t2 = t.replace(/\b(en|por|de) la manana\b/g, " ");
+    if (/\bmanana\b/.test(t2)) return addD(TODAY, 1);
+    const W = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+    for (let i = 0; i < 7; i++) if (new RegExp(`\\b${W[i]}\\b`).test(t)) { let d = addD(TODAY, 1); while (d.getDay() !== i) d = addD(d, 1); return d; }
+    const m = /\bel (\d{1,2})(?: de ([a-z]+))?/.exec(t);
+    if (m) {
+      const day = +m[1], mi = m[2] ? MONTH_N.indexOf(m[2]) : -1;
+      let d = new Date(2026, mi >= 0 ? mi : TODAY.getMonth(), day);
+      if (mi >= 0 && mi < TODAY.getMonth()) d = new Date(2027, mi, day);
+      if (mi < 0 && d <= TODAY) d = new Date(2026, TODAY.getMonth() + 1, day);
+      if (d.getDate() === day) return d;
+    }
+    return null;
+  }
+  function findTime(t) {
+    const m = /\ba las (\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.? ?m|p\.? ?m)?/.exec(t);
+    if (m) { let h = +m[1]; const pm = m[3] && m[3][0] === "p", am = m[3] && m[3][0] === "a"; if (pm && h < 12) h += 12; else if (!am && h < 7) h += 12; return [`${pad(h)}:${m[2] || "00"}`, `${pad(Math.min(h + 2, 23))}:${m[2] || "00"}`]; }
+    if (/\b(en|por|de) la manana\b/.test(t)) return ["07:00", "09:00"];
+    if (/\b(en|por|de) la tarde\b/.test(t)) return ["14:00", "16:00"];
+    return null;
+  }
+  function parseAmount(t) {
+    const m = /(\d+(?:[.,]\d+)?)\s*(millones|millon|mill|m)\b/.exec(t);
+    if (m) return Math.round(parseFloat(m[1].replace(",", ".")) * 1e6);
+    const n = /\$?\s?(\d{1,3}(?:\.\d{3})+|\d{6,})/.exec(t);
+    return n ? +n[1].replace(/\D/g, "") : 0;
+  }
+  function understand(raw) {
+    const t = norm(raw).trim();
+    if (t.length < 3) return null;
+    const has = (re) => re.test(t);
+    if (has(/certific|constancia|carta laboral/) && !has(/retencion|ingresos y/)) {
+      let to = "all";
+      if (has(/banco|credito|prestamo|tarjeta|hipotec|leasing|financier/)) to = "bank";
+      else if (has(/arriendo|arrendamiento|inmobiliaria|apartamento|alquiler/)) to = "rent";
+      else if (has(/embajada|visa|consulado/)) to = "visa";
+      let salary = CERT_TO[to].salary;
+      if (has(/sin (el )?(salario|sueldo)/)) salary = false; else if (has(/con (el )?(salario|sueldo)/)) salary = true;
+      const lang = has(/ingles|english/) ? "en" : has(/espanol/) ? "es" : CERT_TO[to].lang || "es";
+      return { panel: "cert", params: { to, salary, lang }, tags: ["Certificado laboral", CERT_TO[to].phrase, salary ? "con salario" : "sin salario", lang === "en" ? "en inglés" : "en español"] };
+    }
+    if (has(/cesantia/)) {
+      const params = {}, tags = ["Cesantías"];
+      if (has(/vivienda|casa|apartamento|hipotec|lote|construir|remodel/)) { params.withdraw = true; params.reason = "viv"; }
+      else if (has(/estudi|universidad|educacion|semestre|matricula|colegio|maestria/)) { params.withdraw = true; params.reason = "edu"; }
+      if (has(/retir|sacar|usar|pedir/)) params.withdraw = true;
+      const amt = parseAmount(t);
+      if (amt) { params.withdraw = true; params.amount = amt; }
+      if (params.withdraw) { tags.push("retiro parcial"); if (params.reason) tags.push(params.reason === "viv" ? "para vivienda" : "para educación"); if (amt) tags.push(cop(amt)); }
+      else tags.push("tu saldo");
+      return { panel: "ces", params, tags };
+    }
+    if (has(/retencion|declaracion|renta|ingresos y|formulario 220|dian/)) return { panel: "ret", params: {}, tags: ["Ingresos y retenciones", "formulario 220"] };
+    if (has(/vacacion|descans|puente|viaj/)) {
+      const mi = findMonth(t);
+      const pick = mi >= 0 ? bestInMonth(mi) : has(/puente|rind|mejor|larg/) ? LONG : null;
+      return { panel: "vac", params: { pick }, tags: ["Vacaciones", mi >= 0 ? `en ${MONTH[mi]}` : null, pick ? `${span(pick.s, pick.e)}: ${pick.k} días, ${pick.rest} de descanso` : "eliges las fechas"] };
+    }
+    if (has(/permiso|\bcitas?\b|medic|odontolog|diligencia|calamidad|licencia|salir temprano|llegar tarde|doctor|examen/)) {
+      let type = "otro";
+      if (has(/\bcitas?\b|medic|odontolog|doctor|examen|\beps\b|terapia/)) type = "cita";
+      else if (has(/diligencia|tramite|notaria|registraduria|banco/)) type = "dili";
+      else if (has(/calamidad|emergencia|inundacion|accidente/)) type = "cala";
+      const day = findDay(t), full = has(/todo el dia|dia completo/), time = full ? null : findTime(t);
+      const noun = type === "cita" && has(/odontolog/) ? "cita odontológica" : PERM_TYPES[type].noun;
+      return { panel: "perm", params: { type, day, time, full }, tags: ["Permiso", noun, day ? wd(day) : "eliges el día", full ? "todo el día" : time ? hmRange(time[0], time[1]) : null] };
+    }
+    if (has(/desprendible|colilla|nomina|pago|quincena|sueldo|salario|prima|me pagan|cuanto gane/)) {
+      let pay = LAST_PAY;
+      const mi = findMonth(t);
+      if (has(/prima/)) pay = mi === 11 || has(/diciembre|proxima|siguiente/) ? PAYS.find((q) => q.prima && !q.done) : PAYS.find((q) => q.prima && q.done);
+      else if (has(/proxim|siguiente|cuando me pagan/)) pay = NEXT_PAY;
+      else if (mi >= 0) { const ps = PAYS.filter((q) => q.due.getMonth() === mi && q.due.getFullYear() === (mi > TODAY.getMonth() + 3 ? 2025 : 2026)); if (ps.length) pay = has(/primera|\b15\b/) ? ps[0] : ps[ps.length - 1]; }
+      return { panel: "pay", params: { key: pay.key }, tags: ["Desprendible de pago", `quincena del ${period(pay)}`, pay.done ? null : "proyección"] };
+    }
+    return { none: true };
+  }
+
+  const askQ = $("#ask-q"), askRead = $("#ask-read"), askGo = $("#ask-go");
+  let LAST_TAGS = "";
+  function readAsk() {
+    const u = understand(askQ.value);
+    askGo.disabled = !u || !!u.none;
+    if (!u) { askRead.innerHTML = ""; LAST_TAGS = ""; return u; }
+    if (u.none) { askRead.innerHTML = "Eso no lo reconozco todavía. Puedo preparar certificados, desprendibles, vacaciones, permisos, cesantías y retenciones."; LAST_TAGS = ""; return u; }
+    const tags = u.tags.filter(Boolean), sig = tags.join("|");
+    if (sig !== LAST_TAGS) {
+      const old = new Set(LAST_TAGS.split("|"));
+      askRead.innerHTML = `<span>Entendí:</span>${tags.map((x) => `<span class="tag${old.has(x) ? "" : " new"}">${esc(x)}</span>`).join("")}`;
+      $$(".tag.new", askRead).forEach((el, i) => anim(el, [{ opacity: 0, transform: "translateY(4px) scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: 220, delay: i * 40 }));
+      LAST_TAGS = sig;
+    }
+    return u;
+  }
+  askQ.addEventListener("input", readAsk);
+  askQ.addEventListener("keydown", (e) => { if (e.key === "Escape" && askQ.value) { e.stopPropagation(); askQ.value = ""; readAsk(); } });
+  $("#ask").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const u = readAsk();
+    if (!u || u.none) return;
+    openPanel(u.panel, u.params);
+  });
+  const TRY = ["Certificado para el banco", "Mi último desprendible", "Vacaciones en diciembre", "Permiso el viernes para una diligencia", "Retirar cesantías para la universidad"];
+  $("#ask-try").innerHTML = TRY.map((x) => `<button type="button" data-try="${esc(x)}">${esc(x)}</button>`).join("");
+  $("#ask-try").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-try]");
+    if (!b) return;
+    askQ.value = b.dataset.try;
+    const u = readAsk();
+    if (u && !u.none) openPanel(u.panel, u.params);
+  });
+  $("#top-search").addEventListener("click", () => { askQ.focus(); askQ.scrollIntoView && askQ.scrollIntoView({ block: "center", behavior: reduced() ? "auto" : "smooth" }); });
+
+  // ---------- Clics de la página ----------
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t.closest("#sheet")) return;
+    const o = t.closest("[data-open]");
+    if (o) { openPanel(o.dataset.open, o.dataset.key ? { key: o.dataset.key } : {}); return; }
+    const n = t.closest("[data-nudge]");
+    if (n) { nudge(n.dataset.nudge); return; }
+    if (t.closest("[data-vac-pick]")) { openPanel("vac", { pick: LONG }); return; }
+    if (t.closest("[data-cert-again]")) openPanel("cert", { to: "bank", salary: true, lang: "es" });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && OPEN) { e.preventDefault(); closePanel(); return; }
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (e.key === "/" && !OPEN && tag !== "input" && tag !== "textarea" && !e.target.isContentEditable) { e.preventDefault(); askQ.focus(); }
+  });
+
+  // ---------- Arranque ----------
+  const hr = new Date().getHours();
+  $("#hi").textContent = `${hr < 12 ? "Buenos días" : hr < 19 ? "Buenas tardes" : "Buenas noches"}, ${EMP.first}`;
+  $("#today").textContent = cap(long(TODAY));
+  $("#year-sum").innerHTML = `<b>${cop(RECEIVED)}</b> recibidos en ${PAID_2026.length} quincenas`;
+  computeBridges();
+  ribbonStatic();
+  wireRibbon();
+  renderAll();
+  // En pantallas angostas la cinta se desplaza: empieza mostrando hoy.
+  const sc = $("#rib-scroll");
+  if (sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, (sc.scrollWidth * xc(TODAY)) / 100 - sc.clientWidth * 0.6);
+})();
+</script>

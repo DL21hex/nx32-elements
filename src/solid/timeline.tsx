@@ -10,7 +10,7 @@ export type { NxTimeline, TimelineHolidays, TimelineItem, TimelineLabels, Timeli
 export interface TimelineProps extends Omit<JSX.HTMLAttributes<NxTimeline>, "onSelect" | "children"> {
   /** Los carriles, de arriba abajo: `{id, label, kind?: "bars" | "ranges" | "points", shape?}`. */
   lanes: TimelineLane[];
-  /** Las marcas: `{id?, lane, date | start/end, value?, extra?, state?, tone?, label, detail?, action?, href?, caption?}`. */
+  /** Las marcas: `{id?, lane, date | start/end, value?, extra?, state?, tone?, label, detail?, action?, href?, newTab?, caption?}`. */
   items: TimelineItem[];
   legend?: TimelineLegendItem[];
   /** `"co"` (por defecto), una lista de fechas o de `{date, name}`, o `null`. */

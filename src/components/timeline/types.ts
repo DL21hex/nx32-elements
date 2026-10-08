@@ -48,6 +48,8 @@ export interface TimelineItem {
   action?: string;
   /** Adónde lleva: la marca es un `<a href>` de verdad. */
   href?: string;
+  /** El destino abre en otra pestaña (un PDF que el router de la app no debe interceptar). */
+  newTab?: boolean;
   /** Un texto corto sobre la marca, siempre a la vista («en 7 días»). Úsese para una o dos. */
   caption?: string;
 }
@@ -81,4 +83,6 @@ export interface TimelineLabels {
 export interface TimelineSelectDetail {
   item: TimelineItem;
   href: string | null;
+  /** El enlace abre en otra pestaña: la app no debería navegar ella. */
+  newTab: boolean;
 }

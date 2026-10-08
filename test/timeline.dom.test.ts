@@ -19,7 +19,7 @@ const LANES: TimelineLane[] = [
 ];
 const ITEMS: TimelineItem[] = [
   { id: "p1", lane: "pay", date: "2026-09-15", value: 1974000, label: "Quincena del 1 al 15 de septiembre", detail: ["$ 1.974.000 netos"], href: "/pagos/2026-09-15", action: "Abrir el desprendible" },
-  { id: "p2", lane: "pay", date: "2026-09-30", value: 1882000, label: "Quincena del 16 al 30 de septiembre", href: "/pagos/2026-09-30" },
+  { id: "p2", lane: "pay", date: "2026-09-30", value: 1882000, label: "Quincena del 16 al 30 de septiembre", href: "/pagos/2026-09-30", newTab: true },
   { id: "p3", lane: "pay", date: "2026-10-15", value: 1951000, label: "Quincena del 1 al 15 de octubre", caption: "en 7 días" },
   { id: "v1", lane: "rest", start: "2026-07-13", end: "2026-07-17", label: "Vacaciones", detail: ["5 días hábiles"] },
   { id: "v2", lane: "rest", start: "2026-12-28", end: "2027-01-08", state: "pending", label: "Vacaciones por aprobar" },
@@ -120,10 +120,15 @@ describe("<nx-timeline>", () => {
     m1.dispatchEvent(click);
     expect(seen[0].item.id).toBe("p1");
     expect(seen[0].href).toBe("/pagos/2026-09-15");
+    expect(seen[0].newTab).toBe(false);
     expect(click.defaultPrevented).toBe(true);
+    const m2 = marks(el).find((m) => m.getAttribute("href") === "/pagos/2026-09-30")!;
+    expect([m2.getAttribute("target"), m2.getAttribute("rel")]).toEqual(["_blank", "noopener"]);
+    m2.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(seen[1].newTab).toBe(true);
     // Con Ctrl, el navegador decide (otra pestaña) y no se anuncia.
     m1.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }));
-    expect(seen).toHaveLength(1);
+    expect(seen).toHaveLength(2);
   });
 
   it("resalta una marca y conserva el foco al cambiar los datos", async () => {

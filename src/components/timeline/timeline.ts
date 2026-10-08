@@ -422,7 +422,9 @@ export class NxTimeline extends Base {
     const name = [it.label, ...(Array.isArray(it.detail) ? it.detail : []), stateText].filter((s) => typeof s === "string" && s.trim()).join(". ");
     const tone = it.tone && /^(neutral|info|success|warning|danger)$/.test(it.tone) ? ` is-tone-${it.tone}` : "";
     const cls = `nx-timeline__mark nx-timeline__mark--${m.kind === "bars" ? "bar" : m.kind === "points" ? "point" : "range"} is-${m.state}${tone}${highlight && it.id === highlight ? " is-highlight" : ""}`;
-    const el = href ? h("a", { class: cls, href, "aria-label": name }) : h("button", { class: cls, type: "button", "aria-label": name });
+    const el = href
+      ? h("a", { class: cls, href, "aria-label": name, target: it.newTab ? "_blank" : null, rel: it.newTab ? "noopener" : null })
+      : h("button", { class: cls, type: "button", "aria-label": name });
     el.dataset.nxKey = m.key;
     el.tabIndex = -1;
     el.style.left = `${m.x}%`;
@@ -578,7 +580,7 @@ export class NxTimeline extends Base {
     if (!entry) return;
     // Un clic con modificador (otra pestaña, otra ventana) es del navegador.
     if (t instanceof HTMLAnchorElement && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0)) return;
-    const detail: TimelineSelectDetail = { item: entry.mark.item, href: t instanceof HTMLAnchorElement ? t.getAttribute("href") : null };
+    const detail: TimelineSelectDetail = { item: entry.mark.item, href: t instanceof HTMLAnchorElement ? t.getAttribute("href") : null, newTab: t.getAttribute("target") === "_blank" };
     if (!emit(this, "nx-timeline-select", detail, true)) e.preventDefault();
     this.#hideLens();
   };

@@ -11,7 +11,8 @@ El inicio de una persona: cuatro componentes nuevos y los festivos en el núcleo
   y lo pasado sombreado; `state` (`done`, `upcoming`, `pending`, `rejected`, `draft`) y `tone`.
 - La lente sale al pasar el puntero o al enfocar, en la capa superior (Popover API): ningún
   `overflow` la recorta. Un solo <kbd>Tab</kbd> y las flechas recorren las marcas en el orden del
-  eje. Las marcas con `href` son `<a href>`; `nx-timeline-select` es cancelable.
+  eje. Las marcas con `href` son `<a href>` (con `newTab`, en otra pestaña); `nx-timeline-select`
+  es cancelable y dice `newTab`.
 - Nada se mide en JavaScript: posiciones en % y altos por variable CSS. En pantallas angostas se
   desplaza a lo ancho y arranca mostrando hoy (`scrollToDay()`). En el registro BDUI como `Timeline`.
 

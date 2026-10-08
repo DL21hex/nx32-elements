@@ -1910,7 +1910,7 @@ después el mejor puente corto de cada mes.
 |---|---|
 | `<nx-intent>` | `intents`, `examples`, `placeholder`, `today`, `currency`, `hotkey`, `value`, `locale`, `labels` · `match`, `focus()`, `clear()`, `submit()` · `nx-intent-change` `{text, match}`, `nx-intent-submit` `{text, id, intent, params, href, newTab}` (cancelable) · `understandIntent`, `findDate`, `findMonth`, `findTime`, `findAmount`, `withParams` |
 | `<nx-stats>` | `items` (`[{id?, label, value, format?, currency?, note?, badge?, trend?, meter?, ring?, href?, newTab?}]`), `layout`, `locale`, `labels` · `nx-stats-select` `{item, href}` (cancelable) |
-| `<nx-timeline>` | `lanes`, `items`, `legend` (`[{mark, label}]`), `holidays`, `start`, `end`, `today`, `heading`, `heading-level`, `summary`, `highlight`, `locale`, `labels` · `focusItem(id?)`, `scrollToDay(iso?)` · `nx-timeline-select` `{item, href}` (cancelable) · CSS `--nx-timeline-bars`/`-ranges`/`-points`/`-axis` (altos), `--nx-timeline-month`, `--nx-timeline-label` |
+| `<nx-timeline>` | `lanes`, `items`, `legend` (`[{mark, label}]`), `holidays`, `start`, `end`, `today`, `heading`, `heading-level`, `summary`, `highlight`, `locale`, `labels` · `focusItem(id?)`, `scrollToDay(iso?)` · `nx-timeline-select` `{item, href, newTab}` (cancelable; `newTab` en una marca abre su enlace en otra pestaña) · CSS `--nx-timeline-bars`/`-ranges`/`-points`/`-axis` (altos), `--nx-timeline-month`, `--nx-timeline-label` |
 | `<nx-tracker>` | `items` (`[{id, title, subtitle?, icon?, eyebrow?, status?, steps?, days?, href?, actions?}]`), `holidays`, `workdays`, `empty`, `heading-level`, `locale`, `labels` · `nx-tracker-select` `{item, action, href}` (cancelable) |
 
 ## `<nx-cards>`

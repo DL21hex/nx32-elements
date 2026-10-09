@@ -835,7 +835,7 @@ nx-grid:not([top-scrollbar="false"], [height="fill"]) {
     inline-size: var(--nx-grid-facets-width, 248px);
     margin-inline-end: 12px;
   }
-  & .nx-grid__scroll {
+  & :is(.nx-grid__scroll, .nx-grid__matrix) {
     grid-area: table;
   }
 }
@@ -883,7 +883,7 @@ nx-grid[height="fill"] {
   & > .nx-grid__foot {
     grid-row: 7;
   }
-  & .nx-grid__scroll {
+  & :is(.nx-grid__scroll, .nx-grid__matrix) {
     min-block-size: 0;
   }
   & .nx-grid__facets {
@@ -892,6 +892,173 @@ nx-grid[height="fill"] {
     overscroll-behavior: contain;
   }
 }
+/* ---------------------------------------------------------------- matriz */
+
+/* «Tabla | Matriz» va en la barra, con el control segmentado de los atajos. */
+.nx-grid__layout {
+  flex: none;
+}
+/* En la matriz se ve una cosa a la vez: la tabla, su barra de arriba, la selección, el pie y los
+   botones que solo sirven en la tabla (agrupar, columnas, deshacer, exportar) se esconden. */
+.nx-grid__main.is-matrix > :is(.nx-grid__scroll, .nx-grid__hscroll),
+nx-grid:has(> .nx-grid__main.is-matrix) > :is(.nx-grid__selbar, [slot="bulk"], .nx-grid__foot),
+nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
+  display: none !important;
+}
+/* La caja de la tabla, del mismo alto: cambiar de una a otra no mueve la página. */
+.nx-grid__matrix {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: var(--nx-grid-height);
+  overflow: hidden;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+}
+.nx-grid__mx-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-block-end: 1px solid var(--nx-border-subtle);
+}
+.nx-grid__mx-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nx-muted-foreground);
+  font-weight: 500;
+
+  & > select {
+    color: var(--nx-foreground);
+  }
+  /* «Mostrar» va a la derecha: los ejes a un lado, la medida al otro. */
+  &[data-label="show"] {
+    margin-inline-start: auto;
+  }
+}
+.nx-grid__mx-scroll {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.nx-grid__mx {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+
+  & :is(th, td) {
+    padding: 0;
+    border-block-end: 1px solid var(--nx-border-subtle);
+    font-weight: 400;
+    text-align: end;
+    white-space: nowrap;
+  }
+  /* Los nombres de las columnas arriba, y los de las filas a la izquierda, se quedan al desplazar. */
+  & thead th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    border-block-end-color: var(--nx-border);
+    background: var(--nx-card);
+    color: var(--nx-muted-foreground);
+    font-weight: 500;
+  }
+  & th:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    border-inline-end: 1px solid var(--nx-border);
+    background: var(--nx-card);
+    text-align: start;
+  }
+  & thead th:first-child {
+    z-index: 2;
+  }
+  /* Los totales, abajo y fijos: siempre a la vista. */
+  & tfoot :is(th, td) {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 1;
+    border-block-start: 1px solid var(--nx-border);
+    border-block-end: 0;
+    background: var(--nx-card);
+  }
+  & tfoot th:first-child {
+    z-index: 2;
+  }
+  & td.nx-grid__mx-tot:last-child,
+  & thead th.nx-grid__mx-tot {
+    border-inline-start: 1px solid var(--nx-border);
+  }
+  & .nx-grid__mx-tot {
+    font-weight: 600;
+  }
+  & :is(thead th.nx-grid__mx-tot, tfoot th) {
+    padding-inline: 14px;
+    color: var(--nx-muted-foreground);
+  }
+  & button {
+    display: block;
+    inline-size: 100%;
+    min-block-size: 36px;
+    padding: 0 14px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: inset 0 0 0 1px var(--nx-border-strong);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--nx-ring);
+      outline-offset: -2px;
+    }
+    /* El cruce (o el encabezado) que filtra la tabla. */
+    &[aria-pressed="true"] {
+      box-shadow: inset 0 0 0 2px var(--nx-primary);
+      color: var(--nx-primary-ink);
+      font-weight: 600;
+    }
+  }
+  /* Cada cruce, más intenso cuanto más vale (sobre el mayor de la matriz). */
+  & td > button {
+    background: color-mix(in oklab, var(--nx-primary) calc(var(--_w, 0) * 22%), transparent);
+  }
+  & td.nx-grid__mx-tot > button {
+    background: none;
+  }
+}
+.nx-grid__mx-zero {
+  padding-inline: 14px !important;
+  color: var(--nx-text-quaternary);
+}
+.nx-grid__mx-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-block-start: 1px solid var(--nx-border-subtle);
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+}
+.nx-grid__mx-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 48px 16px;
+  color: var(--nx-muted-foreground);
+  text-align: center;
+}
+
 /* Sin puntero (celulares, tabletas): la tabla se desplaza con el dedo; la barra sobra. */
 @media (hover: none) {
   nx-grid:not([top-scrollbar="false"], [height="fill"]) .nx-grid__hscroll {

@@ -86,6 +86,8 @@ export function sameView(a: GridView, b: GridView): boolean {
       v.groupBy || "",
       [...v.hidden].sort(),
       Object.entries(v.widths).sort(([x], [y]) => (x < y ? -1 : 1)),
+      // La matriz cuenta solo si se ve (sus columnas, sin el orden de las claves).
+      v.layout === "matrix" ? [v.matrix?.rows ?? "", v.matrix?.cols ?? "", v.matrix?.agg ?? "count", v.matrix?.value ?? ""] : null,
     ]);
   return key(a) === key(b);
 }
@@ -93,7 +95,7 @@ export function sameView(a: GridView, b: GridView): boolean {
 /** La tabla sin nada: ni filtros, ni orden, ni grupos, ni anchos cambiados, y escondidas solo las
  *  columnas que la tabla declara `hidden`. */
 const isOriginal = (v: GridView, defaults: ReadonlySet<string>) =>
-  !v.filters.length && !v.sort && !v.groupBy && v.hidden.length === defaults.size && v.hidden.every((k) => defaults.has(k)) && !Object.keys(v.widths).length;
+  !v.filters.length && !v.sort && !v.groupBy && v.layout !== "matrix" && v.hidden.length === defaults.size && v.hidden.every((k) => defaults.has(k)) && !Object.keys(v.widths).length;
 
 export class ViewsUI {
   #host: ViewsHost;

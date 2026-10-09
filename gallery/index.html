@@ -228,7 +228,7 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
           <button type="button" data-grid-mode="server" aria-pressed="false">Servidor · 20.000</button>
         </span>
       </div>
-      <nx-grid id="grid-demo" locale="es-CO" facets-open filename="necesidades-de-compra" views-storage="nx-galeria:compras"></nx-grid>
+      <nx-grid id="grid-demo" locale="es-CO" facets-open filename="necesidades-de-compra" views-storage="nx-galeria:compras" matrix='{"rows":"area","cols":"estado"}'></nx-grid>
       <ol class="stage__log btn-events" id="grid-log"></ol>
 
       <h2>Enlace por fila y acciones</h2>
@@ -244,7 +244,7 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
       <h2>La tabla como página</h2>
       <p>Con <code>heading</code> el título va en la primera fila de la tabla, y los atajos, como filtro segmentado debajo: «Todos» y uno por atajo, con su conteo; se marcan de a uno. Uno con <code>href</code> lleva a otra página: va después, como enlace con ↗, y no filtra ni se marca. Un atajo con <code>menu</code> va en «Vistas» → «Seguimiento», sin conteo. Con <code>height="fill"</code> la tabla ocupa el alto de su contenedor (aquí, un marco de 560 px) y es lo único que se desplaza, así que su barra horizontal siempre se ve. El total va arriba, con los filtros.</p>
       <div class="grid-page-frame">
-        <nx-grid id="grid-page" locale="es-CO" heading="Pedidos" heading-level="3" height="fill" facets-open filename="pedidos"></nx-grid>
+        <nx-grid id="grid-page" locale="es-CO" heading="Pedidos" heading-level="3" height="fill" facets-open filename="pedidos" matrix='{"rows":"cat","cols":"estado"}'></nx-grid>
       </div>
 
       <h2>Cómo se usa</h2>
@@ -256,6 +256,7 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
             <tr><td>Buscar</td><td>La caja «Buscar en la tabla» deja las filas que contienen lo que escribes en alguna columna visible, sin tildes ni mayúsculas («quimicos» encuentra «Químicos», «8.000.000» o «8000000» el monto). Se suma a los filtros; la ✕ o <kbd>Esc</kbd> la borran.</td></tr>
             <tr><td>Guardar una vista</td><td>Filtra, ordena, agrupa, esconde columnas («Columnas») o cambia su ancho (arrastra el borde de una cabecera) y usa «Vistas → Guardar como vista nueva…» o «Guardar como vista» junto a los chips. Se aplica con un clic; si cambias algo, el botón dice «modificada». Se guarda en <code>localStorage</code> con <code>views-storage</code>.</td></tr>
             <tr><td>Filtrar desde una celda</td><td>Clic derecho (o <kbd>Mayús</kbd>+<kbd>F10</kbd>): «Solo Aceros», «Sin Aceros», «Desde $ 5.000.000». Si no queda ninguna fila, la tabla propone qué filtro quitar y cuántas volverían.</td></tr>
+            <tr><td>Cruzar dos columnas</td><td>Con <code>matrix</code>, «Tabla | Matriz» en la barra. La matriz ocupa el lugar de la tabla: Área × Estado con cuántas filas hay en cada cruce (o la suma o el promedio de un monto) y sus totales. Un cruce vuelve a la tabla con esos dos filtros puestos; un encabezado o un total, con el suyo; el total general, sin ninguno. Cuenta con la búsqueda y los demás filtros, no con los de sus dos columnas: al volver se ve todo y queda marcado el cruce que filtra. Flechas para recorrerla.</td></tr>
             <tr><td>Panel de filtros</td><td>Las opciones de una faceta se suman y las facetas se combinan entre sí. Cada conteo refleja los demás filtros; una opción en 0 queda deshabilitada.</td></tr>
             <tr><td>Hoja de cálculo</td><td>Flechas, <kbd>Inicio</kbd>/<kbd>Fin</kbd>, <kbd>RePág</kbd>/<kbd>AvPág</kbd>, <kbd>Mayús</kbd> para seleccionar un rango (o arrastrar); el pie muestra suma, promedio, mínimo y máximo. <kbd>Ctrl</kbd>+<kbd>C</kbd> copia para pegar en Excel, y <kbd>Ctrl</kbd>+<kbd>V</kbd> pega desde Excel en las columnas editables.</td></tr>
             <tr><td>Editar</td><td>Doble clic, <kbd>Enter</kbd>, <kbd>F2</kbd> o simplemente escribir. <kbd>Enter</kbd> guarda y baja, <kbd>Tab</kbd> guarda y avanza, <kbd>Esc</kbd> cancela, <kbd>Supr</kbd> borra. Las celdas editadas llevan una marca. <kbd>Ctrl</kbd>+<kbd>Z</kbd> deshace y <kbd>Ctrl</kbd>+<kbd>Y</kbd> rehace (también con los botones de la barra).</td></tr>
@@ -273,6 +274,7 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
           <tbody>
             <tr><td><code>source</code></td><td><code>POST {"offset":0,"limit":100,"sort":{"key":"monto","dir":-1},"filters":[…],"search":"aceros"}</code> (<code>search</code> solo si hay algo escrito) → <code>{"rows":[…],"total":20000,"histograms":{"monto":{"kind":"bins","labels":[…],"counts":[…],"filtered":[…],"edges":[…]}},"facets":[{"key":"prov","label":"Proveedor","options":[{"value":"…","count":12}]}],"totals":{"monto":…}}</code>. Los agregados son opcionales: <code>histograms</code> da las barras del filtro de montos y fechas, y <code>facets</code> los valores (con su conteo) de las listas y del panel de filtros. Sin ellos, esos filtros quedan con sus campos.</td></tr>
             <tr><td><code>client-max</code></td><td>Opcional, con <code>source</code>. Si el <code>total</code> de la primera página cabe en el tope, la tabla pide una vez <code>{"offset":0,"limit":client-max + 1,"sort":null,"filters":[]}</code> y sigue en el cliente (conteos exactos, filtros al instante, agrupar). Si no cabe, no pide nada más. <code>grid.mode</code> dice dónde quedó; <code>refresh()</code> vuelve a traer y a mirar.</td></tr>
+            <tr><td><code>matrix</code></td><td>En «Matriz», la tabla la pide aparte: <code>POST {"offset":0,"limit":0,"sort":…,"filters":[…],"search":…,"matrix":{"rows":"area","cols":"estado","agg":"count"}}</code> (con <code>"agg":"sum"</code> o <code>"avg"</code>, también <code>"value":"monto"</code>), sin los filtros de esas dos columnas → <code>{"rows":[],"total":…,"matrix":[{"row":"Ventas","col":"aprobado","value":12,"count":12}]}</code>: un cruce por par con filas (un <code>GROUP BY</code> de las dos). <code>count</code> hace falta con <code>avg</code> para los totales; <code>rowLabel</code>/<code>colLabel</code> si el valor es un código.</td></tr>
             <tr><td>Filtros</td><td><code>{"key","op":"in","values":[…]}</code>, <code>"notIn"</code>, <code>{"op":"range","min","max"}</code> (<code>min</code> incluido, <code>max</code> excluido; números o fechas ISO; con <code>"rel":"month"</code>, <code>"past"</code>, <code>"last30"</code>, <code>"next30"</code>, <code>"lastMonth"</code> o <code>"year"</code> el tramo se recalcula con la fecha de hoy) y <code>{"op":"contains","value"}</code>.</td></tr>
           </tbody>
         </table>

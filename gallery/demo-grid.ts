@@ -4,7 +4,7 @@
  * No es parte de la librería.
  */
 import { histogram, histogramSpec } from "../src/components/grid/bars";
-import { applyFilters, facetColumns, facets, sortRows } from "../src/components/grid/logic";
+import { applyFilters, facetColumns, facets, matrixCells, sortRows } from "../src/components/grid/logic";
 import type { GridColumn, GridFilter, GridPage, GridRow, GridSort } from "../src/components/grid/types";
 
 export const PURCHASE_COLUMNS: GridColumn[] = [
@@ -91,11 +91,13 @@ let serverRows: GridRow[] | null = null;
 let specs: Map<string, ReturnType<typeof histogramSpec>> | null = null;
 
 /** Lo que haría un backend: filtra, ordena, pagina y devuelve histogramas, facetas y totales. */
-export function purchasePage(req: { offset?: number; limit?: number; sort?: GridSort | null; filters?: GridFilter[] }): GridPage {
+export function purchasePage(req: { offset?: number; limit?: number; sort?: GridSort | null; filters?: GridFilter[]; matrix?: { rows: string; cols: string; agg?: "count" | "sum" | "avg"; value?: string } }): GridPage {
   serverRows ??= purchaseRows(20000, 11);
   specs ??= new Map(PURCHASE_COLUMNS.map((c) => [c.key, histogramSpec(c, serverRows!)]));
   const filters = Array.isArray(req.filters) ? req.filters : [];
   const filtered = applyFilters(serverRows, filters);
+  // La matriz: un GROUP BY de las dos columnas, sin filas.
+  if (req.matrix) return { rows: [], total: filtered.length, matrix: matrixCells(filtered, { rows: req.matrix.rows, cols: req.matrix.cols, agg: req.matrix.agg ?? "count", value: req.matrix.value ?? "" }) };
   const sorted = sortRows(filtered, req.sort ?? null, PURCHASE_COLUMNS);
   const offset = Math.max(0, Number(req.offset) || 0);
   const limit = Math.min(20000, Math.max(1, Number(req.limit) || 100));

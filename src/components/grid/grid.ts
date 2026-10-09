@@ -39,6 +39,7 @@ import {
   formatCell,
   groupRows,
   isNumeric,
+  matrixCells,
   normalizer,
   num,
   parseInput,
@@ -59,8 +60,9 @@ import {
 } from "./logic";
 import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequenceState, stepsAround, type StepMark, type TimeReading } from "./time";
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
+import type { MatrixConfig, MatrixHost, MatrixUI, MatrixView } from "./grid-matrix";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -171,6 +173,9 @@ export const GRID_LABELS: GridLabels = {
   relax: "Quitar {filter}: vuelve 1 fila|Quitar {filter}: vuelven {n} filas",
   actions: "Acciones",
   rowActions: "Acciones de la fila",
+  layout: "Ver como",
+  layoutTable: "Tabla",
+  layoutMatrix: "Matriz",
 };
 
 const SLIDERS = '<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/>';
@@ -358,6 +363,48 @@ const NEAR_NOW = 80;
 
 const clampW = (w: number) => Math.round(Math.min(MAX_W, Math.max(MIN_W, w)));
 
+/** La matriz que llega de afuera (`matrix`, una vista guardada): un objeto con sus columnas y su
+ *  medida, o `true` (o el atributo vacío) para que la tabla elija las dos primeras columnas que se
+ *  puedan cruzar. `false`, `null` o un JSON roto: sin matriz. Lo que no tiene la forma se descarta. */
+function cleanMatrix(v: unknown): GridMatrix | null {
+  let x = v;
+  if (typeof x === "string") {
+    if (!x.trim() || x === "true") return {};
+    if (x === "false") return null;
+    try {
+      x = JSON.parse(x);
+    } catch {
+      console.warn('[nx-grid] el atributo "matrix" no es JSON válido');
+      return null;
+    }
+  }
+  if (x === true) return {};
+  if (!x || typeof x !== "object" || Array.isArray(x)) return null;
+  const o = x as Record<string, unknown>;
+  const out: GridMatrix = {};
+  for (const k of ["rows", "cols", "value"] as const) if (typeof o[k] === "string" && o[k]) out[k] = o[k] as string;
+  if (o.agg === "count" || o.agg === "sum" || o.agg === "avg") out.agg = o.agg;
+  return out;
+}
+
+/** Los cruces que manda el servidor: solo los que tienen la forma (un valor que no es número se
+ *  descarta; los valores de los ejes, como texto). */
+function cleanCells(list: unknown[]): GridMatrixCell[] {
+  const out: GridMatrixCell[] = [];
+  for (const c of list) {
+    if (!c || typeof c !== "object") continue;
+    const x = c as Record<string, unknown>;
+    const value = Number(x.value);
+    if (!Number.isFinite(value) || x.row === undefined || x.col === undefined) continue;
+    const cell: GridMatrixCell = { row: String(x.row ?? ""), col: String(x.col ?? ""), value };
+    if (Number.isFinite(Number(x.count)) && x.count !== null && x.count !== "") cell.count = Number(x.count);
+    if (typeof x.rowLabel === "string") cell.rowLabel = x.rowLabel;
+    if (typeof x.colLabel === "string") cell.colLabel = x.colLabel;
+    out.push(cell);
+  }
+  return out;
+}
+
 /** Una vista que llega de afuera (localStorage, la app): solo lo que tiene la forma correcta. */
 function cleanView(v: unknown): GridView {
   const x = (v && typeof v === "object" ? v : {}) as Partial<GridView>;
@@ -370,6 +417,7 @@ function cleanView(v: unknown): GridView {
     groupBy: typeof x.groupBy === "string" ? x.groupBy : "",
     hidden: Array.isArray(x.hidden) ? x.hidden.filter((k): k is string => typeof k === "string") : [],
     widths,
+    ...(x.layout === "matrix" ? { layout: "matrix" as const, matrix: cleanMatrix(x.matrix) ?? {} } : {}),
   };
 }
 
@@ -395,7 +443,7 @@ export class NxGrid extends Base {
   /** El título de la tabla, en su primera fila, con los atajos como botones a la derecha: para la
    *  tabla que es la página («Empleados»). Sin él, los atajos son tarjetas sobre la barra. */
   declare heading: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-level", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents"];
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-level", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -577,6 +625,20 @@ export class NxGrid extends Base {
   #ro?: ResizeObserver;
   #copied?: ReturnType<typeof setTimeout>;
   #groupKey = "";
+  #main?: HTMLDivElement;
+  // La matriz (`matrix`): lo que pidió la app (o eligió la persona), el selector «Tabla | Matriz»,
+  // el lugar donde se pinta, su módulo (se carga al usarla) y sus cruces.
+  #matrix: GridMatrix | null = null;
+  #layoutBar?: HTMLDivElement;
+  #matrixEl?: HTMLDivElement;
+  #matrixUI?: MatrixUI;
+  #matrixLoad?: Promise<MatrixUI>;
+  #mxCells: GridMatrixCell[] | null = null;
+  /** De qué salieron los cruces: en el cliente, la lista filtrada y la matriz; en el servidor, la consulta. */
+  #mxFor: { rows: GridRow[] | null; key: string } = { rows: null, key: "" };
+  #mxState: "idle" | "loading" | "failed" = "idle";
+  #mxAc?: AbortController;
+  #mxGen = 0;
   #urls = new Map<string, { raw: string | null; at: string; url: string | undefined }>();
 
   // ---------------------------------------------------------------- propiedades
@@ -599,7 +661,8 @@ export class NxGrid extends Base {
 
   /** El estado que se puede guardar: filtros, orden, agrupación, columnas ocultas y anchos. */
   get view(): GridView {
-    return { filters: this.#filters, sort: this.#sort, groupBy: this.groupBy, hidden: [...this.#hidden], widths: Object.fromEntries(this.#widths) };
+    const matrix = this.layout === "matrix" ? this.matrix : null;
+    return { filters: this.#filters, sort: this.#sort, groupBy: this.groupBy, hidden: [...this.#hidden], widths: Object.fromEntries(this.#widths), ...(matrix ? { layout: "matrix" as const, matrix } : {}) };
   }
   set view(v: Partial<GridView> | null | undefined) {
     this.#applyView(v, null);
@@ -709,6 +772,25 @@ export class NxGrid extends Base {
   /** Dónde se filtra ahora: `client` (las filas están en el navegador) o `server`. */
   get mode(): "client" | "server" {
     return this.#server ? "server" : "client";
+  }
+  /** La matriz: con ella, la barra ofrece «Tabla | Matriz». `{rows, cols}` son dos columnas de pocos
+   *  valores (las de los filtros: estados, áreas, ciudades); `agg` (`count`, `sum`, `avg`) y `value`
+   *  dicen qué se muestra en cada cruce. `true` (o el atributo vacío): las dos primeras columnas que
+   *  se puedan cruzar. Lo que la persona elige después en la matriz queda aquí. */
+  get matrix(): GridMatrix | null {
+    const c = this.#mxConfig();
+    return c ? { rows: c.rows, cols: c.cols, agg: c.agg, ...(c.value ? { value: c.value } : {}) } : this.#matrix && { ...this.#matrix };
+  }
+  set matrix(v: GridMatrix | boolean | null | undefined) {
+    this.#matrix = cleanMatrix(v);
+    this.#paintAll();
+  }
+  /** `table` o `matrix` (solo con `matrix`; si no, siempre `table`). */
+  get layout(): GridLayout {
+    return this.getAttribute("layout") === "matrix" && this.#mxConfig() ? "matrix" : "table";
+  }
+  set layout(v: GridLayout | null | undefined) {
+    this.#attr("layout", v === "matrix" ? "matrix" : null);
   }
   get groupBy(): string {
     return this.getAttribute("group-by") ?? "";
@@ -836,7 +918,7 @@ export class NxGrid extends Base {
   get labels(): GridLabels {
     return this.#labels;
   }
-  set labels(v: Partial<GridLabels & GridViewLabels> | null | undefined) {
+  set labels(v: Partial<GridLabels & GridViewLabels & GridMatrixLabels> | null | undefined) {
     // Los textos de las vistas los toma su propio módulo (se carga aparte), de lo mismo que llegó.
     this.#labelsIn = v;
     this.#labels = mergeLabels(GRID_LABELS, v);
@@ -1012,6 +1094,10 @@ export class NxGrid extends Base {
     }
     this.#ac?.abort();
     this.#ac = undefined;
+    // La matriz que venía del servidor se vuelve a pedir al volver.
+    this.#mxAc?.abort();
+    this.#mxAc = undefined;
+    if (this.#mxState === "loading") this.#mxFor = { rows: null, key: "" };
     if (this.#tryAc) {
       this.#tryAc.abort();
       this.#tryAc = undefined;
@@ -1043,6 +1129,11 @@ export class NxGrid extends Base {
       if (this.#built) this.#refilter(true);
       return;
     }
+    if (name === "matrix") {
+      this.#matrix = cleanMatrix(value);
+      if (this.#built) this.#paintAll();
+      return;
+    }
     if (!this.#built || old === value || this.#quiet) return;
     if (name === "source" || name === "client-max") {
       this.#settle();
@@ -1066,6 +1157,11 @@ export class NxGrid extends Base {
       this.#synced.clear();
       requestAnimationFrame(() => this.#follow(this.#scroll!, this.#hbar!));
     } else if (name === "locale" || name === "selectable") this.#dataChanged(name === "selectable");
+    else if (name === "layout") {
+      // Lo editado en la tabla (en su lugar, sin otra lista) cuenta al volver a la matriz.
+      this.#mxFor = { rows: null, key: "" };
+      this.#paintAll();
+    }
     else if (name === "group-by") {
       this.#collapsed.clear();
       this.#refilter(true, "order");
@@ -1288,14 +1384,14 @@ export class NxGrid extends Base {
     return { sort: this.#sort, filters: this.#filters, ...(this.#search.trim() ? { search: this.#search.trim() } : {}) };
   }
 
-  async #request(offset: number, limit: number, q: { sort: GridSort | null; filters: GridFilter[]; search?: string } = this.#query(), signal?: AbortSignal): Promise<GridPage | null> {
+  async #request(offset: number, limit: number, q: { sort: GridSort | null; filters: GridFilter[]; search?: string } = this.#query(), signal?: AbortSignal, extra?: Record<string, unknown>): Promise<GridPage | null> {
     const url = this.#url("source");
     if (!url) return null;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify({ offset, limit, ...q }),
+      body: JSON.stringify({ offset, limit, ...q, ...extra }),
       signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1554,9 +1650,12 @@ export class NxGrid extends Base {
     }
     if (this.#built) this.#buildHead();
     this.#collapsed.clear();
-    // `group-by` es un atributo: se cambia sin que su aviso vuelva a calcular; se calcula una vez aquí.
+    // Una vista en matriz la vuelve a abrir (si la tabla tiene matriz); cualquier otra, la tabla.
+    if (x.layout === "matrix" && this.#matrix) this.#matrix = { ...this.#matrix, ...x.matrix };
+    // `group-by` y `layout` son atributos: se cambian sin que su aviso vuelva a calcular; se calcula una vez aquí.
     this.#quiet = true;
     this.groupBy = x.groupBy;
+    this.layout = x.layout === "matrix" && this.#matrix ? "matrix" : "table";
     this.#quiet = false;
     this.#refilter(true);
   }
@@ -1717,7 +1816,7 @@ export class NxGrid extends Base {
     const u = this.#uid;
     this.#viewsBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__views", "aria-haspopup": "dialog", hidden: true }, glyph(BOOKMARK), h("span"));
     this.#viewsBtn.addEventListener("click", () => this.#withViews((v) => v.toggleViews()));
-    this.#colsBtn = h("button", { type: "button", class: "nx-grid__btn", "aria-haspopup": "dialog" }, glyph(COLUMNS), h("span"));
+    this.#colsBtn = h("button", { type: "button", class: "nx-grid__btn", "aria-haspopup": "dialog", "data-table-only": "" }, glyph(COLUMNS), h("span"));
     this.#colsBtn.addEventListener("click", () => this.#withViews((v) => v.toggleColumns()));
     this.#facetBtn = h("button", { type: "button", class: "nx-grid__btn", "aria-controls": `${u}-facets` }, glyph(SLIDERS), h("span"), h("span", { class: "nx-grid__badge" }));
     this.#facetBtn.addEventListener("click", () => {
@@ -1727,9 +1826,9 @@ export class NxGrid extends Base {
     });
     // `data-nx-ephemeral`: filtrar, agrupar o seleccionar no son cambios de datos (un <nx-dialog> que
     // contiene la tabla no los cuenta como «cambios sin guardar»).
-    this.#groupSel = h("select", { class: "nx-grid__btn nx-grid__group", "data-nx-ephemeral": "" });
+    this.#groupSel = h("select", { class: "nx-grid__btn nx-grid__group", "data-nx-ephemeral": "", "data-table-only": "" });
     this.#groupSel.addEventListener("change", () => (this.groupBy = this.#groupSel!.value));
-    this.#exportBtn = h("button", { type: "button", class: "nx-grid__btn" }, glyph(DOWNLOAD), h("span"));
+    this.#exportBtn = h("button", { type: "button", class: "nx-grid__btn", "data-table-only": "" }, glyph(DOWNLOAD), h("span"));
     // Mientras exporta (en modo servidor pide todas las filas, puede tardar), el botón gira y no
     // atiende otro clic. No se usa `disabled`: sacaría el foco del botón al teclado.
     this.#exportBtn.addEventListener("click", () => {
@@ -1760,11 +1859,11 @@ export class NxGrid extends Base {
           this.#paintChrome();
         });
     });
-    this.#undoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon" }, glyph(UNDO));
-    this.#redoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon" }, glyph(REDO));
+    this.#undoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon", "data-table-only": "" }, glyph(UNDO));
+    this.#redoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon", "data-table-only": "" }, glyph(REDO));
     this.#undoBtn.addEventListener("click", () => this.undo());
     this.#redoBtn.addEventListener("click", () => this.redo());
-    this.#saveNote = h("span", { class: "nx-grid__save-note", hidden: true });
+    this.#saveNote = h("span", { class: "nx-grid__save-note", hidden: true, "data-table-only": "" });
     // Buscar en la tabla: mientras se escribe (un momento después de la última tecla), o con Enter.
     const input = (this.#searchInput = h("input", { type: "search", class: "nx-grid__search-input", autocomplete: "off", spellcheck: "false", enterkeyhint: "search" }));
     const clear = (this.#searchClear = h("button", { type: "button", class: "nx-grid__search-clear", hidden: true }, glyph(X)));
@@ -1785,7 +1884,18 @@ export class NxGrid extends Base {
       this.search = "";
       input.focus();
     });
-    const bar = h("div", { class: "nx-grid__bar" }, this.#viewsBtn, search, this.#facetBtn, this.#groupSel, this.#colsBtn, this.#undoBtn, this.#redoBtn, this.#saveNote, this.#exportBtn);
+    // «Tabla | Matriz» (con `matrix`): se ve una cosa a la vez.
+    this.#layoutBar = h(
+      "div",
+      { class: "nx-grid__segments nx-grid__layout", role: "group", hidden: true },
+      h("button", { type: "button", class: "nx-grid__segment", "data-layout": "table" }),
+      h("button", { type: "button", class: "nx-grid__segment", "data-layout": "matrix" }),
+    );
+    this.#layoutBar.addEventListener("click", (e) => {
+      const to = (e.target as Element).closest<HTMLElement>("[data-layout]")?.dataset.layout;
+      if (to && to !== this.layout) this.#setLayout(to as GridLayout);
+    });
+    const bar = h("div", { class: "nx-grid__bar" }, this.#layoutBar, this.#viewsBtn, search, this.#facetBtn, this.#groupSel, this.#colsBtn, this.#undoBtn, this.#redoBtn, this.#saveNote, this.#exportBtn);
 
     this.#selbar = h("div", { class: "nx-grid__selbar", hidden: true }, h("strong"), h("button", { type: "button", class: "nx-grid__clear", "data-pick": "all" }), h("button", { type: "button", class: "nx-grid__clear", "data-pick": "none" }));
     this.#selbar.addEventListener("click", (e) => {
@@ -1952,7 +2062,8 @@ export class NxGrid extends Base {
     this.#head.addEventListener("change", (e) => {
       if ((e.target as HTMLInputElement).dataset.pickAll !== undefined) this.#pickAll((e.target as HTMLInputElement).checked);
     });
-    const main = h("div", { class: "nx-grid__main" }, this.#aside, this.#hbar, this.#scroll);
+    this.#matrixEl = h("div", { class: "nx-grid__matrix", hidden: true, "data-nx-ephemeral": "" });
+    const main = (this.#main = h("div", { class: "nx-grid__main" }, this.#aside, this.#hbar, this.#scroll, this.#matrixEl));
 
     this.#foot = h("div", { class: "nx-grid__foot" });
     this.#live = h("span", { class: "nx-sr-only", role: "status" });
@@ -2099,8 +2210,171 @@ export class NxGrid extends Base {
     this.#paintHeading();
     this.#paintPresets();
     this.#paintHistory();
+    this.#paintLayout();
     this.#panel?.refresh();
     this.#viewsUI?.refresh();
+  }
+
+  // ---------------------------------------------------------------- matriz
+
+  /** Las columnas que se pueden cruzar: las de pocos valores (con `options`, o las del panel de
+   *  filtros), y las que la app nombró en `matrix`. Nunca números, fechas ni horas. */
+  #mxAxes(): GridColumn[] {
+    const facet = new Set(this.#server ? this.#facetList.map((f) => f.key) : this.#facetCols.map((c) => c.key));
+    const named = [this.#matrix?.rows, this.#matrix?.cols];
+    return this.#cols.filter((c) => {
+      const t = colType(c);
+      return t !== "number" && t !== "money" && t !== "date" && t !== "time" && t !== "timeline" && (!!c.options || c.facet === true || facet.has(c.key) || named.includes(c.key));
+    });
+  }
+
+  /** La matriz resuelta contra las columnas de ahora (o `null`: sin matriz, o sin dos columnas que
+   *  cruzar). Un eje que no sirve se cambia por el primero que sí; una medida sin su columna, por el conteo. */
+  #mxConfig(): MatrixConfig | null {
+    const m = this.#matrix;
+    if (!m) return null;
+    const axes = this.#mxAxes();
+    if (axes.length < 2) return null;
+    const ok = (k?: string) => !!k && axes.some((c) => c.key === k);
+    const rows = ok(m.rows) ? m.rows! : axes.find((c) => c.key !== m.cols)!.key;
+    const cols = ok(m.cols) && m.cols !== rows ? m.cols! : axes.find((c) => c.key !== rows)!.key;
+    const agg = m.agg && m.agg !== "count" && this.#cols.some((c) => c.key === m.value && isNumeric(c)) ? m.agg : "count";
+    return { rows, cols, agg, value: agg === "count" ? "" : m.value! };
+  }
+
+  /** Cambia entre la tabla y la matriz por la persona: lo avisa (`nx-grid-layout`). */
+  #setLayout(to: GridLayout): void {
+    this.layout = to;
+    this.#emit("nx-grid-layout", { layout: this.layout, matrix: this.matrix } satisfies GridLayoutDetail);
+  }
+
+  /** El selector y cuál de las dos se ve. En la matriz se esconden la tabla, su barra de arriba, el
+   *  pie, la selección y los botones que solo sirven en la tabla (el CSS, con `.is-matrix`). */
+  #paintLayout(): void {
+    const L = this.#labels;
+    const bar = this.#layoutBar!;
+    const cfg = this.#mxConfig();
+    const on = !!cfg && this.getAttribute("layout") === "matrix";
+    bar.hidden = !cfg;
+    bar.setAttribute("aria-label", L.layout);
+    for (const b of bar.querySelectorAll<HTMLElement>("[data-layout]")) {
+      const mine = b.dataset.layout === "matrix";
+      b.textContent = mine ? L.layoutMatrix : L.layoutTable;
+      b.setAttribute("aria-pressed", String(mine === on));
+    }
+    this.#main!.classList.toggle("is-matrix", on);
+    this.#matrixEl!.hidden = !on;
+    if (on) this.#paintMatrix(cfg);
+  }
+
+  /** Los cruces y la matriz. En el cliente, sobre lo buscado y filtrado menos los filtros de sus dos
+   *  columnas (se calculan de nuevo solo si cambió eso o la matriz); en el servidor, se piden. */
+  #paintMatrix(cfg: MatrixConfig): void {
+    const key = JSON.stringify(cfg);
+    const rest = this.#filters.filter((f) => f.key !== cfg.rows && f.key !== cfg.cols);
+    if (this.#server) this.#askMatrix(cfg, rest);
+    else if (this.#mxFor.rows !== this.#base || this.#mxFor.key !== JSON.stringify([key, rest, this.#filtered.length, this.#all.length])) {
+      this.#mxFor = { rows: this.#base, key: JSON.stringify([key, rest, this.#filtered.length, this.#all.length]) };
+      this.#mxCells = matrixCells(rest.length ? applyFilters(this.#base, rest, this.accents) : this.#base, cfg);
+      this.#mxState = "idle";
+    }
+    if (this.#matrixUI) this.#matrixUI.paint();
+    else
+      void (this.#matrixLoad ??= import("./grid-matrix").then(
+        (m) => (this.#matrixUI = new m.MatrixUI(this.#matrixHost())),
+        (err) => {
+          this.#matrixLoad = undefined;
+          throw err;
+        },
+      )).then(
+        (ui) => this.layout === "matrix" && ui.paint(),
+        (err) => console.warn("[nx-grid] no se pudo cargar la matriz", err),
+      );
+  }
+
+  /** Con `source`: la matriz se pide aparte (`limit: 0` y `matrix`), con la búsqueda y los filtros
+   *  menos los de sus dos columnas; el servidor responde `matrix` con los cruces. La misma consulta
+   *  no se repite; mientras llega otra, se siguen viendo los cruces anteriores de la misma matriz. */
+  #askMatrix(cfg: MatrixConfig, rest: GridFilter[]): void {
+    const q = { ...this.#query(), filters: rest };
+    // `#gen` cambia con cada consulta nueva de la tabla y con `refresh()`: la matriz se vuelve a pedir.
+    const key = JSON.stringify([cfg, q, this.#gen]);
+    if (key === this.#mxFor.key) return;
+    if (!this.#mxFor.key.startsWith(JSON.stringify([cfg]).slice(0, -1))) this.#mxCells = null;
+    this.#mxFor = { rows: null, key };
+    this.#mxAc?.abort();
+    const ac = (this.#mxAc = new AbortController());
+    const gen = ++this.#mxGen;
+    this.#mxState = "loading";
+    this.#request(0, 0, q, ac.signal, { matrix: { rows: cfg.rows, cols: cfg.cols, agg: cfg.agg, ...(cfg.value ? { value: cfg.value } : {}) } })
+      .then((page) => {
+        if (!page || !Array.isArray(page.matrix)) throw new Error("la respuesta no trae matrix");
+        if (gen !== this.#mxGen) return;
+        this.#mxCells = cleanCells(page.matrix);
+        this.#mxState = "idle";
+      })
+      .catch((err) => {
+        if (gen !== this.#mxGen || ac.signal.aborted) return;
+        console.warn("[nx-grid] no se pudo cargar la matriz", err);
+        this.#mxState = "failed";
+      })
+      .finally(() => {
+        if (gen === this.#mxGen && this.layout === "matrix") this.#matrixUI?.paint();
+      });
+  }
+
+  #matrixHost(): MatrixHost {
+    const self = this;
+    const only = (key: string): string | null => {
+      const fs = this.#filters.filter((f) => f.key === key);
+      return fs.length === 1 && fs[0].op === "in" && fs[0].values.length === 1 ? fs[0].values[0] : null;
+    };
+    return {
+      el: this.#matrixEl!,
+      get labels() {
+        return self.#labels;
+      },
+      get labelsIn() {
+        return self.#labelsIn;
+      },
+      get loc() {
+        return self.#loc;
+      },
+      view: (): MatrixView => {
+        const cfg = this.#mxConfig()!;
+        return {
+          config: cfg,
+          axes: this.#mxAxes(),
+          measures: this.#cols.filter(isNumeric),
+          cells: this.#mxCells,
+          loading: this.#mxState === "loading" && !this.#mxCells,
+          failed: this.#mxState === "failed",
+          mark: { row: only(cfg.rows), col: only(cfg.cols) },
+          ignored: [cfg.rows, cfg.cols].filter((k) => this.#filters.some((f) => f.key === k)).map((k) => this.#colOf(k)?.label ?? k),
+        };
+      },
+      configure: (m) => {
+        this.#matrix = { ...this.#matrix, ...this.#mxConfig(), ...m };
+        if (this.#matrix.agg === "count") delete this.#matrix.value;
+        this.#paintChrome();
+        this.#emit("nx-grid-layout", { layout: this.layout, matrix: this.matrix } satisfies GridLayoutDetail);
+      },
+      drill: (row, col) => {
+        const cfg = this.#mxConfig()!;
+        const add: GridFilter[] = [];
+        if (row !== null) add.push({ key: cfg.rows, op: "in", values: [row] });
+        if (col !== null) add.push({ key: cfg.cols, op: "in", values: [col] });
+        this.layout = "table";
+        this.#emit("nx-grid-layout", { layout: "table", matrix: this.matrix } satisfies GridLayoutDetail);
+        this.#setFilters([...this.#filters.filter((f) => f.key !== cfg.rows && f.key !== cfg.cols), ...add]);
+        this.#scroll!.scrollTop = 0;
+        this.#scroll!.focus({ preventScroll: true });
+      },
+      retry: () => {
+        this.#mxFor = { rows: null, key: "" };
+        this.#paintChrome();
+      },
+    };
   }
 
   /** Si los filtros de ahora son los del atajo (en cualquier orden): su tarjeta queda marcada, y se

@@ -4,7 +4,7 @@ import { NxGrid } from "./grid";
 define("nx-grid", NxGrid);
 
 export { NxGrid, GRID_LABELS } from "./grid";
-export { applyFilters, crossfilter, filterLabel, formatCell, parseTSV, sortRows, toHTMLTable, toTSV } from "./logic";
+export { applyFilters, crossfilter, filterLabel, formatCell, matrixCells, parseTSV, sortRows, toHTMLTable, toTSV } from "./logic";
 export type { HtmlCell } from "./logic";
 export { nextStep, parseTime, readTime, sequenceMarks, sequenceState, stepsAround, type SequenceState, type StepMark, type TimeContext, type TimeReading, type TimeStep } from "./time";
 export type {
@@ -22,6 +22,11 @@ export type {
   GridFilter,
   GridHistogram,
   GridLabels,
+  GridLayout,
+  GridLayoutDetail,
+  GridMatrix,
+  GridMatrixCell,
+  GridMatrixLabels,
   GridOption,
   GridPage,
   GridPreset,
@@ -47,5 +52,6 @@ declare global {
     "nx-grid-action": CustomEvent<import("./types").GridActionDetail>;
     "nx-grid-error": CustomEvent<import("./types").GridErrorDetail>;
     "nx-grid-export": CustomEvent<import("./types").GridExportDetail>;
+    "nx-grid-layout": CustomEvent<import("./types").GridLayoutDetail>;
   }
 }

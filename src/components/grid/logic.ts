@@ -3,7 +3,7 @@
  *  se carga aparte). */
 import { foldText, matchText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
-import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridRow, GridSort } from "./types";
+import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridMatrixCell, GridRow, GridSort } from "./types";
 import { parseTime, type TimeContext } from "./time";
 
 // Las funciones que muestran o leen valores reciben el formato del locale (`nxFormat`); sin él,
@@ -566,6 +566,33 @@ export function crossfilter(
 /** Solo las facetas (ver `crossfilter`). */
 export function facets(columns: readonly GridColumn[], rows: readonly GridRow[], filters: readonly GridFilter[]): GridFacet[] {
   return crossfilter(rows, filters, columns).facets;
+}
+
+/** Los cruces de la matriz (`matrix`) en el navegador: uno por par de valores de las dos columnas
+ *  que tenga filas (`""` es «sin dato»), con lo que vale (`count`, o la suma o el promedio de `value`)
+ *  y cuántas filas lo forman (con `avg`, las que traen número: con eso se ponderan los totales). Es
+ *  lo mismo que manda el servidor (`GridPage.matrix`). */
+export function matrixCells(rows: readonly GridRow[], m: { rows: string; cols: string; agg: "count" | "sum" | "avg"; value: string }): GridMatrixCell[] {
+  const acc = new Map<string, { row: string; col: string; n: number; sum: number; has: number }>();
+  for (const r of rows) {
+    const row = String(r[m.rows] ?? "");
+    const col = String(r[m.cols] ?? "");
+    const k = `${row}\u0000${col}`;
+    let c = acc.get(k);
+    if (!c) acc.set(k, (c = { row, col, n: 0, sum: 0, has: 0 }));
+    c.n++;
+    if (m.agg === "count") continue;
+    const v = num(r[m.value]);
+    if (v === null) continue;
+    c.sum += v;
+    c.has++;
+  }
+  return [...acc.values()].map((c) => ({
+    row: c.row,
+    col: c.col,
+    value: m.agg === "count" ? c.n : m.agg === "sum" ? c.sum : c.has ? c.sum / c.has : 0,
+    count: m.agg === "avg" ? c.has : c.n,
+  }));
 }
 
 /** Marca o desmarca un valor de faceta: edita (o crea, o quita) el filtro `in` de esa columna. Si

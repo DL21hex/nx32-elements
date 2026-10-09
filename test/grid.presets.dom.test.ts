@@ -135,7 +135,7 @@ describe("nx-grid: título, «Seguimiento» y el total", () => {
     expect(top.hidden).toBe(false);
     expect(top.hasAttribute("data-heading")).toBe(true);
     expect(top.querySelector("h2.nx-grid__heading")!.textContent).toBe("Pedidos");
-    const segs = () => [...el.querySelectorAll<HTMLButtonElement>(".nx-grid__segment")];
+    const segs = () => [...el.querySelectorAll<HTMLButtonElement>(".nx-grid__presets .nx-grid__segment")];
     const text = () => segs().map((b) => b.textContent);
     const on = () => segs().map((b) => b.getAttribute("aria-pressed"));
     // «Todos» y uno por atajo, cada uno con su conteo; la línea corta, al pasar el mouse.
@@ -165,7 +165,7 @@ describe("nx-grid: título, «Seguimiento» y el total", () => {
     el.heading = null;
     expect(top.querySelector(".nx-grid__heading")).toBeNull();
     expect(top.hasAttribute("data-heading")).toBe(false);
-    expect(el.querySelector(".nx-grid__segments")).toBeNull();
+    expect(el.querySelector(".nx-grid__presets .nx-grid__segments")).toBeNull();
     expect(cards(el)).toHaveLength(2);
     // Sin título ni tarjetas, la fila no se ve.
     el.presets = [];
@@ -249,7 +249,7 @@ describe("nx-grid: atajos que llevan a otra página (`href`)", () => {
     const el = mount('heading="Pedidos"');
     el.presets = [PRESETS[0], LINK];
     // Junto al título va después del segmentado, no como un segmento.
-    expect([...el.querySelectorAll(".nx-grid__segment")].map((b) => b.textContent)).toEqual(["Todos4", "Pendientes2"]);
+    expect([...el.querySelectorAll(".nx-grid__presets .nx-grid__segment")].map((b) => b.textContent)).toEqual(["Todos4", "Pendientes2"]);
     const a = el.querySelector<HTMLAnchorElement>('a.nx-grid__preset-link[data-preset="correos"]')!;
     expect(a.previousElementSibling!.classList.contains("nx-grid__segments")).toBe(true);
     expect(a.getAttribute("href")).toBe("/correos");

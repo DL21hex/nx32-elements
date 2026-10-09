@@ -1,5 +1,26 @@
 # Registro de cambios
 
+## 0.8.0 — 2026-10-09
+
+### `<nx-grid>`
+
+- **Matriz: «Tabla | Matriz» (`matrix`, `layout`).** Con `matrix`, la barra ofrece ver la tabla o
+  una matriz que cruza dos columnas de pocos valores (Área × Estado): en cada cruce, cuántas filas
+  hay, o la suma o el promedio de una columna numérica (`agg`, `value`), con los totales de cada
+  fila, de cada columna y el general. Ocupa el lugar de la tabla, con su mismo alto: se ve una cosa
+  a la vez. Arriba se eligen las dos columnas, se intercambian y se elige qué mostrar. Tocar un
+  cruce vuelve a la tabla con esos dos filtros puestos (como chips); un encabezado o un total, con
+  el de su columna; el total general, sin ninguno. La matriz cuenta con la búsqueda y los demás
+  filtros, no con los de sus dos columnas: al volver se ve todo y queda marcado el cruce que filtra.
+  Una sola parada de Tab, con flechas dentro. Con `source`, la tabla la pide aparte (`limit: 0` y
+  `matrix` en la petición) y el servidor responde `matrix` con los cruces (un `GROUP BY` de las dos
+  columnas); `rowLabel`/`colLabel` nombran un valor que es un código. Las vistas guardadas recuerdan
+  si se veía la matriz y cuál. Evento `nx-grid-layout` (`{layout, matrix}`), `matrixCells()` para
+  calcular los cruces como la tabla, y los textos `labels.layout*` y `labels.matrix*`. Su código se
+  carga al pasar a «Matriz» (~3,8 KB).
+- En la galería, «Necesidades de compra» y «La tabla como página» traen la matriz, también en modo
+  servidor.
+
 ## 0.7.1 — 2026-10-09
 
 ### `<nx-sidemenu>`

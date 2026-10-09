@@ -274,6 +274,10 @@ export interface GridLabels {
   actions: string;
   /** El nombre del menú de una celda cuando solo trae las acciones de la fila. */
   rowActions: string;
+  /** El selector «Tabla | Matriz» (con `matrix`): su nombre y sus dos opciones. */
+  layout: string;
+  layoutTable: string;
+  layoutMatrix: string;
 }
 
 /** Una faceta que manda el backend (modo `source`). */
@@ -307,6 +311,44 @@ export interface GridPreset {
   menu?: boolean;
 }
 
+/** Cómo se ve la tabla: sus filas (`table`) o la matriz de dos columnas (`matrix`). */
+export type GridLayout = "table" | "matrix";
+
+/** La matriz (`matrix`): cruza dos columnas de pocos valores (Área × Estado) y en cada cruce dice
+ *  cuántas filas hay, o la suma o el promedio de una columna numérica. */
+export interface GridMatrix {
+  /** La columna de las filas de la matriz. Sin ella (o si no sirve), la primera que se pueda cruzar. */
+  rows?: string;
+  /** La columna de las columnas. Sin ella, la siguiente que se pueda cruzar. */
+  cols?: string;
+  /** `count` (por omisión): cuántas filas; `sum` y `avg`, de la columna numérica `value`. */
+  agg?: "count" | "sum" | "avg";
+  /** Con `sum` o `avg`: la columna (`number` o `money`) que se suma o promedia. */
+  value?: string;
+}
+
+/** `nx-grid-layout`: la persona pasó entre la tabla y la matriz, o cambió la matriz. */
+export interface GridLayoutDetail {
+  layout: GridLayout;
+  matrix: GridMatrix | null;
+}
+
+/** Un cruce de la matriz. Con `source`, el servidor manda una por cruce que tenga filas
+ *  (`GROUP BY` de las dos columnas); los que no vienen valen cero. `""` es «sin dato». */
+export interface GridMatrixCell {
+  /** El valor de la columna de las filas (`GridMatrix.rows`), como texto. */
+  row: string;
+  /** El valor de la columna de las columnas. */
+  col: string;
+  /** Lo que vale el cruce: el conteo, la suma o el promedio. */
+  value: number;
+  /** Cuántas filas tiene el cruce. Con `avg` hace falta para los totales (un promedio no se suma). */
+  count?: number;
+  /** El nombre que se ve, si el valor es un código (el id de una subdivisión). */
+  rowLabel?: string;
+  colLabel?: string;
+}
+
 /** Lo que responde `source`: un bloque de filas y, opcionalmente, los agregados con los filtros aplicados. */
 export interface GridPage {
   rows: GridRow[];
@@ -317,6 +359,8 @@ export interface GridPage {
    *  filtrado. Los del menú (`menu`) no llevan conteo. */
   presets?: Record<string, number>;
   totals?: Record<string, number>;
+  /** La respuesta a una petición con `matrix` (la tabla en modo matriz): los cruces. */
+  matrix?: GridMatrixCell[];
 }
 
 /** `nx-grid-error`: un bloque del servidor no llegó (se vuelve a pedir más tarde, con más espera cada vez). */
@@ -362,6 +406,10 @@ export interface GridView {
   hidden: string[];
   /** Los anchos que eligió la persona, en px (por `key`). */
   widths: Record<string, number>;
+  /** Si se ve la tabla o la matriz (solo con `matrix`). */
+  layout?: GridLayout;
+  /** Las columnas y la medida de la matriz, si se ve. */
+  matrix?: GridMatrix;
 }
 
 /** Una vista guardada con nombre (`views-storage`). */
@@ -396,4 +444,30 @@ export interface GridViewLabels {
   /** `columnsReset` cuando la tabla esconde columnas de arranque (`hidden`): restablecer no las muestra. */
   columnsResetDefault: string;
   columnsHint: string;
+}
+
+/** Los textos de la matriz (se cargan con ella). */
+export interface GridMatrixLabels {
+  /** «Filas» y «Columnas»: qué columna va en cada eje. */
+  matrixRows: string;
+  matrixCols: string;
+  /** El botón que intercambia los dos ejes. */
+  matrixSwap: string;
+  /** «Mostrar» y sus opciones: cuántas filas, o la suma o el promedio de una columna ({col}). */
+  matrixShow: string;
+  matrixCount: string;
+  matrixSum: string;
+  matrixAvg: string;
+  /** Los totales de cada fila y columna, y el general. */
+  matrixTotal: string;
+  /** Un cruce o un valor vacío: «(Sin dato)». */
+  matrixBlank: string;
+  /** Una celda para el lector de pantalla: «{row}, {col}: {value}». */
+  matrixCell: string;
+  /** Un cruce sin filas: «ninguna». */
+  matrixNone: string;
+  /** Bajo la matriz: qué hace tocarla. */
+  matrixHint: string;
+  /** Hay filtros sobre las columnas de la matriz: no se aplican en ella ({cols}). */
+  matrixIgnores: string;
 }

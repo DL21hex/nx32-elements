@@ -1,0 +1,806 @@
+<title>Hub de Talento Humano</title>
+<style>
+/* Maqueta: la página de Talento Humano de la consola nx32 hecha con <nx-launcher> (una señal viva por
+   pantalla) y el panel flotante de <nx-sidemenu> con los hijos agrupados por `section`, en una o dos
+   columnas. Tokens de nx32-elements (src/styles/tokens.css) con el acento de nx32, recortados a lo
+   que usa la maqueta. Diseño: riel de 240 px + hub en cuatro columnas que bajan a dos y a una. */
+:root {
+  color-scheme: light;
+  --_h: 222; --_c: 0.1; --_l: 0.52; --_ld: 0.76; --_n: 240; --_t: 1;
+  --nx-canvas: light-dark(oklch(0.985 calc(0.002 * var(--_t)) var(--_n)), oklch(0.165 calc(0.004 * var(--_t)) var(--_n)));
+  --nx-rail: light-dark(oklch(0.975 calc(0.003 * var(--_t)) var(--_n)), oklch(0.185 calc(0.005 * var(--_t)) var(--_n)));
+  --nx-card: light-dark(oklch(1 0 0), oklch(0.225 calc(0.005 * var(--_t)) var(--_n)));
+  --nx-popover: light-dark(oklch(1 0 0), oklch(0.245 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-border-subtle: light-dark(oklch(0.925 calc(0.004 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.07));
+  --nx-border: light-dark(oklch(0.885 calc(0.005 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.11));
+  --nx-border-strong: light-dark(oklch(0.82 calc(0.006 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.17));
+  --nx-foreground: light-dark(oklch(0.2 calc(0.008 * var(--_t)) var(--_n)), oklch(0.955 calc(0.003 * var(--_t)) var(--_n)));
+  --nx-muted-foreground: light-dark(oklch(0.44 calc(0.01 * var(--_t)) var(--_n)), oklch(0.76 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-text-tertiary: light-dark(oklch(0.51 calc(0.01 * var(--_t)) var(--_n)), oklch(0.64 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-text-quaternary: light-dark(oklch(0.6 calc(0.008 * var(--_t)) var(--_n)), oklch(0.55 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-primary: light-dark(oklch(var(--_l) var(--_c) var(--_h)), oklch(var(--_ld) calc(var(--_c) * 0.8) var(--_h)));
+  --nx-primary-ink: light-dark(oklch(calc(var(--_l) - 0.07) var(--_c) var(--_h)), oklch(calc(var(--_ld) + 0.05) calc(var(--_c) * 0.75) var(--_h)));
+  --nx-primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.17 calc(var(--_c) * 0.1) var(--_h)));
+  --nx-primary-soft: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.1), oklch(var(--_ld) calc(var(--_c) * 0.8) var(--_h) / 0.15));
+  --nx-primary-border: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.35), oklch(var(--_ld) calc(var(--_c) * 0.8) var(--_h) / 0.4));
+  --nx-hover: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.05), oklch(1 0 0 / 0.06));
+  --nx-ring: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.6), oklch(var(--_ld) calc(var(--_c) * 0.8) var(--_h) / 0.7));
+  --nx-success: light-dark(oklch(0.49 0.13 150), oklch(0.74 0.14 150));
+  --nx-danger: light-dark(oklch(0.52 0.2 27), oklch(0.72 0.16 27));
+  --nx-warning: light-dark(oklch(0.74 0.15 70), oklch(0.8 0.14 78));
+  --nx-warning-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --nx-scrim: light-dark(oklch(0.2 0.01 var(--_n) / 0.36), oklch(0 0 0 / 0.55));
+  --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
+    0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
+  --nx-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-radius-md: 7px; --nx-radius-lg: 10px;
+  --nx-motion-fast: 140ms; --nx-motion-base: 220ms;
+  --nx-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--nx-canvas); color: var(--nx-foreground); font: 14px/1.45 var(--nx-font-sans); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- consola */
+
+.app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100dvh; }
+.rail {
+  position: sticky; top: 0; height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column;
+  padding: 14px 10px 24px;
+  background: var(--nx-rail); border-inline-end: 1px solid var(--nx-border-subtle);
+  scrollbar-width: thin;
+}
+.rail__nav { display: flex; flex-direction: column; gap: 2px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; font-size: 15px; font-weight: 650; }
+.brand__mark { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--nx-primary); color: var(--nx-primary-foreground); font-size: 12px; font-weight: 700; }
+.rail__section { padding: 14px 10px 6px; color: var(--nx-text-tertiary); font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.rail__item {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  width: 100%; height: 35px; padding: 0 10px;
+  border: 0; border-radius: var(--nx-radius-md); background: none;
+  color: var(--nx-muted-foreground); font-size: 13.5px; text-align: start; text-decoration: none; cursor: pointer;
+}
+.rail__item:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.rail__item.is-active { background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-weight: 600; }
+.rail__item.is-active::before { content: ""; position: absolute; inset-block: 8px; inset-inline-start: -10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--nx-primary); }
+.rail__item[aria-expanded="true"] { box-shadow: inset 0 0 0 1px var(--nx-primary-border); }
+.rail__label { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rail__chev { width: 14px; height: 14px; color: var(--nx-text-tertiary); }
+.rail__back {
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+  margin: 0 0 8px; padding: 6px 8px; border: 0; border-radius: var(--nx-radius-md); background: none;
+  color: var(--nx-muted-foreground); font-size: 13px; cursor: pointer;
+}
+.rail__back:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.rail__back svg { transform: scaleX(-1); width: 15px; height: 15px; }
+
+.topbar { display: none; }
+main { min-width: 0; padding-block: 22px 128px; padding-inline: clamp(16px, 3vw, 32px); }
+
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--nx-muted-foreground); font-size: 13px; }
+.crumbs a { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; border-radius: 4px; }
+.crumbs a:hover { color: var(--nx-foreground); }
+.crumbs svg.i { width: 15px; height: 15px; }
+.crumbs .sep { width: 13px; height: 13px; color: var(--nx-text-quaternary); }
+.crumbs [aria-current] { color: var(--nx-foreground); font-weight: 600; }
+
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin: 14px 0 26px; }
+h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
+.head__utils { display: flex; gap: 6px; }
+.util {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-md); background: var(--nx-card);
+  color: var(--nx-muted-foreground); font-size: 12.5px; text-decoration: none; cursor: pointer;
+}
+.util:hover { border-color: var(--nx-border-strong); color: var(--nx-foreground); }
+.util svg.i { width: 14px; height: 14px; }
+
+.fine { margin: 40px 0 0; max-width: 70ch; color: var(--nx-text-tertiary); font-size: 12px; }
+
+/* ---------------------------------------------------------------- <nx-launcher> (de launcher.css) */
+
+.hub { container: hub / inline-size; }
+.nx-launcher__nav { display: grid; gap: 30px; }
+.nx-launcher__heading { margin: 0 0 10px; color: var(--nx-muted-foreground); font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; }
+/* Las columnas que elige balanceColumns con --nx-launcher-min: 210px: secciones de 4, 4, 4 y 3 van en
+   cuatro, o en dos (en tres quedarían huérfanas), o en una. */
+.nx-launcher__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
+@container hub (min-width: 432px) { .nx-launcher__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container hub (min-width: 876px) { .nx-launcher__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.nx-launcher__card {
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 16px 14px;
+  background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: var(--nx-radius-lg);
+  transition: border-color var(--nx-motion-fast), box-shadow var(--nx-motion-base) var(--nx-ease-out);
+}
+.nx-launcher__card:hover { border-color: var(--nx-border); }
+.nx-launcher__card:has(.nx-launcher__link:focus-visible) { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+.nx-launcher__card::before, .nx-launcher__card::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity var(--nx-motion-base) var(--nx-ease-out);
+}
+.nx-launcher__card::before {
+  z-index: 0;
+  background: radial-gradient(320px circle at var(--nx-launcher-x, 50%) var(--nx-launcher-y, 50%),
+    light-dark(transparent, color-mix(in oklch, var(--nx-primary) 6%, transparent)),
+    light-dark(color-mix(in oklch, var(--nx-foreground) 4%, transparent), transparent) 70%);
+}
+.nx-launcher__card::after {
+  z-index: 3; padding: 1px;
+  background: radial-gradient(200px circle at var(--nx-launcher-x, 50%) var(--nx-launcher-y, 50%),
+    light-dark(color-mix(in oklch, var(--nx-primary) 40%, transparent), color-mix(in oklch, var(--nx-primary) 75%, transparent)),
+    transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+@media (hover: hover) {
+  .nx-launcher__card:hover { box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.04), transparent), 0 10px 28px -14px light-dark(rgb(15 20 30 / 0.16), transparent); }
+  .nx-launcher__card:hover::before, .nx-launcher__card:hover::after { opacity: 1; }
+}
+.nx-launcher__card > :not(.nx-launcher__link), .nx-launcher__label { position: relative; }
+.nx-launcher__top { display: flex; align-items: center; justify-content: space-between; }
+.nx-launcher__icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; background: var(--nx-primary-soft); color: var(--nx-primary-ink); }
+.nx-launcher__icon svg.i { width: 20px; height: 20px; stroke-width: 1.7; }
+/* Única diferencia con el componente: la flecha solo aparece al pasar o enfocar (en reposo era ruido). */
+.nx-launcher__go { width: 16px; height: 16px; color: var(--nx-text-tertiary); opacity: 0; transition: opacity var(--nx-motion-fast), translate var(--nx-motion-base) var(--nx-ease-out), color var(--nx-motion-fast); }
+.nx-launcher__card:hover .nx-launcher__go, .nx-launcher__card:focus-within .nx-launcher__go { opacity: 1; color: var(--nx-primary-ink); translate: 2px -2px; }
+.nx-launcher__link {
+  align-self: flex-start; color: inherit; text-decoration: none;
+  font-size: 15.5px; font-weight: 620; line-height: 1.25; outline: none;
+}
+.nx-launcher__link::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.nx-launcher__label { display: inline-block; }
+.nx-launcher__swap { display: grid; min-height: 58px; }
+.nx-launcher__desc, .nx-launcher__views { grid-area: 1 / 1; transition: opacity var(--nx-motion-base) var(--nx-ease-out), translate var(--nx-motion-base) var(--nx-ease-out); }
+.nx-launcher__desc { margin: 0; color: var(--nx-muted-foreground); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.nx-launcher__views { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-content: start; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.nx-launcher__view {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px;
+  border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-canvas);
+  color: var(--nx-foreground); font-size: 12.5px; text-decoration: none; white-space: nowrap; cursor: pointer;
+}
+.nx-launcher__view:hover { background: var(--nx-primary-soft); border-color: var(--nx-primary-border); color: var(--nx-primary-ink); }
+.nx-launcher__badge, .nx-launcher__hint-text { color: var(--nx-text-tertiary); font-variant-numeric: tabular-nums; }
+.nx-launcher__badge { font-weight: 600; }
+@media (hover: hover) {
+  .nx-launcher__card .nx-launcher__views { opacity: 0; pointer-events: none; translate: 0 6px; }
+  .nx-launcher__card:hover .nx-launcher__desc, .nx-launcher__card:focus-within .nx-launcher__desc { opacity: 0; translate: 0 -6px; }
+  .nx-launcher__card:hover .nx-launcher__views, .nx-launcher__card:focus-within .nx-launcher__views { opacity: 1; pointer-events: auto; translate: none; }
+}
+@media (hover: none) {
+  .nx-launcher__swap { gap: 10px; min-height: 0; }
+  .nx-launcher__desc, .nx-launcher__views { grid-area: auto; }
+}
+
+.nx-launcher__signal {
+  margin-top: auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 7px;
+  padding-top: 10px; border-top: 1px solid var(--nx-border-subtle);
+  color: var(--nx-muted-foreground); font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+.nx-launcher__value { display: inline-block; color: var(--nx-foreground); font-size: 19px; font-weight: 650; letter-spacing: -0.01em; border-radius: 4px; }
+.nx-launcher__note { display: inline-flex; align-items: center; gap: 5px; color: var(--nx-muted-foreground); }
+.nx-launcher__note::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.nx-launcher__note[data-tone="warning"] { color: var(--nx-warning-ink); }
+.nx-launcher__note[data-tone="warning"]::before { background: var(--nx-warning); }
+.nx-launcher__note[data-tone="danger"] { color: var(--nx-danger); }
+.nx-launcher__meter { flex: 1 1 100%; height: 5px; margin-top: 2px; border-radius: 3px; background: var(--nx-border-subtle); overflow: hidden; }
+.nx-launcher__meter i { display: block; height: 100%; border-radius: inherit; background: var(--nx-primary); }
+.nx-launcher__trend { flex: 1 1 80px; align-self: center; min-width: 60px; height: 22px; overflow: visible; }
+.nx-launcher__trend-area { fill: var(--nx-primary-soft); }
+.nx-launcher__trend-line { fill: none; stroke: var(--nx-primary); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* Un dato que acaba de cambiar se ilumina un momento (tarjeta y contador del panel). */
+.is-new { animation: nx-new 1.8s var(--nx-ease-out); }
+@keyframes nx-new {
+  0%, 35% { background: var(--nx-primary-soft); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+  100% { background: transparent; box-shadow: 0 0 0 3px transparent; }
+}
+
+/* ---------------------------------------------------------------- panel de <nx-sidemenu> (de sidemenu.css) */
+
+.nx-flyout {
+  position: fixed; inset: auto; margin: 0; padding: 6px;
+  width: 320px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); overflow: hidden;
+  border: 1px solid var(--nx-border-strong); border-radius: var(--nx-radius-lg);
+  background: var(--nx-popover); color: var(--nx-foreground); box-shadow: var(--nx-shadow-popover);
+  font-size: 13px; line-height: 1.35;
+}
+.nx-flyout[data-cols="2"] { width: 520px; }
+.nx-flyout:popover-open { display: flex; flex-direction: column; animation: nx-flyout-in var(--nx-motion-fast) var(--nx-ease-out); }
+@keyframes nx-flyout-in { from { opacity: 0; translate: 0 3px; } }
+
+.nx-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.nx-panel p { margin: 0; }
+.nx-panel__head { display: flex; align-items: center; gap: 10px; padding: 6px 8px 8px; }
+.nx-panel__glyph { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--nx-radius-md); background: var(--nx-primary-soft); color: var(--nx-primary-ink); }
+.nx-panel__glyph svg.i { width: 16px; height: 16px; }
+.nx-panel__titles { min-width: 0; }
+.nx-panel__title, .nx-panel__label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.nx-panel__title { font-weight: 600; }
+.nx-panel__count { color: var(--nx-text-tertiary); font-size: 11.5px; }
+.nx-panel__search { position: relative; padding: 0 4px 6px; }
+.nx-panel__search svg.i { position: absolute; top: 9px; left: 13px; width: 14px; height: 14px; color: var(--nx-text-quaternary); pointer-events: none; }
+.nx-panel__input {
+  width: 100%; height: 32px; padding: 0 10px 0 30px;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-md); outline: none;
+  background: var(--nx-card); color: var(--nx-foreground); font: inherit; font-size: 12.5px;
+}
+.nx-panel__input::placeholder { color: var(--nx-text-tertiary); }
+.nx-panel__input:focus { border-color: var(--nx-primary-border); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.nx-panel__list { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.nx-panel__scroll { max-height: min(60vh, 440px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.nx-panel__scroll[data-cols="2"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; column-gap: 8px; }
+.nx-panel__col { display: flex; flex-direction: column; min-width: 0; }
+.nx-panel__section { padding: 8px 10px 4px; color: var(--nx-text-tertiary); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.nx-panel__option, .nx-panel__chip { display: flex; align-items: center; color: var(--nx-muted-foreground); text-decoration: none; cursor: pointer; }
+.nx-panel__option { position: relative; gap: 10px; padding: 6px 10px; border-radius: var(--nx-radius-md); }
+.nx-panel__option svg.i { width: 16px; height: 16px; color: var(--nx-text-tertiary); }
+.nx-panel__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.nx-panel__option[aria-selected="true"], .nx-panel__chip[aria-selected="true"] { background: var(--nx-primary-soft); color: var(--nx-foreground); }
+.nx-panel__option[aria-selected="true"] svg.i, .nx-panel__chip[aria-selected="true"] svg.i { color: var(--nx-primary-ink); }
+.nx-panel__chip[aria-current="page"] { border-color: var(--nx-primary-border); color: var(--nx-primary-ink); font-weight: 550; }
+.nx-panel__utils { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-top: 6px; padding: 8px 4px 2px; border-top: 1px solid var(--nx-border-subtle); }
+.nx-panel__chip { gap: 6px; max-width: 100%; padding: 4px 8px; border: 1px solid var(--nx-border-subtle); border-radius: var(--nx-radius-md); background: var(--nx-card); font-size: 12px; }
+.nx-panel__chip svg.i { width: 13px; height: 13px; }
+.nx-panel__empty { padding: 12px 10px; color: var(--nx-text-tertiary); font-size: 12.5px; text-align: center; }
+.nx-badge {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; margin-left: auto; padding-inline: 6px; border-radius: 9px;
+  background: var(--nx-primary-soft); color: var(--nx-primary-ink);
+  font-size: 10.5px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1;
+}
+/* En el cajón del teléfono el panel ocupa el alto que haya. */
+.rail__panel .nx-panel__scroll { max-height: none; }
+
+/* ---------------------------------------------------------------- controles de la maqueta */
+
+.maq {
+  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; z-index: 50;
+  display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--nx-border-strong); border-radius: 12px; background: var(--nx-popover); box-shadow: var(--nx-shadow-popover);
+  font-size: 12.5px;
+}
+.maq__tag { color: var(--nx-text-tertiary); font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.maq__lbl { color: var(--nx-muted-foreground); white-space: nowrap; }
+.seg { display: flex; padding: 2px; border-radius: 8px; background: var(--nx-hover); }
+.seg button { height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: var(--nx-muted-foreground); white-space: nowrap; cursor: pointer; }
+.seg button[aria-checked="true"] { background: var(--nx-card); color: var(--nx-foreground); font-weight: 600; box-shadow: 0 1px 2px light-dark(rgb(15 20 30 / 0.1), rgb(0 0 0 / 0.4)); }
+.maq__btn { height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--nx-primary); color: var(--nx-primary-foreground); font-weight: 600; white-space: nowrap; cursor: pointer; }
+.maq__btn:hover { filter: brightness(1.06); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); translate: -50% 8px; z-index: 60;
+  max-width: calc(100vw - 32px); padding: 8px 14px; border-radius: 8px;
+  background: var(--nx-foreground); color: var(--nx-canvas); font-size: 13px;
+  opacity: 0; pointer-events: none; transition: opacity var(--nx-motion-base), translate var(--nx-motion-base) var(--nx-ease-out);
+}
+.toast.is-on { opacity: 1; translate: -50% 0; }
+
+/* ---------------------------------------------------------------- teléfono: cajón con el panel dentro */
+
+.scrim { position: fixed; inset: 0; z-index: 30; background: var(--nx-scrim); }
+@media (max-width: 767.98px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .topbar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    display: flex; align-items: center; gap: 8px; height: 52px; padding-inline: 10px 16px;
+    background: var(--nx-canvas); border-bottom: 1px solid var(--nx-border-subtle);
+  }
+  .topbar__menu { display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: var(--nx-radius-md); background: none; cursor: pointer; }
+  .topbar__menu:hover { background: var(--nx-hover); }
+  .topbar .brand { padding: 0; font-size: 14.5px; }
+  .rail {
+    position: fixed; inset: 0 auto 0 0; z-index: 40; width: min(300px, 86vw); height: 100dvh;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    transform: translateX(-102%); transition: transform var(--nx-motion-base) var(--nx-ease-out);
+    box-shadow: var(--nx-shadow-popover);
+  }
+  .app.is-drawer .rail { transform: none; }
+  .rail .brand { display: none; }
+  main { padding-top: 16px; }
+  h1 { font-size: 24px; }
+  .maq .seg, .maq .maq__lbl { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="app" id="app">
+  <nav class="rail" id="rail" aria-label="Menú principal">
+    <div class="brand"><span class="brand__mark" aria-hidden="true">C</span>Consola nx32</div>
+    <div class="rail__nav" id="rail-nav"></div>
+    <div class="rail__panel" id="rail-panel" hidden></div>
+  </nav>
+  <div class="col">
+    <header class="topbar">
+      <button class="topbar__menu" id="menu-btn" type="button" aria-label="Abrir el menú" aria-controls="rail"></button>
+      <div class="brand"><span class="brand__mark" aria-hidden="true">C</span>Consola nx32</div>
+    </header>
+    <main>
+      <ol class="crumbs" aria-label="Ruta">
+        <li><a href="#" data-toast="En nx32 abriría «Inicio»" id="crumb-home"></a></li>
+        <li aria-hidden="true" id="crumb-sep"></li>
+        <li><span aria-current="page">Talento Humano</span></li>
+      </ol>
+      <div class="head">
+        <h1>Talento Humano</h1>
+        <div class="head__utils" id="head-utils"></div>
+      </div>
+      <div class="hub" id="hub"></div>
+      <p class="fine">Cifras de ejemplo. Empleados (9.704 activos, 135 ingresos y 224 retiros) y Vencimientos (883) usan las de la maqueta de la tabla de Empleados. Las señales cambian solas durante el primer medio minuto, como lo harían con datos vivos: mira Permisos, Incapacidades, Vacaciones y Banco de hojas de vida.</p>
+    </main>
+  </div>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="nx-flyout" id="fly" popover="auto" role="dialog" aria-label="Talento Humano"></div>
+
+<div class="maq" role="group" aria-label="Controles de la maqueta">
+  <span class="maq__tag">Maqueta</span>
+  <span class="maq__lbl" id="maq-lbl">Panel del menú</span>
+  <div class="seg" role="radiogroup" aria-labelledby="maq-lbl">
+    <button type="button" role="radio" aria-checked="true" data-cols="1">Una columna</button>
+    <button type="button" role="radio" aria-checked="false" data-cols="2">Dos columnas</button>
+  </div>
+  <button type="button" class="maq__btn" id="maq-open">Abrir el panel</button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const fold = (s) => String(s).normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  const fmt = new Intl.NumberFormat("es-CO");
+  const badgeText = (n) => (n > 99 ? "99+" : String(n));
+  const phone = matchMedia("(max-width: 767.98px)");
+  const finePointer = matchMedia("(pointer: fine)");
+
+  /* Íconos de trazo, 24×24 (estilo lucide). */
+  const ICON = {
+    home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/>',
+    listChecks: '<path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/>',
+    userStar: '<circle cx="10" cy="7" r="4"/><path d="M10.5 15H7a4 4 0 0 0-4 4v2"/><path d="m17.5 13.5 1.1 2.2 2.4.35-1.75 1.7.4 2.4-2.15-1.13-2.15 1.13.4-2.4-1.75-1.7 2.4-.35z"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    shieldCheck: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    package: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>',
+    cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+    utensils: '<path d="M3 2v7a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6a2 2 0 0 0 2 2h3zm0 0v7"/>',
+    message: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
+    tablet: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
+    heartPulse: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    idCard: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 9h3M15 13h3M6 16.5c.6-1.3 1.7-2 3-2s2.4.7 3 2"/>',
+    briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/>',
+    fileUser: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="12" cy="12.5" r="2.2"/><path d="M8.5 18.5a3.5 3.5 0 0 1 7 0"/>',
+    filePen: '<path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4z"/>',
+    hourglass: '<path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/>',
+    userX: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5M22 8l-5 5"/>',
+    calendarClock: '<path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4M8 2v4M3 10h5"/><circle cx="16" cy="16" r="6"/><path d="M16 14v2.2l1.6 1"/>',
+    palm: '<path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"/><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"/><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35"/><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"/>',
+    stethoscope: '<path d="M11 2v2M5 2v2M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>',
+    piggy: '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1a2 2 0 0 0 2 2h1M16 11h.01"/>',
+    receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>',
+    banknote: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+    award: '<circle cx="12" cy="8" r="6"/><path d="M15.48 12.89 17 22l-5-3-5 3 1.52-9.11"/>',
+    sliders: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
+    chart: '<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    chevron: '<path d="m9 18 6-6-6-6"/>',
+    arrow: '<path d="M7 17 17 7M7 7h10v10"/>',
+    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  };
+  const svg = (name, cls = "") => `<svg class="i${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${ICON[name] || ""}</svg>`;
+
+  /* Las pantallas de Talento Humano, como las mandaría el backend (BDUI). Un solo arreglo alimenta las
+     dos vistas: `section` agrupa el panel y el hub, `badge` pone el contador en el panel, `views` son
+     las pestañas que aparecen en la tarjeta y `signal` es su dato vivo (`n` es el número que cambia). */
+  const ITEMS = [
+    { id: "empleados", section: "Personas", label: "Empleados", icon: "users",
+      desc: "Ficha, cargo, jefe y estado de cada persona.",
+      views: [{ label: "Activos" }, { label: "Retirados" }, { label: "Seguimiento" }],
+      signal: { n: 9704, label: "activos", note: "135 ingresos y 224 retiros en 30 días", trend: [9512, 9540, 9601, 9588, 9620, 9655, 9642, 9690, 9713, 9698, 9721, 9704] } },
+    { id: "datos", section: "Personas", label: "Datos personales", icon: "idCard", badge: true,
+      desc: "Cambios que cada persona hizo desde su inicio.",
+      views: [{ label: "Por revisar", count: true }, { label: "Historial" }],
+      signal: { n: 86, label: "cambios por revisar", note: "el más antiguo, hace 6 días", tone: "warning" } },
+    { id: "perfiles", section: "Personas", label: "Perfiles de cargo", icon: "briefcase",
+      desc: "Funciones, requisitos y rango salarial de cada cargo.",
+      views: [{ label: "Cargos" }, { label: "Sin perfil", badge: 17 }],
+      signal: { n: 214, label: "cargos", note: "17 sin perfil aprobado", tone: "warning" } },
+    { id: "carpetas", section: "Personas", label: "Carpetas", icon: "folder",
+      desc: "Contrato, exámenes y afiliaciones de cada persona.",
+      views: [{ label: "Incompletas", badge: 48 }, { label: "Todas" }],
+      signal: { value: "96 %", label: "completas", note: "48 incompletas", meter: 96 } },
+
+    { id: "hojas", section: "Ingreso y retiro", label: "Banco de hojas de vida", icon: "fileUser",
+      desc: "Aspirantes y procesos de selección abiertos.",
+      views: [{ label: "Nuevas", count: true }, { label: "Procesos" }],
+      signal: { n: 56, label: "nuevas esta semana", note: "4 procesos abiertos", trend: [31, 44, 38, 52, 47, 61, 56] } },
+    { id: "contratacion", section: "Ingreso y retiro", label: "Contratación", icon: "filePen", badge: true,
+      desc: "Contratos por redactar, firmar y afiliar.",
+      views: [{ label: "Por firmar", count: true }, { label: "En curso" }, { label: "Plantillas" }],
+      signal: { n: 3, label: "por firmar", note: "1 ingresa el martes 13", tone: "warning" } },
+    { id: "vencimientos", section: "Ingreso y retiro", label: "Vencimientos", icon: "hourglass",
+      desc: "Contratos a término fijo y de obra que terminan.",
+      views: [{ label: "Próximos 30 días" }, { label: "Prórrogas" }],
+      signal: { n: 883, label: "terminan en 30 días", note: "41 con preaviso hasta el 15 oct", tone: "warning" } },
+    { id: "retiro", section: "Ingreso y retiro", label: "Retiro de empleados", icon: "userX",
+      desc: "Paz y salvo, liquidación y examen de egreso.",
+      views: [{ label: "En trámite", count: true }, { label: "Liquidados" }],
+      signal: { n: 8, label: "en trámite", note: "2 sin paz y salvo", tone: "warning" } },
+
+    { id: "permisos", section: "Solicitudes", label: "Permisos", icon: "calendarClock", badge: true,
+      desc: "Por horas o por días, con su soporte.",
+      views: [{ label: "Por aprobar", count: true }, { label: "Aprobados" }, { label: "Todos" }],
+      signal: { n: 7, label: "por aprobar", note: "el más antiguo, hace 3 días", tone: "warning" } },
+    { id: "vacaciones", section: "Solicitudes", label: "Vacaciones", icon: "palm", badge: true,
+      desc: "Solicitudes, saldos y calendario del equipo.",
+      views: [{ label: "Por aprobar", count: true }, { label: "Calendario" }, { label: "Saldos" }],
+      signal: { n: 12, label: "por aprobar", note: "4 piden el puente del 12 oct", tone: "warning" } },
+    { id: "incapacidades", section: "Solicitudes", label: "Incapacidades", icon: "stethoscope", badge: true,
+      desc: "Soportes, prórrogas y cobro a la EPS o la ARL.",
+      views: [{ label: "Sin soporte", count: true }, { label: "Por cobrar" }, { label: "Todas" }],
+      signal: { n: 5, label: "sin soporte", note: "2 por radicar ante la EPS", tone: "danger" } },
+    { id: "cesantias", section: "Solicitudes", label: "Cesantías", icon: "piggy", badge: true,
+      desc: "Retiros parciales y consignación a los fondos.",
+      views: [{ label: "Retiros", count: true }, { label: "Consignaciones" }],
+      signal: { n: 4, label: "retiros por aprobar", note: "1 es para matrícula" } },
+
+    { id: "desprendibles", section: "Pagos y certificados", label: "Desprendibles de pago", icon: "receipt",
+      desc: "Quincenas publicadas y su envío por correo.",
+      views: [{ label: "Quincena", hint: "30 sep" }, { label: "Todas" }],
+      signal: { value: "30 sep", label: "9.688 enviados", note: "16 sin correo", tone: "warning" } },
+    { id: "ingresos", section: "Pagos y certificados", label: "Ingresos y retenciones", icon: "banknote",
+      desc: "Certificados del año gravable para la declaración de renta.",
+      views: [{ label: "Año 2025" }, { label: "Sin descargar" }],
+      signal: { value: "64 %", label: "descargados del año 2025", note: "3.493 sin descargar", meter: 64 } },
+    { id: "beneficios", section: "Pagos y certificados", label: "Beneficios extralegales", icon: "award",
+      desc: "Auxilios y convenios que van más allá de la ley.",
+      views: [{ label: "Auxilios" }, { label: "Convenios" }],
+      signal: { value: "$ 412 M", label: "de $ 580 M", note: "71 % del presupuesto del año", meter: 71 } },
+  ];
+  /* `utility: true` en el menú: van como chips al pie del panel. «Resumen» es esta página. */
+  const UTILS = [
+    { id: "resumen", label: "Resumen", icon: "grid", current: true },
+    { id: "maestro", label: "Maestro", icon: "sliders" },
+    { id: "reportes", label: "Reportes", icon: "chart" },
+  ];
+  const SECTIONS = [...new Set(ITEMS.map((i) => i.section))];
+  const byId = new Map([...ITEMS, ...UTILS].map((i) => [i.id, i]));
+
+  const RAIL = [
+    { label: "Inicio", icon: "home" },
+    { label: "Pendientes", icon: "listChecks" },
+    { section: "Proceso" },
+    { label: "Talento Humano", icon: "userStar", th: true },
+    { label: "Administración", icon: "shield" },
+    { label: "Almacén", icon: "package", parent: true },
+    { label: "Trading", icon: "package", parent: true },
+    { label: "Compras", icon: "cart", parent: true },
+    { label: "Casino", icon: "utensils", parent: true },
+    { label: "Seguridad Física", icon: "shieldCheck", parent: true },
+    { label: "WhatsApp", icon: "message" },
+    { label: "Terminales", icon: "tablet", parent: true },
+    { label: "SST", icon: "heartPulse", parent: true },
+    { label: "Operaciones de Campo", icon: "grid", parent: true },
+  ];
+
+  /* ------------------------------------------------------------ aviso */
+
+  const toastEl = $("#toast");
+  let toastTimer = 0;
+  function toast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add("is-on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("is-on"), 2600);
+  }
+
+  /* ------------------------------------------------------------ riel */
+
+  const app = $("#app"), rail = $("#rail"), railNav = $("#rail-nav"), railPanel = $("#rail-panel"), scrim = $("#scrim");
+  railNav.innerHTML = RAIL.map((r) => {
+    if (r.section) return `<div class="rail__section">${esc(r.section)}</div>`;
+    const inner = `${svg(r.icon)}<span class="rail__label">${esc(r.label)}</span>${r.th || r.parent ? svg("chevron", "rail__chev") : ""}`;
+    if (r.th) return `<button type="button" class="rail__item is-active" id="th-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="fly">${inner}</button>`;
+    if (r.parent) return `<button type="button" class="rail__item" data-other="${esc(r.label)}">${inner}</button>`;
+    return `<a class="rail__item" href="#" data-toast="En nx32 abriría «${esc(r.label)}»">${inner}</a>`;
+  }).join("");
+  $("#menu-btn").innerHTML = svg("menu");
+  $("#crumb-home").innerHTML = `${svg("home")}Inicio`;
+  $("#crumb-sep").innerHTML = svg("chevron", "sep");
+  $("#head-utils").innerHTML = UTILS.filter((u) => !u.current)
+    .map((u) => `<a class="util" href="#" data-toast="En nx32 abriría «Talento Humano › ${esc(u.label)}»">${svg(u.icon)}${esc(u.label)}</a>`).join("");
+
+  railNav.addEventListener("click", (e) => {
+    const other = e.target.closest("[data-other]");
+    if (other) toast(`En la maqueta solo Talento Humano tiene pantallas (${other.dataset.other} no).`);
+  });
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-toast]");
+    if (!t) return;
+    e.preventDefault();
+    toast(t.dataset.toast);
+  });
+
+  /* ------------------------------------------------------------ hub (<nx-launcher>) */
+
+  function trendSVG(values) {
+    const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
+    const pts = values.map((v, i) => [(i / (values.length - 1)) * 100, 20 - ((v - min) / span) * 18]);
+    const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+    return `<path class="nx-launcher__trend-area" d="${line} L100 22 L0 22 Z"/><path class="nx-launcher__trend-line" d="${line}"/>`;
+  }
+  function viewHTML(it, v) {
+    let extra = "";
+    if (v.count) extra = `<span class="nx-launcher__badge" data-count="${it.id}" data-kind="badge">${badgeText(it.signal.n)}</span>`;
+    else if (v.badge != null) extra = `<span class="nx-launcher__badge">${badgeText(v.badge)}</span>`;
+    else if (v.hint) extra = `<span class="nx-launcher__hint-text">${esc(v.hint)}</span>`;
+    return `<li><a class="nx-launcher__view" href="#" data-toast="En nx32 abriría «${esc(it.label)} › ${esc(v.label)}»">${esc(v.label)}${extra}</a></li>`;
+  }
+  function cardHTML(it) {
+    const s = it.signal;
+    const value = s.n != null
+      ? `<span class="nx-launcher__value" data-count="${it.id}">${fmt.format(s.n)}</span>`
+      : `<span class="nx-launcher__value">${esc(s.value)}</span>`;
+    return `<li class="nx-launcher__card" data-id="${it.id}">
+      <div class="nx-launcher__top"><span class="nx-launcher__icon">${svg(it.icon)}</span>${svg("arrow", "nx-launcher__go")}</div>
+      <a class="nx-launcher__link" href="#" data-toast="En nx32 abriría «${esc(it.label)}»"><span class="nx-launcher__label">${esc(it.label)}</span></a>
+      <div class="nx-launcher__swap">
+        <p class="nx-launcher__desc">${esc(it.desc)}</p>
+        <ul class="nx-launcher__views" aria-label="Vistas de ${esc(it.label)}">${it.views.map((v) => viewHTML(it, v)).join("")}</ul>
+      </div>
+      <div class="nx-launcher__signal">
+        ${value}<span>${esc(s.label)}</span>
+        ${s.trend ? `<svg class="nx-launcher__trend" data-trend="${it.id}" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">${trendSVG(s.trend)}</svg>` : ""}
+        ${s.note ? `<span class="nx-launcher__note" data-note="${it.id}"${s.tone ? ` data-tone="${s.tone}"` : ""}>${esc(s.note)}</span>` : ""}
+        ${s.meter != null ? `<span class="nx-launcher__meter" aria-hidden="true"><i style="width:${s.meter}%"></i></span>` : ""}
+      </div>
+    </li>`;
+  }
+  $("#hub").innerHTML = `<nav class="nx-launcher__nav" aria-label="Pantallas de Talento Humano">${SECTIONS.map((sec, i) => `
+    <section aria-labelledby="sec-${i}">
+      <h2 class="nx-launcher__heading" id="sec-${i}">${esc(sec)}</h2>
+      <ul class="nx-launcher__grid">${ITEMS.filter((it) => it.section === sec).map(cardHTML).join("")}</ul>
+    </section>`).join("")}</nav>`;
+
+  // Luz que sigue al puntero, como el componente.
+  $("#hub").addEventListener("pointermove", (e) => {
+    const card = e.target.closest(".nx-launcher__card");
+    if (!card || e.pointerType !== "mouse") return;
+    const r = card.getBoundingClientRect();
+    card.style.setProperty("--nx-launcher-x", `${e.clientX - r.left}px`);
+    card.style.setProperty("--nx-launcher-y", `${e.clientY - r.top}px`);
+  });
+
+  /* ------------------------------------------------------------ panel (<nx-sidemenu>) */
+
+  let seq = 0;
+  /** Pinta el panel de hijos en `host`. Lo usan el flotante y el cajón del teléfono. */
+  function renderPanel(host, { cols, onPick, onBack }) {
+    const id = `p${++seq}`;
+    let k = 0;
+    const option = (it) => `<a class="nx-panel__option" role="option" id="${id}-o${k++}" aria-selected="false" href="#" tabindex="-1" data-pick="${it.id}">
+        ${svg(it.icon)}<span class="nx-panel__text"><span class="nx-panel__label">${esc(it.label)}</span></span>
+        ${it.badge ? `<span class="nx-badge" data-count="${it.id}" data-kind="badge">${badgeText(it.signal.n)}</span>` : ""}
+      </a>`;
+    const groups = SECTIONS.map((sec, gi) => `<div role="group" class="nx-panel__group" aria-labelledby="${id}-g${gi}">
+        <div class="nx-panel__section" id="${id}-g${gi}">${esc(sec)}</div>
+        ${ITEMS.filter((it) => it.section === sec).map(option).join("")}
+      </div>`);
+    const half = Math.ceil(groups.length / 2);
+    const body = cols === 2
+      ? `<div class="nx-panel__col">${groups.slice(0, half).join("")}</div><div class="nx-panel__col">${groups.slice(half).join("")}</div>`
+      : groups.join("");
+    const chips = UTILS.map((u) => `<a class="nx-panel__chip" role="option" id="${id}-o${k++}" aria-selected="false" href="#" tabindex="-1" data-pick="${u.id}"${u.current ? ' aria-current="page"' : ""}>${svg(u.icon)}<span class="nx-panel__label">${esc(u.label)}</span></a>`).join("");
+
+    host.innerHTML = `${onBack ? `<button type="button" class="rail__back">${svg("chevron")}Menú</button>` : ""}
+      <div class="nx-panel">
+        <div class="nx-panel__head">
+          <span class="nx-panel__glyph">${svg("userStar")}</span>
+          <div class="nx-panel__titles"><p class="nx-panel__title">Talento Humano</p><p class="nx-panel__count">${ITEMS.length} pantallas</p></div>
+        </div>
+        <div class="nx-panel__search">${svg("search")}<input class="nx-panel__input" id="${id}-q" type="text" role="combobox" aria-expanded="true" aria-controls="${id}-list" aria-autocomplete="list" aria-label="Filtrar pantallas" placeholder="Filtrar pantallas" autocomplete="off" spellcheck="false"></div>
+        <div class="nx-panel__list" id="${id}-list" role="listbox" aria-label="Talento Humano">
+          <div class="nx-panel__scroll" data-cols="${cols}">${body}</div>
+          <div class="nx-panel__utils" role="group">${chips}</div>
+        </div>
+        <p class="nx-panel__empty" hidden>Ninguna pantalla coincide</p>
+      </div>`;
+
+    const input = $(".nx-panel__input", host);
+    const all = $$('[role="option"]', host);
+    const folded = new Map(all.map((el) => [el, fold(byId.get(el.dataset.pick).label)]));
+    let flat = all, hi = -1, last = null;
+
+    const highlight = (i, scroll = true) => {
+      flat[hi]?.setAttribute("aria-selected", "false");
+      hi = i;
+      const el = flat[i];
+      if (el) {
+        el.setAttribute("aria-selected", "true");
+        input.setAttribute("aria-activedescendant", el.id);
+        if (scroll) el.scrollIntoView({ block: "nearest" });
+      } else input.removeAttribute("aria-activedescendant");
+    };
+    const filter = (q) => {
+      highlight(-1);
+      const f = fold(q.trim());
+      flat = all.filter((el) => (el.hidden = !!f && !folded.get(el).includes(f), !el.hidden));
+      const shown = (box) => !!box.querySelector('[role="option"]:not([hidden])');
+      $$(".nx-panel__group, .nx-panel__col, .nx-panel__utils", host).forEach((b) => (b.hidden = !shown(b)));
+      $(".nx-panel__empty", host).hidden = flat.length > 0;
+      if (f && flat.length) highlight(0, false);
+    };
+    input.addEventListener("input", () => filter(input.value));
+    host.querySelector(".nx-panel").addEventListener("keydown", (e) => {
+      const n = flat.length;
+      if (!n) return;
+      if (e.key === "ArrowDown") highlight((hi + 1) % n);
+      else if (e.key === "ArrowUp") highlight(hi <= 0 ? n - 1 : hi - 1);
+      else if (e.key === "Home" && hi >= 0) highlight(0);
+      else if (e.key === "End" && hi >= 0) highlight(n - 1);
+      else if (e.key === "Enter" && hi >= 0) flat[hi].click();
+      else return;
+      e.preventDefault();
+    });
+    // Resalta al moverse el ratón, no al entrar: un panel que se abre bajo el puntero no marca nada al azar.
+    $(".nx-panel__list", host).addEventListener("mousemove", (e) => {
+      const moved = last && (last.x !== e.clientX || last.y !== e.clientY);
+      last = { x: e.clientX, y: e.clientY };
+      if (!moved) return;
+      const i = flat.indexOf(e.target.closest('[role="option"]'));
+      if (i >= 0 && i !== hi) highlight(i, false);
+    });
+    host.addEventListener("click", (e) => {
+      const opt = e.target.closest("[data-pick]");
+      if (opt) { e.preventDefault(); onPick(byId.get(opt.dataset.pick)); }
+      if (e.target.closest(".rail__back")) onBack();
+    });
+    return { input };
+  }
+
+  function pick(it) {
+    if (fly.matches(":popover-open")) fly.hidePopover();
+    closeDrawer();
+    toast(it.current ? "Ya estás en el resumen de Talento Humano" : `En nx32 abriría «${it.label}»`);
+  }
+
+  /* ------------------------------------------------------------ flotante (escritorio) */
+
+  const fly = $("#fly"), thBtn = $("#th-btn");
+  let cols = location.hash === "#dos-columnas" ? 2 : 1;
+  let wasOpen = false, restoreFocus = false;
+
+  function place() {
+    const b = thBtn.getBoundingClientRect(), r = rail.getBoundingClientRect();
+    fly.style.left = `${Math.round(r.right + 6)}px`;
+    fly.style.top = `${Math.round(Math.max(8, Math.min(b.top - 6, innerHeight - fly.offsetHeight - 8)))}px`;
+  }
+  function openFly() {
+    fly.dataset.cols = cols;
+    const p = renderPanel(fly, { cols, onPick: pick });
+    if (!fly.matches(":popover-open")) fly.showPopover();
+    place();
+    thBtn.setAttribute("aria-expanded", "true");
+    if (finePointer.matches) p.input.focus({ preventScroll: true });
+  }
+  fly.addEventListener("keydown", (e) => { if (e.key === "Escape") restoreFocus = true; });
+  fly.addEventListener("toggle", (e) => {
+    if (e.newState !== "closed") return;
+    thBtn.setAttribute("aria-expanded", "false");
+    if (restoreFocus) thBtn.focus({ preventScroll: true });
+    restoreFocus = false;
+  });
+  // El clic sobre el padre con el panel abierto lo cierra: el cierre ligero ya ocurrió al soltar, así
+  // que se mira si estaba abierto al presionar.
+  thBtn.addEventListener("pointerdown", () => { wasOpen = fly.matches(":popover-open"); });
+  thBtn.addEventListener("click", () => {
+    if (phone.matches) { openDrawerPanel(); return; }
+    const open = fly.matches(":popover-open");
+    if (wasOpen || open) { wasOpen = false; if (open) fly.hidePopover(); return; }
+    openFly();
+  });
+  addEventListener("resize", () => {
+    if (!fly.matches(":popover-open")) return;
+    if (phone.matches) fly.hidePopover();
+    else place();
+  });
+
+  /* ------------------------------------------------------------ cajón (teléfono) */
+
+  function openDrawer() {
+    app.classList.add("is-drawer");
+    scrim.hidden = false;
+    showNav();
+  }
+  function closeDrawer() {
+    if (!app.classList.contains("is-drawer")) return;
+    app.classList.remove("is-drawer");
+    scrim.hidden = true;
+    showNav();
+  }
+  function showNav() {
+    railPanel.hidden = true;
+    railPanel.innerHTML = "";
+    railNav.hidden = false;
+  }
+  function openDrawerPanel() {
+    if (!app.classList.contains("is-drawer")) openDrawer();
+    railNav.hidden = true;
+    railPanel.hidden = false;
+    renderPanel(railPanel, { cols: 1, onPick: pick, onBack: () => { showNav(); thBtn.focus({ preventScroll: true }); } });
+    $(".rail__back", railPanel).focus({ preventScroll: true });
+  }
+  $("#menu-btn").addEventListener("click", () => { openDrawer(); thBtn.focus({ preventScroll: true }); });
+  scrim.addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !app.classList.contains("is-drawer")) return;
+    if (!railPanel.hidden) { showNav(); thBtn.focus({ preventScroll: true }); } else closeDrawer();
+  });
+  phone.addEventListener("change", () => { if (!phone.matches) closeDrawer(); });
+
+  /* ------------------------------------------------------------ controles de la maqueta */
+
+  const segBtns = $$(".seg button");
+  const syncSeg = () => segBtns.forEach((b) => b.setAttribute("aria-checked", String(Number(b.dataset.cols) === cols)));
+  syncSeg();
+  segBtns.forEach((b) => b.addEventListener("click", () => {
+    cols = Number(b.dataset.cols);
+    syncSeg();
+    openFly();
+  }));
+  const maqOpen = $("#maq-open");
+  const syncMaq = () => { maqOpen.textContent = phone.matches ? "Ver el menú" : "Abrir el panel"; };
+  syncMaq();
+  phone.addEventListener("change", syncMaq);
+  maqOpen.addEventListener("click", () => { if (phone.matches) openDrawerPanel(); else openFly(); });
+
+  /* ------------------------------------------------------------ señales vivas */
+
+  function setCount(id, n) {
+    byId.get(id).signal.n = n;
+    $$(`[data-count="${id}"]`).forEach((el) => {
+      el.textContent = el.dataset.kind === "badge" ? badgeText(n) : fmt.format(n);
+      el.classList.remove("is-new");
+      void el.offsetWidth;
+      el.classList.add("is-new");
+    });
+  }
+  function setNote(id, text) {
+    byId.get(id).signal.note = text;
+    $$(`[data-note="${id}"]`).forEach((el) => (el.textContent = text));
+  }
+  function pushTrend(id, v) {
+    const s = byId.get(id).signal;
+    s.trend = [...s.trend.slice(0, -1), v];
+    $$(`[data-trend="${id}"]`).forEach((el) => (el.innerHTML = trendSVG(s.trend)));
+  }
+  // Lo que llegaría por el canal de eventos de nx32: una solicitud nueva, una incapacidad, una aprobación
+  // hecha desde el correo, una hoja de vida. Cambian la tarjeta y el contador del panel a la vez.
+  [
+    [6000, () => setCount("permisos", 8)],
+    [15000, () => { setCount("incapacidades", 6); setNote("incapacidades", "3 por radicar ante la EPS"); }],
+    [24000, () => setCount("vacaciones", 11)],
+    [33000, () => { setCount("hojas", 57); pushTrend("hojas", 57); }],
+  ].forEach(([t, f]) => setTimeout(f, t));
+})();
+</script>

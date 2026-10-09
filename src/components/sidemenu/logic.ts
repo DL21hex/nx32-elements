@@ -44,6 +44,68 @@ export function groupBySection<T extends { section?: string }>(items: readonly T
   return [...groups].map(([label, list]) => ({ label: label || null, items: list }));
 }
 
+/** Desde cuántos hijos (sin contar los chips del pie) el panel flotante va en dos columnas. Con menos,
+ *  una sola columna cabe en su alto (440 px) sin desplazarse, aun con títulos de sección. */
+export const TWO_COLUMNS_MIN_CHILDREN = 12;
+
+/** Un grupo dentro de una columna. `cont`: sigue al grupo con el que termina la columna anterior
+ *  (no repite el título). */
+export interface PanelGroup<T = MenuItem> extends MenuGroup<T> {
+  cont: boolean;
+}
+
+/** El alto relativo de una fila del panel (una con descripción es más alta) y el de un título. */
+function rowWeight(it: { description?: unknown }): number {
+  return it.description ? 1.6 : 1;
+}
+const HEADER_WEIGHT = 0.8;
+/** Lo que se tolera de desbalance para no partir una sección en dos columnas. */
+const SPLIT_PENALTY = 2;
+
+/**
+ * Reparte los grupos del panel en columnas. Con `max` 1, o con menos de `TWO_COLUMNS_MIN_CHILDREN`
+ * hijos, una sola. Si no, dos que se leen en orden (la primera, de arriba abajo, y luego la segunda),
+ * cortadas donde las alturas quedan más parejas. El corte cae entre secciones; solo parte una sección
+ * (la segunda columna la continúa sin repetir el título) si así se evita un desbalance de más de dos
+ * filas, como una sección enorme junto a otra corta. Sin secciones, la lista se parte por la mitad.
+ */
+export function panelColumns<T extends { description?: unknown }>(groups: readonly MenuGroup<T>[], max: 1 | 2): PanelGroup<T>[][] {
+  const whole = groups.map((g) => ({ ...g, cont: false }));
+  const count = groups.reduce((n, g) => n + g.items.length, 0);
+  if (max < 2 || count < TWO_COLUMNS_MIN_CHILDREN) return [whole];
+
+  const weights = groups.map((g) => g.items.map(rowWeight));
+  const total = groups.reduce((n, g, gi) => n + (g.label ? HEADER_WEIGHT : 0) + weights[gi].reduce((a, b) => a + b, 0), 0);
+  // Cada corte posible: antes de la fila `i` del grupo `gi` (i = 0 es entre secciones). La primera
+  // columna nunca queda vacía ni termina en un título suelto.
+  let best = { gi: 0, i: 0, cost: Infinity, left: 0 };
+  let left = 0;
+  groups.forEach((g, gi) => {
+    if (g.label) left += HEADER_WEIGHT;
+    weights[gi].forEach((w, i) => {
+      const atStart = i === 0;
+      const cut = atStart ? left - (g.label ? HEADER_WEIGHT : 0) : left;
+      if (cut > 0) {
+        const cost = Math.max(cut, total - cut) + (atStart ? 0 : SPLIT_PENALTY);
+        // Empate: gana la primera columna más alta (se lee primero).
+        if (cost < best.cost || (cost === best.cost && cut > best.left)) best = { gi, i, cost, left: cut };
+      }
+      left += w;
+    });
+  });
+  if (best.cost === Infinity) return [whole];
+
+  const first: PanelGroup<T>[] = whole.slice(0, best.gi);
+  const second: PanelGroup<T>[] = whole.slice(best.gi + 1);
+  const g = groups[best.gi];
+  if (best.i === 0) second.unshift({ ...g, cont: false });
+  else {
+    first.push({ label: g.label, items: g.items.slice(0, best.i), cont: false });
+    second.unshift({ label: g.label, items: g.items.slice(best.i), cont: true });
+  }
+  return [first, second];
+}
+
 /** El texto de un badge, o `null` si no hay nada que mostrar: `0`, negativos, vacío. */
 export function formatBadge(value: unknown): string | null {
   if (typeof value === "number") return Number.isFinite(value) && value > 0 ? (value > 99 ? "99+" : String(Math.floor(value))) : null;

@@ -253,3 +253,98 @@ describe("<nx-sidemenu> drawer (móvil)", () => {
     expect(el.open).toBe(false);
   });
 });
+
+describe("<nx-sidemenu> flotante con muchos hijos", () => {
+  const leaf = (section: string) => (label: string) => ({ id: label, label, href: `/th/${encodeURIComponent(label)}`, section });
+  /** Talento Humano en nx32: 15 pantallas en cuatro secciones, más dos chips al pie. */
+  const TH: MenuItem = {
+    id: "th",
+    label: "Talento Humano",
+    children: [
+      ...["Empleados", "Datos personales", "Perfiles de cargo", "Carpetas"].map(leaf("Personas")),
+      ...["Banco de hojas de vida", "Contratación", "Vencimientos", "Retiro de empleados"].map(leaf("Ingreso y retiro")),
+      ...["Permisos", "Vacaciones", "Incapacidades", "Cesantías"].map(leaf("Solicitudes")),
+      ...["Desprendibles de pago", "Ingresos y retenciones", "Beneficios extralegales"].map(leaf("Pagos y certificados")),
+      { id: "maestro", label: "Maestro", href: "/th/maestro", utility: true },
+      { id: "reportes", label: "Reportes", href: "/th/reportes", utility: true },
+    ],
+  };
+  async function mountTH(items: MenuItem[] = [TH]) {
+    document.body.innerHTML = "<nx-sidemenu></nx-sidemenu>";
+    const el = document.querySelector("nx-sidemenu")!;
+    el.items = items;
+    await flush();
+    const fly = el.querySelector<HTMLElement>(".nx-flyout")!;
+    return { el, fly };
+  }
+  const sections = (box: Element) => [...box.querySelectorAll(".nx-panel__section")].map((s) => s.textContent);
+  const highlighted = (fly: HTMLElement) => fly.querySelector('[aria-selected="true"] .nx-panel__label')?.textContent;
+  const press = (input: HTMLElement, key: string, times = 1) => {
+    for (let i = 0; i < times; i++) input.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+  };
+
+  it("reparte las secciones enteras en dos columnas y se ensancha; los chips siguen al pie", async () => {
+    const { fly } = await mountTH();
+    fly.showPopover();
+    await flush();
+    expect(fly.classList.contains("nx-flyout--wide")).toBe(true);
+    const cols = [...fly.querySelectorAll(".nx-panel__col")];
+    expect(cols.map(sections)).toEqual([
+      ["Personas", "Ingreso y retiro"],
+      ["Solicitudes", "Pagos y certificados"],
+    ]);
+    expect(cols.every((c) => c.getAttribute("role") === "none")).toBe(true);
+    expect([...fly.querySelectorAll(".nx-panel__utils .nx-panel__chip .nx-panel__label")].map((c) => c.textContent)).toEqual(["Maestro", "Reportes"]);
+  });
+
+  it("las flechas recorren la primera columna entera y luego la segunda", async () => {
+    const { fly } = await mountTH();
+    fly.showPopover();
+    await flush();
+    const input = fly.querySelector<HTMLInputElement>("input")!;
+    press(input, "ArrowDown", 8);
+    expect(highlighted(fly)).toBe("Retiro de empleados");
+    press(input, "ArrowDown");
+    expect(highlighted(fly)).toBe("Permisos");
+    expect(input.getAttribute("aria-activedescendant")).toBe(fly.querySelector('[aria-selected="true"]')!.id);
+  });
+
+  it("al filtrar, la columna que se queda sin nada desaparece", async () => {
+    const { fly } = await mountTH();
+    fly.showPopover();
+    await flush();
+    const [left, right] = fly.querySelectorAll<HTMLElement>(".nx-panel__col");
+    type(fly.querySelector("input")!, "vac");
+    expect(left.hidden).toBe(true);
+    expect(right.hidden).toBe(false);
+    expect(highlighted(fly)).toBe("Vacaciones");
+    type(fly.querySelector("input")!, "");
+    expect(left.hidden).toBe(false);
+  });
+
+  it("con menos de 12 hijos sigue en una columna, también si items cambia y se reabre", async () => {
+    const { el, fly } = await mountTH();
+    fly.showPopover();
+    await flush();
+    fly.hidePopover();
+    await flush();
+    el.items = [{ ...TH, children: TH.children!.slice(0, 11) }];
+    await flush();
+    const again = el.querySelector<HTMLElement>(".nx-flyout")!;
+    again.showPopover();
+    await flush();
+    expect(again.classList.contains("nx-flyout--wide")).toBe(false);
+    expect(again.querySelector(".nx-panel__col")).toBeNull();
+    expect(sections(again)).toEqual(["Personas", "Ingreso y retiro", "Solicitudes"]);
+  });
+
+  it("el drill-down del drawer se queda en una columna", async () => {
+    setWidth(500);
+    const { el } = await mountTH();
+    el.show();
+    el.querySelector<HTMLButtonElement>("[data-nx-drill]")!.click();
+    const drill = el.querySelector(".nx-sidemenu__drill")!;
+    expect(drill.querySelector(".nx-panel__col")).toBeNull();
+    expect(sections(drill)).toEqual(["Personas", "Ingreso y retiro", "Solicitudes", "Pagos y certificados"]);
+  });
+});

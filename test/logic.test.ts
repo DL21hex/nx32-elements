@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterItems, flyoutKeyStep, foldText, formatBadge, groupBySection, panelHasSearch, resolveActive, splitUtility } from "../src/components/sidemenu/logic";
+import { filterItems, flyoutKeyStep, foldText, formatBadge, groupBySection, panelColumns, panelHasSearch, resolveActive, splitUtility, TWO_COLUMNS_MIN_CHILDREN } from "../src/components/sidemenu/logic";
 import type { MenuItem } from "../src/components/sidemenu/types";
 import { safeHref } from "../src/core/dom";
 import { initials } from "../src/core/icons";
@@ -153,6 +153,56 @@ describe("panelHasSearch", () => {
     expect(panelHasSearch([1, 2, 3])).toBe(false);
     expect(panelHasSearch([1, 2, 3, 4])).toBe(true);
     expect(panelHasSearch([])).toBe(false);
+  });
+});
+
+describe("panelColumns", () => {
+  /** `n` hijos por sección, con nombres «S0», «S1»…; `null` es una sección sin título. */
+  const menu = (...sizes: (number | [string | null, number])[]): MenuItem[] =>
+    sizes.flatMap((size, si) => {
+      const [label, n] = Array.isArray(size) ? size : [`S${si}`, size];
+      return Array.from({ length: n }, (_, i) => ({ id: `${si}.${i}`, label: `Hijo ${si}.${i}`, ...(label ? { section: label } : {}) }));
+    });
+  /** Cada columna como «sección:cantidad», con «+» si continúa la sección partida. */
+  const shape = (items: MenuItem[], max: 1 | 2 = 2) =>
+    panelColumns(groupBySection(items), max).map((col) => col.map((g) => `${g.cont ? "+" : ""}${g.label ?? "—"}:${g.items.length}`));
+
+  it("con menos de 12 hijos, una sola columna aunque haya secciones", () => {
+    expect(TWO_COLUMNS_MIN_CHILDREN).toBe(12);
+    expect(shape(menu(4, 4, 3))).toEqual([["S0:4", "S1:4", "S2:3"]]);
+  });
+
+  it("con 12 o más, dos columnas con las secciones enteras y en orden, lo más parejas posible", () => {
+    // Talento Humano en nx32: 15 pantallas en cuatro secciones.
+    expect(shape(menu(4, 4, 4, 3))).toEqual([["S0:4", "S1:4"], ["S2:4", "S3:3"]]);
+    expect(shape(menu(6, 2, 2, 2))).toEqual([["S0:6"], ["S1:2", "S2:2", "S3:2"]]);
+    expect(shape(menu(2, 2, 2, 6))).toEqual([["S0:2", "S1:2", "S2:2"], ["S3:6"]]);
+  });
+
+  it("en un empate, la primera columna se queda con la sección (se lee primero)", () => {
+    expect(shape(menu(4, 4, 4))).toEqual([["S0:4", "S1:4"], ["S2:4"]]);
+  });
+
+  it("parte una sección solo si dejarla entera desbalancea demasiado; la continuación no repite el título", () => {
+    expect(shape(menu(12, 2))).toEqual([["S0:7"], ["+S0:5", "S1:2"]]);
+    const [[first], [cont]] = panelColumns(groupBySection(menu(12, 2)), 2);
+    expect(first.items.concat(cont.items).map((c) => c.id)).toEqual(menu(12).map((c) => c.id));
+  });
+
+  it("sin secciones, la lista se parte por la mitad (la primera columna lleva una más)", () => {
+    expect(shape(menu([null, 15]))).toEqual([["—:8"], ["+—:7"]]);
+    expect(shape(menu([null, 12]))).toEqual([["—:6"], ["+—:6"]]);
+  });
+
+  it("las filas con descripción pesan más", () => {
+    const items = menu(6, 6).map((c, i) => (i < 6 ? { ...c, description: "Una segunda línea" } : c));
+    // 6 filas altas contra 6 normales: la primera sección sola ya pesa más que la mitad.
+    expect(shape(items)).toEqual([["S0:6"], ["S1:6"]]);
+    expect(shape([...items, ...menu(0, 0, 4)])).toEqual([["S0:6"], ["S1:6", "S2:4"]]);
+  });
+
+  it("con max 1 (el drill-down del drawer) nunca reparte", () => {
+    expect(shape(menu(4, 4, 4, 3), 1)).toEqual([["S0:4", "S1:4", "S2:4", "S3:3"]]);
   });
 });
 

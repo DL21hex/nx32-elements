@@ -456,7 +456,10 @@ export class NxSidemenu extends Base {
       autofocus: matchMedia(FINE_POINTER).matches,
       // Tab no se atrapa: cierra (el foco vuelve al disparador) y sigue su camino.
       onClose: (k) => k === "Tab" && fly.hidePopover(),
+      // Con muchos hijos, dos columnas (el drill-down del drawer se queda en una).
+      maxColumns: 2,
     });
+    fly.classList.toggle("nx-flyout--wide", panel.columns > 1);
     fly.replaceChildren(panel.el);
     this.#place(fly, trigger, false);
     this.#track(fly, trigger);

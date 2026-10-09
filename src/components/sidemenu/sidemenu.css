@@ -2,6 +2,7 @@
  * <nx-sidemenu>. Variables propias:
  *   --nx-sidemenu-width (240px) · --nx-sidemenu-width-collapsed (56px)
  *   --nx-sidemenu-drawer-width (280px) · --nx-flyout-width (320px)
+ *   --nx-flyout-width-wide (520px): el flotante con dos columnas (12 hijos o más)
  * Punto de corte del drawer: 768px (el mismo que `MOBILE` en sidemenu.ts).
  */
 
@@ -257,6 +258,11 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
   font-size: 13px;
   line-height: 1.35;
 }
+/* Con muchos hijos la lista va en dos columnas (`panelColumns`) y el flotante se ensancha. */
+.nx-flyout--wide {
+  container: nx-flyout / inline-size;
+  inline-size: var(--nx-flyout-width-wide, 520px);
+}
 .nx-flyout:popover-open {
   display: flex;
   flex-direction: column;
@@ -375,6 +381,23 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+}
+.nx-panel__scroll--cols {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.nx-panel__col {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+/* Si la ventana no deja el ancho para dos columnas, vuelven a ser una lista. */
+@container nx-flyout (max-width: 439.98px) {
+  .nx-panel__scroll--cols {
+    display: block;
+  }
 }
 .nx-panel__section {
   padding: 8px 10px 4px;

@@ -1,5 +1,19 @@
 # Registro de cambios
 
+## 0.7.1 — 2026-10-09
+
+### `<nx-sidemenu>`
+
+- **Con muchos hijos, el panel flotante va en dos columnas.** Desde 12 hijos (sin contar los chips
+  del pie), la lista se reparte sola en dos columnas y el flotante se ensancha a
+  `--nx-flyout-width-wide` (520px, variable nueva). Así un padre como Talento Humano (15 pantallas)
+  se ve entero sin desplazarse. Las secciones (`section`) van enteras y en orden de lectura, con el
+  corte donde las columnas quedan más parejas. Una sección solo se parte cuando es mucho más grande
+  que las demás, y la segunda columna la continúa sin repetir el título. Sin secciones, la lista se
+  parte por la mitad. Las flechas recorren la primera columna y luego la segunda; al filtrar, una
+  columna vacía desaparece y la otra toma el ancho. El drill-down del drawer sigue en una columna,
+  y si la ventana no da el ancho, las columnas vuelven a ser una lista.
+
 ## 0.7.0 — 2026-10-08
 
 El inicio de una persona: cuatro componentes nuevos y los festivos en el núcleo.

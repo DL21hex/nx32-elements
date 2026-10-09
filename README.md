@@ -225,7 +225,7 @@ allowOrigins("https://api.miapp.co");
 | Métodos | `show()`, `hide()`, `toggle()` y `open`, para el drawer (< 768 px) |
 | Eventos | `nx-sidemenu-select` `{item, href}` (cancelable), `nx-sidemenu-toggle` `{collapsed, auto}` (cancelable), `nx-open-change` `{open}` (también si el drawer sale del DOM abierto) |
 | Slots | `slot="header"`, `slot="footer"` (no se mueven del DOM, así que no rompen la hidratación) |
-| Variables | `--nx-sidemenu-width`, `--nx-sidemenu-width-collapsed`, `--nx-sidemenu-drawer-width`, `--nx-flyout-width` |
+| Variables | `--nx-sidemenu-width`, `--nx-sidemenu-width-collapsed`, `--nx-sidemenu-drawer-width`, `--nx-flyout-width`, `--nx-flyout-width-wide` |
 
 `MenuItem`:
 - `id` y `label` son obligatorios.
@@ -235,6 +235,7 @@ allowOrigins("https://api.miapp.co");
 - `description` es la segunda línea del panel.
 - `children` convierte al ítem en un padre que abre un panel flotante. El buscador solo aparece con más de 3 hijos; con menos, el teclado (flechas, Enter) sigue funcionando sobre la lista. Al escribir queda resaltado el primero que coincide, así que Enter lo elige. Un tercer nivel no abre otro panel: sus hojas entran en el mismo, en una sección con el nombre de su padre.
 - `utility` pone el hijo como chip al pie del panel.
+- Con 12 hijos o más (sin contar los chips), el panel flotante va en dos columnas y se ensancha a `--nx-flyout-width-wide` (520px). Las secciones van enteras y en orden: la primera columna se lee completa antes que la segunda, y las flechas siguen ese orden. El corte se hace donde las dos columnas quedan más parejas. Una sección solo se parte si es mucho más grande que las demás, y entonces la segunda columna la continúa sin repetir el título. Sin secciones, la lista se parte por la mitad. Al filtrar, la columna que se queda vacía desaparece. En el drawer y en una ventana angosta sigue siendo una sola columna.
 - `badge` es un contador o marca (`12`, `"Nuevo"`). `0` no se pinta, más de 99 es «99+» y en compacto se reduce a un punto.
 
 `active` acepta un href (exacto o por prefijo de ruta) o un id. El id de un padre lo enciende sin

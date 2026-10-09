@@ -9,7 +9,7 @@
  */
 import { h, safeHref } from "../../core/dom";
 import { glyph, icon } from "../../core/icons";
-import { flyoutKeyStep, foldText, formatBadge, groupBySection, panelHasSearch, splitUtility } from "./logic";
+import { flyoutKeyStep, foldText, formatBadge, groupBySection, panelColumns, panelHasSearch, splitUtility } from "./logic";
 import type { MenuItem, SidemenuLabels } from "./types";
 
 /** El badge de una fila (riel, opción o chip). En compacto el CSS lo reduce a un punto. */
@@ -31,6 +31,9 @@ export interface ChildPanelOptions {
   autofocus: boolean;
   /** Tab o Escape dentro del panel. */
   onClose?: (key: string) => void;
+  /** Hasta cuántas columnas puede usar: el flotante, 2 (con muchos hijos las reparte solo,
+   *  `panelColumns`); el drill-down del drawer, 1. */
+  maxColumns?: 1 | 2;
 }
 
 export interface ChildPanel {
@@ -41,6 +44,8 @@ export interface ChildPanel {
   focusEl: HTMLElement;
   /** Deja a la vista la opción activa. Se llama cuando el panel ya es visible. */
   revealActive(): void;
+  /** Las columnas en que quedó la lista (1 o 2). Con 2, el host ensancha el flotante. */
+  columns: number;
 }
 
 export function renderChildPanel(o: ChildPanelOptions): ChildPanel {
@@ -140,13 +145,32 @@ export function renderChildPanel(o: ChildPanelOptions): ChildPanel {
   };
 
   const { work, utilities } = splitUtility(children);
-  const groups = groupBySection(work).map((g, gi) => {
-    const opts = g.items.map((c) => option(c, false));
-    if (!g.label) return h("div", { role: "group" }, ...opts);
-    const hid = `${o.idPrefix}-g${gi}`;
-    return h("div", { role: "group", "aria-labelledby": hid }, h("div", { id: hid, class: "nx-panel__section" }, g.label), ...opts);
-  });
-  scroller.append(...groups);
+  const groups: HTMLElement[] = [];
+  let gi = 0;
+  let lastHead: string | null = null;
+  // En el orden del documento: la primera columna entera y luego la segunda. Así las flechas y los ids
+  // de las opciones siguen el orden de lectura.
+  const columns = panelColumns(groupBySection(work), o.maxColumns ?? 1).map((col) =>
+    col.map((g) => {
+      const opts = g.items.map((c) => option(c, false));
+      let box: HTMLElement;
+      if (!g.label) box = h("div", { role: "group" }, ...opts);
+      // La continuación de una sección partida no repite el título, pero se sigue llamando igual.
+      else if (g.cont && lastHead) box = h("div", { role: "group", "aria-labelledby": lastHead }, ...opts);
+      else {
+        const hid = `${o.idPrefix}-g${gi++}`;
+        lastHead = hid;
+        box = h("div", { role: "group", "aria-labelledby": hid }, h("div", { id: hid, class: "nx-panel__section" }, g.label), ...opts);
+      }
+      groups.push(box);
+      return box;
+    }),
+  );
+  const cols = columns.length > 1 ? columns.map((col) => h("div", { class: "nx-panel__col", role: "none" }, ...col)) : [];
+  if (cols.length) {
+    scroller.classList.add("nx-panel__scroll--cols");
+    scroller.append(...cols);
+  } else scroller.append(...groups);
   utils.append(...utilities.map((c) => option(c, true)));
 
   /** Muestra lo que coincide con la consulta y oculta el resto (no lo recrea). Con algo escrito,
@@ -162,6 +186,8 @@ export function renderChildPanel(o: ChildPanelOptions): ChildPanel {
     });
     const shown = (box: Element) => !!box.querySelector('[role="option"]:not([hidden])');
     for (const g of groups) g.hidden = !shown(g);
+    // Una columna que se quedó sin nada desaparece: la otra toma todo el ancho.
+    for (const c of cols) c.hidden = !shown(c);
     utils.hidden = !shown(utils);
     empty.hidden = flat.length > 0;
     if (q && flat.length) highlight(0, false);
@@ -218,5 +244,6 @@ export function renderChildPanel(o: ChildPanelOptions): ChildPanel {
     input,
     focusEl,
     revealActive: () => flat.find((f) => f.hasAttribute("aria-current"))?.scrollIntoView({ block: "nearest" }),
+    columns: columns.length,
   };
 }

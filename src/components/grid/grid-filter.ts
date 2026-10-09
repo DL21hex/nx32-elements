@@ -12,7 +12,7 @@ import { h } from "../../core/dom";
 import { foldText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
 import { histogram, histogramSpec, type HistogramSpec } from "./bars";
-import { addDays, applyFilters, colType, crossfilter, DATE_RELS, facetOrder, foldValue, formatCell, fromSelection, matchFilter, normalizer, relRange, selection, todayISO, type GridFacet } from "./logic";
+import { addDays, applyFilters, colType, crossfilter, DATE_RELS, dotOf, facetOrder, foldValue, formatCell, fromSelection, matchFilter, normalizer, relRange, selection, todayISO, type GridFacet } from "./logic";
 import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridRow } from "./types";
 
 export type FilterKind = "list" | "range" | "date" | "text";
@@ -52,7 +52,13 @@ type Body = { el: HTMLElement; update(): void; focus(): void; flush?(apply: bool
 /** Lo caro que sale de todas las filas (el orden de una lista, cómo se reparten las barras): se
  *  calcula una vez por versión de los datos mientras el panel está abierto, no en cada cambio. */
 type Memo<T> = { rows?: GridRow[]; v?: T };
-type Value = { value: string; label: string; tone?: string; count?: number };
+type Value = { value: string; label: string; count?: number };
+
+/** El punto de color de un valor (el mismo de la celda, del panel y del chip), o nada. */
+const dotIn = (c: GridColumn, value: string): HTMLElement | null => {
+  const d = dotOf(c, value);
+  return d ? h("span", { class: "nx-grid__dot", "aria-hidden": "true", ...("tone" in d ? { "data-tone": d.tone } : { "data-cat": String(d.cat) }) }) : null;
+};
 type Range = Extract<GridFilter, { op: "range" }>;
 
 let radioGroup = 0;
@@ -297,10 +303,9 @@ export class FilterPanel {
 
   /** Los valores de una lista, con cuántas filas quedarían (contando los demás filtros). */
   #values(c: GridColumn, order: Memo<Map<string, string[]>>): Value[] {
-    const tone = (v: string) => c.options?.find((o) => o.value === v)?.tone;
     const facet = this.#host.facet(c.key) ?? (this.#host.server ? undefined : crossfilter(this.#host.all, this.#host.filters, [c], this.#memo(order, (rows) => facetOrder([c], rows)), this.#host.accents).facets[0]);
-    if (facet) return facet.options.map((o) => ({ ...o, tone: tone(o.value) }));
-    return (c.options ?? []).map((o) => ({ value: o.value, label: o.label ?? o.value, tone: o.tone }));
+    if (facet) return facet.options;
+    return (c.options ?? []).map((o) => ({ value: o.value, label: o.label ?? o.value }));
   }
 
   /** `true` si se conocen todos los valores (se puede guardar «sin Cali»). */
@@ -390,7 +395,7 @@ export class FilterPanel {
         const text = h("span", { class: "nx-grid__opt-label", title: v.label });
         const n = h("span", { class: "nx-grid__opt-n" });
         const only = h("button", { type: "button", class: "nx-grid__only", "data-only": v.value, "aria-label": fmt(L.onlyValue, { v: v.label }) }, L.only);
-        const row = h("div", { class: "nx-grid__opt" }, h("label", { class: "nx-grid__opt-main" }, box, v.tone ? h("span", { class: "nx-grid__dot", "data-tone": v.tone }) : null, text, n), only);
+        const row = h("div", { class: "nx-grid__opt" }, h("label", { class: "nx-grid__opt-main" }, box, dotIn(col, v.value), text, n), only);
         made.set(v.value, (it = { row, box, text, n }));
       }
       return it;

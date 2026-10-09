@@ -42,6 +42,8 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   heading?: string;
   /** El nivel del título (2 por defecto; 1 si es el de la página). */
   headingLevel?: number;
+  /** Un ícono del registro junto al título, en un cuadro con el degradado del acento. */
+  headingIcon?: string;
   /** Acciones de fila: botones (o enlaces, con `href`) en una columna fija a la derecha. */
   actions?: GridAction[];
   /** Casillas para seleccionar filas; las acciones van como hijo con `slot="bulk"`. */
@@ -80,7 +82,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "heading", "headingLevel", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -109,6 +111,7 @@ export function Grid(props: GridProps): JSX.Element {
       attr:height={local.height === undefined ? undefined : String(local.height)}
       attr:heading={local.heading || undefined}
       attr:heading-level={local.headingLevel === undefined ? undefined : String(local.headingLevel)}
+      attr:heading-icon={local.headingIcon || undefined}
       attr:filename={local.filename}
       attr:locale={local.locale}
       bool:facets-open={!!local.facetsOpen}

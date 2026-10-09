@@ -23,7 +23,7 @@
  */
 import { Base, boolAttr, upgrade, attrProps } from "../../core/define";
 import { h, safeEndpoint, safeHref } from "../../core/dom";
-import { glyph, icon, initials } from "../../core/icons";
+import { glyph, hasIcon, icon, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import { extent } from "../../core/time";
@@ -32,6 +32,7 @@ import {
   colType,
   crossfilter,
   DATE_RELS,
+  dotOf,
   facetColumns,
   facetOrder,
   filterLabel,
@@ -305,7 +306,7 @@ function cleanColumn(c: unknown): GridColumn | null {
   if (x.initials !== undefined && (typeof x.initials !== "string" || !x.initials)) fix.initials = undefined;
   if (x.sequence !== undefined && (typeof x.sequence !== "string" || !x.sequence)) fix.sequence = undefined;
   if (x.hours !== undefined && !(Array.isArray(x.hours) && x.hours.length === 2 && x.hours.every(isTime) && x.hours[0] < x.hours[1])) fix.hours = undefined;
-  for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden", "sticky"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
+  for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden", "sticky", "dot"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
   if (x.avatar !== undefined && typeof x.avatar !== "boolean" && x.avatar !== "neutral") fix.avatar = !!x.avatar;
   if (!Object.keys(fix).length) return c as GridColumn;
   const out: Record<string, unknown> = { ...x, ...fix };
@@ -347,6 +348,10 @@ const avatarInitials = (c: GridColumn, r: GridRow, text: string): string => {
   const v = c.initials ? r[c.initials] : undefined;
   return (typeof v === "string" ? v.trim().slice(0, 3).toUpperCase() : "") || initials(text);
 };
+
+/** El punto de color de un valor (`dotOf`), o nada: en la celda, el panel de filtros y el chip. */
+const dotEl = (d: ReturnType<typeof dotOf>): HTMLElement[] =>
+  d ? [h("span", { class: "nx-grid__dot", "aria-hidden": "true", ...("tone" in d ? { "data-tone": d.tone } : { "data-cat": String(d.cat) }) })] : [];
 
 /** La copia de una fila que guarda la tabla: sin prototipo, para que una columna «constructor» o
  *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. */
@@ -435,7 +440,7 @@ function cleanViews(list: unknown): GridSavedView[] {
 
 export class NxGrid extends Base {
   static {
-    attrProps(this, ["height", "heading"]);
+    attrProps(this, ["height", "heading", "headingIcon"]);
   }
   /** Alto del área con scroll en px, o `fill`: la tabla ocupa el alto de su contenedor (que tiene que
    *  tenerlo: un flex en columna con alto, o un alto fijo) y es lo único que se desplaza. */
@@ -443,7 +448,11 @@ export class NxGrid extends Base {
   /** El título de la tabla, en su primera fila, con los atajos como botones a la derecha: para la
    *  tabla que es la página («Empleados»). Sin él, los atajos son tarjetas sobre la barra. */
   declare heading: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-level", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout"];
+  /** Un ícono del registro (`registerIcons`) junto al título, en un cuadro con el degradado del
+   *  acento: el del módulo («users» en Empleados). Sin `heading`, o con un nombre que no está
+   *  registrado, no se pinta. */
+  declare headingIcon: string | null;
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -513,6 +522,8 @@ export class NxGrid extends Base {
   /** La primera fila: el título (`heading`) y los atajos que son tarjetas o botones. */
   #top?: HTMLDivElement;
   #headingEl?: HTMLElement;
+  /** Lo que tiene pintado el título (texto e ícono): no se rehace en cada pintado. */
+  #headingKey = "";
   #totals: Record<string, number> = {};
   // Filas.
   #ids = new WeakMap<GridRow, string>();
@@ -2172,8 +2183,10 @@ export class NxGrid extends Base {
       ...this.#filters.map((f, i) => {
         const text = this.#chipText(f);
         const col = this.#cols.find((c) => c.key === f.key);
+        // Un solo valor con color («Estado: Activo») lleva su punto, el mismo de la celda y del panel.
+        const dot = f.op === "in" && f.values.length === 1 ? dotEl(dotOf(col, f.values[0])) : [];
         // El texto del chip vuelve a abrir el filtro de su columna.
-        const label = col && this.#filterable(col) ? h("button", { type: "button", class: "nx-grid__chip-edit", "data-edit": f.key, title: this.#fmt(L.filterBy, { col: col.label }) }, text) : h("span", null, text);
+        const label = col && this.#filterable(col) ? h("button", { type: "button", class: "nx-grid__chip-edit", "data-edit": f.key, title: this.#fmt(L.filterBy, { col: col.label }) }, ...dot, text) : h("span", null, ...dot, text);
         return h("span", { class: "nx-grid__chip" }, label, h("button", { type: "button", "data-i": i, "aria-label": `${L.remove}: ${text}` }, glyph(X)));
       }),
       ...(this.#filters.length ? [h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear)] : []),
@@ -2414,7 +2427,7 @@ export class NxGrid extends Base {
     return h("span", { class: "nx-grid__count" }, ...parts.map((x) => (x === "{n}" ? h("strong", null, n) : x === "{total}" ? total : x)));
   }
 
-  /** La primera fila: el título (con su nivel) y, a su derecha, los atajos como botones. */
+  /** La primera fila: el título (con su nivel y su ícono) y, a su derecha, los atajos como botones. */
   #paintHeading(): void {
     const text = (this.heading ?? "").trim();
     const tag = `h${this.headingLevel}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -2423,8 +2436,16 @@ export class NxGrid extends Base {
       if (this.#headingEl?.localName !== tag) {
         this.#headingEl?.remove();
         this.#top!.prepend((this.#headingEl = h(tag, { class: "nx-grid__heading" })));
+        this.#headingKey = "";
       }
-      this.#headingEl.textContent = text;
+      // El ícono solo si está registrado: sin él, `icon()` pintaría iniciales, que se leerían con el título.
+      const name = (this.headingIcon ?? "").trim();
+      const glyphName = hasIcon(name) ? name : "";
+      const key = `${glyphName}\u0000${text}`;
+      if (key !== this.#headingKey) {
+        this.#headingKey = key;
+        this.#headingEl.replaceChildren(...(glyphName ? [h("span", { class: "nx-grid__heading-icon", "aria-hidden": "true" }, icon(glyphName))] : []), text);
+      }
     }
     if (!text) this.#headingEl = undefined;
     this.#top!.toggleAttribute("data-heading", !!text);
@@ -2681,6 +2702,7 @@ export class NxGrid extends Base {
         const q = norm(raw.trim());
         const opts = q ? avail.filter((o) => norm(o.label).includes(q)) : avail;
         const expanded = this.#facetMore.has(f.key);
+        const col = this.#cols.find((c) => c.key === f.key);
         const shown = q || expanded ? opts : opts.filter((o, i) => i < FACET_SHOWN || selected.includes(o.value));
         return h(
           "section",
@@ -2701,6 +2723,7 @@ export class NxGrid extends Base {
                   "label",
                   { class: "nx-grid__opt" },
                   h("input", { type: "checkbox", checked: on, "data-key": f.key, "data-value": o.value, "data-focus": `${f.key}\u0000${o.value}` }),
+                  ...dotEl(dotOf(col, o.value)),
                   h("span", { class: "nx-grid__opt-label", title: o.label }, o.label),
                   h("span", { class: "nx-grid__opt-n" }, this.#loc.number(o.count)),
                 ),
@@ -2901,6 +2924,7 @@ export class NxGrid extends Base {
         if (c.type === "timeline") this.#timeline(el, r, c, id);
         else if (mark) this.#paintMark(el, mark, text);
         else if (!text && next.has(c)) el.append(h("span", { class: "nx-grid__next", title: this.#labels.stepNext }, colType(c) === "time" ? "--:--" : "·"));
+        else if (text && c.dot) el.append(...dotEl(dotOf(c, String(v))), text);
         else if (text && (colType(c) === "status" || tone)) el.append(h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text));
         else if (text && (c.link || c.href || c.avatar)) {
           // El tono del avatar sale del texto: la misma persona, siempre el mismo color (o gris, `neutral`).

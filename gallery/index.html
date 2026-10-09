@@ -242,9 +242,9 @@ cap.addEventListener("nx-doc-capture-submit", (e) =&gt; console.log(e.detail.val
       <ol class="stage__log btn-events" id="grid-times-log"></ol>
 
       <h2>La tabla como página</h2>
-      <p>Con <code>heading</code> el título va en la primera fila de la tabla, y los atajos, como filtro segmentado debajo: «Todos» y uno por atajo, con su conteo; se marcan de a uno. Uno con <code>href</code> lleva a otra página: va después, como enlace con ↗, y no filtra ni se marca. Un atajo con <code>menu</code> va en «Vistas» → «Seguimiento», sin conteo. Con <code>height="fill"</code> la tabla ocupa el alto de su contenedor (aquí, un marco de 560 px) y es lo único que se desplaza, así que su barra horizontal siempre se ve. El total va arriba, con los filtros.</p>
+      <p>Con <code>heading</code> el título va en la primera fila de la tabla (con <code>heading-icon</code>, el ícono del módulo en un cuadro con el degradado del acento), y los atajos, como filtro segmentado debajo: «Todos» y uno por atajo, con su conteo en una pastilla; se marcan de a uno. La categoría lleva un punto de color (<code>dot</code>), el mismo en la celda, en «Filtros» y en el chip. Uno con <code>href</code> lleva a otra página: va después, como enlace con ↗, y no filtra ni se marca. Un atajo con <code>menu</code> va en «Vistas» → «Seguimiento», sin conteo. Con <code>height="fill"</code> la tabla ocupa el alto de su contenedor (aquí, un marco de 560 px) y es lo único que se desplaza, así que su barra horizontal siempre se ve. El total va arriba, con los filtros.</p>
       <div class="grid-page-frame">
-        <nx-grid id="grid-page" locale="es-CO" heading="Pedidos" heading-level="3" height="fill" facets-open filename="pedidos" matrix='{"rows":"cat","cols":"estado"}'></nx-grid>
+        <nx-grid id="grid-page" locale="es-CO" heading="Pedidos" heading-icon="shopping-cart" heading-level="3" height="fill" facets-open filename="pedidos" matrix='{"rows":"cat","cols":"estado"}'></nx-grid>
       </div>
 
       <h2>Cómo se usa</h2>
@@ -314,7 +314,8 @@ grid.addEventListener("nx-grid-change", (e) =&gt; guardar(e.detail.changes));</c
         <table>
           <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
           <tbody>
-            <tr><td><code>columns</code></td><td><code>{key, label, type?, width?, editable?, options?, histogram?, facet?, currency?, link?, avatar?}</code>. Tipos: <code>text</code>, <code>number</code>, <code>money</code>, <code>date</code> (ISO) y <code>status</code> (con <code>options</code> y tono).</td></tr>
+            <tr><td><code>columns</code></td><td><code>{key, label, type?, width?, editable?, options?, histogram?, facet?, currency?, link?, avatar?, dot?}</code>. Tipos: <code>text</code>, <code>number</code>, <code>money</code>, <code>date</code> (ISO) y <code>status</code> (con <code>options</code> y tono). <code>dot</code>: un punto de color antes del valor en vez de la píldora (el tono de la opción o, sin tono, uno de ocho por su lugar en <code>options</code>). Un enlace con <code>avatar</code> va en el color del texto.</td></tr>
+            <tr><td><code>heading</code>, <code>heading-icon</code>, <code>heading-level</code></td><td>El título de la tabla que es la página, con los atajos como botones debajo; un ícono del registro junto al título, en un cuadro con el degradado del acento; y el nivel del título (2 por defecto). En oscuro, detrás del título va un velo del acento (<code>--nx-grid-wash</code>; <code>transparent</code> lo quita).</td></tr>
             <tr><td><code>rows</code> / <code>source</code></td><td>Filas en el cliente (se copian: las ediciones quedan en <code>grid.rows</code>) o URL de datos en el servidor.</td></tr>
             <tr><td><code>filters</code>, <code>sort</code>, <code>group-by</code></td><td>El estado, serializable. Agrupar solo funciona en el cliente.</td></tr>
             <tr><td><code>search</code></td><td>Lo que dice la caja «Buscar en la tabla» (asignarlo busca). No va en las vistas.</td></tr>

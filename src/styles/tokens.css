@@ -9,6 +9,9 @@
  * Se aplican en `:root` o en cualquier elemento con `data-nx-palette`, así que una zona de la
  * página puede tener su propia paleta.
  *
+ * En oscuro las superficies toman un tinte del acento: ahí las sombras casi no se ven, y lo que
+ * separa el fondo, el menú y las hojas de encima es su luz y ese tinte. En claro siguen grises.
+ *
  * El tema sale de `color-scheme` y `light-dark()`: sigue al sistema, y se fuerza con
  * `.dark` / `[data-theme="dark"]` o `.light` / `[data-theme="light"]` en cualquier ancestro.
  *
@@ -23,13 +26,16 @@
   --_ld: var(--nx-accent-l-dark, 0.72);
   --_n: var(--nx-neutral-h, 260);
   --_t: var(--nx-tint, 1);
+  /* El croma de las superficies oscuras: hasta 0.012 en el tono del acento. Un acento sin croma
+     (grafito) deja casi solo el tinte de los grises. */
+  --_dk: calc(min(0.012, 0.004 * var(--_t) + 0.008 * min(1, var(--_c) * 8)));
 
-  /* Superficies */
-  --nx-canvas: light-dark(oklch(0.985 calc(0.002 * var(--_t)) var(--_n)), oklch(0.165 calc(0.004 * var(--_t)) var(--_n)));
-  --nx-background: light-dark(oklch(1 0 0), oklch(0.185 calc(0.004 * var(--_t)) var(--_n)));
-  --nx-sidebar: light-dark(oklch(0.975 calc(0.003 * var(--_t)) var(--_n)), oklch(0.19 calc(0.005 * var(--_t)) var(--_n)));
-  --nx-card: light-dark(oklch(1 0 0), oklch(0.225 calc(0.005 * var(--_t)) var(--_n)));
-  --nx-popover: light-dark(oklch(1 0 0), oklch(0.235 calc(0.006 * var(--_t)) var(--_n)));
+  /* Superficies (en oscuro, el menú va más hundido que el fondo y las hojas más arriba) */
+  --nx-canvas: light-dark(oklch(0.985 calc(0.002 * var(--_t)) var(--_n)), oklch(0.165 var(--_dk) var(--_h)));
+  --nx-background: light-dark(oklch(1 0 0), oklch(0.185 var(--_dk) var(--_h)));
+  --nx-sidebar: light-dark(oklch(0.975 calc(0.003 * var(--_t)) var(--_n)), oklch(0.15 var(--_dk) var(--_h)));
+  --nx-card: light-dark(oklch(1 0 0), oklch(0.225 var(--_dk) var(--_h)));
+  --nx-popover: light-dark(oklch(1 0 0), oklch(0.235 var(--_dk) var(--_h)));
 
   /* Bordes */
   --nx-border-subtle: light-dark(oklch(0.925 calc(0.004 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.07));
@@ -77,6 +83,21 @@
 
   --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
     0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
+  /* Una hoja sobre el fondo (el panel de filtros, la caja de la tabla): solo en oscuro. En claro la
+     separan su borde y el blanco; una sombra ahí ensucia. */
+  --nx-shadow-card: 0 1px 2px light-dark(transparent, rgb(0 0 0 / 0.35)),
+    0 8px 24px -10px light-dark(transparent, rgb(0 0 0 / 0.55));
+  /* Una pieza levantada (la sección activa del menú): sombra corta y un borde fino, en los dos temas. */
+  --nx-shadow-raise: 0 0 0 1px light-dark(rgb(15 20 30 / 0.08), rgb(255 255 255 / 0.08)),
+    0 1px 2px light-dark(rgb(15 20 30 / 0.1), rgb(0 0 0 / 0.35)),
+    0 3px 8px -3px light-dark(rgb(15 20 30 / 0.12), transparent);
+  /* El acento en degradado, para un ícono que lleva la marca (el del título de una tabla). El
+     mismo en los dos temas: sale de la luz del acento en claro. */
+  --nx-primary-gradient: linear-gradient(
+    140deg,
+    oklch(calc(var(--_l) + 0.12) calc(var(--_c) * 0.75) calc(var(--_h) - 15)),
+    oklch(calc(var(--_l) - 0.02) var(--_c) calc(var(--_h) + 25))
+  );
 
   /* Forma y movimiento */
   --nx-radius-sm: 5px;

@@ -68,6 +68,12 @@ export interface GridColumn {
    *  es AA, no AH), y partir un nombre completo a ciegas no tiene arreglo («Abel Dario de Luquez
    *  Epinayu»): quien tiene nombres y apellidos por separado manda las iniciales. */
   initials?: string;
+  /** Un punto de color antes de cada valor, en vez de la píldora: para clasificar sin gritar (el
+   *  tipo de contrato, la sede). El color es el `tone` de su opción o, sin tono, uno de ocho por el
+   *  lugar de la opción en `options` (el mismo valor, siempre el mismo color). El punto se repite en
+   *  el panel de filtros, en la lista del filtro de la columna y en el chip del filtro puesto. Sin
+   *  `dot`, las opciones con tono siguen en píldora, y llevan su punto en los filtros y el chip. */
+  dot?: boolean;
   /** Las columnas con el mismo nombre de `sequence` son los pasos de un proceso, en el orden en que
    *  se declararon (primera caja → último pallet → salida). En cada fila, un paso vacío con uno
    *  posterior ya registrado se ve «Faltante» (`labels.stepMissing`), y un valor anterior al del

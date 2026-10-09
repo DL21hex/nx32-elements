@@ -242,6 +242,7 @@ declare module "solid-js" {
       sort: string | undefined;
       columns: string | undefined;
       "heading-level": string | undefined;
+      "heading-icon": string | undefined;
       scenario: string | undefined;
       lens: AwardLens | undefined;
       side: HandoffSide | undefined;

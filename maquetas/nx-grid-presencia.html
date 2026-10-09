@@ -1,0 +1,663 @@
+<title>Empleados con presencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* La vista Empleados tal como está (data-look="actual") y la misma vista con una capa de
+   «presencia» encima (data-look="presencia"). El HTML, la distribución, la densidad y los controles
+   son los mismos: la capa solo redefine tokens y unas pocas reglas, al final de esta hoja.
+   Distribución: menú | página que no se desplaza; la tabla llena el alto y es lo único que se mueve. */
+:root {
+  color-scheme: light dark;
+  --h: 215;
+  --canvas: light-dark(oklch(0.985 0.002 250), oklch(0.165 0.004 250));
+  --side: var(--canvas);
+  --card: light-dark(oklch(1 0 0), oklch(0.205 0.005 250));
+  --pop: light-dark(oklch(1 0 0), oklch(0.24 0.006 250));
+  --line-soft: light-dark(oklch(0.93 0.004 250), oklch(1 0 0 / 0.07));
+  --line: light-dark(oklch(0.89 0.005 250), oklch(1 0 0 / 0.11));
+  --card-line: var(--line);
+  --nav-line: var(--line-soft);
+  --fg: light-dark(oklch(0.2 0.008 250), oklch(0.955 0.003 250));
+  --fg-2: light-dark(oklch(0.44 0.01 250), oklch(0.76 0.006 250));
+  --fg-3: light-dark(oklch(0.51 0.01 250), oklch(0.66 0.007 250));
+  --fg-4: light-dark(oklch(0.66 0.008 250), oklch(0.53 0.007 250));
+  --accent: light-dark(oklch(0.52 0.12 var(--h)), oklch(0.74 0.09 var(--h)));
+  --accent-ink: light-dark(oklch(0.46 0.12 var(--h)), oklch(0.8 0.085 var(--h)));
+  --accent-soft: light-dark(oklch(0.52 0.12 var(--h) / 0.09), oklch(0.74 0.09 var(--h) / 0.15));
+  --accent-line: light-dark(oklch(0.52 0.12 var(--h) / 0.35), oklch(0.74 0.09 var(--h) / 0.4));
+  --on-accent: light-dark(oklch(1 0 0), oklch(0.18 0.02 var(--h)));
+  --hover: light-dark(oklch(0.2 0.01 250 / 0.045), oklch(1 0 0 / 0.055));
+  --row-hover: var(--hover);
+  --ring: light-dark(oklch(0.52 0.12 var(--h) / 0.6), oklch(0.74 0.09 var(--h) / 0.7));
+  --ok: light-dark(oklch(0.52 0.13 150), oklch(0.74 0.14 150));
+  --warn: light-dark(oklch(0.72 0.15 70), oklch(0.8 0.14 78));
+  --warn-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --warn-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
+  --th-bg: var(--card);
+  --th-fg: var(--fg);
+  --wash: light-dark(oklch(0.78 0.1 var(--h) / 0.22), oklch(0.55 0.1 var(--h) / 0.2));
+  --shadow-card: 0 0 0 transparent;
+  --shadow-btn: 0 0 0 transparent;
+  --shadow-pop: 0 1px 2px light-dark(oklch(0.2 0.02 250 / 0.08), oklch(0 0 0 / 0.3)),
+    0 12px 32px -6px light-dark(oklch(0.2 0.02 250 / 0.2), oklch(0 0 0 / 0.6));
+  --r-card: 8px;
+  --r-btn: 7px;
+  --row: 32px;
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+/* El tema se decide en <body> y no en la raíz: el visor de artefactos maneja la raíz (su
+   `data-theme`) y puede pisar lo que se cambie ahí. Los tokens usan light-dark(), que se resuelve
+   donde se usan, así que basta con el color-scheme de <body>. Sin elección propia se sigue al visor
+   y, si el visor no dice nada, al sistema. */
+body { color-scheme: light dark; }
+:root[data-theme="dark"] body { color-scheme: dark; }
+:root[data-theme="light"] body { color-scheme: light; }
+:root body[data-scheme="dark"] { color-scheme: dark; }
+:root body[data-scheme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--fg);
+  font: 14px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Lo que cambia entre las dos capas cambia con una transición corta, para que se vea qué se movió. */
+.nav, .main, .item, .btn, .search, .facets, .tablecard, th, .av, .name, .pill, .user, .mark, .main::before {
+  transition: background-color 280ms ease, box-shadow 280ms ease, border-color 280ms ease,
+    border-radius 280ms ease, color 280ms ease, opacity 280ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+/* ------------------------------------------------------------------ el marco */
+.app { height: 100%; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+
+.nav {
+  display: flex; flex-direction: column; gap: 1px; min-height: 0; overflow: hidden auto;
+  padding: 12px 10px 10px; background: var(--side); border-right: 1px solid var(--nav-line);
+}
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 16px; font-weight: 600; font-size: 14.5px; white-space: nowrap; }
+.mark {
+  width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none;
+}
+.nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.item {
+  position: relative; display: flex; align-items: center; gap: 10px; height: 35px; padding: 0 10px;
+  border-radius: 7px; color: var(--fg-2); text-decoration: none; font-size: 13.5px; white-space: nowrap;
+}
+.item:hover { background: var(--hover); color: var(--fg); }
+.item .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.item .chev { width: 14px; height: 14px; color: var(--fg-4); }
+.item[aria-current="page"] { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.item[aria-current="page"]::before {
+  content: ""; position: absolute; left: -10px; top: 7px; bottom: 7px; width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+.sec { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--fg-3); padding: 16px 10px 6px; }
+.nav-foot { margin-top: auto; display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--nav-line); }
+.user { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 9px; }
+.user .who { flex: 1; min-width: 0; line-height: 1.25; }
+.user b { display: block; font-size: 13px; font-weight: 600; }
+.user small { display: block; font-size: 11.5px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.face {
+  position: relative; width: 32px; height: 32px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-size: 11.5px; font-weight: 650;
+}
+.face::after {
+  content: ""; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--ok); border: 2px solid var(--side);
+}
+.collapse {
+  display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border: 0; border-radius: 7px;
+  background: var(--hover); color: var(--fg-2); font-size: 13.5px; text-align: left;
+}
+
+/* ------------------------------------------------------------------ la página */
+.main {
+  position: relative; display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0;
+  padding: 22px 32px 18px; background: var(--canvas);
+}
+/* El velo de la cabecera: apagado en «actual». */
+.main::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 300px; pointer-events: none;
+  background: radial-gradient(90% 100% at 0% 0%, var(--wash), transparent 72%); opacity: 0;
+}
+.main > * { position: relative; }
+
+.crumb { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-2); font-size: 13px; text-decoration: none; width: fit-content; }
+.crumb:hover { color: var(--fg); }
+.crumb .i { width: 14px; height: 14px; }
+.head { display: grid; gap: 10px; }
+.title { display: flex; align-items: center; gap: 12px; }
+.title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.tile {
+  display: none; width: 38px; height: 38px; border-radius: 10px; place-items: center; flex: none;
+  color: oklch(0.99 0 0);
+  background: linear-gradient(140deg, oklch(0.66 0.12 195), oklch(0.5 0.13 235));
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.25), 0 4px 12px -4px oklch(0.5 0.13 225 / 0.55);
+}
+.tile .i { width: 20px; height: 20px; stroke-width: 1.8; }
+
+.quick { display: flex; align-items: center; gap: 14px; overflow-x: auto; scrollbar-width: none; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--hover); flex: none; }
+.seg button {
+  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border: 0; border-radius: 7px;
+  background: none; color: var(--fg-2); font-size: 13.5px; white-space: nowrap;
+}
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px oklch(0.2 0.02 250 / 0.1); }
+.seg .n { color: var(--fg); font-weight: 600; }
+.seg .n.warn, .link .n { color: var(--warn-ink); }
+.link { display: inline-flex; align-items: center; gap: 8px; color: var(--accent-ink); font-size: 13.5px; font-weight: 500; text-decoration: none; white-space: nowrap; flex: none; }
+.link .n { font-weight: 600; }
+.link .i { width: 14px; height: 14px; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn, .search {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; flex: none;
+  border: 1px solid var(--line); border-radius: var(--r-btn); background: var(--card); box-shadow: var(--shadow-btn);
+  font-size: 13.5px; font-weight: 500; white-space: nowrap;
+}
+.btn:hover { background: color-mix(in oklch, var(--card), var(--fg) 4%); }
+.btn.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+.badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 650;
+}
+.search { flex: 1 1 280px; min-width: 0; padding: 0 12px; font-weight: 400; cursor: text; }
+.search .i { color: var(--fg-3); }
+.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; font-size: 13.5px; }
+.search input::placeholder { color: var(--fg-3); }
+.search:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-left: 18px; font-size: 13px; color: var(--fg-2); }
+.meta b { color: var(--fg); font-weight: 600; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px 0 10px; border-radius: 13px;
+  background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-ink); font-size: 12.5px; font-weight: 500;
+}
+.chip button { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; }
+.chip button .i { width: 12px; height: 12px; }
+.meta .plain { border: 0; background: none; padding: 0; font-size: 12.5px; color: var(--fg-2); text-decoration: underline; text-underline-offset: 2px; }
+.meta .act { border: 0; background: none; padding: 0; font-size: 12.5px; color: var(--accent-ink); font-weight: 500; }
+
+/* ------------------------------------------------------------------ filtros + tabla */
+.work { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 14px; }
+.facets, .tablecard {
+  min-height: 0; background: var(--card); border: 1px solid var(--card-line); border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+}
+.facets { overflow: hidden auto; padding: 14px 12px 12px; scrollbar-width: thin; }
+.facets h2 { margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line-soft); font-size: 14px; font-weight: 600; }
+.facet { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line-soft); }
+.facet h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-2); }
+.facet h3 .badge { min-width: 17px; height: 17px; font-size: 10.5px; letter-spacing: 0; }
+.facet input[type="search"] {
+  width: 100%; height: 30px; margin-bottom: 6px; padding: 0 9px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); font-size: 12.5px;
+}
+.facet input[type="search"]::placeholder { color: var(--fg-3); }
+.opt { display: flex; align-items: center; gap: 8px; height: 26px; font-size: 13px; cursor: pointer; }
+.opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--accent); flex: none; }
+.opt span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt small { color: var(--fg-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.more { border: 0; background: none; padding: 4px 0 0; color: var(--accent-ink); font-size: 12.5px; font-weight: 500; }
+
+.tablecard { display: flex; overflow: hidden; }
+.scroll { flex: 1; min-width: 0; overflow: auto; scrollbar-width: thin; padding-bottom: 64px; }
+table { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; min-width: 1540px; font-size: 13.5px; }
+th {
+  position: sticky; top: 0; z-index: 1; height: 38px; padding: 0 10px; text-align: left; white-space: nowrap;
+  background: var(--th-bg); color: var(--th-fg); font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--line);
+}
+th .i { width: 13px; height: 13px; vertical-align: -2px; margin-left: 4px; color: var(--fg-3); }
+td {
+  height: var(--row); padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-bottom: 1px solid var(--line-soft);
+}
+th + th, td + td { border-left: 1px solid var(--line-soft); }
+tbody tr:hover td { background: var(--row-hover); }
+
+.emp { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.av {
+  display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 5px;
+  background: var(--hover); color: var(--fg-3); font-size: 9.5px; font-weight: 650; letter-spacing: 0.02em;
+}
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--accent-ink); text-decoration: none; font-weight: 500; }
+.name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.doc .t { margin-right: 4px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 21px; padding: 0 8px; border-radius: 5px;
+  background: var(--hover); color: var(--fg-2); font-size: 12px; font-weight: 500;
+}
+.pill::before { content: ""; display: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.ct::before { content: ""; display: none; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--dot); vertical-align: 1px; }
+.ct[data-t="Indefinido"] { --dot: var(--ok); }
+.ct[data-t="Término fijo"] { --dot: light-dark(oklch(0.6 0.13 250), oklch(0.72 0.11 250)); }
+.ct[data-t="Obra o labor"] { --dot: light-dark(oklch(0.58 0.14 300), oklch(0.72 0.12 300)); }
+.ct[data-t="Aprendizaje"] { --dot: var(--warn); }
+.ct[data-t="Activo"] { --dot: var(--ok); }
+.ct[data-t="Inactivo"] { --dot: var(--fg-4); }
+.chip .ct::before { margin-right: 6px; }
+.soft { color: var(--fg-2); }
+.empty td { height: 120px; text-align: center; color: var(--fg-3); }
+
+/* ------------------------------------------------------------------ el comparador (no es parte de la vista) */
+.cmp {
+  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; z-index: 20;
+  display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px;
+  background: var(--pop); border: 1px solid var(--line); box-shadow: var(--shadow-pop);
+}
+.cmp .opts { display: flex; gap: 2px; }
+.cmp .opts button {
+  height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: var(--fg-2);
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+.cmp .opts button[aria-pressed="true"] { background: var(--fg); color: var(--canvas); }
+.cmp .ico { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--fg-2); }
+.cmp .ico:hover, .cmp .ico[aria-expanded="true"] { background: var(--hover); color: var(--fg); }
+.cmp .sep { width: 1px; height: 20px; background: var(--line); margin: 0 2px; }
+.notes {
+  position: fixed; left: 50%; bottom: calc(68px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; z-index: 20;
+  width: min(460px, calc(100vw - 32px)); max-height: calc(100% - 120px); overflow: auto;
+  padding: 16px 18px; border-radius: 14px; background: var(--pop); border: 1px solid var(--line); box-shadow: var(--shadow-pop);
+  font-size: 13px; line-height: 1.5;
+}
+.notes h2 { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; }
+.notes ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.notes li::marker { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.notes b { font-weight: 600; }
+.notes p { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line-soft); color: var(--fg-2); }
+.notes kbd { font: 500 11.5px var(--font); padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; }
+
+/* ------------------------------------------------------------------ pantallas angostas */
+@media (max-width: 1080px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .facets { display: none; }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .nav { display: none; }
+  .main { padding: 16px 16px 12px; gap: 12px; }
+  .meta { padding-left: 0; }
+}
+@media (max-width: 560px) {
+  .tools .btn .lbl { display: none; }
+  .tools .btn { padding: 0 10px; }
+  .search { order: -1; flex-basis: 100%; }
+  .cmp .opts button { padding: 0 11px; }
+}
+
+/* ==================================================================
+   Capa «presencia». Todo lo de arriba es la vista actual; esto es lo único que se agrega.
+   En los dos temas:
+   1. Cabecera: ícono del módulo junto al título.
+   2. Menú: la sección activa es una pieza levantada, no un tinte con barra.
+   3. Avatares con color (sale del nombre: la misma persona, el mismo color).
+   4. Nombres en color de texto; el azul queda para lo que se toca.
+   5. Color con significado: «Sin asignar» en ámbar como su cifra; un punto por tipo de contrato
+      y por estado, igual en la tabla, en los filtros y en el filtro aplicado.
+   Solo en oscuro (en claro el tinte se ve como una mancha y estos tokens valen lo de «actual»):
+   6. Planos: fondo y menú con un tinte de la marca; filtros y tabla son hojas encima, con sombra.
+   7. Un velo de la marca arriba de la página.
+   ================================================================== */
+:root[data-look="presencia"] {
+  /* El primer valor de cada light-dark() es el de «actual» en claro: ahí no hay tinte ni sombras. */
+  --canvas: light-dark(oklch(0.985 0.002 250), oklch(0.16 0.012 var(--h)));
+  --side: light-dark(oklch(0.985 0.002 250), oklch(0.145 0.013 var(--h)));
+  --card: light-dark(oklch(1 0 0), oklch(0.215 0.012 var(--h)));
+  --card-line: light-dark(oklch(0.89 0.005 250), oklch(1 0 0 / 0.08));
+  --nav-line: light-dark(oklch(0.93 0.004 250), transparent);
+  --th-bg: light-dark(oklch(0.98 0.002 250), oklch(0.235 0.013 var(--h)));
+  --th-fg: var(--fg-2);
+  --row-hover: light-dark(oklch(0.52 0.12 var(--h) / 0.05), oklch(0.74 0.09 var(--h) / 0.08));
+  --wash: light-dark(transparent, oklch(0.55 0.1 var(--h) / 0.2));
+  --shadow-card: 0 1px 2px light-dark(transparent, oklch(0 0 0 / 0.35)),
+    0 8px 24px -10px light-dark(transparent, oklch(0 0 0 / 0.55));
+  --shadow-btn: 0 1px 2px light-dark(transparent, oklch(0 0 0 / 0.35));
+  /* La pieza levantada del menú sí lleva sombra en claro: es lo que la separa del menú sin tinte. */
+  --shadow-raise: 0 1px 2px light-dark(oklch(0.25 0.01 250 / 0.1), oklch(0 0 0 / 0.35)),
+    0 3px 8px -3px light-dark(oklch(0.25 0.01 250 / 0.12), oklch(0 0 0 / 0));
+  --raise-line: light-dark(oklch(0.2 0.01 250 / 0.08), oklch(1 0 0 / 0.08));
+  --r-card: 12px;
+  --r-btn: 8px;
+}
+[data-look="presencia"] .btn:not(.on), [data-look="presencia"] .search { border-color: var(--card-line); }
+[data-look="presencia"] .mark {
+  background: linear-gradient(140deg, oklch(0.66 0.12 195), oklch(0.5 0.13 235));
+  color: oklch(0.99 0 0); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.25);
+}
+[data-look="presencia"] .tile { display: grid; }
+[data-look="presencia"] .main::before { opacity: 1; }
+[data-look="presencia"] .title h1 { font-size: 24px; }
+
+[data-look="presencia"] .item[aria-current="page"] {
+  background: var(--card); color: var(--fg); box-shadow: var(--shadow-raise), 0 0 0 1px var(--raise-line);
+}
+[data-look="presencia"] .item[aria-current="page"]::before { display: none; }
+[data-look="presencia"] .item[aria-current="page"] > .i:first-child { color: var(--accent); }
+[data-look="presencia"] .user { background: var(--card); box-shadow: var(--shadow-raise), 0 0 0 1px var(--raise-line); }
+[data-look="presencia"] .face::after { border-color: var(--card); }
+[data-look="presencia"] .collapse { background: none; }
+[data-look="presencia"] .collapse:hover { background: var(--hover); }
+
+[data-look="presencia"] .seg { background: light-dark(oklch(0.2 0.01 250 / 0.045), oklch(1 0 0 / 0.06)); }
+[data-look="presencia"] .seg .n, [data-look="presencia"] .link .n {
+  padding: 1px 7px; border-radius: 10px; font-size: 12px; background: var(--hover);
+}
+[data-look="presencia"] .seg .n.warn, [data-look="presencia"] .link .n { background: var(--warn-soft); }
+
+[data-look="presencia"] .av {
+  width: 24px; height: 24px; border-radius: 50%; font-size: 9.5px;
+  background: light-dark(oklch(0.93 0.045 var(--hue)), oklch(0.34 0.06 var(--hue)));
+  color: light-dark(oklch(0.42 0.1 var(--hue)), oklch(0.88 0.07 var(--hue)));
+}
+[data-look="presencia"] .name { color: var(--fg); }
+[data-look="presencia"] .name:hover { color: var(--accent-ink); }
+[data-look="presencia"] .doc .t { color: var(--fg-4); font-size: 12px; font-weight: 500; }
+[data-look="presencia"] .doc, [data-look="presencia"] .iid { color: var(--fg-2); }
+[data-look="presencia"] .pill { background: var(--warn-soft); color: var(--warn-ink); border-radius: 11px; }
+[data-look="presencia"] .pill::before, [data-look="presencia"] .ct::before { display: inline-block; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></symbol>
+  <symbol id="i-tasks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1"/><path d="M16 3.5a4 4 0 0 1 0 8"/><path d="M22 21v-1a6 6 0 0 0-4-5.6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2 3h3l2.6 12.4a1.5 1.5 0 0 0 1.5 1.1h8.8a1.5 1.5 0 0 0 1.4-1.1L21 8H6"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path d="M4 3v7a3 3 0 0 0 3 3v8"/><path d="M10 3v7a3 3 0 0 1-3 3"/><path d="M7 3v6"/><path d="M17 21V3c-2.2 1-4 3.5-4 7v3h4"/></symbol>
+  <symbol id="i-shield-ok" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.2A8.5 8.5 0 1 1 21 12z"/></symbol>
+  <symbol id="i-tablet" viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-9-9.5C2 7 4.2 4 7.5 4c2 0 3.5 1 4.5 2.5C13 5 14.5 4 16.5 4 19.8 4 22 7 21 10.5 19.5 15.4 12 20 12 20z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
+  <symbol id="i-updown" viewBox="0 0 24 24"><path d="m8 9 4-4 4 4"/><path d="m8 15 4 4 4-4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+</svg>
+
+<div class="app">
+  <nav class="nav" aria-label="Menú principal">
+    <div class="brand"><span class="mark">C</span>Consola nx32</div>
+    <ul>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-home"/></svg><span class="lbl">Inicio</span></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-tasks"/></svg><span class="lbl">Pendientes</span></a></li>
+    </ul>
+    <div class="sec">Proceso</div>
+    <ul>
+      <li><a class="item" href="#" aria-current="page"><svg class="i"><use href="#i-users"/></svg><span class="lbl">Talento Humano</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-shield"/></svg><span class="lbl">Administración</span></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-box"/></svg><span class="lbl">Almacén</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-chart"/></svg><span class="lbl">Trading</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-cart"/></svg><span class="lbl">Compras</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-food"/></svg><span class="lbl">Casino</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-shield-ok"/></svg><span class="lbl">Seguridad Física</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-chat"/></svg><span class="lbl">WhatsApp</span></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-tablet"/></svg><span class="lbl">Terminales</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-heart"/></svg><span class="lbl">SST</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+      <li><a class="item" href="#"><svg class="i"><use href="#i-grid"/></svg><span class="lbl">Operaciones de Campo</span><svg class="i chev"><use href="#i-chev-r"/></svg></a></li>
+    </ul>
+    <div class="nav-foot">
+      <div class="user">
+        <span class="face">DL</span>
+        <span class="who"><b>Diego Llinas</b><small>Consola nx32 · Super Administrador</small></span>
+        <svg class="i" style="color:var(--fg-4)"><use href="#i-updown"/></svg>
+      </div>
+      <button class="collapse" type="button"><svg class="i"><use href="#i-panel"/></svg>Contraer menú</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <header class="head">
+      <a class="crumb" href="#"><svg class="i"><use href="#i-chev-l"/></svg>Talento Humano</a>
+      <div class="title">
+        <span class="tile" aria-hidden="true"><svg class="i"><use href="#i-users"/></svg></span>
+        <h1>Empleados</h1>
+      </div>
+      <div class="quick">
+        <div class="seg" role="group" aria-label="Atajos">
+          <button type="button" aria-pressed="true">Todos</button>
+          <button type="button" aria-pressed="false">Contratos que vencen <span class="n num">742</span></button>
+          <button type="button" aria-pressed="false">Sin jefe asignado <span class="n warn num">1.335</span></button>
+        </div>
+        <a class="link" href="#">Correos por corregir <span class="n num">26</span><svg class="i"><use href="#i-out"/></svg></a>
+      </div>
+    </header>
+
+    <div class="tools">
+      <button class="btn" type="button"><svg class="i"><use href="#i-bookmark"/></svg><span class="lbl">Vistas</span></button>
+      <label class="search"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar en la tabla</span><input id="q" type="search" placeholder="Buscar en la tabla" autocomplete="off"></label>
+      <button class="btn on" type="button" aria-pressed="true"><svg class="i"><use href="#i-sliders"/></svg><span class="lbl">Filtros</span><span class="badge">1</span></button>
+      <button class="btn" type="button"><svg class="i"><use href="#i-columns"/></svg><span class="lbl">Columnas</span></button>
+      <button class="btn" type="button"><svg class="i"><use href="#i-download"/></svg><span class="lbl">Exportar</span></button>
+    </div>
+
+    <div class="meta">
+      <span><b class="num" id="total">9.680</b> empleados</span>
+      <span class="chip"><span class="ct" data-t="Activo">Estado: Activo</span><button type="button" aria-label="Quitar el filtro Estado: Activo"><svg class="i"><use href="#i-x"/></svg></button></span>
+      <button class="plain" type="button">Limpiar todo</button>
+      <button class="act" type="button">Guardar como vista</button>
+    </div>
+
+    <div class="work">
+      <aside class="facets" aria-label="Filtros">
+        <h2>Filtros</h2>
+        <section class="facet">
+          <h3>Estado <span class="badge">1</span></h3>
+          <label class="opt"><input type="checkbox" checked><span class="ct" data-t="Activo">Activo</span><small>9.680</small></label>
+          <label class="opt"><input type="checkbox"><span class="ct" data-t="Inactivo">Inactivo</span><small>23.754</small></label>
+        </section>
+        <section class="facet">
+          <h3>Empresa</h3>
+          <input type="search" placeholder="Buscar" aria-label="Buscar empresa">
+          <div id="f-empresa"></div>
+          <button class="more" type="button">Ver 48 más</button>
+        </section>
+        <section class="facet">
+          <h3>Subdivisión</h3>
+          <input type="search" placeholder="Buscar" aria-label="Buscar subdivisión">
+          <div id="f-sub"></div>
+          <button class="more" type="button">Ver 86 más</button>
+        </section>
+        <section class="facet" style="border:0;margin:0">
+          <h3>Tipo de contrato</h3>
+          <div id="f-ct"></div>
+        </section>
+      </aside>
+
+      <div class="tablecard">
+        <div class="scroll">
+          <table>
+            <colgroup>
+              <col style="width:270px"><col style="width:140px"><col style="width:90px"><col style="width:230px">
+              <col style="width:220px"><col style="width:230px"><col style="width:170px"><col style="width:150px"><col style="width:120px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Empleado<svg class="i"><use href="#i-up"/></svg></th>
+                <th>Documento</th><th>I-ID</th><th>Cargo</th><th>Jefe</th><th>Empresa</th><th>Subdivisión</th><th>Contrato</th><th>Ingreso</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="cmp" role="group" aria-label="Comparar estilos">
+  <div class="opts">
+    <button type="button" data-look="actual" aria-pressed="false">Actual</button>
+    <button type="button" data-look="presencia" aria-pressed="true">Con presencia</button>
+  </div>
+  <span class="sep"></span>
+  <button class="ico" id="notes-btn" type="button" aria-expanded="false" aria-controls="notes" aria-label="Qué cambia"><svg class="i"><use href="#i-info"/></svg></button>
+  <button class="ico" id="theme-btn" type="button" aria-label="Ver en oscuro" title="Ver en oscuro"><svg class="i"><use href="#i-moon"/></svg></button>
+</div>
+
+<div class="notes" id="notes" hidden>
+  <h2>Qué cambia con «presencia»</h2>
+  <ol>
+    <li><b>Cabecera.</b> Un ícono del módulo junto al título.</li>
+    <li><b>Menú.</b> La sección activa es una pieza levantada en vez de un tinte con barra.</li>
+    <li><b>Avatares con color.</b> El color sale del nombre: la misma persona tiene siempre el mismo.</li>
+    <li><b>Nombres en color de texto.</b> El azul queda para lo que se toca; el enlace aparece al pasar el puntero.</li>
+    <li><b>Color con significado.</b> «Sin asignar» va en ámbar, como la cifra «Sin jefe asignado»; cada tipo de contrato y cada estado lleva su punto, igual en la tabla, en los filtros y en el filtro aplicado.</li>
+    <li><b>Solo en oscuro:</b> el fondo y el menú toman un tinte de la marca, los filtros y la tabla quedan como hojas con sombra, y hay un velo de la marca arriba.</li>
+  </ol>
+  <p>No cambian la distribución, la densidad (32 px por fila), las columnas, los controles ni su orden. La tecla <kbd>P</kbd> alterna entre las dos. Los datos son inventados.</p>
+</div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const C = ["Indefinido", "Término fijo", "Obra o labor", "Aprendizaje"];
+  const E = ["Agrícola El Retiro S.A.S.", "Bananera La Ceiba S.A.S.", "Inversiones Palmar S.A.S.", "Transportes del Magdalena S.A.S.", "Agroindustrial Santa Rita S.A.S.", "Frutícola Caribe S.A.S."];
+  const S = ["Finca La Ceiba", "Finca El Palmar", "Finca San Rafael", "Planta Empaque Norte", "Oficina Central", "Finca Las Brisas"];
+  // nombre, documento, I-ID, cargo, jefe (null = sin asignar), empresa, subdivisión, contrato, ingreso
+  const R = [
+    ["Aarón Eliécer Mendoza Pérez", "1004318822", "57790", "Pasante", null, 4, 4, 3, "3 feb 2025"],
+    ["Abel Andrés Castillo Rojas", "1004502911", "120118", "Operario de Cosecha y Empaque", "Fabián Enrique Robles Gil", 1, 0, 1, "14 mar 2023"],
+    ["Abel Antonio Barrios Ospino", "12629541", "141290", "Operario de Cosecha y Empaque", "Leandro Ítalo Gil Mercado", 2, 1, 1, "9 ago 2021"],
+    ["Abel Enrique Navarro Lugo", "1004275133", "154027", "Operario de Cosecha y Empaque", "Kevin Eduardo Niebles Ruiz", 2, 1, 2, "22 may 2024"],
+    ["Abel José Pacheco Díaz", "19501206", "912", "Oficios Varios", "Ciro Manuel Olaya Cuesta", 0, 2, 0, "1 jun 2009"],
+    ["Abel Mauricio Torres Arrieta", "1118875309", "59061", "Cosecha y Empaque", "Edgar Junior Martínez Díaz", 5, 5, 1, "17 oct 2022"],
+    ["Abelardo Luis Fontalvo Rangel", "12447811", "3160", "Oficios Varios", "Duney Didi Cantillo Saltarén", 1, 2, 0, "4 abr 2011"],
+    ["Abelardo Rafael Ortiz Mejía", "85469702", "42006", "Conductor", null, 3, 4, 0, "28 ene 2019"],
+    ["Abelino José Carrillo Salas", "1193132877", "430431", "Aprendiz Etapa Productiva", null, 1, 2, 3, "5 jul 2025"],
+    ["Abigail Patricia Suárez Vega", "6480866", "65130", "Auxiliar de Nómina", "Mónica Isabel Peña Ariza", 4, 4, 0, "12 sep 2016"],
+    ["Abimael David Coronado Peña", "1128200911", "99766", "Cosecha y Empaque", "Jainer Manuel García Pardo", 0, 0, 1, "30 nov 2023"],
+    ["Abraham José Polo Gutiérrez", "1221965102", "109160", "Operario de Cosecha y Empaque", "Wendy Johana Pérez Galindo", 2, 3, 2, "19 feb 2024"],
+    ["Adalberto Enrique Ruiz Bolaño", "1118833207", "9495", "Oficios Varios", "Deimer José Crespo Montes", 5, 5, 0, "8 mar 2010"],
+    ["Adela María Herrera Cantillo", "1004378900", "18311", "Supervisora de Campo", "Antonio Martelo Barrios", 0, 1, 0, "21 jun 2014"],
+    ["Adolfo Miguel Charris Ariza", "84454377", "410022", "Operario de Mantenimiento y Producción", "Anselmo Antonio Padilla Bossa", 4, 3, 2, "2 dic 2024"],
+    ["Adriana Lucía Pertuz Vargas", "1128190455", "74247", "Analista de Talento Humano", "Mónica Isabel Peña Ariza", 4, 4, 0, "15 ene 2020"],
+    ["Adrián Felipe Moreno Ochoa", "12627930", "19410", "Oficios Varios", null, 1, 0, 1, "10 abr 2023"],
+    ["Agustín Rafael Bermúdez Cano", "19501299", "93039", "Oficios Varios", "José Manuel Rodríguez Blanco", 2, 5, 0, "6 ago 2012"],
+    ["Aída Rosa Manjarrés Fuentes", "1004390188", "120540", "Operaria de Cosecha y Empaque", "Fabián Enrique Robles Gil", 1, 0, 1, "25 sep 2024"],
+    ["Alba Lucía Rincón Palacio", "36724561", "8812", "Coordinadora de Empaque", "Edgar Junior Martínez Díaz", 5, 3, 0, "3 may 2015"],
+    ["Albeiro José Ramos Tapia", "1193140022", "430588", "Aprendiz Etapa Productiva", null, 3, 4, 3, "14 jul 2025"],
+    ["Alberto Carlos Salcedo Mier", "85471190", "42210", "Conductor", "Ciro Manuel Olaya Cuesta", 3, 4, 0, "29 oct 2018"],
+    ["Alcides Enrique Villa Orozco", "12447990", "3302", "Operario de Labores Agrícolas", "Kevin Eduardo Niebles Ruiz", 2, 1, 2, "11 feb 2025"],
+    ["Aldair Jesús Montero Caro", "1004811673", "155012", "Operario de Cosecha y Empaque", null, 0, 2, 1, "7 mar 2025"],
+    ["Alejandra Paola Díaz Cuello", "1128201145", "99901", "Auxiliar Administrativa", "Adriana Lucía Pertuz Vargas", 4, 4, 0, "18 ago 2022"],
+    ["Alexis Rafael Gómez Lara", "1221970334", "109588", "Operario de Cosecha y Empaque", "Wendy Johana Pérez Galindo", 2, 3, 2, "26 ene 2025"],
+  ];
+  const HUES = [215, 250, 285, 330, 20, 60, 145, 180];
+  const hueOf = (s) => { let h = 0; for (const ch of s) h = (h * 31 + ch.codePointAt(0)) >>> 0; return HUES[h % HUES.length]; };
+  // Iniciales: primer nombre y primer apellido.
+  const initials = (n) => { const p = n.split(" "); return (p[0][0] + p[Math.max(0, p.length - 2)][0]).toUpperCase(); };
+  const fmt = (d) => d.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  const tbody = document.getElementById("rows");
+  function render(q) {
+    const k = q.trim().toLocaleLowerCase("es");
+    const list = k ? R.filter((r) => r.join(" ").toLocaleLowerCase("es").includes(k)) : R;
+    tbody.innerHTML = list.length
+      ? list.map(([n, doc, iid, cargo, jefe, e, s, c, ing]) => `<tr>
+          <td><span class="emp"><span class="av" style="--hue:${hueOf(n)}" aria-hidden="true">${initials(n)}</span><a class="name" href="#">${n}</a></span></td>
+          <td class="doc num"><span class="t">CC</span>${fmt(doc)}</td>
+          <td class="iid num">${iid}</td>
+          <td title="${cargo}">${cargo}</td>
+          <td>${jefe ?? '<span class="pill">Sin asignar</span>'}</td>
+          <td title="${E[e]}">${E[e]}</td>
+          <td>${S[s]}</td>
+          <td><span class="ct" data-t="${C[c]}">${C[c]}</span></td>
+          <td class="soft num">${ing}</td>
+        </tr>`).join("")
+      : '<tr class="empty"><td colspan="9">Nada coincide con la búsqueda.</td></tr>';
+  }
+  render("");
+  document.getElementById("q").addEventListener("input", (e) => render(e.target.value));
+
+  const opts = (id, items, dots = false) => {
+    document.getElementById(id).innerHTML = items
+      .map(([t, n]) => `<label class="opt"><input type="checkbox"><span title="${t}"${dots ? ` class="ct" data-t="${t}"` : ""}>${t}</span><small>${n}</small></label>`).join("");
+  };
+  opts("f-empresa", [[E[0], "554"], [E[1], "302"], [E[2], "494"], [E[3], "54"], [E[4], "349"], [E[5], "2"]]);
+  opts("f-sub", [["Administración La Ceiba", "9"], ["Administración El Palmar", "3"], ["Administración San Rafael", "6"], ["Finca Las Brisas", "7"], ["Planta Empaque Norte", "19"], ["Oficina Central", "1"]]);
+  opts("f-ct", [["Indefinido", "4.112"], ["Término fijo", "3.287"], ["Obra o labor", "1.904"], ["Aprendizaje", "377"]], true);
+
+  // ---------------------------------------------------------------- comparador
+  const lookBtns = [...document.querySelectorAll(".cmp [data-look]")];
+  function setLook(v) {
+    root.dataset.look = v;
+    for (const b of lookBtns) b.setAttribute("aria-pressed", String(b.dataset.look === v));
+    try { localStorage.setItem("nx-look", v); } catch {}
+  }
+  let saved = null;
+  try { saved = localStorage.getItem("nx-look"); } catch {}
+  setLook(saved === "actual" ? "actual" : "presencia");
+  for (const b of lookBtns) b.addEventListener("click", () => setLook(b.dataset.look));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !notes.hidden) { toggleNotes(false); notesBtn.focus(); return; }
+    if (e.key.toLowerCase() !== "p" || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]")) return;
+    setLook(root.dataset.look === "presencia" ? "actual" : "presencia");
+  });
+
+  const notes = document.getElementById("notes");
+  const notesBtn = document.getElementById("notes-btn");
+  function toggleNotes(open) { notes.hidden = !open; notesBtn.setAttribute("aria-expanded", String(open)); }
+  notesBtn.addEventListener("click", () => toggleNotes(notes.hidden));
+  document.addEventListener("click", (e) => {
+    if (!notes.hidden && e.target instanceof Element && !e.target.closest("#notes, #notes-btn")) toggleNotes(false);
+  });
+
+  const themeBtn = document.getElementById("theme-btn");
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const body = document.body;
+  const isDark = () => {
+    const s = body.dataset.scheme || root.dataset.theme;
+    return s ? s === "dark" : mq.matches;
+  };
+  function paintThemeBtn() {
+    const d = isDark();
+    themeBtn.querySelector("use").setAttribute("href", d ? "#i-sun" : "#i-moon");
+    const lbl = d ? "Ver en claro" : "Ver en oscuro";
+    themeBtn.setAttribute("aria-label", lbl);
+    themeBtn.title = lbl;
+  }
+  let scheme = null;
+  try { scheme = localStorage.getItem("nx-scheme"); } catch {}
+  if (scheme === "light" || scheme === "dark") body.dataset.scheme = scheme;
+  themeBtn.addEventListener("click", () => {
+    const next = isDark() ? "light" : "dark";
+    body.dataset.scheme = next;
+    try { localStorage.setItem("nx-scheme", next); } catch {}
+    paintThemeBtn();
+  });
+  mq.addEventListener?.("change", paintThemeBtn);
+  // Si el visor cambia su tema, el ícono lo sigue (mientras no haya una elección propia).
+  new MutationObserver(paintThemeBtn).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  paintThemeBtn();
+})();
+</script>

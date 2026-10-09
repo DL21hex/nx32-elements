@@ -623,7 +623,7 @@ Una tabla de datos que se explora sola:
   columna numérica, con los totales de cada fila, de cada columna y el general (el de un promedio se
   pondera por sus filas). Las opciones declaradas van en su orden aunque no tengan filas; los demás
   valores, de más a menos filas, y «(Sin dato)» al final. Arriba, la persona elige las dos columnas
-  (las de pocos valores: con `options`, las del panel de filtros o las nombradas), las intercambia y
+  (las de pocos valores: con `options` o las del panel de filtros, salvo las `facet: false`, y las nombradas), las intercambia y
   elige qué mostrar; `matrix` dice lo que quedó. `matrix` vacío o `true`: las dos primeras que se
   puedan cruzar. Un cruce vuelve a la tabla con esos dos filtros puestos (como chips, emite
   `nx-grid-filter`); un encabezado o un total, con el de su columna; el total general, sin ninguno de

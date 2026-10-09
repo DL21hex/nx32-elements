@@ -2218,13 +2218,17 @@ export class NxGrid extends Base {
   // ---------------------------------------------------------------- matriz
 
   /** Las columnas que se pueden cruzar: las de pocos valores (con `options`, o las del panel de
-   *  filtros), y las que la app nombró en `matrix`. Nunca números, fechas ni horas. */
+   *  filtros), y las que la app nombró en `matrix`. Nunca números, fechas ni horas, ni una columna
+   *  fuera del panel (`facet: false`) que no se nombró: con `source`, el servidor agrupa por las del
+   *  panel, no por cualquiera que traiga `options` («Sin asignar» en «Jefe»). */
   #mxAxes(): GridColumn[] {
     const facet = new Set(this.#server ? this.#facetList.map((f) => f.key) : this.#facetCols.map((c) => c.key));
     const named = [this.#matrix?.rows, this.#matrix?.cols];
     return this.#cols.filter((c) => {
       const t = colType(c);
-      return t !== "number" && t !== "money" && t !== "date" && t !== "time" && t !== "timeline" && (!!c.options || c.facet === true || facet.has(c.key) || named.includes(c.key));
+      if (t === "number" || t === "money" || t === "date" || t === "time" || t === "timeline") return false;
+      if (named.includes(c.key)) return true;
+      return c.facet !== false && (!!c.options || c.facet === true || facet.has(c.key));
     });
   }
 

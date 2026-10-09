@@ -1,5 +1,13 @@
 # Registro de cambios
 
+## 0.8.1 — 2026-10-09
+
+### `<nx-grid>`
+
+- **Una columna fuera del panel de filtros (`facet: false`) no es eje de la matriz**, aunque traiga
+  `options`, salvo que `matrix` la nombre. Con `source` el servidor agrupa por las columnas del
+  panel: «Jefe», con su única opción «Sin asignar», aparecía como eje y la matriz fallaba.
+
 ## 0.8.0 — 2026-10-09
 
 ### `<nx-grid>`

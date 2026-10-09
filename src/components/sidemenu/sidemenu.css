@@ -104,14 +104,19 @@ nx-sidemenu > [slot="footer"] {
   background: var(--nx-hover);
   color: var(--nx-foreground);
 }
+/* La sección activa es una pieza levantada (la hoja de la página, con sombra corta y borde fino),
+   no un tinte con barra: en claro el tinte del acento sobre el gris del menú se veía como una
+   mancha. El color lo lleva solo el ícono. */
 .nx-sidemenu__item[aria-current="page"],
 .nx-sidemenu__item[data-active] {
-  background: var(--nx-nav-active-bg);
-  color: var(--nx-primary-ink);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
   font-weight: 550;
+  box-shadow: var(--nx-shadow-raise);
 }
-.nx-sidemenu__item[aria-current="page"]::before,
-.nx-sidemenu__item[data-active]::before,
+.nx-sidemenu__item:is([aria-current="page"], [data-active]) > .nx-icon {
+  color: var(--nx-primary);
+}
 .nx-panel__option[aria-current="page"]::before {
   content: "";
   position: absolute;
@@ -587,6 +592,14 @@ html:has(nx-sidemenu:popover-open) {
   }
 }
 @media (forced-colors: active) {
+  /* Sin fondos ni sombras, la sección activa vuelve a llevar su barra. */
+  .nx-sidemenu__item:is([aria-current="page"], [data-active])::before {
+    content: "";
+    position: absolute;
+    inset-block: 25%;
+    inset-inline-start: 0;
+    inline-size: 3px;
+  }
   :is(.nx-sidemenu__item, .nx-panel__option)::before {
     forced-color-adjust: none;
     background: Highlight;

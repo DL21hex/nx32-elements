@@ -6,11 +6,16 @@
  *     página se desplaza)
  *   --nx-grid-heading-size (22px): el tamaño del título (`heading`)
  *   --nx-grid-facets-width (248px): ancho del panel de filtros
+ *   --nx-grid-wash: el velo del acento detrás del título (`heading`), solo en oscuro;
+ *     `transparent` lo quita
  */
 
 nx-grid {
   --nx-grid-height: 440px;
   --nx-grid-warn: light-dark(oklch(0.68 0.15 70), oklch(0.8 0.14 75));
+  --nx-grid-wash: light-dark(transparent, oklch(calc(var(--_ld, 0.72) - 0.17) calc(var(--_c, 0.19) * 0.65) var(--_h, 262) / 0.2));
+  /* La cabecera de la tabla: una banda apenas más oscura que la hoja (la misma en las fijas). */
+  --_head: color-mix(in oklab, var(--nx-card) 97.5%, var(--nx-foreground));
   /* Cada pieza ocupa su fila; la barra de selección y el slot="bulk" del autor comparten una. */
   display: flex;
   flex-wrap: wrap;
@@ -127,6 +132,14 @@ nx-grid:not([data-selection]) > [slot="bulk"] {
 a.nx-grid__link {
   text-decoration: none;
 }
+/* Con avatar, el nombre va en el color del texto: el círculo ya dice que es alguien, y la columna
+   que más se lee no se vuelve una lista de enlaces azules. El acento vuelve al pasar el puntero. */
+.nx-grid__avatar + .nx-grid__link {
+  color: var(--nx-foreground);
+  &:hover {
+    color: var(--nx-primary-ink);
+  }
+}
 .nx-grid__avatar {
   display: inline-grid;
   place-items: center;
@@ -176,7 +189,17 @@ nx-grid .nx-glyph {
   gap: 10px 24px;
   margin-block-end: 12px;
 }
+/* El velo del acento: una luz en la esquina del título que se apaga hacia la barra (solo en oscuro,
+   donde las hojas se separan por luz y no por sombra). Es el fondo de la tabla: queda debajo de todo. */
+nx-grid:has(> .nx-grid__top[data-heading]) {
+  background-image: radial-gradient(90% 100% at 0 0, var(--nx-grid-wash), transparent 72%);
+  background-repeat: no-repeat;
+  background-size: 100% 300px;
+}
 .nx-grid__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex: 1 1 auto;
   min-inline-size: 0;
   margin: 0;
@@ -185,6 +208,25 @@ nx-grid .nx-glyph {
   letter-spacing: -0.015em;
   line-height: 1.2;
   text-wrap: balance;
+}
+/* `heading-icon`: el ícono del módulo en un cuadro con el degradado del acento. */
+.nx-grid__heading-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-primary-gradient);
+  color: oklch(0.99 0 0);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.25),
+    0 4px 12px -4px color-mix(in oklab, var(--nx-primary) 55%, transparent);
+
+  & .nx-icon {
+    inline-size: 20px;
+    block-size: 20px;
+  }
 }
 /* Atajos: tarjetas con un filtro y su conteo. Marcada, la del filtro que se está viendo. Con tono, el
    conteo va en su color y, marcada, la tarjeta también: el color se lo lleva el atajo que señala algo. */
@@ -206,6 +248,7 @@ nx-grid .nx-glyph {
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg);
   background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
   color: var(--nx-foreground);
   font: inherit;
   text-align: start;
@@ -298,8 +341,13 @@ nx-grid .nx-glyph {
     background-color var(--nx-motion-fast),
     color var(--nx-motion-fast);
 
+  /* El conteo, en una pastilla: gris, o del tono del atajo (el que señala algo por resolver). */
   & > strong {
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: var(--_pill, var(--nx-hover));
     color: var(--_ink);
+    font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -321,12 +369,15 @@ nx-grid .nx-glyph {
   }
   &[data-tone="success"] {
     --_ink: var(--nx-success);
+    --_pill: var(--nx-success-soft);
   }
   &[data-tone="warning"] {
     --_ink: var(--nx-warning-ink);
+    --_pill: var(--nx-warning-soft);
   }
   &[data-tone="danger"] {
     --_ink: var(--nx-danger);
+    --_pill: var(--nx-danger-soft);
   }
 }
 .nx-grid__preset-link {
@@ -340,16 +391,23 @@ nx-grid .nx-glyph {
   white-space: nowrap;
 
   & > strong {
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: var(--nx-hover);
+    font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
   &[data-tone="warning"] > strong {
+    background: var(--nx-warning-soft);
     color: var(--nx-warning-ink);
   }
   &[data-tone="danger"] > strong {
+    background: var(--nx-danger-soft);
     color: var(--nx-danger);
   }
   &[data-tone="success"] > strong {
+    background: var(--nx-success-soft);
     color: var(--nx-success);
   }
   & .nx-glyph {
@@ -613,6 +671,11 @@ a.nx-grid__preset {
     inline-size: 12px;
     block-size: 12px;
   }
+  & .nx-grid__dot {
+    display: inline-block;
+    margin-inline-end: 6px;
+    vertical-align: 0.05em;
+  }
 }
 .nx-grid__chip-edit:hover {
   text-decoration: underline;
@@ -646,6 +709,7 @@ a.nx-grid__preset {
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg);
   background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
   animation: nx-grid-in var(--nx-motion-base) var(--nx-ease-out);
 }
 .nx-grid__facets-head {
@@ -758,6 +822,7 @@ a.nx-grid__preset {
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg);
   background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
   outline: 0;
   /* Con el dedo: sin zoom de doble toque ni el destello gris del navegador sobre toda la tabla (la
      celda activa ya se marca). */
@@ -765,7 +830,9 @@ a.nx-grid__preset {
   -webkit-tap-highlight-color: transparent;
 
   &:focus-visible {
-    box-shadow: 0 0 0 2px var(--nx-ring);
+    box-shadow:
+      0 0 0 2px var(--nx-ring),
+      var(--nx-shadow-card);
   }
 }
 
@@ -916,6 +983,7 @@ nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg);
   background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
 }
 .nx-grid__mx-bar {
   display: flex;
@@ -1093,7 +1161,7 @@ nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
   inset-block-start: 0;
   z-index: 2;
   border-block-end: 1px solid var(--nx-border);
-  background: var(--nx-card);
+  background: var(--_head);
 }
 .nx-grid__th {
   position: relative;
@@ -1290,6 +1358,7 @@ nx-grid .nx-grid__sort-icon {
 }
 .nx-grid__th.nx-grid__actions {
   z-index: 1;
+  background: var(--_head);
 }
 /* Las columnas fijas (`sticky`): a la izquierda y opacas, como las acciones a la derecha. Dónde
    empieza cada una (`--_s0`, `--_s1`…) y cuánto tapan juntas (`--_pin`) lo pone el componente. La
@@ -1303,6 +1372,9 @@ nx-grid .nx-grid__sort-icon {
   inset-inline-start: var(--_at);
   z-index: 1;
   background: var(--nx-card);
+}
+.nx-grid__th.is-sticky {
+  background: var(--_head);
 }
 .nx-grid__cell.is-sticky-end,
 .nx-grid__th.is-sticky-end {
@@ -2006,11 +2078,38 @@ nx-grid .nx-grid__chev {
   display: none;
 }
 .nx-grid__dot {
+  --_dh: 250;
   flex: none;
   inline-size: 7px;
   block-size: 7px;
   border-radius: 50%;
   background: var(--nx-text-quaternary);
+
+  /* `dot` sin tono: ocho colores por el lugar de la opción (el octavo, gris pizarra). */
+  &[data-cat] {
+    background: light-dark(oklch(0.62 0.13 var(--_dh)), oklch(0.74 0.11 var(--_dh)));
+  }
+  &[data-cat="1"] {
+    --_dh: 300;
+  }
+  &[data-cat="2"] {
+    --_dh: 185;
+  }
+  &[data-cat="3"] {
+    --_dh: 75;
+  }
+  &[data-cat="4"] {
+    --_dh: 350;
+  }
+  &[data-cat="5"] {
+    --_dh: 145;
+  }
+  &[data-cat="6"] {
+    --_dh: 35;
+  }
+  &[data-cat="7"] {
+    background: var(--nx-text-tertiary);
+  }
 
   &[data-tone="info"] {
     background: var(--nx-primary);
@@ -2024,6 +2123,12 @@ nx-grid .nx-grid__chev {
   &[data-tone="danger"] {
     background: var(--nx-danger);
   }
+}
+/* `dot`: el punto antes del valor, en la línea del texto. */
+.nx-grid__cell > .nx-grid__dot {
+  display: inline-block;
+  margin-inline-end: 8px;
+  vertical-align: 0.08em;
 }
 nx-grid mark {
   border-radius: 2px;

@@ -753,9 +753,11 @@ function mountGridDemo(root: HTMLElement) {
     anulable: r.estado === "borrador" || r.estado === "pendiente",
     comprador: ["Ana Ríos", "Luis Peña", "Marta Gómez"][i % 3],
   }));
-  // La tabla como página: título con los atajos como botones, «Seguimiento» y el alto del marco.
+  // La tabla como página: título con su ícono y los atajos como botones, «Seguimiento» y el alto del
+  // marco. La categoría va con un punto de color (`dot`): con `options`, cada una tiene el suyo.
   const page = root.querySelector<NxGrid>("#grid-page")!;
-  page.columns = PURCHASE_COLUMNS.map((c) => ({ ...c, editable: false }));
+  const CATEGORIES = ["Materia prima", "Empaques", "Químicos", "Repuestos", "Servicios", "Transporte"];
+  page.columns = PURCHASE_COLUMNS.map((c) => (c.key === "cat" ? { ...c, editable: false, dot: true, options: CATEGORIES.map((value) => ({ value })) } : { ...c, editable: false }));
   page.rows = purchaseRows(300, 5);
   page.presets = [
     { id: "pend", label: "Pendientes", hint: "por aprobar", tone: "warning", filters: [{ key: "estado", op: "in", values: ["pendiente"] }] },

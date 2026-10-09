@@ -3,7 +3,7 @@
  *  se carga aparte). */
 import { foldText, matchText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
-import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridMatrixCell, GridRow, GridSort } from "./types";
+import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridMatrixCell, GridRow, GridSort, GridTone } from "./types";
 import { parseTime, type TimeContext } from "./time";
 
 // Las funciones que muestran o leen valores reciben el formato del locale (`nxFormat`); sin él,
@@ -459,6 +459,26 @@ export function parseTSV(text: string): string[][] {
   row.push(cell);
   rows.push(row);
   return rows;
+}
+
+// ---------------------------------------------------------------- puntos de color
+
+/** Cuántos colores tienen los puntos de una columna `dot` sin tono (`data-cat` 0…7 en el CSS). */
+export const DOT_COLORS = 8;
+
+/** El punto de color de un valor: el `tone` de su opción o, en una columna `dot`, uno de los ocho
+ *  colores por el lugar de la opción en `options` (un valor que no está en `options`, por su texto).
+ *  Sin tono y sin `dot`, o sin valor, no lleva punto. */
+export function dotOf(c: GridColumn | undefined, value: string): { tone: GridTone } | { cat: number } | null {
+  if (!c || value === "") return null;
+  const i = c.options?.findIndex((o) => o.value === value) ?? -1;
+  const tone = i >= 0 ? c.options![i].tone : undefined;
+  if (tone) return { tone };
+  if (!c.dot) return null;
+  if (i >= 0) return { cat: i % DOT_COLORS };
+  let h = 7;
+  for (const ch of value) h = (h * 31 + ch.charCodeAt(0)) % 100003;
+  return { cat: h % DOT_COLORS };
 }
 
 // ---------------------------------------------------------------- facetas

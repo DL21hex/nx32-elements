@@ -119,6 +119,15 @@ Los tokens y el `color-scheme: light dark` de `tokens.css` van dentro de `:where
 especificidad: cualquier regla de la app les gana, cargue antes o después. Una app solo en claro
 pone `:root { color-scheme: light }`; una marca, `:root { --nx-primary: … }`.
 
+En oscuro, las superficies (`--nx-canvas`, `--nx-background`, `--nx-sidebar`, `--nx-card`,
+`--nx-popover`) toman un tinte del acento, y el menú va más hundido que el fondo: ahí las sombras casi
+no se ven, y lo que separa las capas es su luz y ese tinte. Con un acento sin croma (`grafito`)
+quedan casi grises. En claro siguen grises, sin tinte. Para eso hay tres tokens más:
+`--nx-shadow-card` (una hoja sobre el fondo: el panel de filtros, la caja de la tabla; solo en
+oscuro, porque en claro la separan su borde y el blanco), `--nx-shadow-raise` (una pieza levantada,
+como la sección activa del menú; en los dos temas) y `--nx-primary-gradient` (el acento en
+degradado, para un ícono que lleva la marca).
+
 ## Uso
 
 **HTML plano**, sin build:
@@ -237,6 +246,9 @@ allowOrigins("https://api.miapp.co");
 - `utility` pone el hijo como chip al pie del panel.
 - Con 12 hijos o más (sin contar los chips), el panel flotante va en dos columnas y se ensancha a `--nx-flyout-width-wide` (520px). Las secciones van enteras y en orden: la primera columna se lee completa antes que la segunda, y las flechas siguen ese orden. El corte se hace donde las dos columnas quedan más parejas. Una sección solo se parte si es mucho más grande que las demás, y entonces la segunda columna la continúa sin repetir el título. Sin secciones, la lista se parte por la mitad. Al filtrar, la columna que se queda vacía desaparece. En el drawer y en una ventana angosta sigue siendo una sola columna.
 - `badge` es un contador o marca (`12`, `"Nuevo"`). `0` no se pinta, más de 99 es «99+» y en compacto se reduce a un punto.
+
+La sección activa (y el padre de la hoja activa) es una pieza levantada: la hoja de la página con
+`--nx-shadow-raise` y el ícono en el color del acento. Con colores forzados vuelve a llevar su barra.
 
 `active` acepta un href (exacto o por prefijo de ruta) o un id. El id de un padre lo enciende sin
 hoja activa, útil en una ficha de detalle que no está en el menú. Los ítems sin `section` se pintan
@@ -593,7 +605,8 @@ Una tabla de datos que se explora sola:
   «seleccionar las n» filtradas); lo que la app ponga con `slot="bulk"` aparece junto al conteo.
   Una columna `link` abre el detalle (`nx-grid-open`, también con Enter) y `avatar` muestra las
   iniciales, cada persona con su color; `avatar: "neutral"` las pone todas en gris, para la columna
-  que más se lee. Las iniciales salen de las dos primeras palabras del texto, que con dos nombres y
+  que más se lee. Un enlace con avatar va en el color del texto (el acento vuelve al pasar el
+  puntero): el círculo ya dice que es alguien, y la columna no se vuelve una lista de enlaces azules. Las iniciales salen de las dos primeras palabras del texto, que con dos nombres y
   dos apellidos son dos nombres: `initials` nombra la clave de la fila que las trae ya hechas
   (`{ key: "nombre", avatar: true, initials: "iniciales" }`, hasta tres letras). `grid.rows = grid.rows` recalcula tras cambiar filas por fuera.
 - **Atajos (`presets`).** Tarjetas sobre la tabla, cada una con un filtro con nombre y su conteo
@@ -611,11 +624,21 @@ Una tabla de datos que se explora sola:
   hay filtro con qué contarlo. Va bien al final, después de los que filtran.
 - **Título (`heading`).** La tabla que es la página lleva su título en la primera fila, y los atajos
   pasan a ser un filtro segmentado debajo de él: «Todos» (`labels.presetsAll`) y uno por atajo, cada
-  uno con su conteo, excluyentes, como pestañas que no salen de la página. Pulsar el marcado (o
+  uno con su conteo en una pastilla (gris, o del tono del atajo), excluyentes, como pestañas que no salen de la página. Pulsar el marcado (o
   «Todos») lo quita. La línea corta (`hint`) sale al pasar el mouse. Los atajos que llevan a otra
   página (`href`) van después, como enlaces con su número y ↗. Si no caben, se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
-  El tamaño sale de `--nx-grid-heading-size` (22 px).
+  El tamaño sale de `--nx-grid-heading-size` (22 px). `heading-icon` (`headingIcon`) pone un ícono
+  del registro junto al título, en un cuadro con `--nx-primary-gradient` (el del módulo: `users` en
+  Empleados); un nombre que no está registrado no pinta nada. En oscuro, detrás del título va un
+  velo del acento que se apaga hacia la barra (`--nx-grid-wash`; `transparent` lo quita).
+- **Puntos de color (`dot`).** Una columna con `dot: true` muestra un punto antes de cada valor en vez
+  de la píldora: para clasificar sin gritar (el tipo de contrato, la sede). El color es el `tone` de
+  la opción o, sin tono, uno de ocho por el lugar de la opción en `options` (con `options`, ninguno se
+  repite hasta la novena; un valor que no está en ellas toma su color del texto, y ahí sí pueden
+  coincidir). El mismo punto va en «Filtros», en la lista del filtro de la columna y en el chip de un
+  filtro con un solo valor. Sin `dot`, las opciones con tono siguen en píldora en la celda (para lo
+  que pide atención: «Sin asignar» en `warning`), y llevan su punto en los filtros y en el chip.
 - **Matriz (`matrix`, `layout`).** Con `matrix`, la barra ofrece «Tabla | Matriz» (`labels.layout`,
   `layoutTable`, `layoutMatrix`). La matriz ocupa el lugar de la tabla, con su mismo alto (se ve una
   cosa a la vez): cruza dos columnas de pocos valores (`{"rows":"area","cols":"estado"}`) y en cada
@@ -738,7 +761,7 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 

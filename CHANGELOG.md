@@ -1,5 +1,43 @@
 # Registro de cambios
 
+## 0.9.0 — 2026-10-09
+
+Más presencia sin perder la sobriedad: el diseño va en el marco y el color solo donde dice algo. Sale
+de la maqueta `maquetas/nx-grid-presencia.html` (la vista Empleados, «Actual» y «Con presencia»).
+
+### Tokens
+
+- **En oscuro, las superficies toman un tinte del acento** (`--nx-canvas`, `--nx-background`,
+  `--nx-sidebar`, `--nx-card`, `--nx-popover`), y el menú va más hundido que el fondo: ahí las sombras
+  casi no se ven, y lo que separa las capas es su luz y ese tinte. Con un acento sin croma
+  (`grafito`) quedan casi grises. **En claro no cambian.**
+- `--nx-shadow-card`: una hoja sobre el fondo, solo en oscuro (en claro la separan su borde y el
+  blanco). `--nx-shadow-raise`: una pieza levantada, en los dos temas. `--nx-primary-gradient`: el
+  acento en degradado, para un ícono que lleva la marca.
+
+### `<nx-sidemenu>`
+
+- **La sección activa es una pieza levantada** (la hoja de la página con `--nx-shadow-raise`, el
+  ícono en el acento), no un tinte con barra: en claro, el tinte sobre el gris del menú se veía como
+  una mancha. Con colores forzados vuelve la barra.
+
+### `<nx-grid>`
+
+- **Puntos de color (`dot`).** Una columna con `dot: true` muestra un punto antes de cada valor en vez
+  de la píldora: el `tone` de la opción o, sin tono, uno de ocho por su lugar en `options`. El mismo
+  punto va en «Filtros», en la lista del filtro de la columna y en el chip de un filtro con un solo
+  valor. Sin `dot`, las opciones con tono siguen en píldora en la celda, y ahora llevan su punto en
+  los filtros y en el chip («Estado: Activo» en verde).
+- **Ícono del título (`heading-icon`).** Un ícono del registro junto al título, en un cuadro con el
+  degradado del acento. En oscuro, detrás del título va un velo del acento (`--nx-grid-wash`;
+  `transparent` lo quita).
+- **Un enlace con avatar va en el color del texto**; el acento vuelve al pasar el puntero.
+- Los conteos de los atajos junto al título van en una pastilla, gris o del tono del atajo.
+- La cabecera de la tabla es una banda apenas más oscura que la hoja; el panel de filtros, la caja de
+  la tabla, la de la matriz y las tarjetas de atajos llevan `--nx-shadow-card`.
+- En la galería, «La tabla como página» trae el ícono y la categoría con puntos, y el directorio de
+  TH, el contrato con puntos.
+
 ## 0.8.1 — 2026-10-09
 
 ### `<nx-grid>`

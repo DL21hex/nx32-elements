@@ -90,11 +90,13 @@ export const HR_COLUMNS: GridColumn[] = [
       { value: "retirado", label: "Retirado", tone: "neutral" },
     ],
   },
+  // El contrato clasifica, no alerta: un punto de color por tipo en vez de la píldora gris.
   {
     key: "contrato",
     label: "Contrato",
     type: "status",
-    width: 120,
+    dot: true,
+    width: 130,
     options: [
       { value: "indefinido", label: "Indefinido" },
       { value: "fijo", label: "Término fijo" },

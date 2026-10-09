@@ -160,6 +160,17 @@ describe("<nx-grid> con matriz", () => {
     expect(el.matrix).toMatchObject({ rows: "prov", cols: "estado" });
   });
 
+  it("una columna fuera del panel (`facet: false`) no es eje, salvo que se nombre", async () => {
+    const el = mount("matrix");
+    el.columns = [...COLS, { key: "jefe", label: "Jefe", options: [{ value: "Sin asignar" }], facet: false }];
+    await toMatrix(el);
+    const axes = () => [...el.querySelectorAll<HTMLSelectElement>('.nx-grid__mx-field[data-label="rows"] option')].map((o) => o.value);
+    expect(axes()).toEqual(["prov", "estado"]);
+    el.matrix = { rows: "jefe", cols: "estado" };
+    expect(axes()).toEqual(["prov", "estado", "jefe"]);
+    expect(el.matrix).toMatchObject({ rows: "jefe", cols: "estado" });
+  });
+
   it("las flechas recorren la matriz con una sola parada de Tab", async () => {
     const el = mount();
     await toMatrix(el);

@@ -616,6 +616,30 @@ Una tabla de datos que se explora sola:
   página (`href`) van después, como enlaces con su número y ↗. Si no caben, se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
   El tamaño sale de `--nx-grid-heading-size` (22 px).
+- **Matriz (`matrix`, `layout`).** Con `matrix`, la barra ofrece «Tabla | Matriz» (`labels.layout`,
+  `layoutTable`, `layoutMatrix`). La matriz ocupa el lugar de la tabla, con su mismo alto (se ve una
+  cosa a la vez): cruza dos columnas de pocos valores (`{"rows":"area","cols":"estado"}`) y en cada
+  cruce dice cuántas filas hay o, con `agg: "sum"` o `"avg"` y `value`, la suma o el promedio de una
+  columna numérica, con los totales de cada fila, de cada columna y el general (el de un promedio se
+  pondera por sus filas). Las opciones declaradas van en su orden aunque no tengan filas; los demás
+  valores, de más a menos filas, y «(Sin dato)» al final. Arriba, la persona elige las dos columnas
+  (las de pocos valores: con `options`, las del panel de filtros o las nombradas), las intercambia y
+  elige qué mostrar; `matrix` dice lo que quedó. `matrix` vacío o `true`: las dos primeras que se
+  puedan cruzar. Un cruce vuelve a la tabla con esos dos filtros puestos (como chips, emite
+  `nx-grid-filter`); un encabezado o un total, con el de su columna; el total general, sin ninguno de
+  los dos. La matriz cuenta con la búsqueda y los demás filtros, pero no con los de sus dos columnas:
+  al volver se ve todo, el cruce que filtra queda marcado y una nota lo dice. Es una sola parada de
+  Tab; dentro, las flechas, Inicio y Fin. En la matriz no se ven la selección, el pie ni los botones
+  que solo sirven en la tabla. `layout="matrix"` la abre; una vista guardada recuerda si se veía la
+  matriz y cuál (`layout`, `matrix` en `GridView`). Pasar de una a otra emite `nx-grid-layout`
+  (`{layout, matrix}`). Con `source`, la tabla la pide aparte (`limit: 0`, `matrix` en la petición,
+  sin los filtros de sus dos columnas) y el servidor responde `matrix`: un cruce por par con filas
+  (`{row, col, value, count?, rowLabel?, colLabel?}`; ver el protocolo). Su código se carga al
+  pasar a «Matriz» (~4 KB). Textos: `labels.matrixRows`, `matrixCols`, `matrixSwap`, `matrixShow`,
+  `matrixCount`, `matrixSum`, `matrixAvg`, `matrixTotal`, `matrixBlank`, `matrixCell`,
+  `matrixNone`, `matrixHint`, `matrixIgnores`. Sin dos columnas que cruzar, el selector no aparece.
+  `matrixCells(filas, matriz)` calcula
+  los cruces igual que la tabla (sirve de referencia para el servidor).
 - **El total, con los filtros.** «**9.704** filas» (o «12 de 9.704 filas» filtrando en el
   navegador) va al principio de la fila de los filtros puestos, con un solo «Limpiar todo» y
   «Guardar como vista». El pie queda para los totales de los montos y las cuentas de un rango
@@ -689,8 +713,16 @@ grid.addEventListener("nx-grid-action", (e) => anular(e.detail.id));
 
 ```
 source       POST {offset, limit, sort, filters, search?} → {rows, total, histograms?, facets?, totals?}
+matriz       POST {offset: 0, limit: 0, sort, filters, search?, matrix: {rows, cols, agg, value?}}
+             → {rows: [], total, matrix: [{row, col, value, count?, rowLabel?, colLabel?}]}
 filtro       {key, op:"in"|"notIn", values} · {key, op:"range", min?, max?, rel?} · {key, op:"contains", value}
 ```
+
+La matriz es un `GROUP BY` de sus dos columnas con los filtros que llegan (la tabla ya quitó los de
+esas dos): un cruce por par con filas, `value` el conteo (`agg: "count"`), la suma o el promedio de
+`value` (otra columna), y `count` las filas del cruce (con `avg`, las que tienen número: sin él, los
+totales de un promedio van con «—»). `""` es «sin dato». Si el valor es un código (el id de una
+subdivisión), `rowLabel`/`colLabel` traen el nombre; tocar el cruce filtra por el código.
 
 Si el servidor tiene un tope por página menor que `limit`, puede mandar menos filas: al desplazarse y
 al exportar, la tabla sigue pidiendo desde donde quedó hasta `total`. La exportación toma la consulta
@@ -706,9 +738,9 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-level`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 

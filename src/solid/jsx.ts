@@ -12,7 +12,7 @@ import type { AiActionDetail, AiDoneDetail, AiEvent, AiFeedbackDetail, AiLabels 
 import type { NxDocCapture } from "../components/capture/doc-capture";
 import type { CaptureEvent, CaptureLabels, CaptureSchemaItem, CaptureSubmitDetail, CaptureValues } from "../components/capture/types";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView } from "../components/grid/types";
+import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridView } from "../components/grid/types";
 import type { NxDialog } from "../components/dialog/dialog";
 import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 import type { NxBadge } from "../components/badge/badge";
@@ -184,6 +184,7 @@ declare module "solid-js" {
       search: string | undefined;
       view: Partial<GridView> | undefined;
       views: GridSavedView[] | undefined;
+      matrix: GridMatrix | boolean | undefined;
       selected: string[] | undefined;
       active: string | null | undefined;
       dirty: boolean | undefined;
@@ -491,6 +492,7 @@ declare module "solid-js" {
       "nx-grid-views": CustomEvent<{ views: GridSavedView[] }>;
       "nx-grid-error": CustomEvent<GridErrorDetail>;
       "nx-grid-export": CustomEvent<GridExportDetail>;
+      "nx-grid-layout": CustomEvent<GridLayoutDetail>;
       "nx-command-select": CustomEvent<CommandSelectDetail>;
       "nx-command-ask": CustomEvent<{ query: string }>;
       "nx-inbox-decide": CustomEvent<InboxDecisionDetail>;

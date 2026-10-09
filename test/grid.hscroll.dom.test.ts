@@ -53,8 +53,8 @@ describe("nx-grid: barra horizontal de arriba", () => {
     expect(bar(el).getAttribute("tabindex")).toBe("-1");
     expect(bar(el).hasAttribute("hidden")).toBe(false);
     expect(scroll(el).getAttribute("role")).toBe("grid");
-    // En la fila de la tabla, entre el panel «Filtros» y el scroller.
-    expect([...el.querySelector(".nx-grid__main")!.children].map((c) => c.className)).toEqual(["nx-grid__facets", "nx-grid__hscroll", "nx-grid__scroll"]);
+    // En la fila de la tabla, entre el panel «Filtros» y el scroller (la matriz va después, escondida).
+    expect([...el.querySelector(".nx-grid__main")!.children].map((c) => c.className)).toEqual(["nx-grid__facets", "nx-grid__hscroll", "nx-grid__scroll", "nx-grid__matrix"]);
   });
 
   it("el relleno mide lo que las columnas, y lo sigue al cambiar anchos, columnas o casillas", () => {

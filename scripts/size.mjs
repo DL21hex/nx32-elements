@@ -29,6 +29,8 @@ const BUDGET = [
   [lazy("grid-filter"), 26.5 * 1024, "nx-grid con su filtro por columna (se trae al acercarse a la cabecera)"],
   // Este no importa el chunk de la tabla: se mide solo lo que baja al abrir «Vistas» o «Columnas».
   [lazy("grid-views"), 3.5 * 1024, "menú de vistas y selector de columnas de nx-grid (al tocarlos, o en reposo con views-storage)"],
+  // Tampoco importa el chunk de la tabla: lo que baja al pasar a «Matriz».
+  [lazy("grid-matrix"), 4 * 1024, "matriz de nx-grid: dos columnas cruzadas con sus totales (al pasar a «Matriz»)"],
   ["dist/dialog.js", 5.5 * 1024, "dialog + núcleo (ESM)"],
   [lazy("dialog-head"), 2.5 * 1024, "cabecera de ficha de nx-dialog: avatar, estado, anterior/siguiente y «Más» (solo si los usa)"],
   ["dist/confirm.js", 10.25 * 1024, "confirm + dialog + button + núcleo (ESM)"],

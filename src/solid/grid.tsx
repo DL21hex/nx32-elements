@@ -3,10 +3,10 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/grid/index";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
+import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
 import type { GridFilterDetail } from "./jsx";
 
-export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
+export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
 
 export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" | "onError"> {
   columns: GridColumn[];
@@ -52,7 +52,14 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   filename?: string;
   /** Formato de números, montos, fechas y orden (`es-CO`, `en-US`…). Por defecto, el `lang` de la página. */
   locale?: string;
-  labels?: Partial<GridLabels & GridViewLabels>;
+  labels?: Partial<GridLabels & GridViewLabels & GridMatrixLabels>;
+  /** La matriz: «Tabla | Matriz» en la barra. `{rows, cols, agg, value}`, o `true` para las dos
+   *  primeras columnas que se puedan cruzar. */
+  matrix?: GridMatrix | boolean;
+  /** `"matrix"` abre la matriz (con `matrix`). */
+  layout?: GridLayout;
+  /** La persona pasó entre la tabla y la matriz, o cambió la matriz. */
+  onLayout?: (e: CustomEvent<GridLayoutDetail>) => void;
   onFilter?: (e: CustomEvent<GridFilterDetail>) => void;
   /** Las vistas guardadas cambiaron (guardar, renombrar, borrar). */
   onViews?: (e: CustomEvent<{ views: GridSavedView[] }>) => void;
@@ -73,7 +80,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "heading", "headingLevel", "actions", "height", "filename", "locale", "labels", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "heading", "headingLevel", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -93,6 +100,9 @@ export function Grid(props: GridProps): JSX.Element {
       attr:views-storage={local.viewsStorage}
       on:nx-grid-views={own((e) => local.onViews?.(e))}
       prop:labels={local.labels}
+      prop:matrix={local.matrix}
+      attr:layout={local.layout === "matrix" ? "matrix" : undefined}
+      on:nx-grid-layout={own((e) => local.onLayout?.(e))}
       attr:source={local.source}
       attr:client-max={local.clientMax ? String(local.clientMax) : undefined}
       attr:group-by={local.groupBy}

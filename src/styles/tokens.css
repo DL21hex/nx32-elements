@@ -92,11 +92,12 @@
     0 1px 2px light-dark(rgb(15 20 30 / 0.1), rgb(0 0 0 / 0.35)),
     0 3px 8px -3px light-dark(rgb(15 20 30 / 0.12), transparent);
   /* El acento en degradado, para un ícono que lleva la marca (el del título de una tabla). El
-     mismo en los dos temas: sale de la luz del acento en claro. */
+     mismo en los dos temas: sale de la luz del acento en claro. Corto (±10° de tono, poca luz de
+     diferencia): un giro grande de color lo vuelve un ícono de app. */
   --nx-primary-gradient: linear-gradient(
     140deg,
-    oklch(calc(var(--_l) + 0.12) calc(var(--_c) * 0.75) calc(var(--_h) - 15)),
-    oklch(calc(var(--_l) - 0.02) var(--_c) calc(var(--_h) + 25))
+    oklch(calc(var(--_l) + 0.08) calc(var(--_c) * 0.8) calc(var(--_h) - 10)),
+    oklch(calc(var(--_l) - 0.02) var(--_c) calc(var(--_h) + 10))
   );
 
   /* Forma y movimiento */

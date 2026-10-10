@@ -1,7 +1,7 @@
 /** Lógica pura de `<nx-launcher>`: sin DOM, para probarse en node. */
 import { safeHref } from "../../core/dom";
 import { foldText } from "../../core/text";
-import type { LauncherItem, LauncherProgress, LauncherView } from "./types";
+import type { LauncherAccent, LauncherItem, LauncherProgress, LauncherView } from "./types";
 
 export { formatBadge, groupBySection } from "../sidemenu/logic";
 export { moveIndex, type Box } from "../../core/nav";
@@ -82,6 +82,32 @@ export function balanceColumns(sections: readonly (readonly Pick<LauncherItem, "
   if (c < 3) return c;
   const waste = (cols: number) => sections.reduce((n, s) => n + gaps(sectionCells(s, cols), cols), 0);
   return waste(c - 1) < waste(c) ? c - 1 : c;
+}
+
+/**
+ * Con `pack`, las columnas que ocupa cada sección en la rejilla común: las de sus tarjetas (una
+ * destacada cuenta dos), hasta `cols`. La rejilla las coloca en orden, y la que no cabe en lo que
+ * queda de la fila baja a la siguiente: el orden de lectura no cambia nunca.
+ */
+export function packSpans(sections: readonly (readonly Pick<LauncherItem, "featured">[])[], cols: number): number[] {
+  const c = Math.max(1, Math.floor(cols) || 1);
+  return sections.map((s) => Math.max(1, Math.min(c, sectionCells(s, c))));
+}
+
+const ACCENTS: ReadonlySet<string> = new Set(["blue", "green", "amber", "purple", "pink", "teal", "neutral"]);
+
+/** El color de una tarjeta si es uno de los conocidos; si no, `null` (va el acento de la marca). */
+export function accentOf(value: unknown): LauncherAccent | null {
+  return typeof value === "string" && ACCENTS.has(value) ? (value as LauncherAccent) : null;
+}
+
+/** El color de una sección: el de su primera tarjeta que tenga uno. */
+export function sectionAccent(items: readonly Pick<LauncherItem, "accent">[]): LauncherAccent | null {
+  for (const it of items) {
+    const a = accentOf(it?.accent);
+    if (a) return a;
+  }
+  return null;
 }
 
 /** Las partes de la barra con su porcentaje; se descartan las que no son números ≥ 0. */

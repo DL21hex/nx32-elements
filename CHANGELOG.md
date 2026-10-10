@@ -1,5 +1,41 @@
 # Registro de cambios
 
+## 0.10.0 — 2026-10-10
+
+Un inicio por secciones con el mismo `<nx-launcher>`. Sale de la maqueta
+`maquetas/nx-launcher-inicio.html` (el inicio de nx32: «Como está» y seis cambios, todos aprobados).
+
+### `<nx-launcher>`
+
+- **Compacta (`density="compact"`).** Tarjetas desde 190 px y hasta 6 columnas para un inicio con
+  muchas secciones: el nombre entero (se parte en dos líneas en vez de cortarse), la flecha en la
+  esquina para que la descripción use todo el ancho, el título de la sección con un punto y un filete,
+  y una entrada escalonada la primera vez.
+- **Un color por sección (`accent`).** Cada tarjeta puede traer `blue`, `green`, `amber`, `purple`,
+  `pink`, `teal` o `neutral`: pinta su ícono, y el punto del título toma el de la primera tarjeta de
+  la sección. Al pasar el puntero el ícono se intensifica en ese color, y la luz que sigue al puntero
+  también lo toma. Sirve en las dos densidades.
+- **La señal en una línea al pie** en la compacta: el punto del tono, el dato, su etiqueta y la nota,
+  alineada en toda la fila. `tone` suma `info`.
+- **Secciones que comparten fila (`pack`).** Una sola rejilla con subgrid: cada sección ocupa las
+  columnas de sus tarjetas y la que no cabe en lo que queda de la fila baja a la siguiente, sin
+  cambiar el orden. El inicio de un jefe con equipo pasa de cinco filas de tarjetas a tres. Sin
+  subgrid en el navegador, cada sección queda en su fila, como antes.
+- **Escribir para ir (`typeahead`).** Sin un campo a la vista: escribir con el foco en la página apaga
+  lo que no coincide sin moverlo y una píldora arriba (en la capa superior) dice qué abre `Enter`.
+  `Retroceso` borra una letra, `Escape` todo, `↓` enfoca la primera y tocar fuera también borra.
+- **En el teléfono, listas.** En la compacta, por debajo de 600 px de ancho del launcher (consulta de
+  contenedor) cada sección es una lista: ícono, nombre, descripción completa, señal y chevrón.
+- Una sección sin nada que coincida con el buscador apaga también su título.
+- Con el foco en el cuerpo de la página, lo escrito lo toma el primer launcher con `search` o
+  `typeahead` en el orden de la página (antes, el primero que se había conectado).
+- `<Launcher>` de Solid acepta `density`, `pack` y `typeahead`. Nuevas: `packSpans()` y `accentOf()`.
+
+### Galería
+
+- Página nueva **Inicio por secciones** (`#/launcher-inicio`), con un botón para verla angosta como
+  un teléfono.
+
 ## 0.9.1 — 2026-10-10
 
 ### `<nx-grid>`

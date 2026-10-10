@@ -107,3 +107,30 @@
   border-radius: var(--nx-radius-lg);
   color: var(--nx-muted-foreground);
 }
+
+/* ---------------------------------------------------------------- inicio por secciones */
+
+.lh-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-block: 8px 0;
+  & .seg {
+    display: inline-flex;
+  }
+  & .seg button {
+    flex: none;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+}
+.lh-demo {
+  margin-block: 12px 8px;
+}
+/* Como un teléfono: el launcher mide menos de 600 px y cada sección es una lista. */
+.lh-demo[data-width="phone"] {
+  max-inline-size: 390px;
+  margin-inline: auto;
+  padding: 16px;
+  border: 1px dashed var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+}

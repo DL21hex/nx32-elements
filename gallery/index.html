@@ -2811,6 +2811,82 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
           </div>
         </template>
 
+        <!-- ================================================================ Inicio por secciones -->
+        <template id="page-launcher-inicio">
+          <p class="eyebrow">Componentes</p>
+          <h1>Inicio por secciones <code class="tag">&lt;nx-launcher density="compact"&gt;</code></h1>
+          <p class="lead">
+            El inicio de una persona con muchas secciones: tarjetas de 190 px con el nombre completo, un color por sección, una
+            señal en una línea al pie solo donde hay algo, y las secciones cortas en la misma fila. Es el mismo
+            <code>&lt;nx-launcher&gt;</code> con <code>density="compact"</code>, <code>pack</code> y <code>typeahead</code>.
+          </p>
+
+          <div class="lh-tools">
+            <span class="seg" role="group" aria-label="Ancho de la demo">
+              <button type="button" data-lh-width="full" aria-pressed="true">Ancho completo</button>
+              <button type="button" data-lh-width="phone" aria-pressed="false">Como un teléfono</button>
+            </span>
+          </div>
+          <div class="lh-demo" id="lh-demo" data-width="full">
+            <nx-launcher id="lh-launcher" locale="es-CO" density="compact" pack typeahead labels='{"nav":"Inicio"}'></nx-launcher>
+          </div>
+          <p class="sel-tip">
+            Escribe en cualquier parte de la página, sin un campo enfocado («vac», «equipo», «perm»): no hay buscador a la vista,
+            lo que no coincide se apaga sin moverse y <kbd>↵</kbd> abre la primera; <kbd>Esc</kbd> borra. «Como un teléfono»
+            muestra cada sección como una lista.
+          </p>
+          <ol class="stage__log btn-events" id="lh-log"></ol>
+
+          <h2>Cómo funciona</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Pieza</th><th>Qué hace</th></tr></thead>
+              <tbody>
+                <tr><td>Compacta</td><td><code>density="compact"</code>: tarjetas desde 190 px y hasta 6 columnas. El nombre nunca se corta (se parte en dos líneas), la flecha va en la esquina para que la descripción use todo el ancho, y el título de la sección lleva un punto y un filete.</td></tr>
+                <tr><td>Color por sección</td><td><code>accent</code> en cada tarjeta (<code>blue</code>, <code>green</code>, <code>amber</code>, <code>purple</code>, <code>pink</code>, <code>teal</code>, <code>neutral</code>) pinta su ícono; el punto del título toma el de la primera tarjeta de la sección. Al pasar el puntero, el ícono se intensifica en ese color; en oscuro, una luz de ese color lo sigue.</td></tr>
+                <tr><td>Señal</td><td>Una línea al pie, alineada en toda la fila: el punto del tono (<code>info</code>, <code>success</code>, <code>warning</code>, <code>danger</code>), el dato, su etiqueta y una nota. La tarjeta sin señal no cambia.</td></tr>
+                <tr><td>Secciones que comparten fila</td><td><code>pack</code>: una sola rejilla (subgrid). Cada sección ocupa las columnas de sus tarjetas y la que no cabe en lo que queda de la fila baja a la siguiente: el orden no cambia y las tarjetas miden lo mismo en todas. Sin subgrid en el navegador, cada sección va en su fila.</td></tr>
+                <tr><td>Escribir para ir</td><td><code>typeahead</code>: lo escrito con el foco en la página filtra sin moverlo, y una píldora arriba (en la capa superior) dice qué abre <kbd>↵</kbd>. <kbd>⌫</kbd> borra una letra, <kbd>Esc</kbd> todo, <kbd>↓</kbd> enfoca la primera; tocar fuera también borra. Con <code>search</code>, manda el buscador.</td></tr>
+                <tr><td>Teléfono</td><td>Por debajo de 600 px de ancho del launcher (una consulta de contenedor), cada sección es una lista: ícono, nombre, descripción completa, señal y chevrón.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Uso</h2>
+          <div class="tabs" data-tabs>
+            <div role="tablist">
+              <button role="tab" aria-selected="true">HTML</button>
+              <button role="tab" aria-selected="false">SolidJS</button>
+            </div>
+            <pre role="tabpanel"><code>&lt;nx-launcher id="inicio" density="compact" pack typeahead&gt;&lt;/nx-launcher&gt;
+
+    inicio.items = [
+      { id: "certificados", section: "Documentos laborales", accent: "blue", icon: "file-text",
+        label: "Certificados laborales", description: "Con o sin salario, al instante.", href: "/certificados" },
+      { id: "vacaciones-equipo", section: "Mi equipo", accent: "purple", icon: "users",
+        label: "Vacaciones de mi equipo", description: "Decide las solicitudes de tus colaboradores.",
+        href: "/vacaciones/equipo", signal: { value: 2, label: "por decidir", tone: "warning" } },
+    ];</code></pre>
+            <pre role="tabpanel" hidden><code>import { Launcher } from "nx32-elements/solid/launcher";
+
+    &lt;Launcher items={tarjetas()} density="compact" pack typeahead /&gt;</code></pre>
+          </div>
+
+          <h2>API (lo propio de la compacta)</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>density</code></td><td><code>comfortable</code> (por defecto) o <code>compact</code>. En la compacta, <code>columns</code> vale 6 y <code>--nx-launcher-min</code>, 190 px.</td></tr>
+                <tr><td><code>pack</code></td><td>Las secciones cortas comparten fila si caben, en su orden.</td></tr>
+                <tr><td><code>typeahead</code></td><td>Escribir con el foco en la página filtra sin un campo a la vista. Con varios en la página, escucha el primero.</td></tr>
+                <tr><td><code>items[].accent</code></td><td>El color del ícono y del punto de su sección.</td></tr>
+                <tr><td><code>signal.tone</code></td><td>Suma <code>info</code> a <code>neutral</code>, <code>success</code>, <code>warning</code> y <code>danger</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
         <!-- ================================================================ Launcher -->
         <template id="page-launcher">
           <p class="eyebrow">Componentes</p>
@@ -2897,6 +2973,7 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
                 <tr><td><code>items</code></td><td><code>[{id, label, href?, icon?, description?, section?, views?, signal?, featured?, eyebrow?, progress?, data?}]</code>. <code>views</code>: <code>[{label, href?, badge?, hint?}]</code>; <code>signal</code>: <code>{value?, label?, note?, tone?, meter?, trend?}</code>; <code>progress</code>: <code>[{label, value}]</code>.</td></tr>
                 <tr><td><code>search</code>, <code>query</code></td><td>Muestra el buscador «Ir a»; lo escrito (también filtra sin el campo).</td></tr>
                 <tr><td><code>columns</code>, <code>heading-level</code>, <code>locale</code>, <code>labels</code></td><td>Máximo de columnas (4), nivel de los títulos de sección (2), formato de los números y textos.</td></tr>
+                <tr><td><code>density</code>, <code>pack</code>, <code>typeahead</code>, <code>items[].accent</code></td><td>La versión compacta, las secciones que comparten fila, escribir para ir y un color por sección: ver <a href="#/launcher-inicio">Inicio por secciones</a>.</td></tr>
                 <tr><td><code>nx-launcher-select</code></td><td><code>{item, view, href}</code>, cancelable. Un clic con modificador (otra pestaña) es del navegador y no se anuncia.</td></tr>
                 <tr><td><code>focusItem(id?)</code>, <code>reveal(id?)</code></td><td>Enfocar una tarjeta; marcar para la transición de vuelta la tarjeta de la que se salió (o <code>id</code>).</td></tr>
                 <tr><td>Teclado</td><td><kbd>Tab</kbd> entra a la tarjeta y a sus vistas. Con el foco en una tarjeta, las flechas pasan a la vecina (también entre secciones) e <kbd>Inicio</kbd>/<kbd>Fin</kbd> van a la primera y la última. Con <code>search</code>, escribir va al buscador, <kbd>↓</kbd> baja a las tarjetas y <kbd>Esc</kbd> lo limpia.</td></tr>

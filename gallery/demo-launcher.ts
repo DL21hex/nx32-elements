@@ -4,6 +4,9 @@
  * Al elegir una tarjeta, la demo cancela la navegación y muestra la página del módulo dentro de una
  * View Transition: la tarjeta se convierte en el encabezado. «Volver» hace el camino inverso con
  * `reveal()`.
+ *
+ * `mountLauncherHomeDemo`: el inicio por secciones de un jefe con equipo (`density="compact"`,
+ * `pack` y `typeahead`), con un color por sección y señales donde hay algo.
  */
 import "../src/components/launcher/index";
 import type { LauncherItem, LauncherSelectDetail, NxLauncher } from "../src/components/launcher/index";
@@ -272,4 +275,46 @@ function showPage(page: HTMLElement, area: string, item: LauncherItem, tab: numb
   });
   paint(tab);
   page.replaceChildren(backBtn, head, ...(views.length ? [tabs] : []), body);
+}
+
+/** El inicio de un jefe con equipo: un color por sección y una señal donde hay algo. */
+const INICIO: LauncherItem[] = [
+  { id: "certificados", section: "Documentos laborales", accent: "blue", icon: "file-text", label: "Certificados laborales", description: "Con o sin salario, al instante.", href: "/talento/certificados" },
+  { id: "pagos", section: "Documentos laborales", accent: "blue", icon: "receipt", label: "Mis pagos", description: "Tus desprendibles, periodo por periodo.", href: "/talento/pagos", signal: { label: "Último: 16 al 30 de sep" } },
+  { id: "ingresos", section: "Documentos laborales", accent: "blue", icon: "banknote", label: "Ingresos y retenciones", description: "Tu certificado de cada año para la declaración de renta.", href: "/talento/ingresos" },
+  { id: "cesantias", section: "Gestión administrativa", accent: "green", icon: "piggy-bank", label: "Cesantías", description: "Solicita el retiro parcial y sigue tu solicitud.", href: "/talento/cesantias" },
+  { id: "permisos", section: "Gestión administrativa", accent: "green", icon: "clock", label: "Permisos", description: "Pide un permiso por horas y sigue su aprobación.", href: "/talento/permisos" },
+  { id: "beneficios", section: "Gestión administrativa", accent: "green", icon: "award", label: "Beneficios", description: "Permisos y auxilios extralegales.", href: "/talento/beneficios" },
+  { id: "incapacidades", section: "Gestión administrativa", accent: "green", icon: "stethoscope", label: "Incapacidades", description: "Registra tu incapacidad y sigue su estado.", href: "/talento/incapacidades" },
+  { id: "vacaciones", section: "Gestión administrativa", accent: "green", icon: "tree-palm", label: "Vacaciones", description: "Pide tus vacaciones y sigue su aprobación.", href: "/talento/vacaciones", signal: { value: 1, label: "en aprobación", tone: "info" } },
+  { id: "perfiles", section: "Gestión administrativa", accent: "green", icon: "clipboard-list", label: "Perfiles de cargo", description: "Los perfiles de los cargos que tienes a cargo.", href: "/talento/perfiles" },
+  { id: "vacaciones-equipo", section: "Mi equipo", accent: "purple", icon: "users", label: "Vacaciones de mi equipo", description: "Decide las solicitudes de tus colaboradores.", href: "/talento/vacaciones/equipo", signal: { value: 2, label: "por decidir", tone: "warning" } },
+  { id: "permisos-equipo", section: "Mi equipo", accent: "purple", icon: "user-check", label: "Permisos de mi equipo", description: "Decide los permisos de tus colaboradores.", href: "/talento/permisos/equipo", signal: { value: 1, label: "por decidir", note: "desde ayer", tone: "warning" } },
+  { id: "perfil", section: "Documentos", accent: "blue", icon: "id-card", label: "Mi perfil", description: "Tus datos personales, tu familia y tu hoja de vida.", href: "/talento/perfil" },
+  { id: "comida", section: "Día a día", accent: "green", icon: "utensils-crossed", label: "Pedir comida", description: "Aún no has pedido tu almuerzo.", href: "/cafeteria", signal: { label: "Sancocho de gallina", note: "hasta las 10:30", tone: "info" } },
+  { id: "visita", section: "Día a día", accent: "green", icon: "clipboard-check", label: "Anunciar una visita", description: "Avisa a la portería a quién esperas.", href: "/porteria/visitas" },
+  { id: "novedad", section: "Día a día", accent: "green", icon: "triangle-alert", label: "Reportar una novedad", description: "Cuéntale a seguridad algo que viste: se avisa en el momento.", href: "/seguridad/novedades" },
+];
+
+export function mountLauncherHomeDemo(root: HTMLElement): void {
+  const el = root.querySelector<NxLauncher>("#lh-launcher")!;
+  const demo = root.querySelector<HTMLElement>("#lh-demo")!;
+  const log = root.querySelector<HTMLOListElement>("#lh-log")!;
+  el.items = INICIO;
+  el.addEventListener("nx-launcher-select", (e) => {
+    const d = (e as CustomEvent<LauncherSelectDetail>).detail;
+    e.preventDefault();
+    const li = document.createElement("li");
+    li.textContent = `nx-launcher-select → ${d.item.label} (${d.href ?? "sin href"})`;
+    log.prepend(li);
+    while (log.children.length > 6) log.lastElementChild!.remove();
+  });
+  // Angosto como un teléfono: por debajo de 600 px cada sección es una lista.
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>("[data-lh-width]")];
+  for (const b of buttons) {
+    b.addEventListener("click", () => {
+      demo.dataset.width = b.dataset.lhWidth!;
+      for (const x of buttons) x.setAttribute("aria-pressed", String(x === b));
+    });
+  }
 }

@@ -47,7 +47,7 @@ import { mountAccountDemo } from "./demo-account";
 import "./pages/account.css";
 import { mountHandoffDemo } from "./demo-handoff";
 import { mountAwardDemo } from "./demo-award";
-import { mountLauncherDemo } from "./demo-launcher";
+import { mountLauncherDemo, mountLauncherHomeDemo } from "./demo-launcher";
 import { mountHomeDemo } from "./demo-home";
 import "./pages/home.css";
 import { mountCardsDemo } from "./demo-cards";
@@ -156,6 +156,7 @@ const NAV: MenuItem[] = [
       { id: "breadcrumb", label: "Ruta navegable", href: "#/breadcrumb", icon: "folder" },
       { id: "command", label: "Paleta de comandos", href: "#/command", icon: "circle-question-mark" },
       { id: "launcher", label: "Launcher", href: "#/launcher", icon: "layout-grid" },
+      { id: "launcher-inicio", label: "Inicio por secciones", href: "#/launcher-inicio", icon: "layout-grid" },
       { id: "home", label: "Inicio del empleado", href: "#/home", icon: "house" },
       { id: "keytips", label: "Atajos con Alt", href: "#/keytips", icon: "keyboard" },
       { id: "account", label: "Cuenta", href: "#/account", icon: "user" },
@@ -256,6 +257,7 @@ const PAGES: Record<string, { template: string; mount?: (root: HTMLElement) => v
   "#/handoff": { template: "page-handoff", mount: mountHandoffDemo },
   "#/award": { template: "page-award", mount: mountAwardDemo },
   "#/launcher": { template: "page-launcher", mount: mountLauncherDemo },
+  "#/launcher-inicio": { template: "page-launcher-inicio", mount: mountLauncherHomeDemo },
   "#/home": { template: "page-home", mount: mountHomeDemo },
   "#/cards": { template: "page-cards", mount: mountCardsDemo },
   "#/org": { template: "page-org", mount: mountOrgDemo },

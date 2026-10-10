@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { balanceColumns, clampMeter, fill, firstTarget, fitColumns, itemHref, matchItem, moveIndex, progressParts, sectionCells, sparkPaths } from "../src/components/launcher/logic";
+import { accentOf, balanceColumns, clampMeter, fill, firstTarget, fitColumns, itemHref, matchItem, moveIndex, packSpans, progressParts, sectionAccent, sectionCells, sparkPaths } from "../src/components/launcher/logic";
 import type { LauncherItem } from "../src/components/launcher/types";
 
 const ITEMS: LauncherItem[] = [
@@ -148,5 +148,42 @@ describe("moveIndex", () => {
     const zero = [0, 0, 0].map(() => ({ x: 0, y: 0, w: 0, h: 0 }));
     expect(moveIndex(zero, 1, "ArrowDown")).toBe(2);
     expect(moveIndex(zero, 0, "ArrowUp")).toBe(0);
+  });
+});
+
+describe("secciones que comparten fila (pack)", () => {
+  it("cada sección ocupa las columnas de sus tarjetas, hasta las que hay", () => {
+    // El inicio de un jefe: 3, 6, 2, 1 y 3 tarjetas.
+    const home = [n(3), n(6), n(2), n(1), n(3)];
+    expect(packSpans(home, 6)).toEqual([3, 6, 2, 1, 3]);
+    expect(packSpans(home, 4)).toEqual([3, 4, 2, 1, 3]);
+    expect(packSpans(home, 1)).toEqual([1, 1, 1, 1, 1]);
+  });
+  it("una destacada cuenta dos; nunca menos de una columna", () => {
+    expect(packSpans([[{ featured: true }, {}]], 6)).toEqual([3]);
+    expect(packSpans([[{ featured: true }]], 1)).toEqual([1]);
+    expect(packSpans([[]], 4)).toEqual([1]);
+    expect(packSpans([n(2)], 0)).toEqual([1]);
+  });
+  it("las columnas que se eligen con pack son las de siempre (menos huérfanas)", () => {
+    const home = [n(3), n(6), n(2), n(1), n(3)];
+    expect(balanceColumns(home, 6)).toBe(6);
+    // Caben 5: la de 6 dejaría 4 huecos; con 4, deja 2.
+    expect(balanceColumns(home, 5)).toBe(4);
+  });
+});
+
+describe("color de la tarjeta (accent)", () => {
+  it("solo los conocidos; lo demás va con el acento de la marca", () => {
+    for (const a of ["blue", "green", "amber", "purple", "pink", "teal", "neutral"]) expect(accentOf(a)).toBe(a);
+    expect(accentOf("Blue")).toBeNull();
+    expect(accentOf("red")).toBeNull();
+    expect(accentOf(3)).toBeNull();
+    expect(accentOf(undefined)).toBeNull();
+  });
+  it("la sección toma el color de su primera tarjeta que tenga uno", () => {
+    expect(sectionAccent([{}, { accent: "purple" }, { accent: "green" }])).toBe("purple");
+    expect(sectionAccent([{ accent: "rojo" as never }, {}])).toBeNull();
+    expect(sectionAccent([])).toBeNull();
   });
 });

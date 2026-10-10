@@ -97,6 +97,18 @@ test("launcher, en reposo y filtrado", async ({ page }) => {
   await audit(page, ['[data-la-demo="compras"] nx-launcher']);
 });
 
+test("inicio por secciones: compacta, filtrada con typeahead y como lista", async ({ page }) => {
+  await open(page, "#/launcher-inicio");
+  await expect(page.locator("#lh-launcher .nx-launcher__card").first()).toBeVisible();
+  await audit(page, ["#lh-launcher"]);
+  await page.locator("body").press("v");
+  await expect(page.locator("#lh-launcher .nx-launcher__goto")).toBeVisible();
+  await audit(page, ["#lh-launcher"]);
+  await page.keyboard.press("Escape");
+  await page.locator('[data-lh-width="phone"]').click();
+  await audit(page, ["#lh-launcher"]);
+});
+
 test("cuenta: tarjeta, panel abierto y la franja de «Ver como»", async ({ page }) => {
   await open(page, "#/account");
   const card = page.locator("#acc .nx-account__card");

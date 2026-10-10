@@ -6,14 +6,11 @@
  *     página se desplaza)
  *   --nx-grid-heading-size (22px): el tamaño del título (`heading`)
  *   --nx-grid-facets-width (248px): ancho del panel de filtros
- *   --nx-grid-wash: el velo del acento detrás del título (`heading`), solo en oscuro;
- *     `transparent` lo quita
  */
 
 nx-grid {
   --nx-grid-height: 440px;
   --nx-grid-warn: light-dark(oklch(0.68 0.15 70), oklch(0.8 0.14 75));
-  --nx-grid-wash: light-dark(transparent, oklch(calc(var(--_ld, 0.72) - 0.17) calc(var(--_c, 0.19) * 0.65) var(--_h, 262) / 0.2));
   /* La cabecera de la tabla: una banda apenas más oscura que la hoja (la misma en las fijas). */
   --_head: color-mix(in oklab, var(--nx-card) 97.5%, var(--nx-foreground));
   /* Cada pieza ocupa su fila; la barra de selección y el slot="bulk" del autor comparten una. */
@@ -188,13 +185,6 @@ nx-grid .nx-glyph {
   align-items: center;
   gap: 10px 24px;
   margin-block-end: 12px;
-}
-/* El velo del acento: una luz en la esquina del título que se apaga hacia la barra (solo en oscuro,
-   donde las hojas se separan por luz y no por sombra). Es el fondo de la tabla: queda debajo de todo. */
-nx-grid:has(> .nx-grid__top[data-heading]) {
-  background-image: radial-gradient(90% 100% at 0 0, var(--nx-grid-wash), transparent 72%);
-  background-repeat: no-repeat;
-  background-size: 100% 300px;
 }
 .nx-grid__heading {
   display: flex;

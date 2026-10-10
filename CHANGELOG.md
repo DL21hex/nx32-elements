@@ -1,5 +1,25 @@
 # Registro de cambios
 
+## 0.11.0 — 2026-10-10
+
+**Rompe la API en una cosa:** el velo del acento ya no lo pinta `<nx-grid>`. La app marca el
+contenedor de su página con `data-nx-page`, y `--nx-grid-wash` pasa a ser `--nx-page-wash`.
+
+### Tokens: el velo es de la página
+
+- **`data-nx-page`.** El contenedor de la página (el área junto al menú) lleva siempre el velo del
+  acento, haya o no tabla: una luz desde su esquina de arriba a la izquierda que se apaga hacia
+  abajo, como en la maqueta `maquetas/nx-grid-presencia.html`. Antes era el fondo de `<nx-grid>` con
+  título, así que empezaba donde empezaba la tabla y lo de encima (la ruta «‹ Talento Humano», el
+  margen) lo cortaba. Si el contenedor es el que se desplaza, el velo se va con la cabecera
+  (`background-attachment: local`). Viene en `tokens.css`.
+- `--nx-page-wash` (antes `--nx-grid-wash`): el color del velo. Solo en oscuro; va con la paleta, así
+  que una zona con `data-nx-palette` tiene el suyo. `transparent` lo quita.
+
+### Galería
+
+- El marco de «La tabla como página» lleva `data-nx-page`.
+
 ## 0.10.0 — 2026-10-10
 
 Un inicio por secciones con el mismo `<nx-launcher>`. Sale de la maqueta

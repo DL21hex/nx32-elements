@@ -56,6 +56,9 @@
   --nx-primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.17 calc(var(--_c) * 0.1) var(--_h)));
   --nx-primary-soft: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.1), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.15));
   --nx-primary-border: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.35), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.4));
+  /* El velo del acento en la esquina de la página (`data-nx-page`): solo en oscuro, donde las hojas
+     se separan por luz y no por sombra. En claro parece una mancha. */
+  --nx-page-wash: light-dark(transparent, oklch(calc(var(--_ld) - 0.17) calc(var(--_c) * 0.65) var(--_h) / 0.2));
 
   /* Estados */
   --nx-hover: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.05), oklch(1 0 0 / 0.06));
@@ -125,6 +128,19 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- la página */
+/* El velo del acento (`--nx-page-wash`, solo en oscuro): una luz desde la esquina de arriba a la
+   izquierda que se apaga hacia abajo. Lo lleva siempre el contenedor que la app marca con
+   `data-nx-page` (el área junto al menú), haya lo que haya adentro: así sale de la esquina y nada de
+   lo que va encima (la ruta) lo corta. `local`: si ese contenedor es el que se desplaza, el velo se
+   va con la cabecera. */
+[data-nx-page] {
+  background-image: radial-gradient(90% 100% at 0 0, var(--nx-page-wash), transparent 72%);
+  background-repeat: no-repeat;
+  background-size: 100% 300px;
+  background-attachment: local;
 }
 
 /* ---------------------------------------------------------------- piezas compartidas */

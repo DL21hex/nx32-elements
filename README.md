@@ -122,11 +122,25 @@ pone `:root { color-scheme: light }`; una marca, `:root { --nx-primary: … }`.
 En oscuro, las superficies (`--nx-canvas`, `--nx-background`, `--nx-sidebar`, `--nx-card`,
 `--nx-popover`) toman un tinte del acento, y el menú va más hundido que el fondo: ahí las sombras casi
 no se ven, y lo que separa las capas es su luz y ese tinte. Con un acento sin croma (`grafito`)
-quedan casi grises. En claro siguen grises, sin tinte. Para eso hay tres tokens más:
+quedan casi grises. En claro siguen grises, sin tinte. Para eso hay cuatro tokens más:
 `--nx-shadow-card` (una hoja sobre el fondo: el panel de filtros, la caja de la tabla; solo en
 oscuro, porque en claro la separan su borde y el blanco), `--nx-shadow-raise` (una pieza levantada,
-como la sección activa del menú; en los dos temas) y `--nx-primary-gradient` (el acento en
-degradado, para un ícono que lleva la marca).
+como la sección activa del menú; en los dos temas), `--nx-primary-gradient` (el acento en
+degradado, para un ícono que lleva la marca) y `--nx-page-wash` (el velo del acento de la página;
+solo en oscuro).
+
+El contenedor de la página (el área junto al menú) se marca con `data-nx-page` y lleva siempre ese
+velo: una luz del acento desde su esquina de arriba a la izquierda que se apaga hacia abajo, haya lo
+que haya adentro. Va en el contenedor y no en lo que contiene para que nada de lo de encima (la ruta,
+el margen) lo corte; si es el que se desplaza, el velo se va con la cabecera. En claro no se ve
+(`--nx-page-wash` es `transparent`), y `transparent` también lo quita en oscuro.
+
+```html
+<main data-nx-page>
+  <nx-breadcrumb label="Ruta"></nx-breadcrumb>
+  <nx-grid id="empleados" heading="Empleados" heading-icon="users" height="fill"></nx-grid>
+</main>
+```
 
 ## Uso
 
@@ -630,8 +644,8 @@ Una tabla de datos que se explora sola:
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
   El tamaño sale de `--nx-grid-heading-size` (22 px). `heading-icon` (`headingIcon`) pone un ícono
   del registro junto al título, en un cuadro con `--nx-primary-gradient` (el del módulo: `users` en
-  Empleados); un nombre que no está registrado no pinta nada. En oscuro, detrás del título va un
-  velo del acento que se apaga hacia la barra (`--nx-grid-wash`; `transparent` lo quita).
+  Empleados); un nombre que no está registrado no pinta nada. El velo del acento detrás del título
+  no es de la tabla: lo lleva la página (`data-nx-page`, ver «Paletas»).
 - **Puntos de color (`dot`).** Una columna con `dot: true` muestra un punto antes de cada valor en vez
   de la píldora: para clasificar sin gritar (el tipo de contrato, la sede). El color es el `tone` de
   la opción o, sin tono, uno de ocho por el lugar de la opción en `options` (con `options`, ninguno se

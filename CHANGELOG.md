@@ -1,5 +1,19 @@
 # Registro de cambios
 
+## 0.9.1 — 2026-10-10
+
+### `<nx-grid>`
+
+- **El ícono del título (`heading-icon`) pesa menos.** Junto a un título de 22 px, el cuadro de
+  38 px con sombra de color era lo primero que se veía, más que el título. Ahora es de 32 px, el
+  ícono va a su tamaño de siempre (18 px) y sin la sombra de color de abajo; solo el reflejo de
+  arriba.
+
+### Tokens
+
+- `--nx-primary-gradient` es más corto: ±10° de tono en vez de −15°/+25°, y menos diferencia de luz.
+  El giro de turquesa a azul lo hacía parecer un ícono de app.
+
 ## 0.9.0 — 2026-10-09
 
 Más presencia sin perder la sobriedad: el diseño va en el marco y el color solo donde dice algo. Sale

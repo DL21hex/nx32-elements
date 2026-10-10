@@ -44,3 +44,45 @@ test("vistas con Tab: el foco las muestra (:focus-within) sin el puntero", async
   await expect(views).toHaveCSS("opacity", "1");
   await expect(views).toHaveCSS("pointer-events", "auto");
 });
+
+/** La compacta con `pack`: las secciones cortas comparten fila (subgrid) con tarjetas del mismo
+ *  ancho que las de una sección larga; angosta, cada sección es una lista. */
+test("inicio por secciones: secciones que comparten fila y listas en angosto", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "#/launcher-inicio");
+  const la = page.locator("#lh-launcher");
+  await expect(la.locator(".nx-launcher__card").first()).toBeVisible();
+  const geo = await la.evaluate((el) => {
+    const secs = [...el.querySelectorAll<HTMLElement>(".nx-launcher__section")];
+    const top = (i: number) => Math.round(secs[i].getBoundingClientRect().top);
+    const w = (i: number) => Math.round(secs[i].querySelector(".nx-launcher__card")!.getBoundingClientRect().width);
+    return { packed: el.querySelector(".nx-launcher__nav")!.classList.contains("is-packed"), equipo: top(2), documentos: top(3), anchos: [w(0), w(1), w(2), w(3)] };
+  });
+  expect(geo.packed).toBe(true);
+  // «Mi equipo» (2) y «Documentos» (1) van en la misma fila.
+  expect(geo.documentos).toBe(geo.equipo);
+  // Las tarjetas miden lo mismo en todas las secciones.
+  for (const w of geo.anchos) expect(Math.abs(w - geo.anchos[0])).toBeLessThanOrEqual(1);
+  // El nombre largo no se corta.
+  const name = la.locator('[data-key="vacaciones-equipo"] .nx-launcher__label');
+  expect(await name.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+
+  await page.locator('[data-lh-width="phone"]').click();
+  await expect(la.locator(".nx-launcher__grid").first()).toHaveCSS("display", "block");
+  await expect(la.locator(".nx-launcher__card").first()).toHaveCSS("display", "grid");
+  expect(await la.evaluate((el) => el.querySelector(".nx-launcher__nav")!.classList.contains("is-packed"))).toBe(false);
+});
+
+test("inicio por secciones: escribir para ir sin campo", async ({ page }) => {
+  await open(page, "#/launcher-inicio");
+  const la = page.locator("#lh-launcher");
+  await expect(la.locator(".nx-launcher__card").first()).toBeVisible();
+  await page.keyboard.type("vac");
+  const pill = la.locator(".nx-launcher__goto");
+  await expect(pill).toBeVisible();
+  await expect(pill).toContainText("Enter abre Vacaciones");
+  await expect(la.locator('[data-key="cesantias"]')).toHaveClass(/is-dim/);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#lh-log li").first()).toContainText("Vacaciones");
+  await expect(pill).toBeHidden();
+});

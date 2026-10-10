@@ -25,7 +25,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-handoff>` + QR + núcleo (ESM); el lado celular, ≈ 5 KB, se carga con `side="phone"` | ≈ 9,5 KB |
 | `<nx-award>` + núcleo (ESM) | ≈ 15,8 KB |
 | `<nx-account>` + núcleo (ESM), con «Ver como»; el panel, ≈ 3,2 KB, se carga aparte | ≈ 10,5 KB |
-| `<nx-launcher>` + núcleo (ESM) | ≈ 8,8 KB |
+| `<nx-launcher>` + núcleo (ESM) | ≈ 9,9 KB |
 | `<nx-timeline>` + festivos + núcleo (ESM) | ≈ 7,4 KB |
 | `<nx-intent>` + lector de fechas y montos + núcleo (ESM) | ≈ 6,8 KB |
 | `<nx-tracker>` + festivos + núcleo (ESM) | ≈ 4,5 KB |
@@ -1876,6 +1876,18 @@ un solo dato vivo, la señal: «3 de tu equipo por aprobar · el más antiguo, h
   paso: con `startViewTransition` en una SPA o entre documentos con `@view-transition { navigation: auto }`.
   Al volver, `reveal()` (o solo, con `pagereveal`) devuelve los nombres a la tarjeta de la que se salió.
 - **Teclado:** las flechas pasan de una tarjeta a la vecina, también entre secciones; `Inicio`/`Fin`.
+- **Compacta (`density="compact"`):** para un inicio con muchas secciones. Tarjetas desde 190 px y
+  hasta 6 columnas, el nombre completo (en dos líneas antes que cortado), la flecha en la esquina, la
+  señal en una línea al pie (el punto del tono, el dato, su etiqueta y la nota) y el título de la
+  sección con un punto y un filete. Por debajo de 600 px de ancho, cada sección es una lista.
+- **Un color por sección (`accent`):** `blue`, `green`, `amber`, `purple`, `pink`, `teal` o `neutral`
+  en cada tarjeta pinta su ícono; el punto del título toma el de la primera tarjeta de la sección.
+- **Secciones que comparten fila (`pack`):** una sola rejilla con subgrid; cada sección ocupa las
+  columnas de sus tarjetas y la que no cabe en lo que queda de la fila baja a la siguiente. El orden
+  no cambia y las tarjetas miden lo mismo en todas.
+- **Escribir para ir (`typeahead`):** sin campo a la vista, lo escrito con el foco en la página filtra
+  y una píldora arriba dice qué abre `Enter`; `Retroceso`, `Escape` y `↓`. Con `search`, manda el
+  buscador. Con el foco en la página, escucha el primer launcher (en el orden de la página).
 
 ```html
 <nx-launcher id="th"></nx-launcher>
@@ -1896,11 +1908,11 @@ un solo dato vivo, la señal: «3 de tu equipo por aprobar · el más antiguo, h
 
 | | |
 |---|---|
-| Propiedades / atributos | `items` (`[{id, label, href?, newTab?, icon?, description?, section?, views?, signal?, featured?, eyebrow?, progress?, data?}]`; `views`: `[{label, href?, newTab?, badge?, hint?}]` (`newTab`: el enlace abre en otra pestaña, para un PDF); `signal`: `{value?, label?, note?, tone?, meter?, trend?}`; `progress`: `[{label, value}]`), `search`, `query`, `columns` (4), `heading-level` (2), `locale`, `labels` |
+| Propiedades / atributos | `items` (`[{id, label, href?, newTab?, icon?, accent?, description?, section?, views?, signal?, featured?, eyebrow?, progress?, data?}]`; `views`: `[{label, href?, newTab?, badge?, hint?}]` (`newTab`: el enlace abre en otra pestaña, para un PDF); `signal`: `{value?, label?, note?, tone?, meter?, trend?}` (`tone`: `neutral`, `info`, `success`, `warning`, `danger`); `progress`: `[{label, value}]`), `density` (`comfortable` o `compact`), `pack`, `typeahead`, `search`, `query`, `columns` (4; 6 en la compacta), `heading-level` (2), `locale`, `labels` |
 | Métodos | `focusItem(id?)`, `reveal(id?)` |
 | Eventos | `nx-launcher-select` `{item, view, href, newTab}` (cancelable; un clic con modificador es del navegador y no se anuncia; con `newTab`, la app no debería navegar ella) |
-| CSS | `--nx-launcher-min` (240px), `--nx-launcher-gap` (12px), `--nx-launcher-warn` / `--nx-launcher-ink`; `.nx-launcher-hero`, `.nx-launcher-hero-icon`, `.nx-launcher-hero-label` para la página de destino |
-| Funciones | `matchItem()`, `firstTarget()`, `fitColumns()`, `balanceColumns()`, `moveIndex()`, `sparkPaths()` |
+| CSS | `--nx-launcher-min` (240px; 190px en la compacta), `--nx-launcher-gap` (12px), `--nx-launcher-warn` / `--nx-launcher-ink`; `.nx-launcher-hero`, `.nx-launcher-hero-icon`, `.nx-launcher-hero-label` para la página de destino |
+| Funciones | `matchItem()`, `firstTarget()`, `fitColumns()`, `balanceColumns()`, `packSpans()`, `accentOf()`, `moveIndex()`, `sparkPaths()` |
 
 ## El inicio de una persona: `<nx-intent>`, `<nx-stats>`, `<nx-timeline>` y `<nx-tracker>`
 

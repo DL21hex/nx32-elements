@@ -196,6 +196,8 @@ declare module "solid-js" {
     }
     interface ExplicitAttributes {
       tone: string | undefined;
+      /** `<nx-launcher density="compact">`. */
+      density: "compact" | undefined;
       text: string | undefined;
       "action-href": string | undefined;
       /** `<nx-button href>`: el botón como enlace. */
@@ -342,6 +344,9 @@ declare module "solid-js" {
     }
     interface ExplicitBoolAttributes {
       sticky: boolean;
+      /** `<nx-launcher pack>` y `<nx-launcher typeahead>`. */
+      pack: boolean;
+      typeahead: boolean;
       editing: boolean;
       notify: boolean;
       always: boolean;

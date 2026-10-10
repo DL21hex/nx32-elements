@@ -1,6 +1,14 @@
 /** `<nx-launcher>`: tipos. Todo es JSON: el backend lo manda tal cual (BDUI). */
 
-export type LauncherTone = "neutral" | "success" | "warning" | "danger";
+export type LauncherTone = "neutral" | "success" | "warning" | "danger" | "info";
+
+/** El color de una tarjeta (su ícono). Uno por sección, no por tarjeta: el punto del título de la
+ *  sección toma el de su primera tarjeta. */
+export type LauncherAccent = "blue" | "green" | "amber" | "purple" | "pink" | "teal" | "neutral";
+
+/** `comfortable` (por defecto): tarjetas de 240 px con la señal grande. `compact`: tarjetas de 190 px
+ *  para un inicio con muchas secciones; por debajo de 600 px cada sección es una lista. */
+export type LauncherDensity = "comfortable" | "compact";
 
 /** El único dato vivo de una tarjeta: «7 por aprobar · la más antigua, hace 3 días». */
 export interface LauncherSignal {
@@ -46,6 +54,8 @@ export interface LauncherItem {
   newTab?: boolean;
   /** Nombre de un ícono registrado con `registerIcons`. Sin ícono se pintan las iniciales. */
   icon?: string;
+  /** El color del ícono (sin él, el acento de la marca). */
+  accent?: LauncherAccent;
   /** Para qué sirve el módulo. Con puntero, cede su lugar a las vistas al pasar por la tarjeta. */
   description?: string;
   /** Agrupa las tarjetas consecutivas bajo un título («Día a día», «Datos y análisis»). */

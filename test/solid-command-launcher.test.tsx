@@ -42,4 +42,20 @@ describe("<Command> y <Launcher> de Solid", () => {
     dispose();
     root.remove();
   });
+
+  it("<Launcher> pasa density, pack y typeahead como atributos", () => {
+    const root = document.body.appendChild(document.createElement("div"));
+    const dispose = render(() => <Launcher items={[{ id: "a", label: "Permisos", href: "/permisos", accent: "green" }]} density="compact" pack typeahead />, root);
+    const el = root.querySelector("nx-launcher")!;
+    expect(el.getAttribute("density")).toBe("compact");
+    expect(el.pack).toBe(true);
+    expect(el.typeahead).toBe(true);
+    dispose();
+    const dispose2 = render(() => <Launcher items={[]} />, root);
+    const plain = root.querySelectorAll("nx-launcher")[0]!;
+    expect(plain.hasAttribute("density")).toBe(false);
+    expect(plain.hasAttribute("pack")).toBe(false);
+    dispose2();
+    root.remove();
+  });
 });

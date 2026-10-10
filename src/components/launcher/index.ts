@@ -4,8 +4,8 @@ import { NxLauncher } from "./launcher";
 define("nx-launcher", NxLauncher);
 
 export { NxLauncher, LAUNCHER_LABELS } from "./launcher";
-export { balanceColumns, firstTarget, fitColumns, matchItem, moveIndex, sparkPaths } from "./logic";
-export type { LauncherItem, LauncherLabels, LauncherProgress, LauncherSelectDetail, LauncherSignal, LauncherTone, LauncherView } from "./types";
+export { accentOf, balanceColumns, firstTarget, fitColumns, matchItem, moveIndex, packSpans, sparkPaths } from "./logic";
+export type { LauncherAccent, LauncherDensity, LauncherItem, LauncherLabels, LauncherProgress, LauncherSelectDetail, LauncherSignal, LauncherTone, LauncherView } from "./types";
 
 declare global {
   interface HTMLElementTagNameMap {

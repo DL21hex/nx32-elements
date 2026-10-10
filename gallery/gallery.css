@@ -1126,7 +1126,8 @@ td:first-child {
   font-size: 12px;
 }
 
-/* «La tabla como página»: un marco de alto fijo, como el área de una app, para `height="fill"`. */
+/* «La tabla como página»: un marco de alto fijo, como el área de una app, para `height="fill"`
+   (con `data-nx-page`, lleva el velo del acento). */
 .grid-page-frame {
   display: flex;
   flex-direction: column;

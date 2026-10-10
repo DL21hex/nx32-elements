@@ -29,3 +29,21 @@ describe("CSS compartido", () => {
     expect(roots.filter((r) => !r.startsWith(":where("))).toEqual([]);
   });
 });
+
+describe("el velo del acento", () => {
+  const rule = (css: string, sel: string) => css.slice(css.indexOf(sel), css.indexOf("}", css.indexOf(sel)));
+
+  it("es un token de página que sigue a la paleta de la zona", () => {
+    expect(rule(tokens, ":where(:root, [data-nx-palette]) {")).toContain("--nx-page-wash: light-dark(transparent,");
+  });
+
+  // Pintado en la tabla, lo que va encima del título (la ruta) lo cortaba: lo lleva siempre el
+  // contenedor de la página, desde su esquina, haya o no tabla, y se desplaza con él.
+  it("lo pinta siempre el contenedor con data-nx-page, no la tabla", () => {
+    expect(topLevel(tokens)).toContain("[data-nx-page] {");
+    expect(rule(tokens, "[data-nx-page] {")).toContain("var(--nx-page-wash)");
+    expect(rule(tokens, "[data-nx-page] {")).toContain("background-attachment: local");
+    const own = pieces.filter(([, css]) => /data-nx-page|--nx-page-wash|--nx-grid-wash/.test(css)).map(([f]) => f);
+    expect(own).toEqual([]);
+  });
+});

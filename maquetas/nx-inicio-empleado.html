@@ -1764,23 +1764,39 @@ details.wd .wd__in { padding: 2px 14px 14px; display: grid; gap: 16px; }
   });
 
   // ---------- Claro u oscuro ----------
-  // Sin elegir, la página sigue al sistema (o al tema del visor). Al tocar el interruptor se fija
-  // en <html data-theme> y se recuerda en este navegador; los colores salen de light-dark().
-  const html = document.documentElement, themeBtn = $("#theme"), THEME_KEY = "nx-inicio-tema";
+  // Sin elegir, la página sigue al tema del visor (o del sistema). La elección se fija en <body>
+  // (color-scheme en línea) y no en <html>: el visor maneja el tema del <html> a su manera (atributo
+  // o estilo en línea) y lo repone, así que pelear por él no cambiaba nada. Todos los colores salen
+  // de light-dark(), que se resuelve en cada elemento con el color-scheme que hereda de <body>.
+  const themeHost = document.body, themeBtn = $("#theme"), THEME_KEY = "nx-inicio-tema";
   const systemDark = matchMedia("(prefers-color-scheme: dark)");
-  const isDark = () => html.dataset.theme === "dark" || (html.dataset.theme !== "light" && systemDark.matches);
+  const hostDark = () => {
+    const root = document.documentElement;
+    if (root.dataset.theme === "dark") return true;
+    if (root.dataset.theme === "light") return false;
+    const cs = getComputedStyle(root).colorScheme || "";
+    const dark = /\bdark\b/.test(cs), light = /\blight\b/.test(cs);
+    return dark && !light ? true : light && !dark ? false : systemDark.matches;
+  };
+  const isDark = () => (themeHost.style.colorScheme === "dark" ? true : themeHost.style.colorScheme === "light" ? false : hostDark());
   const paintSwitch = () => themeBtn.setAttribute("aria-checked", String(isDark()));
   function setTheme(dark) {
-    html.dataset.theme = dark ? "dark" : "light";
+    themeHost.style.colorScheme = dark ? "dark" : "light";
+    themeHost.dataset.theme = dark ? "dark" : "light";
     paintSwitch();
-    try { localStorage.setItem(THEME_KEY, html.dataset.theme); } catch { /* sin almacenamiento: dura hasta recargar */ }
+    try { localStorage.setItem(THEME_KEY, dark ? "dark" : "light"); } catch { /* sin almacenamiento: dura hasta recargar */ }
   }
   try {
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === "dark" || saved === "light") html.dataset.theme = saved;
+    if (saved === "dark" || saved === "light") {
+      themeHost.style.colorScheme = saved;
+      themeHost.dataset.theme = saved;
+    }
   } catch { /* sin almacenamiento */ }
   paintSwitch();
+  // Si el visor cambia de tema y nadie eligió aquí, el interruptor lo sigue.
   systemDark.addEventListener?.("change", paintSwitch);
+  if (typeof MutationObserver === "function") new MutationObserver(paintSwitch).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "style", "class"] });
   themeBtn.addEventListener("click", () => {
     const dark = !isDark();
     if (document.startViewTransition && !reduced()) document.startViewTransition(() => setTheme(dark));

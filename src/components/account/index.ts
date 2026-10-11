@@ -25,6 +25,7 @@ export type {
   AccountPalette,
   AccountPerson,
   AccountPrefs,
+  AccountSection,
   AccountSession,
   AccountStatus,
   AccountStatusDetail,

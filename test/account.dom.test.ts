@@ -465,6 +465,50 @@ describe('<nx-account appearance="false">', () => {
   });
 });
 
+describe('<nx-account omit="…">', () => {
+  const keys = (el: NxAccount) => [...pop(el).querySelectorAll<HTMLElement>("[data-k]")].map((b) => b.dataset.k!.split(":")[0]);
+
+  it("sin Estado, idioma ni atajos en el panel; idioma tampoco en los comandos", async () => {
+    const el = mount('omit="status locale shortcuts" status="dnd"');
+    expect(el.omit).toEqual(["status", "locale", "shortcuts"]);
+    expect(el.status).toBe("online");
+    await open(el);
+    for (const k of ["status", "until", "locale", "shortcuts"]) expect(keys(el)).not.toContain(k);
+    expect(keys(el)).toContain("theme");
+    expect(keys(el)).toContain("logout");
+    expect(el.commands.some((c) => c.data.action === "locale")).toBe(false);
+    // La tarjeta no dice «No molestar» aunque el atributo siga puesto.
+    expect(card(el).textContent).not.toContain(ACCOUNT_LABELS.dnd);
+  });
+
+  it("cada sección se quita por separado", async () => {
+    const el = mount('omit="shortcuts"');
+    await open(el);
+    expect(keys(el)).toContain("status");
+    expect(keys(el)).toContain("locale");
+    expect(keys(el)).not.toContain("shortcuts");
+    expect(el.commands.some((c) => c.data.action === "locale")).toBe(true);
+  });
+
+  it("sin items ni filas entre las rayas, queda una sola", async () => {
+    const el = mount('omit="locale shortcuts"');
+    await open(el);
+    const nodes = [...pop(el).children];
+    expect(nodes.some((n, i) => n.tagName === "HR" && nodes[i + 1]?.tagName === "HR")).toBe(false);
+  });
+
+  it("la propiedad escribe el atributo y quitarlo devuelve las secciones", async () => {
+    const el = mount();
+    el.omit = ["status", "locale"];
+    expect(el.getAttribute("omit")).toBe("status locale");
+    el.omit = [];
+    expect(el.hasAttribute("omit")).toBe(false);
+    await open(el);
+    expect(keys(el)).toContain("status");
+    expect(keys(el)).toContain("locale");
+  });
+});
+
 describe("<nx-account> idioma y formatos", () => {
   it("cada locale con su vista previa; elegir pone <html lang> y avisa", async () => {
     document.documentElement.lang = "es-CO";

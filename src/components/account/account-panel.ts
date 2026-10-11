@@ -40,6 +40,10 @@ export interface PanelState {
   hasTenants: boolean;
   status: AccountStatus;
   until: string;
+  /** `omit` quita Estado, «Idioma y formatos» o «Atajos de teclado». */
+  statusField: boolean;
+  localeRow: boolean;
+  shortcutsRow: boolean;
   /** Sin apariencia (`appearance="false"`) no hay tema ni color. */
   appearance: boolean;
   theme: AccountTheme;
@@ -109,8 +113,8 @@ export function mainView(s: PanelState): Node[] {
         h("span", { class: "nx-account__text" }, h("span", { class: "nx-account__name" }, t?.name ?? L.tenant), line ? h("span", { class: "nx-account__org" }, line) : null),
         glyph(UPDOWN, "nx-account__chev"),
       ),
-    seg(s.uid, "status", L.status, [["online", L.online], ["away", L.away], ["dnd", L.dnd]], s.status),
-    s.status !== "online" && seg(s.uid, "until", L.until, [["hour", L.hour], ["today", L.today], ["", L.forever]], s.until),
+    s.statusField && seg(s.uid, "status", L.status, [["online", L.online], ["away", L.away], ["dnd", L.dnd]], s.status),
+    s.statusField && s.status !== "online" && seg(s.uid, "until", L.until, [["hour", L.hour], ["today", L.today], ["", L.forever]], s.until),
     s.appearance && seg(s.uid, "theme", L.theme, [["light", L.light, SUN], ["system", L.system, MONITOR], ["dark", L.dark, MOON]], s.theme),
     s.appearance &&
       h(
@@ -144,8 +148,8 @@ export function mainView(s: PanelState): Node[] {
       const a = { class: "nx-account__item", "data-k": `item:${it.id}` };
       return href ? h("a", { ...a, href }, ...body) : h("button", { ...a, type: "button" }, ...body);
     }),
-    row("locale", GLOBE, L.language, s.locale, true),
-    row("shortcuts", KEYS, L.shortcuts, "Alt"),
+    s.localeRow && row("locale", GLOBE, L.language, s.locale, true),
+    s.shortcutsRow && row("shortcuts", KEYS, L.shortcuts, "Alt"),
     s.viewAs ? row("viewas", EYE, L.stopViewAs.replace("{name}", () => s.viewAs!.name)) : s.viewAsSource && row("viewas", EYE, L.viewAs, null, true),
     h("hr"),
     s.leaving &&
@@ -157,7 +161,8 @@ export function mainView(s: PanelState): Node[] {
       ),
     row("logout", EXIT, L.logout, null, false, " nx-account__item--danger"),
   ];
-  return nodes.filter((n): n is Node => !!n);
+  // Sin nada entre las dos rayas (sin `items` y con idioma y atajos fuera), queda una sola.
+  return nodes.filter((n): n is Node => !!n).filter((n, i, all) => !(n instanceof HTMLHRElement && all[i + 1] instanceof HTMLHRElement));
 }
 
 /** Arriba de la tarjeta (o a la derecha del riel compacto), dentro de la ventana y debajo de la franja

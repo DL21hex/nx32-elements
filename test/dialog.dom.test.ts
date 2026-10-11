@@ -28,6 +28,12 @@ afterEach(() => {
 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const esc = () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+/** Un clic a la izquierda del diálogo (su caja va de x=500 a x=1000), entregado a `target`. */
+const backdropClick = (d: NxDialog, target: Element) => {
+  d.getBoundingClientRect = () => ({ left: 500, right: 1000, top: 0, bottom: 800, width: 500, height: 800, x: 500, y: 0, toJSON() {} }) as DOMRect;
+  target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 100, clientY: 100 }));
+  target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }));
+};
 
 function mount(html = '<nx-dialog id="d" heading="Nuevo pedido" description="Se envía a aprobación"><form><input name="a"></form><div slot="footer"><button data-nx-close="cancel">Cancelar</button></div></nx-dialog>'): NxDialog {
   document.body.innerHTML = `<button id="open">Abrir</button>${html}`;
@@ -82,6 +88,40 @@ describe("<nx-dialog>", () => {
     esc();
     expect(d.open).toBe(true);
     expect(d.classList.contains("is-nudge")).toBe(true);
+    // El clic en el fondo también respeta `persistent`.
+    backdropClick(d, d);
+    expect(d.open).toBe(true);
+  });
+
+  it("el clic en el fondo cierra, llegue al diálogo o a la página de debajo; no a lo suyo ni a un aviso", () => {
+    document.body.innerHTML = `<button id="page">Página</button><nx-toaster><button id="toast">Deshacer</button></nx-toaster><nx-dialog mode="panel" heading="X"><p id="in">hola</p></nx-dialog>`;
+    const d = document.querySelector<NxDialog>("nx-dialog")!;
+    const page = document.getElementById("page")!;
+    const reasons: string[] = [];
+    d.addEventListener("nx-dialog-close", (e) => reasons.push(e.detail.reason));
+    let pageClicks = 0;
+    page.addEventListener("click", () => pageClicks++);
+
+    // El navegador puede entregar el clic del `::backdrop` al diálogo…
+    void d.show();
+    backdropClick(d, d);
+    expect(d.open).toBe(false);
+    // …o a la página de debajo: cierra igual y la página no se entera.
+    void d.show();
+    backdropClick(d, page);
+    expect(d.open).toBe(false);
+    expect(pageClicks).toBe(0);
+    expect(reasons).toEqual(["backdrop", "backdrop"]);
+
+    // Lo suyo que se sale de la caja (un menú) y una capa de encima (un aviso) no cuentan como fondo.
+    void d.show();
+    backdropClick(d, document.getElementById("in")!);
+    backdropClick(d, document.getElementById("toast")!);
+    expect(d.open).toBe(true);
+    // Apretar dentro y soltar fuera (seleccionar texto) tampoco.
+    d.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 700, clientY: 100 }));
+    page.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 100, clientY: 100 }));
+    expect(d.open).toBe(true);
   });
 
   it("<form method='dialog'> cierra con el valor del botón que lo envió", async () => {

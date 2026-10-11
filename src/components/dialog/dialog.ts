@@ -106,6 +106,9 @@ function wire(): void {
   document.addEventListener("click", (e) => invoker((e.target as Element).closest?.("[popovertarget], [data-nx-origin]") ?? lastInvoker), true);
   document.addEventListener("pointerdown", (e) => invoker((e.target as Element).closest?.("button, a, [role='button'], [data-nx-origin]")), true);
   document.addEventListener("keydown", (e) => stack[stack.length - 1]?.handleKey(e));
+  // El clic en el fondo se mira desde el documento y por posición: el clic sobre el `::backdrop` de
+  // un popover no siempre llega al diálogo (en nx32 no le llegaba y el fondo no cerraba nada).
+  for (const type of ["pointerdown", "click"]) document.addEventListener(type, (e) => stack[stack.length - 1]?.handleBackdrop(e as MouseEvent), true);
   document.addEventListener("focusin", (e) => {
     const t = e.target as Element;
     // El foco se fue a otro lado (con el teclado, o lo movió la app): el botón pulsado ya no es el origen.
@@ -468,6 +471,24 @@ export class NxDialog extends Base {
     }
   }
 
+  /** Clic en el fondo mientras es el diálogo de arriba: empezó y terminó fuera de su caja, y no en
+   *  algo suyo (un menú que se sale de la caja) ni en una capa de encima (un aviso). Un panel de abajo
+   *  de la pila cuenta como fondo: pulsarlo vuelve a ese nivel. */
+  handleBackdrop(e: MouseEvent): void {
+    const t = e.target as Element;
+    const out = (t === this || (!this.contains(t) && !this.layer(t))) && this.#outside(e);
+    if (e.type === "pointerdown") return void (this.#downOutside = out);
+    if (!out || !this.#downOutside) return;
+    this.#downOutside = false;
+    // Si el clic le llegó a la página de debajo, no la activa.
+    if (t !== this) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (this.persistent) this.#nudge();
+    else this.close(undefined, "backdrop");
+  }
+
   /** `el` está en una capa de encima del diálogo (`LAYER`), no en un popover que ya estaba debajo. */
   layer(el: Element): boolean {
     const l = el.closest?.(LAYER);
@@ -598,14 +619,9 @@ export class NxDialog extends Base {
       const t = e.target as Element;
       const c = t.closest<HTMLElement>("[data-nx-close]");
       if (c && this.contains(c)) return void this.close(c.getAttribute("data-nx-close") || c.getAttribute("value") || undefined, "button");
-      // Clic en el fondo: el objetivo es el propio diálogo, fuera de su caja.
-      if (t === this && this.#downOutside && this.#outside(e)) {
-        if (this.persistent) this.#nudge();
-        else this.close(undefined, "backdrop");
-      }
+      // El clic en el fondo lo atiende `handleBackdrop()`, desde el documento.
     });
     this.addEventListener("pointerdown", (e) => {
-      this.#downOutside = e.target === this && this.#outside(e);
       const handle = (e.target as Element).closest(".nx-dialog__handle, .nx-dialog__head");
       if (handle && !(e.target as Element).closest("button") && this.#sheet()) {
         this.#drag = { y: e.clientY, t: performance.now(), id: e.pointerId };

@@ -675,7 +675,10 @@ Una tabla de datos que se explora sola:
   tabla: la búsqueda y todos los filtros, también los de sus dos columnas (filtrar «Cali» deja solo
   esa fila), así que su total es el de la tabla. Es una sola parada de
   Tab; dentro, las flechas, Inicio y Fin. En la matriz no se ven la selección, el pie ni los botones
-  que solo sirven en la tabla. `layout="matrix"` la abre; una vista guardada recuerda si se veía la
+  que solo sirven en la tabla. «Exportar» baja la matriz como se ve (`filename` con «-matriz»): el
+  eje de filas en la primera columna, «Total» a la derecha y abajo (fuera del autofiltro), números de
+  Excel con el formato de moneda si suma o promedia montos; un cruce sin filas es 0, o vacío en un
+  promedio. `nx-grid-export` dice `layout`; el aviso, `labels.exportedMatrix`. `layout="matrix"` la abre; una vista guardada recuerda si se veía la
   matriz y cuál (`layout`, `matrix` en `GridView`). Pasar de una a otra emite `nx-grid-layout`
   (`{layout, matrix}`). Con `source`, la tabla la pide aparte (`limit: 0`, `matrix` en la petición,
   con la búsqueda y todos los filtros) y el servidor responde `matrix`: un cruce por par con filas
@@ -785,7 +788,7 @@ lee lo que trae la fila, no `Object`.
 |---|---|
 | Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 

@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "../src/components/grid/index";
 import { matrixCells } from "../src/components/grid/logic";
+import { sheetXml } from "../src/components/grid/xlsx";
 import type { GridColumn, GridRow, NxGrid } from "../src/components/grid/index";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -293,5 +294,66 @@ describe("<nx-grid> con matriz", () => {
     el.querySelector<HTMLButtonElement>(".nx-grid__mx-state button")!.click();
     await vi.waitFor(() => expect(table(el)).not.toBeNull());
     warn.mockRestore();
+  });
+
+  it("«Exportar» en la matriz baja la matriz como se ve, con «Total» fuera del autofiltro", async () => {
+    vi.stubGlobal("CompressionStream", undefined);
+    URL.createObjectURL = () => "blob:x";
+    URL.revokeObjectURL = () => {};
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+    const el = mount();
+    el.filters = [{ key: "estado", op: "notIn", values: ["anul"] }];
+    await toMatrix(el);
+    const btn = [...el.querySelectorAll<HTMLButtonElement>(".nx-grid__bar > .nx-grid__btn")].find((b) => b.textContent === "Exportar")!;
+    expect(btn.hasAttribute("data-table-only")).toBe(false);
+    const done = vi.fn();
+    el.addEventListener("nx-grid-export", (e) => done((e as CustomEvent).detail));
+    btn.click();
+    await vi.waitFor(() => expect(done).toHaveBeenCalled());
+    expect(done).toHaveBeenCalledWith({ ok: true, count: 4, filename: "tabla-matriz", layout: "matrix" });
+    expect(names).toEqual(["tabla-matriz.xlsx"]);
+    await vi.waitFor(() => expect(el.querySelector(".nx-sr-only[role=status]")!.textContent).toBe("Se exportó la matriz"));
+    // En la tabla, como siempre: sus filas y su nombre.
+    layoutBtn(el, "table").click();
+    expect(await el.exportXlsx()).toBe(6);
+    expect(names.at(-1)).toBe("tabla.xlsx");
+  });
+});
+
+describe("matrixSheet", () => {
+  it("la matriz como hoja: nombres, cruces, totales; 0 al contar y vacío en un promedio", async () => {
+    const { matrixSheet } = await import("../src/components/grid/grid-matrix");
+    const loc = { compare: (a: string, b: string) => a.localeCompare(b) } as never;
+    const view = (agg: "count" | "avg", cells = matrixCells(ROWS, { rows: "prov", cols: "estado", agg, value: "monto" })) => ({
+      config: { rows: "prov", cols: "estado", agg, value: agg === "count" ? "" : "monto" },
+      axes: COLS.filter((c) => c.key === "prov" || c.key === "estado"),
+      measures: COLS.filter((c) => c.key === "monto"),
+      cells,
+      loading: false,
+      failed: false,
+      passes: () => true,
+    });
+    expect(matrixSheet(view("count"), null, loc)).toEqual({
+      header: ["Proveedor × Estado", "Pendiente", "Aprobado", "Anulado", "Total"],
+      rows: [
+        ["Aceros", 2, 1, 0, 3],
+        ["Empaques", 0, 1, 0, 1],
+        ["Químicos", 1, 0, 0, 1],
+        ["(Sin dato)", 0, 1, 0, 1],
+        ["Total", 3, 3, 0, 6],
+      ],
+    });
+    const avg = matrixSheet(view("avg"), null, loc)!;
+    expect(avg.money?.key).toBe("monto");
+    expect(avg.rows[0]).toEqual(["Aceros", 5_000_000, 500_000, null, 3_500_000]);
+    expect(matrixSheet({ ...view("count"), cells: null }, null, loc)).toBeNull();
+  });
+
+  it("el autofiltro deja fuera las filas del pie", () => {
+    const xml = sheetXml(["A", "B"], [["x", 1], ["Total", 1]], ["text", "number"], [10, 10], [], 1);
+    expect(xml).toContain('<autoFilter ref="A1:B2"/>');
   });
 });

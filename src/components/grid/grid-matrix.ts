@@ -87,6 +87,80 @@ function axisValues(col: GridColumn | undefined, cells: readonly GridMatrixCell[
   return [...declared, ...rest, ...(n.has("") ? [""] : [])];
 }
 
+/** La matriz resuelta (los valores de cada eje en orden, sus nombres, los cruces y cómo se suma un
+ *  total): lo mismo para pintarla y para exportarla. `null` si no hay qué cruzar. */
+function resolve(v: MatrixView, L: GridMatrixLabels, loc: NxFormat) {
+  const m = v.config;
+  const cells = v.cells ?? [];
+  const rowCol = v.axes.find((c) => c.key === m.rows);
+  const colCol = v.axes.find((c) => c.key === m.cols);
+  const rows = axisValues(rowCol, cells, "row", loc, (x) => v.passes(m.rows, x));
+  const cols = axisValues(colCol, cells, "col", loc, (x) => v.passes(m.cols, x));
+  if (!rows.length || !cols.length) return null;
+  // Los nombres: «sin dato», la etiqueta de la opción, la que mandó el servidor, o el valor.
+  const names = { row: new Map<string, string>(), col: new Map<string, string>() };
+  for (const c of cells) {
+    if (c.rowLabel) names.row.set(c.row, c.rowLabel);
+    if (c.colLabel) names.col.set(c.col, c.colLabel);
+  }
+  const name = (side: "row" | "col", x: string) => (x === "" ? L.matrixBlank : ((side === "row" ? rowCol : colCol)?.options?.find((o) => o.value === x)?.label ?? names[side].get(x) ?? x));
+  const at = new Map(cells.map((c) => [`${c.row}\u0000${c.col}`, c]));
+  // Un total: los conteos y las sumas se suman; los promedios se ponderan por sus filas (sin
+  // ellas no hay cómo: va sin total).
+  const total = (list: GridMatrixCell[]): number | null => {
+    if (m.agg !== "avg") return list.reduce((a, c) => a + c.value, 0);
+    let n = 0;
+    let s = 0;
+    for (const c of list) {
+      if (c.count === undefined) return null;
+      n += c.count;
+      s += c.value * c.count;
+    }
+    return n ? s / n : 0;
+  };
+  return {
+    rows,
+    cols,
+    name,
+    at,
+    total,
+    measure: v.measures.find((c) => c.key === m.value),
+    inner: cells.filter((c) => rows.includes(c.row) && cols.includes(c.col)),
+    rowName: rowCol?.label ?? m.rows,
+    colName: colCol?.label ?? m.cols,
+  };
+}
+
+/** La matriz como hoja de Excel, tal como se ve: los nombres del eje de filas en la primera columna,
+ *  un cruce por celda, «Total» a la derecha y la fila «Total» al final. Números de verdad (los
+ *  montos completos, sin abreviar); un cruce sin filas es 0 al contar o sumar y va vacío en un
+ *  promedio, como un total que no se puede ponderar. `money`: la columna de montos que se suma o
+ *  se promedia (para su formato). `null` mientras los cruces no han llegado. */
+export function matrixSheet(v: MatrixView, labelsIn: unknown, loc: NxFormat): { header: string[]; rows: (string | number | null)[][]; money?: GridColumn } | null {
+  if (!v.cells) return null;
+  const L = mergeLabels(MATRIX_LABELS, labelsIn);
+  const m = v.config;
+  const x = resolve(v, L, loc);
+  const corner = x ? `${x.rowName} × ${x.colName}` : `${m.rows} × ${m.cols}`;
+  if (!x) return { header: [corner, L.matrixTotal], rows: [] };
+  const val = (n: number | null) => (n === null ? null : m.agg === "avg" ? Math.round(n * 100) / 100 : n);
+  const empty = m.agg === "avg" ? null : 0;
+  const body = x.rows.map((r) => [
+    x.name("row", r),
+    ...x.cols.map((c) => {
+      const cell = x.at.get(`${r}\u0000${c}`);
+      return cell ? val(cell.value) : empty;
+    }),
+    val(x.total(v.cells!.filter((c) => c.row === r))),
+  ]);
+  const foot = [L.matrixTotal, ...x.cols.map((c) => val(x.total(v.cells!.filter((y) => y.col === c)))), val(x.total(x.inner))];
+  return {
+    header: [corner, ...x.cols.map((c) => x.name("col", c)), L.matrixTotal],
+    rows: [...body, foot],
+    ...(m.agg !== "count" && x.measure?.type === "money" ? { money: x.measure } : {}),
+  };
+}
+
 export class MatrixUI {
   #host: MatrixHost;
   #L: GridMatrixLabels = MATRIX_LABELS;
@@ -201,38 +275,13 @@ export class MatrixUI {
   #table(v: MatrixView, L: GridMatrixLabels): void {
     const loc = this.#host.loc;
     const m = v.config;
-    const cells = v.cells!;
-    const rowCol = v.axes.find((c) => c.key === m.rows);
-    const colCol = v.axes.find((c) => c.key === m.cols);
-    const rows = axisValues(rowCol, cells, "row", loc, (x) => v.passes(m.rows, x));
-    const cols = axisValues(colCol, cells, "col", loc, (x) => v.passes(m.cols, x));
-    if (!rows.length || !cols.length) {
+    const x = resolve(v, L, loc);
+    if (!x) {
       this.#box.replaceChildren(h("p", { class: "nx-grid__mx-state" }, this.#host.labels.empty));
       return;
     }
-    // Los nombres: «sin dato», la etiqueta de la opción, la que mandó el servidor, o el valor.
-    const names = { row: new Map<string, string>(), col: new Map<string, string>() };
-    for (const c of cells) {
-      if (c.rowLabel) names.row.set(c.row, c.rowLabel);
-      if (c.colLabel) names.col.set(c.col, c.colLabel);
-    }
-    const name = (side: "row" | "col", x: string) => (x === "" ? L.matrixBlank : ((side === "row" ? rowCol : colCol)?.options?.find((o) => o.value === x)?.label ?? names[side].get(x) ?? x));
-    const at = new Map(cells.map((c) => [`${c.row}\u0000${c.col}`, c]));
-    // Un total: los conteos y las sumas se suman; los promedios se ponderan por sus filas (sin
-    // ellas no hay cómo: va sin total).
-    const total = (list: GridMatrixCell[]): number | null => {
-      if (m.agg !== "avg") return list.reduce((a, c) => a + c.value, 0);
-      let n = 0;
-      let s = 0;
-      for (const c of list) {
-        if (c.count === undefined) return null;
-        n += c.count;
-        s += c.value * c.count;
-      }
-      return n ? s / n : 0;
-    };
-    const measure = v.measures.find((c) => c.key === m.value);
-    const inner = cells.filter((c) => rows.includes(c.row) && cols.includes(c.col));
+    const { rows, cols, name, at, total, measure, inner, rowName, colName } = x;
+    const cells = v.cells!;
     const max = Math.max(0, ...inner.map((c) => c.value));
     const money = m.agg !== "count" && measure?.type === "money";
     const short = money && max >= 1e6;
@@ -246,8 +295,6 @@ export class MatrixUI {
     // Lo que sobra a la derecha: una celda vacía que se lleva el ancho, para que las líneas de las
     // filas, el encabezado y los totales lleguen al borde sin ensanchar ninguna columna.
     const fill = (tag: "th" | "td") => h(tag, { class: "nx-grid__mx-fill", "aria-hidden": "true" });
-    const rowName = rowCol?.label ?? m.rows;
-    const colName = colCol?.label ?? m.cols;
 
     const head = h(
       "tr",

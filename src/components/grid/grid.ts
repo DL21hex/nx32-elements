@@ -63,7 +63,7 @@ import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequen
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { MatrixConfig, MatrixHost, MatrixUI, MatrixView } from "./grid-matrix";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -72,6 +72,7 @@ export const GRID_LABELS: GridLabels = {
   export: "Exportar",
   exporting: "Exportando…",
   exported: "Se exportaron {n} filas",
+  exportedMatrix: "Se exportó la matriz",
   exportError: "No se pudo exportar",
   rows: "{n} filas",
   of: "{n} de {total} filas",
@@ -1009,18 +1010,45 @@ export class NxGrid extends Base {
     this.#dataChanged();
   }
 
-  /** Descarga las filas filtradas y ordenadas como .xlsx (el generador se carga solo en este
-   *  momento) y resuelve con cuántas filas llevó. En modo servidor las pide por bloques; si el
-   *  servidor falla, la promesa se rechaza. Sale `nx-grid-export` con el resultado. */
-  async exportXlsx(filename = this.filename): Promise<number> {
+  /** Descarga lo que se ve como .xlsx (el generador se carga solo en este momento) y resuelve con
+   *  cuántas filas llevó. En la tabla, las filas filtradas y ordenadas: en modo servidor las pide por
+   *  bloques, y si el servidor falla, la promesa se rechaza. En la matriz, la matriz tal como se ve
+   *  (las filas son las de su eje; el nombre, `filename` con «-matriz»). Sale `nx-grid-export` con
+   *  el resultado. */
+  async exportXlsx(filename?: string): Promise<number> {
+    const layout = this.layout;
+    const name = filename ?? (layout === "matrix" ? `${this.filename}-${this.#labels.layoutMatrix.toLowerCase()}` : this.filename);
     try {
-      const n = await this.#export(filename);
-      this.#emit("nx-grid-export", { ok: true, count: n, filename });
+      const n = layout === "matrix" ? await this.#exportMatrix(name) : await this.#export(name);
+      this.#emit("nx-grid-export", { ok: true, count: n, filename: name, layout } satisfies GridExportDetail);
       return n;
     } catch (err) {
-      this.#emit("nx-grid-export", { ok: false, count: 0, filename, error: String((err as Error)?.message ?? err) });
+      this.#emit("nx-grid-export", { ok: false, count: 0, filename: name, layout, error: String((err as Error)?.message ?? err) } satisfies GridExportDetail);
       throw err;
     }
+  }
+
+  /** La matriz como se ve, en una hoja: la fila «Total» queda fuera del autofiltro (ordenar no la
+   *  mezcla con las demás). */
+  async #exportMatrix(filename: string): Promise<number> {
+    const [{ buildXlsx, moneyFormat }, { matrixSheet }] = await Promise.all([import("./xlsx"), import("./grid-matrix")]);
+    const sheet = matrixSheet(this.#matrixHost().view(), this.#labelsIn, this.#loc);
+    if (!sheet) throw new Error("la matriz no ha llegado");
+    const { header, rows, money } = sheet;
+    const type = money ? "money" : "number";
+    const types = header.map((_, i) => (i ? type : "text"));
+    const widths = header.map((t, ci) => {
+      let w = Math.max(10, t.length + 3);
+      for (const r of rows) w = Math.max(w, String(r[ci] ?? "").length + 2);
+      return Math.min(50, w);
+    });
+    const decimals = rows.some((r) => r.some((v, i) => i > 0 && typeof v === "number" && !Number.isInteger(v))) ? 2 : 0;
+    const format = money ? moneyFormat(this.#loc.money(0, money).replace(/[\d\s.,\u00a0\u202f-]/g, ""), decimals) : undefined;
+    const blob = await buildXlsx(filename, header, rows, types, widths, header.map((_, i) => (i ? format : undefined)), rows.length ? 1 : 0);
+    const a = h("a", { href: URL.createObjectURL(blob), download: `${filename}.xlsx` });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return Math.max(0, rows.length - 1);
   }
 
   async #export(filename: string): Promise<number> {
@@ -1853,7 +1881,7 @@ export class NxGrid extends Base {
     // contiene la tabla no los cuenta como «cambios sin guardar»).
     this.#groupSel = h("select", { class: "nx-grid__btn nx-grid__group", "data-nx-ephemeral": "", "data-table-only": "" });
     this.#groupSel.addEventListener("change", () => (this.groupBy = this.#groupSel!.value));
-    this.#exportBtn = h("button", { type: "button", class: "nx-grid__btn", "data-table-only": "" }, glyph(DOWNLOAD), h("span"));
+    this.#exportBtn = h("button", { type: "button", class: "nx-grid__btn" }, glyph(DOWNLOAD), h("span"));
     // Mientras exporta (en modo servidor pide todas las filas, puede tardar), el botón gira y no
     // atiende otro clic. No se usa `disabled`: sacaría el foco del botón al teclado.
     this.#exportBtn.addEventListener("click", () => {
@@ -1871,9 +1899,10 @@ export class NxGrid extends Base {
         else if (note.textContent === this.#labels.exportError) note.textContent = "";
         note.hidden = !note.textContent;
       };
+      const matrix = this.layout === "matrix";
       this.exportXlsx()
         .then(
-          (n) => say(this.#fmt(this.#labels.exported, { n: this.#loc.number(n) }), false),
+          (n) => say(matrix ? this.#labels.exportedMatrix : this.#fmt(this.#labels.exported, { n: this.#loc.number(n) }), false),
           (err) => {
             console.warn("[nx-grid] no se pudo exportar", err);
             say(this.#labels.exportError, true);

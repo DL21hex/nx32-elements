@@ -157,7 +157,7 @@ export function cellText(s: string): string {
 const SHEET_PART = 2000;
 
 /** La hoja por partes: el principio, cada bloque de filas y el final. */
-export function* sheetParts(header: string[], rows: XlsxCell[][], types: XlsxType[], widths: number[], styles: (number | undefined)[] = []): Generator<string> {
+export function* sheetParts(header: string[], rows: XlsxCell[][], types: XlsxType[], widths: number[], styles: (number | undefined)[] = [], foot = 0): Generator<string> {
   const style = { text: 0, date: 2, money: 3, number: 4 } as const;
   const last = colName(header.length - 1);
   const names = header.map((_, i) => colName(i));
@@ -185,12 +185,12 @@ export function* sheetParts(header: string[], rows: XlsxCell[][], types: XlsxTyp
     }
     yield out;
   }
-  yield `</sheetData><autoFilter ref="A1:${last}${rows.length + 1}"/></worksheet>`;
+  yield `</sheetData><autoFilter ref="A1:${last}${rows.length + 1 - foot}"/></worksheet>`;
 }
 
 /** La hoja en una sola cadena (para hojas chicas y pruebas; el libro usa `sheetParts`). */
-export function sheetXml(header: string[], rows: XlsxCell[][], types: XlsxType[], widths: number[], styles: (number | undefined)[] = []): string {
-  return [...sheetParts(header, rows, types, widths, styles)].join("");
+export function sheetXml(header: string[], rows: XlsxCell[][], types: XlsxType[], widths: number[], styles: (number | undefined)[] = [], foot = 0): string {
+  return [...sheetParts(header, rows, types, widths, styles, foot)].join("");
 }
 
 /** El nombre de la hoja como lo acepta Excel: sin `\ / ? * [ ] :`, sin apóstrofo al principio ni al
@@ -199,8 +199,9 @@ export function sheetName(name: string): string {
   return name.replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31).replace(/^['\s]+|['\s]+$/g, "") || "Hoja1";
 }
 
-/** El libro completo, listo para descargar. */
-export async function buildXlsx(title: string, header: string[], rows: XlsxCell[][], types: XlsxType[], widths: number[], formats?: (string | undefined)[]): Promise<Blob> {
+/** El libro completo, listo para descargar. `foot`: las últimas filas (los totales) quedan fuera del
+ *  autofiltro, así que ordenar no las mezcla con las demás. */
+export async function buildXlsx(title: string, header: string[], rows: XlsxCell[][], types: XlsxType[], widths: number[], formats?: (string | undefined)[], foot = 0): Promise<Blob> {
   const name = xmlText(sheetName(title));
   // En la referencia del autofiltro el nombre va entre apóstrofos: uno propio se duplica («O''Brien»).
   const ref = name.replace(/'/g, "''");
@@ -216,7 +217,7 @@ export async function buildXlsx(title: string, header: string[], rows: XlsxCell[
     ],
     [
       "xl/workbook.xml",
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${name}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${ref}'!$A$1:$${colName(header.length - 1)}$${rows.length + 1}</definedName></definedNames></workbook>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${name}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">'${ref}'!$A$1:$${colName(header.length - 1)}$${rows.length + 1 - foot}</definedName></definedNames></workbook>`,
     ],
     [
       "xl/_rels/workbook.xml.rels",
@@ -229,7 +230,7 @@ export async function buildXlsx(title: string, header: string[], rows: XlsxCell[
   const sheet: Uint8Array[] = [];
   let crc = 0;
   let t = performance.now();
-  for (const part of sheetParts(header, rows, types, widths, style)) {
+  for (const part of sheetParts(header, rows, types, widths, style, foot)) {
     const bytes = enc.encode(part);
     sheet.push(bytes);
     crc = crc32(bytes, crc);

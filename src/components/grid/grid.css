@@ -937,12 +937,15 @@ nx-grid:has(> .nx-grid__main.is-matrix) > :is(.nx-grid__selbar, [slot="bulk"], .
 nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
   display: none !important;
 }
-/* La caja de la tabla, del mismo alto: cambiar de una a otra no mueve la página. */
+/* La caja de la tabla, del mismo alto: cambiar de una a otra no mueve la página. Como la tabla,
+   `contain: size`: sus filas no cuentan para su alto (se desplazan dentro); si contaran, con
+   `height="fill"` la página reservaba el alto de toda la matriz y quedaba un scroll a hueco. */
 .nx-grid__matrix {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-inline-size: 0;
+  contain: size;
   min-block-size: var(--nx-grid-height);
   overflow: hidden;
   border: 1px solid var(--nx-border);

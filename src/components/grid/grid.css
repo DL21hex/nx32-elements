@@ -186,32 +186,12 @@ nx-grid .nx-glyph {
   gap: 10px 24px;
   margin-block-end: 12px;
 }
+/* El título de la tabla que es la página: la letra y el cuadro del ícono son los del título de
+   página (`.nx-page-title`, en tokens.css, el mismo de `<nx-page-header>`); aquí, sólo su lugar en
+   la fila. `--nx-grid-heading-size` sigue cambiando sólo el de la tabla. */
 .nx-grid__heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   flex: 1 1 auto;
-  min-inline-size: 0;
-  margin: 0;
-  font-size: var(--nx-grid-heading-size, 22px);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
-  text-wrap: balance;
-}
-/* `heading-icon`: el ícono del módulo en un cuadro con el degradado del acento. Acompaña al título,
-   no compite con él: poco más alto que su línea, el ícono a su tamaño de siempre (18 px) y sin
-   sombra de color debajo; solo el reflejo de arriba. */
-.nx-grid__heading-icon {
-  display: grid;
-  flex: none;
-  place-items: center;
-  inline-size: 32px;
-  block-size: 32px;
-  border-radius: calc(var(--nx-radius-lg) - 2px);
-  background: var(--nx-primary-gradient);
-  color: oklch(0.99 0 0);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.2);
+  font-size: var(--nx-grid-heading-size, var(--nx-page-heading-size));
 }
 /* Atajos: tarjetas con un filtro y su conteo. Marcada, la del filtro que se está viendo. Con tono, el
    conteo va en su color y, marcada, la tarjeta también: el color se lo lleva el atajo que señala algo. */
@@ -288,7 +268,7 @@ nx-grid .nx-glyph {
 /* Junto al título, los atajos son un filtro segmentado en la fila de abajo: «Todos» y uno por atajo,
    cada uno con su conteo; el marcado, en blanco sobre el gris. Con tono, el conteo va en su color.
    Si no caben, se desplazan de lado. Los que llevan a otra página van después, como enlaces con ↗. */
-.nx-grid__top[data-heading] > .nx-grid__presets {
+.nx-grid__top:is([data-heading], [data-segments]) > .nx-grid__presets {
   display: flex;
   flex: 1 1 100%;
   flex-wrap: wrap;
@@ -414,7 +394,7 @@ nx-grid .nx-glyph {
 a.nx-grid__preset {
   text-decoration: none;
 }
-.nx-grid__top:not([data-heading]) {
+.nx-grid__top:not([data-heading], [data-segments]) {
   & .nx-grid__preset[data-link] {
     position: relative;
     padding-inline-end: 32px;

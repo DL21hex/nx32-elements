@@ -37,6 +37,7 @@ export * from "./components/signature/index";
 export * from "./components/print/index";
 export * from "./components/badge/index";
 export * from "./components/notice/index";
+export * from "./components/page-header/index";
 export * from "./components/fields/index";
 export * from "./components/field/index";
 export * from "./components/form/index";

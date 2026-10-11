@@ -370,6 +370,12 @@ test("sin conexión: la píldora en cada estado, el panel, el comparador y el ed
   await audit(page, ["#sync-demo"]);
 });
 
+test("cabecera de página, sin acciones (con la tabla de segmentos) y con acciones", async ({ page }) => {
+  await open(page, "#/page-header");
+  await expect(page.locator("#ph-grid .nx-grid__segment").first()).toBeVisible();
+  await audit(page, ["nx-page-header", "#ph-grid"]);
+});
+
 test("ruta navegable, en reposo y con el menú de un separador abierto", async ({ page }) => {
   await open(page, "#/breadcrumb");
   await audit(page, ["#bc-demo"]);

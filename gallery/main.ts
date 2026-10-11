@@ -53,6 +53,7 @@ import "./pages/home.css";
 import { mountCardsDemo } from "./demo-cards";
 import { mountOrgDemo } from "./demo-org";
 import { mountBreadcrumbDemo } from "./demo-breadcrumb";
+import { mountPageHeaderDemo } from "./demo-page-header";
 import "./pages/breadcrumb.css";
 import "./pages/launcher.css";
 import "./pages/handoff.css";
@@ -154,6 +155,7 @@ const NAV: MenuItem[] = [
     children: [
       { id: "sidemenu", label: "SideMenu", href: "#/sidemenu", icon: "clipboard-list" },
       { id: "breadcrumb", label: "Ruta navegable", href: "#/breadcrumb", icon: "folder" },
+      { id: "page-header", label: "Cabecera de página", href: "#/page-header", icon: "layout-grid" },
       { id: "command", label: "Paleta de comandos", href: "#/command", icon: "circle-question-mark" },
       { id: "launcher", label: "Launcher", href: "#/launcher", icon: "layout-grid" },
       { id: "launcher-inicio", label: "Inicio por secciones", href: "#/launcher-inicio", icon: "layout-grid" },
@@ -265,6 +267,7 @@ const PAGES: Record<string, { template: string; mount?: (root: HTMLElement) => v
   "#/print": { template: "page-print", mount: mountPrintDemo },
   "#/drawer": { template: "page-drawer", mount: mountDrawerDemo },
   "#/breadcrumb": { template: "page-breadcrumb", mount: mountBreadcrumbDemo },
+  "#/page-header": { template: "page-page-header", mount: mountPageHeaderDemo },
   "#/signature": { template: "page-signature", mount: mountSignatureDemo },
   "#/planner": { template: "page-planner", mount: mountPlannerDemo },
   "#/review": { template: "page-review", mount: mountReviewDemo },

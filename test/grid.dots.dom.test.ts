@@ -145,7 +145,7 @@ describe("nx-grid: ícono del título", () => {
     const el = mount('heading="Empleados" heading-icon="users-test"');
     const h = el.querySelector(".nx-grid__heading")!;
     const tile = h.firstElementChild!;
-    expect(tile.className).toBe("nx-grid__heading-icon");
+    expect(tile.className).toBe("nx-grid__heading-icon nx-page-title__icon");
     expect(tile.getAttribute("aria-hidden")).toBe("true");
     expect(tile.querySelector(".nx-icon svg")).not.toBeNull();
     expect(h.textContent).toBe("Empleados");

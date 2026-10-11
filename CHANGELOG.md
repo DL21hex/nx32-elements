@@ -1,5 +1,37 @@
 # Registro de cambios
 
+## 0.12.0 — 2026-10-10
+
+La cabecera de una página es UNA y es de la librería: el título de la página deja de vivir en la
+tabla.
+
+### `<nx-page-header>` (nuevo): la cabecera de una página
+
+- La ruta (el hijo sin `slot`, un `<nx-breadcrumb>`), el título con el ícono de su módulo
+  (`heading`, `heading-icon`), el subtítulo (`subheading`), las acciones (`slot="actions"`, a la
+  derecha del título y, si no caben, debajo de él, nunca antes) y la navegación a páginas hermanas
+  (`slot="nav"`). Los hijos no se mueven; `order` y `reading-flow` ordenan.
+- En BDUI, `PageHeader`. En Solid, `<PageHeader>` (`nx32-elements/solid/page-header`).
+
+### Tokens: un solo título de página
+
+- `.nx-page-title` y `.nx-page-title__icon` (piezas compartidas de tokens.css): la letra del título
+  de una página y el cuadro del ícono con `--nx-primary-gradient`. Las usan `<nx-page-header>` y el
+  título de `<nx-grid>`, así que no pueden divergir. `--nx-page-heading-size` (22 px) es su tamaño;
+  `--nx-grid-heading-size` sigue cambiando sólo el de la tabla.
+
+### `<nx-grid>`: segmentos sin título
+
+- `segments`: los atajos como filtro segmentado («Todos» y uno por atajo, con su conteo) aunque la
+  tabla no lleve título, para la tabla de una página cuyo título pone `<nx-page-header>`. Sin título
+  ni `segments`, siguen siendo tarjetas. El cuadro del ícono del título lleva además la clase
+  compartida `nx-page-title__icon`.
+
+### Galería
+
+- «Cabecera de página» (`#/page-header`): Empleados (sin acciones, con la tabla de segmentos) y
+  Contratación (con acciones y subtítulo).
+
 ## 0.11.0 — 2026-10-10
 
 **Rompe la API en una cosa:** el velo del acento ya no lo pinta `<nx-grid>`. La app marca el

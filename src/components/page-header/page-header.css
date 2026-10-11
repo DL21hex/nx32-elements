@@ -1,0 +1,52 @@
+/*
+ * <nx-page-header>. Una fila que se parte: la ruta ocupa su renglón; el bloque del título (con su
+ * subtítulo) y las acciones comparten el siguiente (las acciones bajan DEBAJO del bloque si no
+ * caben, nunca antes); la navegación, el suyo. Los hijos del autor no se mueven: el componente
+ * agrega el bloque del título al final y `order` lo sube.
+ */
+
+nx-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  /* El título va al final del DOM y `order` lo sube: Tab y el lector siguen lo que se ve. */
+  reading-flow: flex-visual;
+}
+/* La ruta: el hijo del autor sin `slot`. */
+nx-page-header > :not([slot], .nx-page-header__head) {
+  order: 0;
+  flex: 1 0 100%;
+  min-inline-size: 0;
+}
+/* El título y su subtítulo, en un bloque: las acciones van a su derecha (alineadas con el título)
+   o, si no caben, debajo del bloque entero. */
+nx-page-header > .nx-page-header__head {
+  order: 1;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+nx-page-header > [slot="actions"] {
+  order: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: start;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+.nx-page-header__subheading {
+  margin: 4px 0 0;
+  color: var(--nx-muted-foreground);
+  font-size: 14px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+nx-page-header > [slot="nav"] {
+  order: 3;
+  flex: 1 0 100%;
+  min-inline-size: 0;
+  margin-block-start: 4px;
+}

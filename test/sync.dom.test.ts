@@ -180,10 +180,10 @@ describe("<nx-sync>", () => {
   it("4xx: «rechazado» con el mensaje; se corrige el JSON (validado) y se reintenta", async () => {
     const el = mount();
     replies.push(() => res(422, { message: "Superó el cupo de crédito" }));
-    await enqueue("Pedido · Doña Carmen");
+    await enqueue("Pedido · Doña Rosa");
     await vi.waitFor(() => expect(el.state.failed).toBe(1));
     expect(pill(el).textContent).toBe("1 no se pudo enviar");
-    expect(live(el)).toBe("No se pudo enviar «Pedido · Doña Carmen».");
+    expect(live(el)).toBe("No se pudo enviar «Pedido · Doña Rosa».");
     el.show();
     expect(el.querySelector(".nx-sync__tag")!.textContent).toBe("Rechazado");
     expect(el.querySelector(".nx-sync__why")!.textContent).toBe("Superó el cupo de crédito");

@@ -64,9 +64,9 @@ export interface GridColumn {
   avatar?: boolean | "neutral";
   /** Con `avatar`: la clave de la fila que trae las iniciales (`"iniciales"`), hasta tres letras.
    *  Sin ella, o en una fila que no las trae, salen del texto: la primera letra de las dos primeras
-   *  palabras. Con dos nombres y dos apellidos eso da dos nombres («Abel Andres Hernandez Carrillo»
-   *  es AA, no AH), y partir un nombre completo a ciegas no tiene arreglo («Abel Dario de Luquez
-   *  Epinayu»): quien tiene nombres y apellidos por separado manda las iniciales. */
+   *  palabras. Con dos nombres y dos apellidos eso da dos nombres («Luis Fernando Ortega Salas»
+   *  es LF, no LO), y partir un nombre completo a ciegas no tiene arreglo («Ana Dolores de la Hoz
+   *  Pertuz»): quien tiene nombres y apellidos por separado manda las iniciales. */
   initials?: string;
   /** Un punto de color antes de cada valor, en vez de la píldora: para clasificar sin gritar (el
    *  tipo de contrato, la sede). El color es el `tone` de su opción o, sin tono, uno de ocho por el

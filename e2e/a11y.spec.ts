@@ -359,7 +359,7 @@ test("sin conexión: la píldora en cada estado, el panel, el comparador y el ed
   await expect(pill).toHaveText("En línea");
   await page.keyboard.press("Escape");
   await page.getByRole("switch", { name: /responde con conflicto/ }).click();
-  await page.locator('[name="cliente"]').selectOption({ label: "Tienda Doña Carmen · La Victoria" });
+  await page.locator('[name="cliente"]').selectOption({ label: "Tienda Doña Rosa · Los Almendros" });
   await page.getByRole("spinbutton", { name: "Cantidad de Arroz blanco 500 g" }).fill("90");
   await page.getByRole("button", { name: "Tomar pedido" }).click();
   await expect(pill).toHaveText(/no se pudo enviar/);

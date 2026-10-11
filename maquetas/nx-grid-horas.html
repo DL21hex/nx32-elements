@@ -344,8 +344,8 @@ td.st.is-editing { padding: 0; }
   </div>
 
   <p class="note">
-    <b>Prototipo con datos de ejemplo.</b> El reloj arranca a las 14:35. Prueba: escribe <kbd>2</kbd> en «Última caja» de Agua Fría
-    (se entiende 14:00), <kbd>150</kbd> en la de Cecilia, <kbd>+20</kbd> (20 min después del paso anterior), <kbd>-10</kbd> (hace 10 min),
+    <b>Prototipo con datos de ejemplo.</b> El reloj arranca a las 14:35. Prueba: escribe <kbd>2</kbd> en «Última caja» de La Arboleda
+    (se entiende 14:00), <kbd>150</kbd> en la de La Guacharaca, <kbd>+20</kbd> (20 min después del paso anterior), <kbd>-10</kbd> (hace 10 min),
     <kbd>ahora</kbd> o <kbd>Ctrl</kbd>+<kbd>:</kbd> (también en un rango), pega horas desde Excel, <kbd>Supr</kbd> y <kbd>Ctrl</kbd>+<kbd>Z</kbd>.
   </p>
 </div>
@@ -402,22 +402,24 @@ td.st.is-editing { padding: 0; }
   }
   const R = rng(20261007);
 
-  const FINCAS = ("Burdeos|BUR;San Antonio|SAN;Yunque|YUN;Donama|DON;Naranjo 125|N125;Naranjos 99|N99;Neerlandia|NEE;" +
-    "Cecilia|CEC;Eva|EVA;Las Margaritas 98|LM98;Lina Margarita 109|LIN;La Gloria|GLO;Santa Rosalía|SRO;El Reposo|REP;" +
-    "Tucurinca|TUC;Guacamayal|GUA;Sevilla|SEV;Riofrío|RIO;La Candelaria|CAN;Orihueca|ORI;Varela|VAR;La Esmeralda|ESM;" +
-    "Macondo|MAC;El Mamón|MAM;Iberia|IBE;La Ye|LYE;Santa Cruz|SCR;Palmira|PAL;La Agustina|AGU;El Prado|PRA;Soplador|SOP;" +
-    "Patuca|PAT;La Unión|UNI;Tierra Nueva|TNU;Bellavista|BEL;El Retiro|RET;La Francia|FRA;Las Mercedes|MER;San Pablo|SPA;" +
-    "Zacapa|ZAC;El Carmen|CAR;La Rita|RIT;Agua Fría|AFR;Los Cocos|COC;Santa Isabel|SIS;La Floresta|FLO;El Paraíso|PAR;" +
-    "Las Palmas|PLM;Candelaria 2|CA2;Gran Vía|GVI;La Josefa|JOS;San Martín|SMA;La Aurora|AUR;Mata de Caña|MCA;" +
-    "El Porvenir|POR;Rionegro|RNE;La Concepción|CON").split(";").map((x) => x.split("|"));
+  const FINCAS = ("Los Almendros|ALM;El Guayabo|GUA;Las Acacias|ACA;El Totumo|TOT;Los Mangos|MAN;Las Ceibas|CEI;" +
+    "El Caracolí|CAR;La Guacharaca|GUC;El Cañaguate|CAN;Los Robles|ROB;El Higuerón|HIG;La Bonga|BON;" +
+    "Los Corozos|COR;El Samán|SAM;Las Garzas|GAR;El Mamoncillo|MAM;La Iguana|IGU;Los Cardonales|CAD;" +
+    "El Turpial|TUR;La Mochila|MOC;Los Olivos|OLI;El Guácimo|GUI;Las Brisas del Río|RIO;El Roble|ROL;" +
+    "La Palmita|PAL;Los Laureles|LAU;El Cedro|CED;La Chalaca|CHA;El Cerezo|CER;Las Orquídeas|ORQ;Los Pinos|PIN;" +
+    "El Moral|MOR;La Tulipana|TUL;El Carreto|CAE;Las Heliconias|HEL;El Mangle|MAG;Los Naranjales|NAR;" +
+    "La Cañada|CAA;El Cují|CUJ;Las Gaviotas|GAV;El Pelícano|PEL;Los Guaduales|GUD;La Arboleda|ARB;El Ciruelo|CIR;" +
+    "Los Tamarindos|TAM;El Toche|TOC;La Guadua|GUU;El Algarrobo|ALG;Las Cayenas|CAY;El Aromo|ARO;" +
+    "Los Cocoteros|COC;El Paujil|PAU;La Pradera|PRA;El Yarumo|YAR;El Botón de Oro|ORO;Los Cauchos|CAU;" +
+    "El Matarratón|MAT").split(";").map((x) => x.split("|"));
 
   // Casos fijos: los que se ven a diario en producción.
   const FIXED = {
-    "Agua Fría": ["06:05", "06:31"],                                          // va por «Última caja»
-    "Bellavista": ["05:48", null, "11:52", "12:07", "12:40", "13:02", "13:45"], // se saltó «Primer pallet»
-    "Cecilia": ["06:20", "06:44", "01:50", "14:02"],                          // 01:50 que era 13:50
-    "Sevilla": [null, null, null, null, null, null, "13:40"],                 // sólo la salida
-    "Zacapa": [], "La Rita": [], "Rionegro": [], "Mata de Caña": [],           // sin empezar
+    "La Arboleda": ["06:05", "06:31"],                                          // va por «Última caja»
+    "Las Heliconias": ["05:48", null, "11:52", "12:07", "12:40", "13:02", "13:45"], // se saltó «Primer pallet»
+    "La Guacharaca": ["06:20", "06:44", "01:50", "14:02"],                          // 01:50 que era 13:50
+    "La Iguana": [null, null, null, null, null, null, "13:40"],                 // sólo la salida
+    "Las Gaviotas": [], "Los Guaduales": [], "Los Cauchos": [], "El Yarumo": [],           // sin empezar
   };
 
   const rows = FINCAS.map(([name, code], id) => {

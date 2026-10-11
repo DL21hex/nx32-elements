@@ -441,8 +441,8 @@ El inicio de una persona: cuatro componentes nuevos y los festivos en el núcleo
   («ADMINISTRACION SM BAN…») se veían idénticas y nada mostraba el resto.
 - **Iniciales que trae la fila (`initials` en la columna).** Nombra la clave de la fila con las
   iniciales del avatar, hasta tres letras y en mayúsculas. Sin ella siguen saliendo de las dos
-  primeras palabras del texto, que con dos nombres y dos apellidos son dos nombres («Abel Andres
-  Hernandez Carrillo» da AA, no AH). Una clave que no es texto se quita.
+  primeras palabras del texto, que con dos nombres y dos apellidos son dos nombres («Luis Fernando
+  Ortega Salas» da LF, no LO). Una clave que no es texto se quita.
 - **La celda activa no aparece enmarcada al cargar.** El recuadro sin foco, que marca dónde se iba,
   aparece solo cuando alguien ya entró a la tabla. Antes, el de la primera celda parecía un borde
   suelto.

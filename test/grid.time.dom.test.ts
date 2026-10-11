@@ -12,8 +12,8 @@ const COLS: GridColumn[] = [
   { key: "salida", label: "Salida", type: "time", editable: true, sequence: "empaque" },
 ];
 const ROWS: GridRow[] = [
-  { id: "1", finca: "Remanso", caja: "07:00", pallet: null, salida: null },
-  { id: "2", finca: "Don Fuad", caja: null, pallet: null, salida: null },
+  { id: "1", finca: "Los Almendros", caja: "07:00", pallet: null, salida: null },
+  { id: "2", finca: "El Guayabo", caja: null, pallet: null, salida: null },
 ];
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -216,9 +216,9 @@ describe("<nx-grid> horas en su proceso", () => {
     const el = document.querySelector("nx-grid")!;
     el.columns = STEPS;
     el.rows = [
-      { id: "1", finca: "Agua Fría", caja: "06:05", pallet: "06:31", ultima: null },
-      { id: "2", finca: "Zacapa", caja: null, pallet: null, ultima: null },
-      { id: "3", finca: "Burdeos", caja: "05:50", pallet: "06:20", ultima: "13:40" },
+      { id: "1", finca: "La Arboleda", caja: "06:05", pallet: "06:31", ultima: null },
+      { id: "2", finca: "Las Gaviotas", caja: null, pallet: null, ultima: null },
+      { id: "3", finca: "El Totumo", caja: "05:50", pallet: "06:20", ultima: "13:40" },
     ];
     return el;
   };
@@ -276,7 +276,7 @@ describe("<nx-grid> horas en su proceso", () => {
     write(el, "2");
     const p = pop(el);
     expect(p.hasAttribute("data-open")).toBe(true);
-    expect(p.querySelector(".nx-grid__time-ctx")!.textContent).toBe("Agua Fría · 3. Última caja");
+    expect(p.querySelector(".nx-grid__time-ctx")!.textContent).toBe("La Arboleda · 3. Última caja");
     expect(p.querySelector(".nx-grid__time-read strong")!.textContent).toBe("14:00");
     expect(p.querySelector(".nx-grid__time-note")!.textContent).toBe("Se tomó de la tarde: va después de «Primer pallet» (06:31).");
     expect(p.querySelector(".nx-grid__time-note")!.getAttribute("data-tone")).toBe("inferred");

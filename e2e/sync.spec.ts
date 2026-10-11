@@ -64,13 +64,13 @@ test("un conflicto se resuelve campo por campo y la versión elegida se confirma
 
 test("un rechazo (cupo de crédito) se corrige en el JSON y se reintenta", async ({ page }) => {
   await openSync(page);
-  await page.locator('[name="cliente"]').selectOption({ label: "Tienda Doña Carmen · La Victoria" });
+  await page.locator('[name="cliente"]').selectOption({ label: "Tienda Doña Rosa · Los Almendros" });
   await page.getByRole("spinbutton", { name: "Cantidad de Arroz blanco 500 g" }).fill("90");
   await take(page);
   await expect(pill(page)).toHaveText("1 no se pudo enviar");
   await pill(page).click();
   await expect(page.locator(".nx-sync__why")).toHaveText(/superó su cupo de crédito/);
-  await page.getByRole("button", { name: "Corregir · Pedido · Tienda Doña Carmen" }).click();
+  await page.getByRole("button", { name: "Corregir · Pedido · Tienda Doña Rosa" }).click();
   const json = page.getByRole("textbox", { name: "Datos (JSON)" });
   const body = JSON.parse(await json.inputValue());
   await json.fill("{ roto");
@@ -79,7 +79,7 @@ test("un rechazo (cupo de crédito) se corrige en el JSON y se reintenta", async
   await json.fill(JSON.stringify(body, null, 2));
   await page.getByRole("button", { name: "Reintentar con estos datos" }).click();
   await expect(confirmed(page)).toHaveCount(1);
-  await expect(confirmed(page).first()).toContainText("Tienda Doña Carmen");
+  await expect(confirmed(page).first()).toContainText("Tienda Doña Rosa");
   await expect(pill(page)).toHaveText("En línea");
 });
 

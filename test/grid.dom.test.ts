@@ -782,15 +782,15 @@ describe("<nx-grid>", () => {
     const el = document.querySelector("nx-grid")!;
     el.columns = [{ key: "nombre", label: "Empleado", avatar: "neutral", initials: "ini" }];
     el.rows = [
-      { id: "1", nombre: "Abel Andres Hernandez Carrillo", ini: "ah" },
+      { id: "1", nombre: "Luis Fernando Ortega Salas", ini: "lo" },
       { id: "2", nombre: "Ana Maria Rincon", ini: " amrx " },
-      { id: "3", nombre: "Abel Dario de Luquez Epinayu" },
+      { id: "3", nombre: "Ana Dolores de la Hoz Pertuz" },
     ];
-    expect([...el.querySelectorAll(".nx-grid__avatar")].map((a) => a.textContent)).toEqual(["AH", "AMR", "AD"]);
+    expect([...el.querySelectorAll(".nx-grid__avatar")].map((a) => a.textContent)).toEqual(["LO", "AMR", "AD"]);
     // De afuera (BDUI), una clave que no es texto se quita y vuelven las del texto.
     el.setAttribute("columns", JSON.stringify([{ key: "nombre", label: "Empleado", avatar: true, initials: 3 }]));
     expect("initials" in el.columns[0]).toBe(false);
-    expect(el.querySelector(".nx-grid__avatar")!.textContent).toBe("AA");
+    expect(el.querySelector(".nx-grid__avatar")!.textContent).toBe("LF");
   });
 
   it("las opciones de las facetas y del filtro llevan el texto completo en `title`", async () => {

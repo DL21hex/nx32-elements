@@ -4,9 +4,9 @@ import "../src/components/org/index";
 import type { NxOrg, OrgPerson, OrgUnit } from "../src/components/org/index";
 
 const units: OrgUnit[] = [
-  { id: "c1", name: "Agrovid", kind: "Empresa" },
+  { id: "c1", name: "Agrosol", kind: "Empresa" },
   { id: "c2", name: "Quality", kind: "Empresa" },
-  { id: "s1", name: "Finca La Esperanza", parent: "c1", kind: "Subdivisión" },
+  { id: "s1", name: "Finca El Mirador", parent: "c1", kind: "Subdivisión" },
   { id: "s2", name: "Administración", parent: "c1", kind: "Subdivisión" },
   { id: "s3", name: "Planta", parent: "c2", kind: "Subdivisión" },
 ];
@@ -48,7 +48,7 @@ describe("<nx-org>: lente «Yo»", () => {
     expect(text(el.querySelector(".nx-org__crumbs"))).toContain("Marta Ríos");
     expect(text(el.querySelector(".nx-org__level--boss"))).toContain("Laura Gómez");
     expect(text(el.querySelector(".nx-org__person--center"))).toContain("Pedro Ruiz");
-    expect(text(el.querySelector(".nx-org__person--center"))).toContain("Agrovid · Finca La Esperanza");
+    expect(text(el.querySelector(".nx-org__person--center"))).toContain("Agrosol · Finca El Mirador");
     expect(text(el.querySelector(".nx-org__peers"))).toContain("Sofía León");
     expect(text(el.querySelector(".nx-org__level--team"))).toContain("Ana Díaz");
   });
@@ -179,8 +179,8 @@ describe("<nx-org>: lente «Organización»", () => {
     el.querySelector<HTMLButtonElement>('[data-open="s1"]')!.click();
     await tick();
     expect(focus).toHaveBeenLastCalledWith({ view: "map", id: "s1" });
-    expect(text(el.querySelector(".nx-org__uhead"))).toContain("Finca La Esperanza");
-    expect(text(el.querySelector(".nx-org__crumbs"))).toBe("OrganizaciónAgrovidFinca La Esperanza");
+    expect(text(el.querySelector(".nx-org__uhead"))).toContain("Finca El Mirador");
+    expect(text(el.querySelector(".nx-org__crumbs"))).toBe("OrganizaciónAgrosolFinca El Mirador");
     const tree = el.querySelector(".nx-org__level--root")!;
     expect(text(tree.querySelector(".nx-org__lead"))).toContain("Pedro Ruiz");
     expect(text(tree.querySelector(".nx-org__colhead"))).toBe("Directos con Pedro · 1");
@@ -188,7 +188,7 @@ describe("<nx-org>: lente «Organización»", () => {
     // Quien no cuelga de nadie dentro de la unidad va aparte, en tarjetas.
     expect(text(el.querySelector(".nx-org__members"))).toContain("Sofía León");
     // Dentro de la unidad, las tarjetas no repiten la unidad.
-    expect(text(tree.querySelector(".nx-org__lead"))).not.toContain("Agrovid");
+    expect(text(tree.querySelector(".nx-org__lead"))).not.toContain("Agrosol");
     el.querySelector<HTMLElement>(".nx-org__uhead")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await tick();
     expect(el.querySelector(".nx-org__uhead")).toBeNull();
@@ -212,7 +212,7 @@ describe("<nx-org>: lente «Organización»", () => {
     expect(text(el.querySelector(".nx-org__level--root .nx-org__tree"))).toContain("Laura Gómez");
     el.querySelector<HTMLButtonElement>('.nx-org__crumbs [data-go="c1"]')!.click();
     await tick();
-    expect(text(el.querySelector(".nx-org__uhead"))).toContain("Agrovid");
+    expect(text(el.querySelector(".nx-org__uhead"))).toContain("Agrosol");
     el.querySelector<HTMLButtonElement>('.nx-org__crumbs [data-go=""]')!.click();
     await tick();
     expect(el.querySelector(".nx-org__uhead")).toBeNull();

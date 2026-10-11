@@ -201,7 +201,7 @@ test("sin conexión: la píldora en cada estado, el panel, el comparador y el ed
   await expect(pill).toHaveText("En línea");
   await page.keyboard.press("Escape");
   await page.getByRole("switch", { name: /responde con conflicto/ }).click();
-  await page.locator('[name="cliente"]').selectOption({ label: "Tienda Doña Carmen · La Victoria" });
+  await page.locator('[name="cliente"]').selectOption({ label: "Tienda Doña Rosa · Los Almendros" });
   await page.getByRole("spinbutton", { name: "Cantidad de Arroz blanco 500 g" }).fill("90");
   await page.getByRole("button", { name: "Tomar pedido" }).click();
   await expect(pill).toHaveText(/no se pudo enviar/);
@@ -233,7 +233,7 @@ test("sin conexión: la píldora en cada estado, el panel, el comparador y el ed
   («Simular sin conexión»: `TypeError` como un `fetch` real sin red). `context.setOffline()` de
   Playwright funciona sin eso (la cola ve `navigator.onLine` y los eventos).
 - La demo tiene tres casos fijos: Minimercado El Progreso choca una vez con televentas (409), Tienda
-  Doña Carmen tiene cupo de $ 250.000 (422), y «Red inestable» (encendida al entrar) da 503 con
+  Doña Rosa tiene cupo de $ 250.000 (422), y «Red inestable» (encendida al entrar) da 503 con
   `Retry-After` (18 %) y respuestas perdidas tras guardar (12 %), para ver la idempotencia. Las
   pruebas e2e la apagan.
 - **Varias pestañas:** con IndexedDB y `navigator.locks`, una sola pestaña envía (candado

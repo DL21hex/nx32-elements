@@ -41,7 +41,7 @@ const PRE: [string, Cat | null][] = [
   ["Pinturas", "pi"], ["Tornillos", "fe"], ["Metales", "og"], ["Grupo", null], ["Comercial", null], ["Depósito", "og"],
   ["Materiales", "og"], ["Cables", "el"], ["Tubos y Accesorios", "hi"], ["Acabados", "pi"], ["Iluminación", "el"], ["Maderas", "og"],
 ];
-const SUF = ["del Norte", "Caribe", "Andina", "La Sabana", "Costa Azul", "El Prado", "Atlántico", "del Valle", "Magdalena", "La 30", "Central", "Puerto Colombia", "San José", "Santa Fe", "La Esperanza", "Oriente", "Pacífico", "Los Llanos", "El Rodadero", "Bocagrande", "La Castellana", "Alameda", "Galerías", "Villa Country"];
+const SUF = ["del Norte", "Caribe", "Andina", "La Sabana", "Costa Azul", "El Prado", "Atlántico", "del Valle", "Magdalena", "La 30", "Central", "Puerto Colombia", "San José", "Santa Fe", "El Mirador", "Oriente", "Pacífico", "Los Llanos", "El Rodadero", "Bocagrande", "La Castellana", "Alameda", "Galerías", "Villa Country"];
 const FIRST = ["Carolina", "Andrés", "Luisa", "Jorge", "Paola", "Camilo", "Natalia", "Hernán", "Daniela", "Óscar", "Mónica", "Felipe", "Yesenia", "Rafael", "Adriana", "Iván"];
 const LAST = ["Pérez", "Rodríguez", "Gómez", "Martínez", "Barrios", "Charris", "De la Hoz", "Ospina", "Mejía", "Cantillo", "Pineda", "Rojas", "Orozco", "Villa"];
 const NOTES: Record<string, string[]> = {

@@ -163,7 +163,9 @@ nx-select [hidden] {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.nx-select__primary {
+/* El nombre pesa más sólo cuando hay un segundo renglón que jerarquizar (una persona: nombre ·
+   cargo). Una lista simple (EPS, ciudades) se lee como la de un <select>, en peso normal. */
+.nx-select__text:has(> .nx-select__secondary) > .nx-select__primary {
   font-weight: 550;
 }
 .nx-select__secondary {

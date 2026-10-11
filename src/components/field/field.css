@@ -7,7 +7,7 @@
  * un radio con su texto), `.nx-choices` (una lista de ellos), `.nx-segmented` (radios como botones
  * pegados). Dentro de <nx-field>, un input, select o textarea hijo directo toma el estilo solo.
  * `.nx-form-grid`: seis columnas; `<nx-field span="2">` ocupa dos (en angosto, más; en un teléfono,
- * la fila).
+ * la fila: por debajo de 440 px; un panel lateral de escritorio deja ~520 y ahí dos campos caben).
  * Variables: --nx-field-height (36px) · --nx-form-grid-gap (18px 16px)
  */
 
@@ -401,7 +401,9 @@ nx-field :is(button, a):focus-visible,
     grid-column: 1 / -1;
   }
 }
-@container nx-form-grid (max-width: 520px) {
+/* Un teléfono: todo a la fila. No 520: el formulario de una ficha lateral (`<nx-dialog mode="panel">`
+   de 560 px) mide ~520 y con ese corte nunca ponía dos campos juntos. */
+@container nx-form-grid (max-width: 440px) {
   .nx-form-grid > [span] {
     grid-column: 1 / -1;
   }

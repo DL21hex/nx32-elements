@@ -1,5 +1,16 @@
 # Registro de cambios
 
+## 0.12.1 — 2026-10-11
+
+Dos arreglos para la ficha lateral (`<nx-dialog mode="panel">` con `<nx-form>`):
+
+- **Dos campos por fila en el panel.** `.nx-form-grid` pasaba todo campo a la fila por debajo de
+  520 px, y el formulario de un panel de 560 px mide ~520: `span="3"` nunca se cumplía ahí. El corte
+  del teléfono baja a 440 px.
+- **Una lista simple no va en negrita.** En `<nx-select>` el texto principal pesaba 550 siempre; ahora
+  sólo cuando la opción trae un segundo renglón (nombre · cargo). Una lista de EPS o de ciudades se
+  lee en peso normal, como un `<select>`.
+
 ## 0.12.0 — 2026-10-10
 
 La cabecera de una página es UNA y es de la librería: el título de la página deja de vivir en la

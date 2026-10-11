@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## 0.13.0 — 2026-10-11
+
+- **La matriz de `<nx-grid>` cuenta las mismas filas que la tabla.** Antes ignoraba los filtros de
+  sus dos columnas (mostraba todos sus valores, marcaba el que filtraba y lo decía en una nota), y
+  su total no coincidía con el de la tabla. Ahora aplica la búsqueda y todos los filtros: filtrar
+  «Cali» deja solo esa fila, y los valores declarados (`options`) que el filtro quita tampoco salen.
+  Un encabezado o un total pone el filtro de su eje y deja el otro como estaba; el total general
+  vuelve a la tabla sin cambiar los filtros. Con `source`, la petición de la matriz lleva todos los
+  filtros. **Rompe:** se quitan `labels.matrixIgnores` y la marca del cruce (`aria-pressed`).
+- **Lo que sobra a la derecha ya no estira la última columna.** En la tabla, cada columna mide lo
+  suyo (la última también: su filtro queda junto a su nombre) y lo que sobra es una pista vacía al
+  final, por la que siguen el fondo del encabezado, la línea de cada fila y la banda de los grupos.
+  La columna de acciones lleva su línea de cierre. En la matriz, igual: las columnas no se ensanchan,
+  una línea cierra «Total» y las de las filas llegan al borde.
+
 ## 0.12.5 — 2026-10-11
 
 - **`<nx-account omit>` quita del panel lo que la app todavía no usa.** `omit="status locale

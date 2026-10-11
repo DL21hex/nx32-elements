@@ -6,10 +6,9 @@
  *
  * Ocupa el lugar de la tabla: se ve una cosa a la vez. Tocar un cruce vuelve a la tabla con los
  * filtros de esas dos columnas puestos (como chips); un encabezado o un total, con el de su
- * columna; el total general, sin ninguno de los dos. La matriz cuenta con la búsqueda y los demás
- * filtros, pero no con los de sus dos columnas: así, al volver, se ve todo y queda marcado el cruce
- * que filtra la tabla. Los cruces se calculan en la tabla (o los manda el servidor); este módulo
- * solo los pinta.
+ * columna; el total general, sin cambiar nada. La matriz muestra las mismas filas que la tabla (la
+ * búsqueda y todos los filtros, también los de sus dos columnas): su total es el de la tabla. Los
+ * cruces se calculan en la tabla (o los manda el servidor); este módulo solo los pinta.
  *
  * Es una sola parada de Tab: dentro, las flechas recorren los botones (encabezados, cruces y
  * totales), Inicio y Fin van al primero y al último de la fila.
@@ -33,7 +32,6 @@ export const MATRIX_LABELS: GridMatrixLabels = {
   matrixCell: "{row}, {col}: {value}",
   matrixNone: "ninguna",
   matrixHint: "Un cruce abre la tabla con esos dos filtros; un encabezado o un total, con el suyo.",
-  matrixIgnores: "Aquí no cuentan tus filtros de {cols}: la matriz muestra todos sus valores y marca el que filtra la tabla.",
 };
 
 const SWAP = '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>';
@@ -57,10 +55,8 @@ export interface MatrixView {
   cells: GridMatrixCell[] | null;
   loading: boolean;
   failed: boolean;
-  /** El cruce que filtra la tabla: el valor de cada eje si su filtro es uno solo. */
-  mark: { row: string | null; col: string | null };
-  /** Los nombres de los ejes con filtros que la matriz no aplica. */
-  ignored: string[];
+  /** Si un valor de una columna pasa los filtros de esa columna (para los declarados sin filas). */
+  passes(key: string, value: string): boolean;
 }
 
 /** Lo que la matriz necesita de la tabla. */
@@ -74,17 +70,18 @@ export interface MatrixHost {
   view(): MatrixView;
   /** Otros ejes u otra medida. */
   configure(m: GridMatrix): void;
-  /** Vuelve a la tabla con los filtros de ese cruce (`null`: sin filtro en ese eje). */
+  /** Vuelve a la tabla con los filtros de ese cruce (`null`: ese eje se queda como estaba). */
   drill(row: string | null, col: string | null): void;
   retry(): void;
 }
 
-/** Los valores de un eje, en orden: los declarados (`options`, aunque no tengan filas) y después
- *  los que aparecen, de más a menos filas; «sin dato» al final. */
-function axisValues(col: GridColumn | undefined, cells: readonly GridMatrixCell[], side: "row" | "col", loc: NxFormat): string[] {
+/** Los valores de un eje, en orden: los declarados (`options`, aunque no tengan filas, salvo los que
+ *  quitan los filtros de esa columna) y después los que aparecen, de más a menos filas; «sin dato» al
+ *  final. */
+function axisValues(col: GridColumn | undefined, cells: readonly GridMatrixCell[], side: "row" | "col", loc: NxFormat, passes: (value: string) => boolean): string[] {
   const n = new Map<string, number>();
   for (const c of cells) n.set(c[side], (n.get(c[side]) ?? 0) + (c.count ?? c.value));
-  const declared = (col?.options ?? []).map((o) => o.value).filter((v) => v !== "");
+  const declared = (col?.options ?? []).map((o) => o.value).filter((v) => v !== "" && (n.has(v) || passes(v)));
   const seen = new Set(declared);
   const rest = [...n.keys()].filter((v) => v !== "" && !seen.has(v)).sort((a, b) => n.get(b)! - n.get(a)! || loc.compare(a, b));
   return [...declared, ...rest, ...(n.has("") ? [""] : [])];
@@ -189,13 +186,15 @@ export class MatrixUI {
       this.#note.hidden = true;
       return;
     }
-    const sig = JSON.stringify([m, v.cells, v.mark, L, G.loading, loc.locale, v.axes.map((c) => c.key)]);
+    // Los valores declarados que dejan los filtros de los ejes también cambian la tabla.
+    const kept = [m.rows, m.cols].map((k) => (v.axes.find((c) => c.key === k)?.options ?? []).map((o) => v.passes(k, o.value)));
+    const sig = JSON.stringify([m, v.cells, kept, L, G.loading, loc.locale, v.axes.map((c) => c.key)]);
     if (sig !== this.#sig) {
       this.#sig = sig;
       this.#table(v, L);
     }
     this.#note.hidden = false;
-    this.#note.textContent = v.ignored.length ? fmt(L.matrixIgnores, { cols: v.ignored.map((x) => `«${x}»`).join(", ") }) : L.matrixHint;
+    this.#note.textContent = L.matrixHint;
     if (focused) this.#focus(this.#at);
   }
 
@@ -205,8 +204,8 @@ export class MatrixUI {
     const cells = v.cells!;
     const rowCol = v.axes.find((c) => c.key === m.rows);
     const colCol = v.axes.find((c) => c.key === m.cols);
-    const rows = axisValues(rowCol, cells, "row", loc);
-    const cols = axisValues(colCol, cells, "col", loc);
+    const rows = axisValues(rowCol, cells, "row", loc, (x) => v.passes(m.rows, x));
+    const cols = axisValues(colCol, cells, "col", loc, (x) => v.passes(m.cols, x));
     if (!rows.length || !cols.length) {
       this.#box.replaceChildren(h("p", { class: "nx-grid__mx-state" }, this.#host.labels.empty));
       return;
@@ -239,12 +238,14 @@ export class MatrixUI {
     const short = money && max >= 1e6;
     const show = (n: number | null) => (n === null ? "—" : m.agg === "count" ? loc.number(n) : money ? loc.money(n, measure!, short) : loc.number(m.agg === "avg" ? Math.round(n * 10) / 10 : n));
 
-    const mark = v.mark;
     const btn = (attrs: Record<string, string | number | boolean | null>, text: string, label?: string) =>
       h("button", { type: "button", tabindex: -1, ...attrs, ...(label ? { "aria-label": label } : {}) }, text);
     // Un total sin filas no lleva a ninguna parte: va como texto.
     const tot = (t: number | null, attrs: Record<string, string>, label: string) =>
       t ? h("td", { class: "nx-grid__mx-tot" }, btn(attrs, show(t), `${label}: ${show(t)}`)) : h("td", { class: "nx-grid__mx-tot nx-grid__mx-zero" }, show(t));
+    // Lo que sobra a la derecha: una celda vacía que se lleva el ancho, para que las líneas de las
+    // filas, el encabezado y los totales lleguen al borde sin ensanchar ninguna columna.
+    const fill = (tag: "th" | "td") => h(tag, { class: "nx-grid__mx-fill", "aria-hidden": "true" });
     const rowName = rowCol?.label ?? m.rows;
     const colName = colCol?.label ?? m.cols;
 
@@ -252,8 +253,9 @@ export class MatrixUI {
       "tr",
       null,
       h("th", { scope: "col", class: "nx-grid__mx-corner" }, h("span", { class: "nx-sr-only" }, rowName)),
-      ...cols.map((c, j) => h("th", { scope: "col" }, btn({ "data-at": `0,${j + 1}`, "data-col": c, "aria-pressed": String(mark.col === c && mark.row === null) }, name("col", c)))),
+      ...cols.map((c, j) => h("th", { scope: "col" }, btn({ "data-at": `0,${j + 1}`, "data-col": c }, name("col", c)))),
       h("th", { scope: "col", class: "nx-grid__mx-tot" }, L.matrixTotal),
+      fill("th"),
     );
     const body = rows.map((r, i) => {
       const line = cols.map((c) => at.get(`${r}\u0000${c}`));
@@ -261,16 +263,17 @@ export class MatrixUI {
       return h(
         "tr",
         null,
-        h("th", { scope: "row" }, btn({ "data-at": `${i + 1},0`, "data-row": r, "aria-pressed": String(mark.row === r && mark.col === null) }, name("row", r))),
+        h("th", { scope: "row" }, btn({ "data-at": `${i + 1},0`, "data-row": r }, name("row", r))),
         ...line.map((x, j) => {
           const label = fmt(L.matrixCell, { row: name("row", r), col: name("col", cols[j]), value: x ? show(x.value) : L.matrixNone });
           if (!x) return h("td", { class: "nx-grid__mx-zero", title: label }, h("span", { "aria-hidden": "true" }, "·"), h("span", { class: "nx-sr-only" }, label));
           const w = max > 0 ? Math.max(0, x.value) / max : 0;
-          const td = h("td", null, btn({ "data-at": `${i + 1},${j + 1}`, "data-row": r, "data-col": cols[j], "aria-pressed": String(mark.row === r && mark.col === cols[j]), title: label }, show(x.value), label));
+          const td = h("td", null, btn({ "data-at": `${i + 1},${j + 1}`, "data-row": r, "data-col": cols[j], title: label }, show(x.value), label));
           td.style.setProperty("--_w", w.toFixed(3));
           return td;
         }),
         tot(t, { "data-at": `${i + 1},${cols.length + 1}`, "data-row": r }, `${L.matrixTotal}, ${name("row", r)}`),
+        fill("td"),
       );
     });
     const foot = h(
@@ -282,11 +285,11 @@ export class MatrixUI {
         return tot(t, { "data-at": `${rows.length + 1},${j + 1}`, "data-col": c }, `${L.matrixTotal}, ${name("col", c)}`);
       }),
       h("td", { class: "nx-grid__mx-tot nx-grid__mx-all" }, btn({ "data-at": `${rows.length + 1},${cols.length + 1}`, "data-all": "" }, show(total(inner)), `${L.matrixTotal}: ${show(total(inner))}`)),
+      fill("td"),
     );
     this.#box.replaceChildren(h("table", { class: "nx-grid__mx" }, h("caption", { class: "nx-sr-only" }, `${rowName} × ${colName}`), h("thead", null, head), h("tbody", null, ...body), h("tfoot", null, foot)));
-    // La parada de Tab: la que tenía, la del cruce marcado o el primer cruce.
-    const pressed = this.#box.querySelector<HTMLElement>('[aria-pressed="true"]');
-    const keep = this.#at && this.#box.querySelector(`[data-at="${this.#at}"]`) ? this.#at : (pressed?.dataset.at ?? this.#box.querySelector<HTMLElement>("td > button")?.dataset.at ?? "0,1");
+    // La parada de Tab: la que tenía o el primer cruce.
+    const keep = this.#at && this.#box.querySelector(`[data-at="${this.#at}"]`) ? this.#at : (this.#box.querySelector<HTMLElement>("td > button")?.dataset.at ?? "0,1");
     this.#tab(keep);
   }
 

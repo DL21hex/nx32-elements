@@ -670,18 +670,19 @@ Una tabla de datos que se explora sola:
   (las de pocos valores: con `options` o las del panel de filtros, salvo las `facet: false`, y las nombradas), las intercambia y
   elige qué mostrar; `matrix` dice lo que quedó. `matrix` vacío o `true`: las dos primeras que se
   puedan cruzar. Un cruce vuelve a la tabla con esos dos filtros puestos (como chips, emite
-  `nx-grid-filter`); un encabezado o un total, con el de su columna; el total general, sin ninguno de
-  los dos. La matriz cuenta con la búsqueda y los demás filtros, pero no con los de sus dos columnas:
-  al volver se ve todo, el cruce que filtra queda marcado y una nota lo dice. Es una sola parada de
+  `nx-grid-filter`); un encabezado o un total, con el de su columna (el otro eje se queda como
+  estaba); el total general, sin cambiar los filtros. La matriz muestra las mismas filas que la
+  tabla: la búsqueda y todos los filtros, también los de sus dos columnas (filtrar «Cali» deja solo
+  esa fila), así que su total es el de la tabla. Es una sola parada de
   Tab; dentro, las flechas, Inicio y Fin. En la matriz no se ven la selección, el pie ni los botones
   que solo sirven en la tabla. `layout="matrix"` la abre; una vista guardada recuerda si se veía la
   matriz y cuál (`layout`, `matrix` en `GridView`). Pasar de una a otra emite `nx-grid-layout`
   (`{layout, matrix}`). Con `source`, la tabla la pide aparte (`limit: 0`, `matrix` en la petición,
-  sin los filtros de sus dos columnas) y el servidor responde `matrix`: un cruce por par con filas
+  con la búsqueda y todos los filtros) y el servidor responde `matrix`: un cruce por par con filas
   (`{row, col, value, count?, rowLabel?, colLabel?}`; ver el protocolo). Su código se carga al
   pasar a «Matriz» (~4 KB). Textos: `labels.matrixRows`, `matrixCols`, `matrixSwap`, `matrixShow`,
   `matrixCount`, `matrixSum`, `matrixAvg`, `matrixTotal`, `matrixBlank`, `matrixCell`,
-  `matrixNone`, `matrixHint`, `matrixIgnores`. Sin dos columnas que cruzar, el selector no aparece.
+  `matrixNone`, `matrixHint`. Sin dos columnas que cruzar, el selector no aparece.
   `matrixCells(filas, matriz)` calcula
   los cruces igual que la tabla (sirve de referencia para el servidor).
 - **El total, con los filtros.** «**9.704** filas» (o «12 de 9.704 filas» filtrando en el
@@ -762,8 +763,8 @@ matriz       POST {offset: 0, limit: 0, sort, filters, search?, matrix: {rows, c
 filtro       {key, op:"in"|"notIn", values} · {key, op:"range", min?, max?, rel?} · {key, op:"contains", value}
 ```
 
-La matriz es un `GROUP BY` de sus dos columnas con los filtros que llegan (la tabla ya quitó los de
-esas dos): un cruce por par con filas, `value` el conteo (`agg: "count"`), la suma o el promedio de
+La matriz es un `GROUP BY` de sus dos columnas con los filtros que llegan, los mismos de la tabla
+(también los de esas dos): un cruce por par con filas, `value` el conteo (`agg: "count"`), la suma o el promedio de
 `value` (otra columna), y `count` las filas del cruce (con `avg`, las que tienen número: sin él, los
 totales de un promedio van con «—»). `""` es «sin dato». Si el valor es un código (el id de una
 subdivisión), `rowLabel`/`colLabel` traen el nombre; tocar el cruce filtra por el código.

@@ -195,7 +195,7 @@ export function metricLevels(ix: OrgIndex, units: readonly OrgUnit[], metric: Or
   return out;
 }
 
-/** Hasta dos niveles de la unidad, del más amplio al más fino: «Agrovid · Finca La Esperanza». */
+/** Hasta dos niveles de la unidad, del más amplio al más fino: «Agrosol · Finca El Mirador». */
 export function unitLine(ix: OrgIndex, unitId: string | null | undefined): string {
   return unitPath(ix, unitId)
     .slice(-2)

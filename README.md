@@ -2090,8 +2090,8 @@ Quien no puede ver el entorno de alguien lo recibe con `locked`: se ve, pero no 
 <nx-org id="org" me="e214" searchable></nx-org>
 <script>
   org.units = [
-    { id: "agro", name: "Agrovid", kind: "Empresa", count: 230 },
-    { id: "agro-esp", name: "Finca La Esperanza", parent: "agro", kind: "Subdivisión", count: 74, metrics: { vacantes: 3 } },
+    { id: "agro", name: "Agrosol", kind: "Empresa", count: 230 },
+    { id: "agro-esp", name: "Finca El Mirador", parent: "agro", kind: "Subdivisión", count: 74, metrics: { vacantes: 3 } },
   ];
   org.people = [{ id: "e214", name: "Ana Díaz", title: "Analista de rutas", unit: "log-baq", boss: "e180" }];
   org.metrics = [{ key: "vacantes", label: "Vacantes", tone: "warning" }];

@@ -25,10 +25,10 @@ const name = () => `${pick(FIRST)} ${pick(LAST)} ${pick(LAST)}`;
 const PLAN: { id: string; name: string; subs: { id: string; name: string; lead: string; sup: string; roles: [string, number][] }[] }[] = [
   {
     id: "agro",
-    name: "Agrovid",
+    name: "Agrosol",
     subs: [
-      { id: "agro-esp", name: "Finca La Esperanza", lead: "Jefe de finca", sup: "Supervisor de campo", roles: [["Operario agrícola", 48], ["Tractorista", 6], ["Auxiliar de bodega", 4]] },
-      { id: "agro-pal", name: "Finca Las Palmas", lead: "Jefe de finca", sup: "Supervisor de campo", roles: [["Operario agrícola", 34], ["Tractorista", 4], ["Fumigador", 5]] },
+      { id: "agro-esp", name: "Finca El Mirador", lead: "Jefe de finca", sup: "Supervisor de campo", roles: [["Operario agrícola", 48], ["Tractorista", 6], ["Auxiliar de bodega", 4]] },
+      { id: "agro-pal", name: "Finca Los Cedros", lead: "Jefe de finca", sup: "Supervisor de campo", roles: [["Operario agrícola", 34], ["Tractorista", 4], ["Fumigador", 5]] },
       { id: "agro-emp", name: "Empacadora", lead: "Jefe de planta", sup: "Supervisor de turno", roles: [["Operario de empaque", 30], ["Montacarguista", 3], ["Inspector de calidad", 4]] },
       { id: "agro-adm", name: "Administración", lead: "Directora administrativa", sup: "Coordinador", roles: [["Analista contable", 5], ["Auxiliar de nómina", 3], ["Asistente", 2]] },
     ],

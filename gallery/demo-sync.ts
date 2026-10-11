@@ -10,7 +10,7 @@
  * - Minimercado El Progreso (o todos, con el interruptor de conflicto): 409 con la versión del
  *   servidor, porque televentas ya había cambiado la cantidad. La versión resuelta llega con
  *   `If-Match` y se acepta.
- * - Tienda Doña Carmen tiene cupo de $ 250.000: un pedido mayor es un 422 que se corrige a mano.
+ * - Tienda Doña Rosa tiene cupo de $ 250.000: un pedido mayor es un 422 que se corrige a mano.
  *
  * La API de demostración solo modela estado y tipo de contenido; las cabeceras (`Idempotency-Key`,
  * `If-Match`, `Retry-After`) y la red «caída» las pone un envoltorio de `fetch` de esta página.
@@ -42,7 +42,7 @@ export const TIENDAS: Tienda[] = [
   { nit: "900.412.118-3", nombre: "Tienda La Esquina de Rosa", barrio: "El Prado" },
   { nit: "901.087.554-1", nombre: "Minimercado El Progreso", barrio: "Rebolo" },
   { nit: "900.763.209-8", nombre: "Autoservicio San José", barrio: "Boston" },
-  { nit: "1.045.678.332", nombre: "Tienda Doña Carmen", barrio: "La Victoria" },
+  { nit: "1.045.678.332", nombre: "Tienda Doña Rosa", barrio: "Los Almendros" },
   { nit: "901.334.870-6", nombre: "Surtitodo La 72", barrio: "Alto Prado" },
 ];
 export const PRODUCTOS: Producto[] = [

@@ -791,10 +791,10 @@ function mountGridDemo(root: HTMLElement) {
     { id: "revisar", label: "Por revisar", tone: "warning", filters: [{ key: "avance", op: "in", values: ["review"] }] },
   ];
   times.rows = [
-    { id: "1", finca: "Remanso", cont: 2, caja: "06:40", pallet: "07:15", ultima: "13:20", cierre: "14:05", salida: "14:50" },
-    { id: "2", finca: "Don Fuad", cont: 1, caja: "07:05", pallet: null, ultima: "12:40", cierre: null, salida: null },
-    { id: "3", finca: "La Esperanza", cont: 3, caja: "06:55", pallet: "06:30", ultima: null, cierre: null, salida: null },
-    { id: "4", finca: "Patio Alieva", cont: 1, caja: null, pallet: null, ultima: null, cierre: null, salida: null },
+    { id: "1", finca: "Los Almendros", cont: 2, caja: "06:40", pallet: "07:15", ultima: "13:20", cierre: "14:05", salida: "14:50" },
+    { id: "2", finca: "El Guayabo", cont: 1, caja: "07:05", pallet: null, ultima: "12:40", cierre: null, salida: null },
+    { id: "3", finca: "El Mirador", cont: 3, caja: "06:55", pallet: "06:30", ultima: null, cierre: null, salida: null },
+    { id: "4", finca: "Patio Norte", cont: 1, caja: null, pallet: null, ultima: null, cierre: null, salida: null },
   ];
   times.addEventListener("nx-grid-change", (e) => {
     const { changes } = e.detail;

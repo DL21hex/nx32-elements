@@ -3,8 +3,8 @@ import { buildIndex, chainOf, cleanPerson, cleanUnit, commonBoss, metricLevels, 
 import type { OrgPerson, OrgUnit } from "../src/components/org/types";
 
 const units: OrgUnit[] = [
-  { id: "c1", name: "Agrovid", kind: "Empresa" },
-  { id: "s1", name: "Finca La Esperanza", parent: "c1", kind: "Subdivisión" },
+  { id: "c1", name: "Agrosol", kind: "Empresa" },
+  { id: "s1", name: "Finca El Mirador", parent: "c1", kind: "Subdivisión" },
   { id: "s2", name: "Administración", parent: "c1", kind: "Subdivisión" },
 ];
 const people: OrgPerson[] = [
@@ -55,7 +55,7 @@ describe("unidades", () => {
 
   it("el camino y la línea de unidad", () => {
     expect(unitPath(ix, "s1").map((u) => u.id)).toEqual(["c1", "s1"]);
-    expect(unitLine(ix, "s1")).toBe("Agrovid · Finca La Esperanza");
+    expect(unitLine(ix, "s1")).toBe("Agrosol · Finca El Mirador");
   });
 
   it("la intensidad de una cifra, absoluta o por persona", () => {

@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## 0.12.2 — 2026-10-11
+
+- **El clic en el fondo cierra `<nx-dialog>`.** Se esperaba que el clic sobre el `::backdrop` le
+  llegara al propio diálogo, como en un `<dialog>` nativo; en nx32 no le llegaba, y la parte oscura
+  junto a la ficha lateral no cerraba nada (Escape y la × sí). Ahora el clic se mira desde el
+  documento y por posición: si empezó y terminó fuera de la caja del diálogo de arriba, y no en algo
+  suyo (un menú que se sale) ni en un aviso, lo cierra (o rebota, con `persistent`). Si el clic iba a
+  la página de debajo, no la activa. La prueba que decía cubrir el clic fuera solo probaba Escape;
+  ahora hay una de verdad.
+
 ## 0.12.1 — 2026-10-11
 
 Dos arreglos para la ficha lateral (`<nx-dialog mode="panel">` con `<nx-form>`):

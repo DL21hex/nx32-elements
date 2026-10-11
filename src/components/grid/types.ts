@@ -474,6 +474,4 @@ export interface GridMatrixLabels {
   matrixNone: string;
   /** Bajo la matriz: qué hace tocarla. */
   matrixHint: string;
-  /** Hay filtros sobre las columnas de la matriz: no se aplican en ella ({cols}). */
-  matrixIgnores: string;
 }

@@ -1747,7 +1747,9 @@ export class NxGrid extends Base {
     const widths = this.#columns.map((c) => this.#widthOf(c));
     const check = this.selectable ? "36px " : "";
     const acts = this.#actions.length ? actionsWidth(this.#actions) : 0;
-    this.#scroll!.style.setProperty("--_cols", check + widths.map((w, i) => (i === widths.length - 1 ? `minmax(${w}px, 1fr)` : `${w}px`)).join(" ") + (acts ? ` ${acts}px` : ""));
+    // Cada columna mide lo suyo; lo que sobra a la derecha es una pista vacía al final (sin celdas):
+    // ahí siguen el fondo del encabezado y la línea de cada fila, pero ninguna columna se estira.
+    this.#scroll!.style.setProperty("--_cols", check + widths.map((w) => `${w}px`).join(" ") + (acts ? ` ${acts}px` : "") + " 1fr");
     const w = `${widths.reduce((a, b) => a + b, (check ? 36 : 0) + acts)}px`;
     this.#scroll!.style.setProperty("--_w", w);
     // Dónde empieza cada columna fija, y cuánto tapan juntas: el teclado no deja la celda activa
@@ -2297,15 +2299,15 @@ export class NxGrid extends Base {
     if (on) this.#paintMatrix(cfg);
   }
 
-  /** Los cruces y la matriz. En el cliente, sobre lo buscado y filtrado menos los filtros de sus dos
-   *  columnas (se calculan de nuevo solo si cambió eso o la matriz); en el servidor, se piden. */
+  /** Los cruces y la matriz: las mismas filas que la tabla (lo buscado y filtrado, también por sus
+   *  dos columnas), así que su total es el de la tabla. En el cliente se calculan de nuevo solo si
+   *  cambiaron esas filas o la matriz; en el servidor, se piden. */
   #paintMatrix(cfg: MatrixConfig): void {
     const key = JSON.stringify(cfg);
-    const rest = this.#filters.filter((f) => f.key !== cfg.rows && f.key !== cfg.cols);
-    if (this.#server) this.#askMatrix(cfg, rest);
-    else if (this.#mxFor.rows !== this.#base || this.#mxFor.key !== JSON.stringify([key, rest, this.#filtered.length, this.#all.length])) {
-      this.#mxFor = { rows: this.#base, key: JSON.stringify([key, rest, this.#filtered.length, this.#all.length]) };
-      this.#mxCells = matrixCells(rest.length ? applyFilters(this.#base, rest, this.accents) : this.#base, cfg);
+    if (this.#server) this.#askMatrix(cfg);
+    else if (this.#mxFor.rows !== this.#filtered || this.#mxFor.key !== key) {
+      this.#mxFor = { rows: this.#filtered, key };
+      this.#mxCells = matrixCells(this.#filtered, cfg);
       this.#mxState = "idle";
     }
     if (this.#matrixUI) this.#matrixUI.paint();
@@ -2322,11 +2324,11 @@ export class NxGrid extends Base {
       );
   }
 
-  /** Con `source`: la matriz se pide aparte (`limit: 0` y `matrix`), con la búsqueda y los filtros
-   *  menos los de sus dos columnas; el servidor responde `matrix` con los cruces. La misma consulta
-   *  no se repite; mientras llega otra, se siguen viendo los cruces anteriores de la misma matriz. */
-  #askMatrix(cfg: MatrixConfig, rest: GridFilter[]): void {
-    const q = { ...this.#query(), filters: rest };
+  /** Con `source`: la matriz se pide aparte (`limit: 0` y `matrix`), con la búsqueda y los filtros de
+   *  la tabla; el servidor responde `matrix` con los cruces. La misma consulta no se repite; mientras
+   *  llega otra, se siguen viendo los cruces anteriores de la misma matriz. */
+  #askMatrix(cfg: MatrixConfig): void {
+    const q = this.#query();
     // `#gen` cambia con cada consulta nueva de la tabla y con `refresh()`: la matriz se vuelve a pedir.
     const key = JSON.stringify([cfg, q, this.#gen]);
     if (key === this.#mxFor.key) return;
@@ -2355,10 +2357,6 @@ export class NxGrid extends Base {
 
   #matrixHost(): MatrixHost {
     const self = this;
-    const only = (key: string): string | null => {
-      const fs = this.#filters.filter((f) => f.key === key);
-      return fs.length === 1 && fs[0].op === "in" && fs[0].values.length === 1 ? fs[0].values[0] : null;
-    };
     return {
       el: this.#matrixEl!,
       get labels() {
@@ -2379,8 +2377,10 @@ export class NxGrid extends Base {
           cells: this.#mxCells,
           loading: this.#mxState === "loading" && !this.#mxCells,
           failed: this.#mxState === "failed",
-          mark: { row: only(cfg.rows), col: only(cfg.cols) },
-          ignored: [cfg.rows, cfg.cols].filter((k) => this.#filters.some((f) => f.key === k)).map((k) => this.#colOf(k)?.label ?? k),
+          passes: (key, value) => {
+            const own = this.#filters.filter((f) => f.key === key);
+            return !own.length || applyFilters([{ id: "", [key]: value }], own, this.accents).length > 0;
+          },
         };
       },
       configure: (m) => {
@@ -2391,12 +2391,14 @@ export class NxGrid extends Base {
       },
       drill: (row, col) => {
         const cfg = this.#mxConfig()!;
-        const add: GridFilter[] = [];
-        if (row !== null) add.push({ key: cfg.rows, op: "in", values: [row] });
-        if (col !== null) add.push({ key: cfg.cols, op: "in", values: [col] });
+        // El eje tocado pasa a ese valor (era uno de los que dejaban pasar sus filtros, así que solo
+        // se angosta); el otro y los demás filtros se quedan como estaban.
+        const set: [string, string][] = [];
+        if (row !== null) set.push([cfg.rows, row]);
+        if (col !== null) set.push([cfg.cols, col]);
         this.layout = "table";
         this.#emit("nx-grid-layout", { layout: "table", matrix: this.matrix } satisfies GridLayoutDetail);
-        this.#setFilters([...this.#filters.filter((f) => f.key !== cfg.rows && f.key !== cfg.cols), ...add]);
+        if (set.length) this.#setFilters([...this.#filters.filter((f) => !set.some(([k]) => k === f.key)), ...set.map(([key, v]): GridFilter => ({ key, op: "in", values: [v] }))]);
         this.#scroll!.scrollTop = 0;
         this.#scroll!.focus({ preventScroll: true });
       },

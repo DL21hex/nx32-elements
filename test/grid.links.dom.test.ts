@@ -202,8 +202,9 @@ describe("<nx-grid>: acciones de fila", () => {
     expect(th.getAttribute("aria-colindex")).toBe("3");
     expect(th.textContent).toBe("Acciones");
     expect(scroll(el).getAttribute("aria-colcount")).toBe("3");
-    // 30 (ícono) + 18 + 6·7 («Editar») + 18 + 6·7 («Anular») + 14.
-    expect(scroll(el).style.getPropertyValue("--_cols")).toMatch(/ 164px$/);
+    // 30 (ícono) + 18 + 6·7 («Editar») + 18 + 6·7 («Anular») + 14; detrás, la pista vacía de lo que
+    // sobra (ninguna columna se estira).
+    expect(scroll(el).style.getPropertyValue("--_cols")).toMatch(/^\d+px \d+px 164px 1fr$/);
     const td = el.querySelector('[data-r="0"] > .nx-grid__actions')!;
     expect(td.getAttribute("role")).toBe("gridcell");
     expect(td.getAttribute("aria-colindex")).toBe("3");

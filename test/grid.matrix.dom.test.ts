@@ -74,15 +74,16 @@ describe("<nx-grid> con matriz", () => {
     expect(said).toHaveBeenCalledWith({ layout: "matrix", matrix: { rows: "prov", cols: "estado", agg: "count" } });
     expect(el.querySelector(".nx-grid__main")!.classList.contains("is-matrix")).toBe(true);
     expect(el.querySelector<HTMLElement>(".nx-grid__matrix")!.hidden).toBe(false);
-    // Las opciones declaradas van en su orden (también «Anulado», sin filas); los valores, de más a
-    // menos filas, y «sin dato» al final. Cada fila con su total, y abajo los de cada columna.
+    // Las opciones declaradas van en su orden, pero solo las que tienen filas («Anulado» no sale,
+    // como en el panel de filtros); los demás valores, de más a menos filas, y «sin dato» al final.
+    // Cada fila con su total, y abajo los de cada columna.
     expect(grid(el)).toEqual([
-      "Proveedor|Pendiente|Aprobado|Anulado|Total",
-      "Aceros|2|1|·|3",
-      "Empaques|·|1|·|1",
-      "Químicos|1|·|·|1",
-      "(Sin dato)|·|1|·|1",
-      "Total|3|3|0|6",
+      "Proveedor|Pendiente|Aprobado|Total",
+      "Aceros|2|1|3",
+      "Empaques|·|1|1",
+      "Químicos|1|·|1",
+      "(Sin dato)|·|1|1",
+      "Total|3|3|6",
     ]);
     expect(cell(el, "Aceros", "pend")!.getAttribute("aria-label")).toBe("Aceros, Pendiente: 2");
     // Volver a la tabla.
@@ -104,8 +105,7 @@ describe("<nx-grid> con matriz", () => {
     ]);
     expect(filtered).toHaveBeenLastCalledWith(2);
     expect(el.count).toBe(2);
-    // La matriz cuenta las mismas filas que la tabla: sin los valores que quitan sus filtros (ni
-    // los declarados sin filas, como «Anulado»).
+    // La matriz cuenta las mismas filas que la tabla: sin los valores que quitan sus filtros.
     await toMatrix(el);
     expect(grid(el)).toEqual(["Proveedor|Pendiente|Total", "Aceros|2|2", "Total|2|2"]);
     expect(el.querySelector(".nx-grid__mx-note")!.textContent).toBe("Un cruce abre la tabla con esos dos filtros; un encabezado o un total, con el suyo.");
@@ -137,25 +137,28 @@ describe("<nx-grid> con matriz", () => {
     expect(el.selectedRows).toEqual([]);
   });
 
-  it("una exclusión en un eje quita ese valor, también el declarado", async () => {
+  it("un valor sin filas no sale: ni el que quita un filtro ni el declarado que no tiene", async () => {
     const el = mount();
     el.filters = [{ key: "estado", op: "notIn", values: ["anul"] }];
     await toMatrix(el);
     expect(grid(el)[0]).toBe("Proveedor|Pendiente|Aprobado|Total");
     el.filters = [{ key: "prov", op: "in", values: ["Aceros", "Químicos"] }];
-    await vi.waitFor(() => expect(grid(el)).toEqual(["Proveedor|Pendiente|Aprobado|Anulado|Total", "Aceros|2|1|·|3", "Químicos|1|·|·|1", "Total|3|1|0|4"]));
+    await vi.waitFor(() => expect(grid(el)).toEqual(["Proveedor|Pendiente|Aprobado|Total", "Aceros|2|1|3", "Químicos|1|·|1", "Total|3|1|4"]));
     expect(el.count).toBe(4);
     // Lo que sobra a la derecha es una celda vacía al final de cada fila, fuera del lector.
     for (const tr of table(el)!.querySelectorAll("tr")) expect(tr.lastElementChild!.matches('.nx-grid__mx-fill[aria-hidden="true"]')).toBe(true);
+    // Un filtro de otra columna también deja fuera los valores que se quedan sin filas.
+    el.filters = [{ key: "monto", op: "range", min: 2_000_000 }];
+    await vi.waitFor(() => expect(grid(el)).toEqual(["Proveedor|Pendiente|Total", "Aceros|2|2", "Químicos|1|1", "Total|3|3"]));
   });
 
   it("cuenta con la búsqueda y los demás filtros; suma o promedia una columna de montos", async () => {
     const el = mount();
     el.filters = [{ key: "monto", op: "range", min: 1_000_000 }];
     await toMatrix(el);
-    expect(grid(el).at(-1)).toBe("Total|3|1|0|4");
+    expect(grid(el).at(-1)).toBe("Total|3|1|4");
     el.search = "OC-1";
-    await vi.waitFor(() => expect(grid(el).at(-1)).toBe("Total|1|0|0|1"));
+    await vi.waitFor(() => expect(grid(el).at(-1)).toBe("Total|1|1"));
     el.search = "";
     el.filters = [];
     const show = el.querySelector<HTMLSelectElement>('.nx-grid__mx-field[data-label="show"] select')!;
@@ -280,7 +283,7 @@ describe("<nx-grid> con matriz", () => {
         { key: "monto", op: "range", min: 1 },
       ],
     });
-    expect(grid(el)).toEqual(["Proveedor|Pendiente|Aprobado|Anulado|Total", "Aceros|2|·|·|2", "Empaques|·|1|·|1", "Total|2|1|0|3"]);
+    expect(grid(el)).toEqual(["Proveedor|Pendiente|Aprobado|Total", "Aceros|2|·|2", "Empaques|·|1|1", "Total|2|1|3"]);
     // Tocar un cruce filtra por el valor (el id), no por el nombre.
     cell(el, "20", "apr")!.click();
     expect(el.filters).toContainEqual({ key: "prov", op: "in", values: ["20"] });
@@ -334,21 +337,21 @@ describe("matrixSheet", () => {
       cells,
       loading: false,
       failed: false,
-      passes: () => true,
     });
     expect(matrixSheet(view("count"), null, loc)).toEqual({
-      header: ["Proveedor × Estado", "Pendiente", "Aprobado", "Anulado", "Total"],
+      header: ["Proveedor × Estado", "Pendiente", "Aprobado", "Total"],
       rows: [
-        ["Aceros", 2, 1, 0, 3],
-        ["Empaques", 0, 1, 0, 1],
-        ["Químicos", 1, 0, 0, 1],
-        ["(Sin dato)", 0, 1, 0, 1],
-        ["Total", 3, 3, 0, 6],
+        ["Aceros", 2, 1, 3],
+        ["Empaques", 0, 1, 1],
+        ["Químicos", 1, 0, 1],
+        ["(Sin dato)", 0, 1, 1],
+        ["Total", 3, 3, 6],
       ],
     });
     const avg = matrixSheet(view("avg"), null, loc)!;
     expect(avg.money?.key).toBe("monto");
-    expect(avg.rows[0]).toEqual(["Aceros", 5_000_000, 500_000, null, 3_500_000]);
+    expect(avg.rows[0]).toEqual(["Aceros", 5_000_000, 500_000, 3_500_000]);
+    expect(avg.rows[1]).toEqual(["Empaques", null, 1_000_000, 1_000_000]);
     expect(matrixSheet({ ...view("count"), cells: null }, null, loc)).toBeNull();
   });
 

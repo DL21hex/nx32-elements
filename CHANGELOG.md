@@ -1,5 +1,17 @@
 # Registro de cambios
 
+## 0.13.1 — 2026-10-11
+
+- **La matriz ya no alarga la página (ahora sí).** Cada cruce vacío lleva un texto para lectores de
+  pantalla (`.nx-sr-only`, absoluto); como ninguna caja de la matriz estaba posicionada, se ubicaba
+  contra la página, a la altura de su renglón en la matriz entera, y la alargaba: con
+  `height="fill"` quedaba un scroll vertical a página vacía bajo la matriz. La caja con scroll de la
+  matriz es ahora `position: relative`, como la de la tabla. (El `contain: size` de la 0.13.0 no lo
+  evitaba: limita el tamaño de la caja, no a dónde van sus hijos absolutos.)
+- **La matriz no muestra valores sin filas.** Los valores declarados de un eje (`options`: todo el
+  catálogo de subdivisiones, por ejemplo) salían aunque los filtros los dejaran en cero; ahora, como
+  en el panel de filtros, solo sale lo que tiene filas, en el orden declarado. Lo mismo al exportarla.
+
 ## 0.13.0 — 2026-10-11
 
 - **La matriz de `<nx-grid>` cuenta las mismas filas que la tabla.** Antes ignoraba los filtros de

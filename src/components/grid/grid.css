@@ -976,7 +976,11 @@ nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
     margin-inline-start: auto;
   }
 }
+/* `position: relative`: el texto para lectores de cada cruce vacío (`.nx-sr-only`, absoluto) se
+   ubica y se recorta aquí. Sin una caja posicionada en la matriz se ubicaba contra la página, a la
+   altura de su renglón en la tabla entera, y la alargaba: un scroll a hueco bajo la matriz. */
 .nx-grid__mx-scroll {
+  position: relative;
   flex: 1 1 auto;
   min-block-size: 0;
   overflow: auto;

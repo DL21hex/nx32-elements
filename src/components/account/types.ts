@@ -24,6 +24,8 @@ export interface AccountTenant {
 }
 
 export type AccountStatus = "online" | "away" | "dnd";
+/** Lo que `omit` puede quitar del panel: Estado, «Idioma y formatos» y «Atajos de teclado». */
+export type AccountSection = "status" | "locale" | "shortcuts";
 export type AccountTheme = "light" | "system" | "dark";
 
 /** Una paleta de color: la de `palettes.css` por su id, o una propia con su color de muestra. */

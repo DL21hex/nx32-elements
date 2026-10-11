@@ -64,6 +64,7 @@ import type {
   AccountPalette,
   AccountPerson,
   AccountPrefs,
+  AccountSection,
   AccountSession,
   AccountStatus,
   AccountTenant,
@@ -227,6 +228,7 @@ export class NxAccount extends Base {
     "status",
     "storage",
     "appearance",
+    "omit",
     "expires-at",
     "warn-before",
     "view-as-source",
@@ -328,7 +330,9 @@ export class NxAccount extends Base {
     });
   }
 
+  /** Sin Estado (`omit` con `status`) siempre se está «En línea»: el atributo `status` no cuenta. */
   get status(): AccountStatus {
+    if (this.#omits("status")) return "online";
     const s = this.getAttribute("status");
     return s === "away" || s === "dnd" ? s : "online";
   }
@@ -379,6 +383,22 @@ export class NxAccount extends Base {
   set appearance(v: boolean | string | null | undefined) {
     this.#attr("appearance", v === false || v === "false" ? "false" : null);
   }
+  /**
+   * Lo que el panel no ofrece, separado por espacios (`omit="status locale shortcuts"`): `status`
+   * quita Estado y el punto de la tarjeta (salvo el gris de sin conexión), `locale` quita «Idioma y
+   * formatos» del panel y de `commands` (el atributo `locale` sigue mandando) y `shortcuts` quita
+   * «Atajos de teclado». Es para una app que todavía no hace nada con eso.
+   */
+  get omit(): AccountSection[] {
+    return (this.getAttribute("omit") ?? "").split(/\s+/).filter((t): t is AccountSection => t === "status" || t === "locale" || t === "shortcuts");
+  }
+  set omit(v: readonly AccountSection[] | string | null | undefined) {
+    const s = Array.isArray(v) ? v.join(" ") : (v as string | null | undefined);
+    this.#attr("omit", s?.trim() ? s.trim() : null);
+  }
+  #omits(section: AccountSection): boolean {
+    return this.omit.includes(section);
+  }
   get disabled(): boolean {
     return boolAttr(this, "disabled");
   }
@@ -392,10 +412,10 @@ export class NxAccount extends Base {
    *  el mismo arreglo mientras no cambien los textos, las paletas, las empresas, los idiomas ni
    *  `view-as-source`: la paleta lo compara para saber si debe leerlo de nuevo. */
   get commands(): AccountCommand[] {
-    const deps = [this.#labels, this.#d.palettes, this.#d.tenants, this.#d.locales, !!this.getAttribute("view-as-source"), this.appearance];
+    const deps = [this.#labels, this.#d.palettes, this.#d.tenants, this.#d.locales, !!this.getAttribute("view-as-source"), this.appearance, this.#omits("locale")];
     const c = this.#cmds;
     if (!c || deps.some((d, i) => d !== c.deps[i]))
-      this.#cmds = { deps, list: accountCommands({ account: this.#uid, labels: this.#labels, palettes: this.#d.palettes, tenants: this.#d.tenants, locales: this.#d.locales, viewAs: !!deps[4], appearance: !!deps[5] }) };
+      this.#cmds = { deps, list: accountCommands({ account: this.#uid, labels: this.#labels, palettes: this.#d.palettes, tenants: this.#d.tenants, locales: deps[6] ? [] : this.#d.locales, viewAs: !!deps[4], appearance: !!deps[5] }) };
     return this.#cmds!.list;
   }
 
@@ -706,6 +726,9 @@ export class NxAccount extends Base {
         hasTenants: !!this.#d.tenants.length,
         status: this.status,
         until: this.#untilChoice,
+        statusField: !this.#omits("status"),
+        localeRow: !this.#omits("locale"),
+        shortcutsRow: !this.#omits("shortcuts"),
         appearance: this.appearance,
         theme: pickTheme(d.getAttribute("data-theme")),
         palette: (this.#previewing ? this.#was : d.getAttribute("data-nx-palette")) || "indigo",

@@ -144,6 +144,10 @@ nx-account :is(button, a, input, h2):focus-visible {
   background: var(--_st);
   transition: background-color var(--nx-motion-base);
 }
+/* Sin Estado (`omit="status"`), el punto solo aparece gris, sin conexión. */
+nx-account[omit~="status"]:not([data-sync="offline"]) .nx-account__card .nx-account__dot {
+  display: none;
+}
 /* «No molestar» lleva su raya: el estado no depende solo del color. */
 :is(nx-account[status="dnd"]:not([data-sync="offline"]) .nx-account__card, .nx-account__seg) .nx-account__dot:is(:not([data-s]), [data-s="dnd"])::after {
   content: "";

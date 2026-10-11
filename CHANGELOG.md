@@ -1,5 +1,14 @@
 # Registro de cambios
 
+## 0.12.5 — 2026-10-11
+
+- **`<nx-account omit>` quita del panel lo que la app todavía no usa.** `omit="status locale
+  shortcuts"` (cualquiera de los tres, separados por espacios): `status` quita Estado y el punto de
+  la tarjeta —salvo el gris de sin conexión— y la cuenta se da siempre «En línea»; `locale` quita
+  «Idioma y formatos» del panel y de la paleta de comandos (el atributo `locale` sigue mandando);
+  `shortcuts` quita «Atajos de teclado». En Solid, `omit={["status", "locale", "shortcuts"]}`. Si
+  entre las dos rayas del panel no queda nada, queda una sola.
+
 ## 0.12.4 — 2026-10-11
 
 - **Escribir rápido en «Buscar en la tabla» ya no se come letras.** Cada vez que la tabla repintaba

@@ -3,9 +3,9 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/account/index";
 import type { NxAccount } from "../components/account/account";
-import type { AccountItem, AccountLabels, AccountLocale, AccountLogoutDetail, AccountPalette, AccountPerson, AccountSession, AccountStatus, AccountStatusDetail, AccountSwitchDetail, AccountTenant, AccountThemeDetail, AccountUser, AccountViewAsDetail } from "../components/account/types";
+import type { AccountItem, AccountLabels, AccountLocale, AccountLogoutDetail, AccountPalette, AccountPerson, AccountSection, AccountSession, AccountStatus, AccountStatusDetail, AccountSwitchDetail, AccountTenant, AccountThemeDetail, AccountUser, AccountViewAsDetail } from "../components/account/types";
 
-export type { NxAccount, AccountItem, AccountLabels, AccountLocale, AccountLogoutDetail, AccountPalette, AccountPerson, AccountSession, AccountStatus, AccountStatusDetail, AccountSwitchDetail, AccountTenant, AccountThemeDetail, AccountUser, AccountViewAsDetail };
+export type { NxAccount, AccountItem, AccountLabels, AccountLocale, AccountLogoutDetail, AccountPalette, AccountPerson, AccountSection, AccountSession, AccountStatus, AccountStatusDetail, AccountSwitchDetail, AccountTenant, AccountThemeDetail, AccountUser, AccountViewAsDetail };
 
 /** Sin hijos: la tarjeta y el panel los pinta el elemento. */
 export interface AccountProps extends Omit<JSX.HTMLAttributes<NxAccount>, "onSelect" | "children"> {
@@ -20,6 +20,8 @@ export interface AccountProps extends Omit<JSX.HTMLAttributes<NxAccount>, "onSel
   storage?: string;
   /** `false` quita Tema y Color y la cuenta no toca `<html>` (la app maneja su apariencia). */
   appearance?: boolean;
+  /** Lo que el panel no ofrece: Estado, «Idioma y formatos», «Atajos de teclado». */
+  omit?: AccountSection[];
   applyLocale?: boolean;
   session?: AccountSession | null;
   /** Vencimiento de la sesión (ISO o epoch ms); también sirve `session.expiresAt`. */
@@ -52,7 +54,7 @@ export interface AccountProps extends Omit<JSX.HTMLAttributes<NxAccount>, "onSel
 }
 
 export function Account(props: AccountProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["user", "tenants", "current", "status", "items", "palettes", "locales", "storage", "appearance", "applyLocale", "session", "expiresAt", "warnBefore", "viewAs", "viewAsSource", "logoutUrl", "logoutMethod", "logoutCsrf", "logoutCsrfField", "sync", "labels", "locale", "disabled", "onSwitch", "onStatus", "onTheme", "onLocale", "onSelect", "onViewAs", "onExtend", "onExpired", "onLogout", "children"]);
+  const [local, rest] = splitProps(props, ["user", "tenants", "current", "status", "items", "palettes", "locales", "storage", "appearance", "omit", "applyLocale", "session", "expiresAt", "warnBefore", "viewAs", "viewAsSource", "logoutUrl", "logoutMethod", "logoutCsrf", "logoutCsrfField", "sync", "labels", "locale", "disabled", "onSwitch", "onStatus", "onTheme", "onLocale", "onSelect", "onViewAs", "onExtend", "onExpired", "onLogout", "children"]);
   // Solo los eventos de esta cuenta (`e.target === e.currentTarget`), no los que burbujean desde dentro.
   return (
     <nx-account
@@ -69,6 +71,7 @@ export function Account(props: AccountProps): JSX.Element {
       attr:status={local.status}
       attr:storage={local.storage}
       attr:appearance={local.appearance === false ? "false" : undefined}
+      attr:omit={local.omit?.length ? local.omit.join(" ") : undefined}
       attr:apply-locale={local.applyLocale === false ? "false" : undefined}
       attr:expires-at={local.expiresAt}
       attr:warn-before={local.warnBefore === undefined ? undefined : String(local.warnBefore)}

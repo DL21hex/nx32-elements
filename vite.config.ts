@@ -80,6 +80,7 @@ export default defineConfig(({ command, mode }) => {
           "keytips": "src/components/keytips/index.ts",
           "badge": "src/components/badge/index.ts",
           "notice": "src/components/notice/index.ts",
+          "page-header": "src/components/page-header/index.ts",
           "fields": "src/components/fields/index.ts",
           "field": "src/components/field/index.ts",
           "form": "src/components/form/index.ts",

@@ -4496,6 +4496,48 @@ import { PasteFill } from "nx32-elements/solid/paste-fill";
         </template>
 
         <!-- ================================================================ Ruta navegable -->
+        <template id="page-page-header">
+          <p class="eyebrow">Componentes</p>
+          <h1>Cabecera de página <code class="tag">&lt;nx-page-header&gt;</code></h1>
+          <p class="lead">
+            Una sola cabecera para toda página: dónde estás (la ruta), qué es (el título, con el ícono de su módulo), qué se
+            puede hacer (las acciones, a la derecha del título) y, si tiene hermanas, cómo ir a ellas (debajo). El título es
+            de la página, no de la tabla: la tabla pinta sus atajos como segmentos sin título propio (<code>segments</code>).
+          </p>
+
+          <h2>Sin acciones: la tabla es el contenido</h2>
+          <div class="grid-page-frame" data-nx-page>
+            <nx-page-header heading="Empleados" heading-icon="users" style="margin-block-end: 16px">
+              <nx-breadcrumb><a href="#/page-header" data-icon="house">Inicio</a><a href="#/page-header">Talento Humano</a><span>Empleados</span></nx-breadcrumb>
+            </nx-page-header>
+            <nx-grid id="ph-grid" locale="es-CO" segments height="fill"></nx-grid>
+          </div>
+
+          <h2>Con acciones y navegación</h2>
+          <div class="grid-page-frame" data-nx-page style="block-size: auto">
+            <nx-page-header heading="Contratación" heading-icon="file-text" subheading="Los contratos que se originan en tu alcance.">
+              <nx-breadcrumb><a href="#/page-header" data-icon="house">Inicio</a><a href="#/page-header">Talento Humano</a><span>Contratación</span></nx-breadcrumb>
+              <div slot="actions">
+                <nx-button label="Plantillas de contrato" icon="pen-line"></nx-button>
+                <nx-button label="Nuevo contrato" icon="file-text" variant="primary"></nx-button>
+              </div>
+            </nx-page-header>
+          </div>
+
+          <h2>Cómo funciona</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Pieza</th><th>Qué hace</th></tr></thead>
+              <tbody>
+                <tr><td>Ruta</td><td>El hijo sin <code>slot</code> (un <code>&lt;nx-breadcrumb&gt;</code>), en su propio renglón.</td></tr>
+                <tr><td>Título</td><td><code>heading</code> es el <code>&lt;h1&gt;</code>; <code>heading-icon</code>, un ícono del registro en el cuadro con el degradado del acento. La letra y el cuadro son <code>.nx-page-title</code>, los mismos del título de una tabla (<code>--nx-page-heading-size</code>).</td></tr>
+                <tr><td>Acciones</td><td>El hijo con <code>slot="actions"</code> (agrupa tus botones): a la derecha del título y, si no caben, debajo de él, nunca antes.</td></tr>
+                <tr><td>Navegación</td><td>El hijo con <code>slot="nav"</code>: pestañas que llevan a páginas hermanas. Los filtros de una tabla no van aquí: son sus atajos.</td></tr>
+                <tr><td>Subtítulo</td><td><code>subheading</code>, una línea bajo el título si dice algo que el título no dice.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
         <template id="page-breadcrumb">
           <p class="eyebrow">Componentes</p>
           <h1>Ruta navegable <code class="tag">&lt;nx-breadcrumb&gt;</code></h1>

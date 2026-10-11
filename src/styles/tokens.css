@@ -103,6 +103,9 @@
     oklch(calc(var(--_l) - 0.02) var(--_c) calc(var(--_h) + 10))
   );
 
+  /* El título de una página (`<nx-page-header>` y la tabla que es la página): uno solo. */
+  --nx-page-heading-size: 22px;
+
   /* Forma y movimiento */
   --nx-radius-sm: 5px;
   --nx-radius-md: 7px;
@@ -175,6 +178,36 @@
   font-weight: 650;
   letter-spacing: 0.02em;
   line-height: 1;
+}
+
+/* El título de una página, con el ícono de su módulo en un cuadro con el degradado del acento. Lo
+   pintan `<nx-page-header>` y la tabla que es la página (`<nx-grid heading>`): una sola letra y un
+   solo cuadro, así los dos no pueden divergir. El ícono acompaña al título, no compite con él: poco
+   más alto que su línea, el glifo a su tamaño de siempre (18 px) y sin sombra de color debajo. */
+.nx-page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: var(--nx-page-heading-size);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.nx-page-title__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: calc(var(--nx-radius-lg) - 2px);
+  background: var(--nx-primary-gradient);
+  color: oklch(0.99 0 0);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.2);
 }
 
 /* El spinner toma los colores de quien lo contiene (`--_fg`, `--_accent`), o los de la marca. */

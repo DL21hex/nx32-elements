@@ -29,6 +29,9 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   groupBy?: string;
   rowKey?: string;
   facetsOpen?: boolean;
+  /** Los atajos como filtro segmentado aunque la tabla no lleve título (el título lo pone la
+   *  cabecera de la página, `<PageHeader>`). */
+  segments?: boolean;
   /** Cómo compara lo escrito al buscar y filtrar en el navegador. Por omisión (`"fold"`), sin
    *  tildes ni mayúsculas; `"exact"`, sin mayúsculas pero con sus tildes y su ñ («pena» no
    *  encuentra «PEÑA»), la regla del servidor para datos de un ERP en mayúsculas. */
@@ -82,7 +85,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -115,6 +118,7 @@ export function Grid(props: GridProps): JSX.Element {
       attr:filename={local.filename}
       attr:locale={local.locale}
       bool:facets-open={!!local.facetsOpen}
+      bool:segments={!!local.segments}
       attr:top-scrollbar={local.topScrollbar === false ? "false" : undefined}
       on:nx-grid-filter={own((e) => local.onFilter?.(e))}
       on:nx-grid-change={own((e) => local.onChange?.(e))}

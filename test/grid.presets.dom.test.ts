@@ -128,6 +128,30 @@ function mount(attrs = ""): NxGrid {
 }
 
 describe("nx-grid: título, «Seguimiento» y el total", () => {
+  it("segments: sin título, los atajos son el mismo filtro segmentado (el título lo pone la cabecera de la página)", () => {
+    const el = mount("segments");
+    el.presets = PRESETS;
+    const top = el.querySelector<HTMLElement>(".nx-grid__top")!;
+    expect(top.hidden).toBe(false);
+    expect(top.querySelector(".nx-grid__heading")).toBeNull();
+    expect(top.hasAttribute("data-heading")).toBe(false);
+    expect(top.hasAttribute("data-segments")).toBe(true);
+    const segs = () => [...el.querySelectorAll<HTMLButtonElement>(".nx-grid__presets .nx-grid__segment")];
+    expect(segs().map((b) => b.textContent)).toEqual(["Todos4", "Pendientes2", "Grandes2"]);
+    expect(el.querySelector(".nx-grid__preset")).toBeNull();
+    segs()[1].click();
+    expect(el.filters).toEqual(PRESETS[0].filters);
+    // Con título, `data-segments` no hace falta: el título ya los vuelve segmentos.
+    el.heading = "Pedidos";
+    expect(top.hasAttribute("data-heading")).toBe(true);
+    expect(top.hasAttribute("data-segments")).toBe(false);
+    // Quitar `segments` (sin título) los devuelve a tarjetas.
+    el.heading = null;
+    el.segments = false;
+    expect(el.querySelector(".nx-grid__presets .nx-grid__segments")).toBeNull();
+    expect(cards(el)).toHaveLength(2);
+  });
+
   it("heading: el título en la primera fila, con su nivel, y los atajos como filtro segmentado debajo, con «Todos»", () => {
     const el = mount('heading="Pedidos"');
     el.presets = PRESETS;

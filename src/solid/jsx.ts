@@ -27,6 +27,7 @@ import type { FieldItem, FieldsActionDetail, FieldsLabels, FieldsVariant } from 
 import type { NxTabs } from "../components/tabs/tabs";
 import type { TabItem, TabsChangeDetail, TabsLabels } from "../components/tabs/types";
 import type { NxBreadcrumb } from "../components/breadcrumb/breadcrumb";
+import type { NxPageHeader } from "../components/page-header/page-header";
 import type { BreadcrumbExpandDetail, BreadcrumbItem, BreadcrumbLabels, BreadcrumbNavigateDetail } from "../components/breadcrumb/types";
 import type { NxOrg } from "../components/org/org";
 import type { OrgContact, OrgFocusDetail, OrgLabels, OrgMetric, OrgPerson, OrgUnit, OrgView } from "../components/org/types";
@@ -290,6 +291,8 @@ declare module "solid-js" {
       height: string | undefined;
       locale: string | undefined;
       heading: string | undefined;
+      /** El subtítulo de nx-page-header. */
+      subheading: string | undefined;
       description: string | undefined;
       mode: DialogMode | ScanMode | GuardMode | ReviewMode | ChecklistMode | FormMode | undefined;
       size: DialogSize | string | undefined;
@@ -373,6 +376,7 @@ declare module "solid-js" {
       avatar: boolean;
       feedback: boolean;
       "facets-open": boolean;
+      segments: boolean;
       persistent: boolean;
       selectable: boolean;
       "require-reason": boolean;
@@ -543,6 +547,7 @@ declare module "solid-js" {
       "nx-form": HTMLAttributes<NxForm> & { heading?: string };
       "nx-tabs": HTMLAttributes<NxTabs>;
       "nx-breadcrumb": HTMLAttributes<NxBreadcrumb>;
+      "nx-page-header": HTMLAttributes<NxPageHeader>;
       "nx-org": HTMLAttributes<NxOrg> & { source?: string };
       "nx-award": HTMLAttributes<NxAward> & { heading?: string; endpoint?: string };
       "nx-account": HTMLAttributes<NxAccount>;

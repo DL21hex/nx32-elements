@@ -42,6 +42,7 @@ const entries = {
   "print": "src/components/print/print.css",
   "badge": "src/components/badge/badge.css",
   "notice": "src/components/notice/notice.css",
+  "page-header": "src/components/page-header/page-header.css",
   "fields": "src/components/fields/fields.css",
   "field": "src/components/field/field.css",
   "form": "src/components/form/form.css",

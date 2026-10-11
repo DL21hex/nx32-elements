@@ -452,7 +452,7 @@ export class NxGrid extends Base {
    *  acento: el del módulo («users» en Empleados). Sin `heading`, o con un nombre que no está
    *  registrado, no se pinta. */
   declare headingIcon: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout"];
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -818,6 +818,15 @@ export class NxGrid extends Base {
   }
   get facetsOpen(): boolean {
     return boolAttr(this, "facets-open");
+  }
+  /** Los atajos como filtro segmentado («Todos» y uno por atajo, con su conteo) aunque la tabla no
+   *  lleve título: la tabla de una página cuyo título pone la cabecera (`<nx-page-header>`). Sin él,
+   *  los atajos de una tabla sin título son tarjetas. Con `heading`, son segmentos siempre. */
+  get segments(): boolean {
+    return boolAttr(this, "segments");
+  }
+  set segments(v: boolean) {
+    this.toggleAttribute("segments", !!v);
   }
   set facetsOpen(v: boolean) {
     this.toggleAttribute("facets-open", !!v);
@@ -2435,7 +2444,7 @@ export class NxGrid extends Base {
     else {
       if (this.#headingEl?.localName !== tag) {
         this.#headingEl?.remove();
-        this.#top!.prepend((this.#headingEl = h(tag, { class: "nx-grid__heading" })));
+        this.#top!.prepend((this.#headingEl = h(tag, { class: "nx-grid__heading nx-page-title" })));
         this.#headingKey = "";
       }
       // El ícono solo si está registrado: sin él, `icon()` pintaría iniciales, que se leerían con el título.
@@ -2444,11 +2453,13 @@ export class NxGrid extends Base {
       const key = `${glyphName}\u0000${text}`;
       if (key !== this.#headingKey) {
         this.#headingKey = key;
-        this.#headingEl.replaceChildren(...(glyphName ? [h("span", { class: "nx-grid__heading-icon", "aria-hidden": "true" }, icon(glyphName))] : []), text);
+        this.#headingEl.replaceChildren(...(glyphName ? [h("span", { class: "nx-grid__heading-icon nx-page-title__icon", "aria-hidden": "true" }, icon(glyphName))] : []), text);
       }
     }
     if (!text) this.#headingEl = undefined;
     this.#top!.toggleAttribute("data-heading", !!text);
+    // Segmentos sin título (`segments`): la misma fila, con los atajos como filtro segmentado.
+    this.#top!.toggleAttribute("data-segments", !text && this.segments);
     this.#top!.hidden = !text && !this.#presets.some((p) => !p.menu);
   }
 
@@ -2457,7 +2468,7 @@ export class NxGrid extends Base {
     if (!bar) return;
     // Las tarjetas (o los botones junto al título); los de menú van en «Vistas», sin conteo.
     const list = this.#presets.filter((p) => !p.menu);
-    const go = !!this.heading?.trim();
+    const go = !!this.heading?.trim() || this.segments;
     // Con las filas aquí, cada atajo se cuenta una vez por juego de datos (no en cada pintado). Los
     // enlaces no: no tienen filtro; su conteo es el del servidor.
     const counted = list.filter((p) => !p.href);

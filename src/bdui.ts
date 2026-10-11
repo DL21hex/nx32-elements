@@ -55,6 +55,7 @@ const registry = new Map<string, Entry>(
     Print: "print",
     Badge: "badge",
     Notice: "notice",
+    PageHeader: "page-header",
     Fields: "fields",
     Form: "form",
     Tabs: "tabs",

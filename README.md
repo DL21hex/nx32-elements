@@ -33,6 +33,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
 | `<nx-org>` + núcleo (ESM) | ≈ 13,2 KB |
 | `<nx-breadcrumb>` + núcleo (ESM); el menú de hermanos, ≈ 1,8 KB, se carga al abrir el primero | ≈ 5,3 KB |
+| `<nx-page-header>` + núcleo (ESM) | ≈ 1,6 KB |
 | `<nx-print>` + núcleo (ESM) | ≈ 8,6 KB |
 | `<nx-signature>` + núcleo (ESM); el PNG, la ubicación y el celular se cargan aparte | ≈ 7,3 KB |
 | `<nx-planner>` + núcleo (ESM); el aviso se carga aparte | ≈ 14,2 KB |
@@ -188,7 +189,7 @@ registerIcons({ house: House, "chart-column": ChartColumn });
 
 `nx32-elements/core` trae las utilidades del núcleo sin ningún componente: `registerIcons`,
 `hasIcon`, `allowOrigins`, `safeEndpoint`, `safeHref`, `nxFormat`, `resolveLocale`,
-`canonicalLocale` y `nxSupported`. La raíz (`nx32-elements`) también las exporta, pero registra los 48 componentes:
+`canonicalLocale` y `nxSupported`. La raíz (`nx32-elements`) también las exporta, pero registra los 49 componentes:
 úsala solo si de verdad quieres la librería entera.
 
 El CSS también va por pieza: `nx32-elements/<componente>.css` (`grid.css`, `tabs.css`…) más
@@ -642,10 +643,16 @@ Una tabla de datos que se explora sola:
   «Todos») lo quita. La línea corta (`hint`) sale al pasar el mouse. Los atajos que llevan a otra
   página (`href`) van después, como enlaces con su número y ↗. Si no caben, se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
-  El tamaño sale de `--nx-grid-heading-size` (22 px). `heading-icon` (`headingIcon`) pone un ícono
+  La letra y el cuadro del ícono son `.nx-page-title` (tokens.css), los mismos de
+  `<nx-page-header>`; el tamaño sale de `--nx-page-heading-size` (22 px), y
+  `--nx-grid-heading-size` cambia sólo el de la tabla. `heading-icon` (`headingIcon`) pone un ícono
   del registro junto al título, en un cuadro con `--nx-primary-gradient` (el del módulo: `users` en
   Empleados); un nombre que no está registrado no pinta nada. El velo del acento detrás del título
   no es de la tabla: lo lleva la página (`data-nx-page`, ver «Paletas»).
+- **Segmentos sin título (`segments`).** Cuando el título de la página lo pone la cabecera
+  (`<nx-page-header>`), la tabla no lleva otro: `segments` pinta los atajos como el mismo filtro
+  segmentado («Todos» y uno por atajo, con su conteo) en la primera fila, sin título. Sin título ni
+  `segments`, los atajos son tarjetas.
 - **Puntos de color (`dot`).** Una columna con `dot: true` muestra un punto antes de cada valor en vez
   de la píldora: para clasificar sin gritar (el tipo de contrato, la sede). El color es el `tone` de
   la opción o, sin tono, uno de ocho por el lugar de la opción en `options` (con `options`, ninguno se
@@ -2342,6 +2349,40 @@ el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices
 | Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows)}` |
 | `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |
+
+## `<nx-page-header>`
+
+**La cabecera de una página, una sola para toda página**: dónde está (la ruta), qué es (el título,
+con el ícono de su módulo), qué se puede hacer (sus acciones, a la derecha del título) y, si tiene
+hermanas, cómo ir a ellas (la navegación, debajo). El título es de la página, no de la tabla: la
+tabla que es el contenido pinta sus atajos sin título propio (`<nx-grid segments>`).
+
+```html
+<div data-nx-page>
+  <nx-page-header heading="Contratación" heading-icon="file-text">
+    <nx-breadcrumb><a href="/" data-icon="house">Inicio</a><a href="/th">Talento Humano</a><span>Contratación</span></nx-breadcrumb>
+    <div slot="actions"><nx-button label="Nuevo contrato" icon="plus" variant="primary"></nx-button></div>
+  </nx-page-header>
+  <nx-grid segments height="fill"></nx-grid>
+</div>
+```
+
+- **La ruta** es el hijo sin `slot`, en su propio renglón.
+- **Las acciones** van en UN hijo con `slot="actions"` (agrupa tus botones): a la derecha del título,
+  alineadas con él, y si no caben, debajo del bloque del título, nunca antes.
+- **La navegación** es el hijo con `slot="nav"`: pestañas que llevan a páginas hermanas. Los filtros
+  de una tabla no van aquí: son sus atajos.
+- **El título** es un `<h1>` con la letra y el cuadro del ícono de `.nx-page-title` (tokens.css), los
+  mismos del título de una tabla: no pueden divergir. `--nx-page-heading-size` (22 px).
+- Los hijos no se mueven (la hidratación de Solid sigue intacta): el componente agrega al final el
+  bloque del título y `order` lo sube; `reading-flow` hace que Tab y el lector sigan lo que se ve.
+- El velo del acento es del contenedor de la página (`data-nx-page`), no de la cabecera.
+
+| | |
+|---|---|
+| Propiedades | `heading`, `headingIcon` (`heading-icon`, un nombre del registro; si no está, no se pinta), `subheading` |
+| Hijos | la ruta (sin `slot`), `slot="actions"`, `slot="nav"` |
+| Eventos | ninguno: las acciones y la ruta traen los suyos |
 
 ## `<nx-breadcrumb>`
 

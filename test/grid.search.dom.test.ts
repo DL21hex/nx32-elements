@@ -164,4 +164,36 @@ describe("Buscar en la tabla", () => {
     await sleep(20);
     expect(bodies.at(-1)).toMatchObject({ offset: 0, search: "aceros" });
   });
+
+  it("lo que llega del servidor no pisa lo que se sigue escribiendo", async () => {
+    // Escribir rápido: «DIE» se busca, se teclea la «G» y en ese momento llega la respuesta de
+    // «DIE». La barra se repinta, pero la caja sigue diciendo «DIEG» (no «DIE», que luego daba «DIEO»).
+    const answers: (() => void)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((ok) => answers.push(() => ok(new Response(JSON.stringify({ rows: ROWS, total: 4 }))))),
+      ),
+    );
+    const el = mount('source="/datos"');
+    // Antes de la primera respuesta ya se está escribiendo: la carga inicial tampoco borra «ERI».
+    box(el).value = "ERI";
+    box(el).dispatchEvent(new Event("input", { bubbles: true }));
+    answers.shift()!();
+    await sleep(20);
+    expect(box(el).value).toBe("ERI");
+    // «DIE» llega a buscarse; la «G» va en camino cuando contesta el servidor.
+    type(el, "DIE");
+    box(el).value = "DIEG";
+    box(el).dispatchEvent(new Event("input", { bubbles: true }));
+    while (answers.length) answers.shift()!();
+    await sleep(20);
+    expect(box(el).value).toBe("DIEG");
+    await sleep(300);
+    while (answers.length) answers.shift()!();
+    await sleep(20);
+    expect(el.search).toBe("DIEG");
+    expect(box(el).value).toBe("DIEG");
+  });
 });

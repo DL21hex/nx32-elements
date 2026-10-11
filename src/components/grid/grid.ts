@@ -486,6 +486,8 @@ export class NxGrid extends Base {
   #hay = new WeakMap<GridRow, string>();
   #texter?: (r: GridRow) => string;
   #searchWait?: ReturnType<typeof setTimeout>;
+  /** En la caja hay teclas que aún no se buscan: es de la persona hasta que `search` las recoja. */
+  #typing = false;
   #built = false;
   // Derivados (modo cliente).
   #facetCols: GridColumn[] = [];
@@ -751,6 +753,7 @@ export class NxGrid extends Base {
   set search(v: string | null | undefined) {
     this.#search = String(v ?? "");
     clearTimeout(this.#searchWait);
+    this.#typing = false;
     this.#paintSearch();
     const q = normalizer(this.accents)(this.#search.trim());
     if (q === this.#q) return;
@@ -1076,7 +1079,7 @@ export class NxGrid extends Base {
       this.#refilter(true);
     } else this.#paintRows(true);
     // Lo escrito en la búsqueda que no alcanzó a aplicarse antes de salir del DOM.
-    if (!first && this.#searchInput!.value !== this.#search) this.search = this.#searchInput!.value;
+    if (!first && (this.#typing || this.#searchInput!.value !== this.#search)) this.search = this.#searchInput!.value;
     // La hora de ahora de las líneas (`timeline`) vuelve a moverse.
     this.#clock();
   }
@@ -1890,6 +1893,7 @@ export class NxGrid extends Base {
     const search = h("div", { class: "nx-grid__search", role: "search", "data-nx-ephemeral": "" }, glyph("search"), input, clear);
     input.addEventListener("input", () => {
       clear.hidden = !input.value;
+      this.#typing = true;
       clearTimeout(this.#searchWait);
       this.#searchWait = setTimeout(() => (this.search = input.value), this.#server ? SERVER_WAIT : 150);
     });
@@ -2563,9 +2567,11 @@ export class NxGrid extends Base {
     ];
   }
 
-  /** La caja de búsqueda dice lo mismo que `search` (se asigna también desde código). */
+  /** La caja de búsqueda dice lo mismo que `search` (se asigna también desde código). Mientras hay
+   *  teclas sin buscar, la caja no se toca: un repintado (la respuesta del servidor de lo anterior)
+   *  le devolvía lo ya buscado y se comía lo que se seguía escribiendo. */
   #paintSearch(): void {
-    if (!this.#searchInput) return;
+    if (!this.#searchInput || this.#typing) return;
     if (this.#searchInput.value !== this.#search) this.#searchInput.value = this.#search;
     this.#searchClear!.hidden = !this.#search;
   }

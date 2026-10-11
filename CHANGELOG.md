@@ -1,5 +1,13 @@
 # Registro de cambios
 
+## 0.12.4 — 2026-10-11
+
+- **Escribir rápido en «Buscar en la tabla» ya no se come letras.** Cada vez que la tabla repintaba
+  su barra (al llegar la respuesta del servidor de lo ya buscado, o la carga inicial), la caja volvía
+  a decir lo último buscado y pisaba lo que se seguía tecleando: «ERI» se borraba y quedaba «KA»;
+  «DIEGO» quedaba «DIEO». Ahora, mientras hay teclas sin buscar, la caja es de la persona; asignar
+  `search` desde código la sigue mandando.
+
 ## 0.12.3 — 2026-10-11
 
 - **Aire entre el resumen y las pestañas de la ficha lateral.** En `<nx-dialog mode="panel">`, el

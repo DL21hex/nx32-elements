@@ -14,6 +14,17 @@
   final, por la que siguen el fondo del encabezado, la línea de cada fila y la banda de los grupos.
   La columna de acciones lleva su línea de cierre. En la matriz, igual: las columnas no se ensanchan,
   una línea cierra «Total» y las de las filas llegan al borde.
+- **«Exportar» también en la matriz.** Baja la matriz como se ve (`tabla-matriz.xlsx`, o `filename`
+  con «-matriz»): el eje de filas en la primera columna, un cruce por celda, «Total» a la derecha y
+  abajo, fuera del autofiltro (ordenar no lo mezcla). Números de Excel, con el formato de moneda si
+  suma o promedia montos, completos y sin abreviar; un cruce sin filas es 0, o vacío en un promedio.
+  Los cruces ya están en memoria: no se le pide nada más al servidor. `nx-grid-export` trae `layout`
+  y el aviso es `labels.exportedMatrix` («Se exportó la matriz»). `exportXlsx()` exporta lo que se
+  ve. `buildXlsx` y `sheetXml` aceptan `foot` (las últimas filas, fuera del autofiltro).
+- **La matriz ya no deja un scroll a hueco en la página.** Con `height="fill"`, la caja de la matriz
+  se veía del alto correcto, pero la página reservaba el alto de todas sus filas: aparecía un scroll
+  vertical que solo bajaba a página vacía. Ahora, como la tabla, su contenido no cuenta para su alto
+  (`contain: size`) y se desplaza dentro. Venía de la 0.8.0.
 
 ## 0.12.5 — 2026-10-11
 

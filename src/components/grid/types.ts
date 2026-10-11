@@ -146,6 +146,8 @@ export interface GridLabels {
   export: string;
   exporting: string;
   exported: string;
+  /** Exportar desde la matriz salió bien: «Se exportó la matriz». */
+  exportedMatrix: string;
   exportError: string;
   /** «{n} filas». Con «singular|plural» («{n} empleado|{n} empleados»), el singular para 1. */
   rows: string;
@@ -387,9 +389,11 @@ export interface GridActionDetail {
 /** `nx-grid-export`: cómo terminó una exportación (botón o `exportXlsx()`). */
 export interface GridExportDetail {
   ok: boolean;
-  /** Filas que llevó el archivo (0 si falló). */
+  /** Filas que llevó el archivo (0 si falló). En la matriz, las de su eje (sin la de «Total»). */
   count: number;
   filename: string;
+  /** Qué se exportó: la tabla (sus filas) o la matriz como se ve. */
+  layout: GridLayout;
   error?: string;
 }
 

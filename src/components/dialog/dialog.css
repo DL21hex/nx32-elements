@@ -372,6 +372,11 @@ nx-dialog:focus-visible {
 nx-dialog > :not(.nx-dialog__head, .nx-dialog__guard, [slot="footer"]) {
   margin-inline: 20px;
 }
+/* Las zonas de la ficha lateral (cabecera, resumen, aviso, pestañas) no van pegadas: sin este aire
+   la lista de pestañas quedaba contra los datos del resumen. La cabecera ya trae el suyo abajo. */
+nx-dialog > nx-fields[variant="summary"] {
+  margin-block-end: 18px;
+}
 nx-dialog > [slot="footer"] {
   position: sticky;
   inset-block-end: 0;

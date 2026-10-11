@@ -55,8 +55,6 @@ export interface MatrixView {
   cells: GridMatrixCell[] | null;
   loading: boolean;
   failed: boolean;
-  /** Si un valor de una columna pasa los filtros de esa columna (para los declarados sin filas). */
-  passes(key: string, value: string): boolean;
 }
 
 /** Lo que la matriz necesita de la tabla. */
@@ -75,13 +73,14 @@ export interface MatrixHost {
   retry(): void;
 }
 
-/** Los valores de un eje, en orden: los declarados (`options`, aunque no tengan filas, salvo los que
- *  quitan los filtros de esa columna) y después los que aparecen, de más a menos filas; «sin dato» al
- *  final. */
-function axisValues(col: GridColumn | undefined, cells: readonly GridMatrixCell[], side: "row" | "col", loc: NxFormat, passes: (value: string) => boolean): string[] {
+/** Los valores de un eje que tienen filas, en orden: los declarados (`options`) en el suyo y después
+ *  los demás, de más a menos filas; «sin dato» al final. Uno sin filas no sale, como en el panel de
+ *  filtros: con los filtros puestos, el catálogo entero de una columna (todas las subdivisiones)
+ *  llenaba la matriz de renglones en cero. */
+function axisValues(col: GridColumn | undefined, cells: readonly GridMatrixCell[], side: "row" | "col", loc: NxFormat): string[] {
   const n = new Map<string, number>();
   for (const c of cells) n.set(c[side], (n.get(c[side]) ?? 0) + (c.count ?? c.value));
-  const declared = (col?.options ?? []).map((o) => o.value).filter((v) => v !== "" && (n.has(v) || passes(v)));
+  const declared = (col?.options ?? []).map((o) => o.value).filter((v) => v !== "" && n.has(v));
   const seen = new Set(declared);
   const rest = [...n.keys()].filter((v) => v !== "" && !seen.has(v)).sort((a, b) => n.get(b)! - n.get(a)! || loc.compare(a, b));
   return [...declared, ...rest, ...(n.has("") ? [""] : [])];
@@ -94,8 +93,8 @@ function resolve(v: MatrixView, L: GridMatrixLabels, loc: NxFormat) {
   const cells = v.cells ?? [];
   const rowCol = v.axes.find((c) => c.key === m.rows);
   const colCol = v.axes.find((c) => c.key === m.cols);
-  const rows = axisValues(rowCol, cells, "row", loc, (x) => v.passes(m.rows, x));
-  const cols = axisValues(colCol, cells, "col", loc, (x) => v.passes(m.cols, x));
+  const rows = axisValues(rowCol, cells, "row", loc);
+  const cols = axisValues(colCol, cells, "col", loc);
   if (!rows.length || !cols.length) return null;
   // Los nombres: «sin dato», la etiqueta de la opción, la que mandó el servidor, o el valor.
   const names = { row: new Map<string, string>(), col: new Map<string, string>() };
@@ -260,9 +259,7 @@ export class MatrixUI {
       this.#note.hidden = true;
       return;
     }
-    // Los valores declarados que dejan los filtros de los ejes también cambian la tabla.
-    const kept = [m.rows, m.cols].map((k) => (v.axes.find((c) => c.key === k)?.options ?? []).map((o) => v.passes(k, o.value)));
-    const sig = JSON.stringify([m, v.cells, kept, L, G.loading, loc.locale, v.axes.map((c) => c.key)]);
+    const sig = JSON.stringify([m, v.cells, L, G.loading, loc.locale, v.axes.map((c) => c.key)]);
     if (sig !== this.#sig) {
       this.#sig = sig;
       this.#table(v, L);

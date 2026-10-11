@@ -2406,10 +2406,6 @@ export class NxGrid extends Base {
           cells: this.#mxCells,
           loading: this.#mxState === "loading" && !this.#mxCells,
           failed: this.#mxState === "failed",
-          passes: (key, value) => {
-            const own = this.#filters.filter((f) => f.key === key);
-            return !own.length || applyFilters([{ id: "", [key]: value }], own, this.accents).length > 0;
-          },
         };
       },
       configure: (m) => {

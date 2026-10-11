@@ -1,5 +1,11 @@
 # Registro de cambios
 
+## 0.12.3 — 2026-10-11
+
+- **Aire entre el resumen y las pestañas de la ficha lateral.** En `<nx-dialog mode="panel">`, el
+  resumen (`<nx-fields variant="summary">`) y la lista de pestañas iban pegados; el resumen lleva
+  ahora 18 px debajo.
+
 ## 0.12.2 — 2026-10-11
 
 - **El clic en el fondo cierra `<nx-dialog>`.** Se esperaba que el clic sobre el `::backdrop` le

@@ -347,6 +347,7 @@
     "contrast": "node scripts/contrast.mjs",
     "check": "node scripts/check.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
+    "release": "node scripts/release.mjs",
     "typecheck": "tsc --noEmit",
     "example:solid": "vite --config examples/solid/vite.config.ts"
   },

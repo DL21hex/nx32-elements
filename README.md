@@ -2823,6 +2823,20 @@ En `npm run check`, Playwright abre menos navegadores a la vez (uno por cada 4 n
 vencer pruebas que no tienen nada roto. Lo que pasa al reintentar sale como «flaky» en el resumen:
 si una prueba aparece ahí seguido, hay algo que mirar (así salió la carrera de `<nx-inbox>` de la 0.6.1).
 
+**Publicar una versión.** Una versión es oficial cuando su etiqueta `vX.Y.Z` está en GitHub, sobre
+un commit de `main`. Con la versión subida en `package.json` y su entrada en `CHANGELOG.md`, en
+`main` y con todo en commit:
+
+```bash
+npm run release                 # empuja main (con el hook) y pone la etiqueta vX.Y.Z
+npm run release -- --no-verify  # lo mismo, sin el hook
+```
+
+No sale si la etiqueta ya existe en otro commit (dos versiones distintas con el mismo número) ni si
+GitHub tiene en `main` commits que aquí faltan. Las apps no empaquetan una carpeta de trabajo: traen
+la etiqueta desde GitHub y la compilan (en nx32, `./nx elements X.Y.Z`; su auditoría rechaza un
+paquete que no venga de una etiqueta de `main`).
+
 ```bash
 npm run example:solid  # ejemplo con @solidjs/router sobre dist/ (hace falta build antes)
 ```

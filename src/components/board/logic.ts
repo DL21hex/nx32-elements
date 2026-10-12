@@ -35,10 +35,7 @@ export function parseFilter(spec: string | null | undefined): FilterPair[] {
 }
 
 /** El par escrito para `data-nx-filter` (con «,» y «%» codificados). */
-export function filterSpec(pairs: readonly FilterPair[]): string {
-  const enc = (s: string) => s.replace(/%/g, "%25").replace(/,/g, "%2C");
-  return pairs.map(([d, v]) => `${enc(d)}:${enc(v)}`).join(",");
-}
+export { filterSpec } from "../../core/chart";
 
 /** Filtros limpios desde lo que llegue (JSON, un objeto armado a mano): texto, sin repetidos ni vacíos. */
 export function normalizeFilters(v: unknown): BoardFilters {

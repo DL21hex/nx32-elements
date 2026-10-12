@@ -8,15 +8,15 @@
 
 nx-trend,
 .nx-trend-why {
-  --nx-trend-1: light-dark(#2a78d6, #3987e5);
-  --nx-trend-2: light-dark(#eb6834, #d95926);
-  --nx-trend-3: light-dark(#1baf7a, #199e70);
-  --nx-trend-4: light-dark(#eda100, #c98500);
-  --nx-trend-5: light-dark(#e87ba4, #d55181);
-  --nx-trend-6: #008300;
-  --nx-trend-7: light-dark(#4a3aa7, #9085e9);
-  --nx-trend-8: light-dark(#e34948, #e66767);
-  --nx-trend-muted: light-dark(#8b919b, #6f747d);
+  --nx-trend-1: var(--nx-chart-1);
+  --nx-trend-2: var(--nx-chart-2);
+  --nx-trend-3: var(--nx-chart-3);
+  --nx-trend-4: var(--nx-chart-4);
+  --nx-trend-5: var(--nx-chart-5);
+  --nx-trend-6: var(--nx-chart-6);
+  --nx-trend-7: var(--nx-chart-7);
+  --nx-trend-8: var(--nx-chart-8);
+  --nx-trend-muted: var(--nx-chart-muted);
   & [data-slot="1"] { --c: var(--nx-trend-1); }
   & [data-slot="2"] { --c: var(--nx-trend-2); }
   & [data-slot="3"] { --c: var(--nx-trend-3); }

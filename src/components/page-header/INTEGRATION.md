@@ -30,5 +30,5 @@ pone la app.
 
 | Pieza | Tamaño (min + gzip) | Presupuesto |
 |---|---|---|
-| `dist/page-header.js` (con el núcleo) | 1,58 KB | 1,75 KB |
-| `dist/page-header.css` | 0,31 KB | 1 KB |
+| `dist/page-header.js` (con el núcleo; enlaces y cifras desde la 0.17.0) | 2,67 KB | 2,75 KB |
+| `dist/page-header.css` | 0,83 KB | 1 KB |

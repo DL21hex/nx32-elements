@@ -1,5 +1,70 @@
 # Registro de cambios
 
+## 0.17.0 — 2026-10-12
+
+Sin cambios que rompan: todo es nuevo y opcional. Lo único que cambia de comportamiento es que un
+4xx de `source` ya no se reintenta solo (ver abajo).
+
+- **`<nx-grid>`: `patchRow(fila)` y `removeRow(id)`, una fila sin pedir la tabla entera.** Lo que
+  guarda una ficha cambia una fila; antes había que llamar a `refresh()` y volver a bajar todo (en
+  una bandeja, hasta 20.000 filas). `patchRow` reemplaza la fila con su `id` (según `row-key`) o la
+  agrega al final si no estaba; `removeRow` la quita. Con las filas en el navegador (`rows`, o
+  `client-max` / `client-only` ya en el cliente) se recalcula todo lo que depende de ellas: la
+  búsqueda, los filtros, los conteos de las facetas y de los atajos, el orden, los grupos, los
+  totales, la selección (una fila quitada sale de ella, con `nx-grid-selection`) y `shownIds`, de
+  modo que el «anterior / siguiente» de una ficha abierta sigue la tabla nueva. Responden si lo que
+  se ve quedó exacto; `false` quiere decir «pide otra vez» (`refresh()`), y la tabla nunca deja
+  conteos viejos callada:
+  - con la consulta en el servidor, `patchRow` cambia la fila cargada en su lugar y responde `true`
+    solo si no cambió ningún valor del que dependen el orden, los filtros, las facetas, los atajos,
+    los totales o las barras (con una búsqueda o con la matriz, siempre `false`; una fila no
+    cargada, también `false`, sin tocar nada); `removeRow` responde `false` sin quitar nada;
+  - un atajo que es enlace con conteo del servidor también hace `false`: ese conteo solo lo sabe
+    el servidor;
+  - una fila sin `id` no se toca (`false`). Las marcas de edición y el historial para deshacer de
+    la fila parchada se olvidan: lo que llega es lo guardado.
+- **`nx-grid-error` dice qué pasó, y un 4xx ya no se reintenta.** El detalle suma `status` (0 sin
+  respuesta), `message` (el `error` o el `message` del JSON del servidor; si no dijo nada, el mismo
+  `error` de siempre), `body` (el JSON, o el texto), `attempt` (1 el primero: para avisar una vez por
+  fallo y no por intento) y `retrying` (si la tabla lo volverá a pedir); `{offset, limit, error}`
+  siguen igual. Solo se reintenta lo que puede pasar solo: la red, un 5xx o un 429. Un 4xx se dice
+  una vez y espera a «Reintentar» o `refresh()` (tampoco vuelve al desplazarse): antes un 403 se
+  pedía cinco veces en un minuto. Sin filas, el aviso pone el mensaje del servidor debajo de «No se
+  pudieron cargar las filas».
+- **`<nx-grid client-only>`: un origen que solo sirve el conjunto entero.** La primera petición va
+  sin filtros, búsqueda ni orden (`{offset: 0, limit: client-max + 1, sort: null, filters: []}`;
+  sin `client-max`, hasta 20.000 filas) y los filtros, los recordados también, se aplican en el
+  navegador. Antes, con solo `client-max`, la tabla probaba la página filtrada, el origen la
+  rechazaba y recién entonces pedía el conjunto: una ida y vuelta de más en cada regreso con un
+  filtro recordado. Filtrar mientras llega no lo vuelve a pedir; `refresh()` lo pide entero otra
+  vez; si llegan más filas que el tope, se toman las del tope y se avisa por consola. Sin el
+  atributo, nada cambia (tampoco el respaldo de la 0.4.3). Solid: `clientOnly`.
+- **`<nx-actions>`: las acciones de un registro, cada una con lo que hace.** La pestaña «Acciones»
+  de una ficha: una lista de `<nx-button>` con una línea debajo de cada uno. `items`
+  (`{id, label, description?, icon?, danger?, disabled?, href?, newTab?, download?}`); un botón
+  emite `nx-actions-action` `{id, item}`, un enlace navega, abre otra pestaña o descarga y no
+  emite. `busy="<id>"`: esa acción espera y las demás se apagan (`aria-busy` en el elemento); los
+  nodos se conservan por `id`, así el foco no se pierde al repintar. BDUI `Actions`, Solid
+  `<Actions>`, subruta `nx32-elements/actions`.
+- **`<nx-dialog loading>`: la ficha mientras llega su registro.** En lugar del contenido (que se
+  esconde sin moverse), un esqueleto con la forma de una ficha: el resumen, las pestañas y unos
+  campos. Es un `role="status"` que anuncia `labels.loading` («Cargando…», texto nuevo) y el diálogo
+  lleva `aria-busy`. La cabecera sigue (cerrar, pasar de registro); sin `heading`, el título también
+  es un esqueleto. Quieto con menos movimiento; `GrayText` en alto contraste. Solid: `loading`.
+- **`<nx-page-header>`: enlaces y cifras.** `links` (`{label, href, icon?, newTab?, download?}`):
+  `<a>` de verdad en un grupo con nombre, bajo el título. `kpis` (`{id?, label, value, delta?,
+  tone?, hint?}`): un `<dl>` con el valor arriba (un número, con el locale) y la etiqueta abajo; el
+  cambio, coloreado por `tone`, nunca se parte; en el celular van de a dos. Las dos aceptan JSON en
+  el atributo; `labels` (`kpis`, `links`) y `locale` nuevos. Orden: la ruta; el título y las
+  acciones; los enlaces; las cifras; la navegación.
+- **`<nx-button download="nombre.xlsx">`.** El valor de `download` es el nombre del archivo (vacío,
+  el que mande el servidor, como antes). Un botón que descarga es `<nx-button href download
+  new-tab>`: un `<a download>` de verdad, en otra pestaña (el router de una app no lo intercepta) y
+  sin `href` mientras está ocupado o apagado.
+- La galería: la ficha lateral (`#/drawer`) suma la pestaña «Acciones», el esqueleto al pasar de
+  registro y una ficha que tarda; la cabecera (`#/page-header`), una con enlaces, cifras y una
+  descarga.
+
 ## 0.16.2 — 2026-10-12
 
 - **Ningún número sale «-0», tampoco al redondear.** Un negativo que se escribe como cero

@@ -32,7 +32,7 @@ apaga nada. Los nodos se conservan por `id` al repintar: el foco sigue en el bot
 
 ## Peso
 
-| Pieza | Presupuesto |
-|---|---|
-| `dist/actions.js` (con `<nx-button>` y el núcleo) | 7,5 KB |
-| `dist/actions.css` (con `button.css`) | 4 KB |
+| Pieza | Tamaño (min + gzip) | Presupuesto |
+|---|---|---|
+| `dist/actions.js` (con `<nx-button>` y el núcleo) | 7,25 KB | 7,5 KB |
+| `dist/actions.css` (con `button.css`) | 1,92 KB | 2,25 KB |

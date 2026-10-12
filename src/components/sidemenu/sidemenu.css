@@ -404,13 +404,25 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
     display: block;
   }
 }
+/* El título pesa más que sus pantallas y queda pegado a ellas: más aire arriba (entre grupos) que
+   entre opciones, y una línea que sale de él marca dónde empieza el bloque. */
 .nx-panel__section {
-  padding: 8px 10px 4px;
-  color: var(--nx-text-tertiary);
-  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px 4px;
+  color: var(--nx-foreground);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+
+  &::after {
+    content: "";
+    flex: 1;
+    border-block-start: 1px solid var(--nx-border-subtle);
+  }
+}
+:is(.nx-panel__scroll, .nx-panel__col) > [role="group"]:first-child > .nx-panel__section {
+  padding-block-start: 8px;
 }
 .nx-panel__option,
 .nx-panel__chip {
@@ -429,7 +441,7 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
   & .nx-icon {
     inline-size: 16px;
     block-size: 16px;
-    color: var(--nx-text-tertiary);
+    color: var(--nx-text-quaternary);
   }
   & .nx-panel__desc {
     font-size: 11px;

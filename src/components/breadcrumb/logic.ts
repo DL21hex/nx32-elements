@@ -26,6 +26,7 @@ export function cleanItems(v: unknown, deep = true): BreadcrumbItem[] {
     if (href) it.href = href;
     if (typeof raw.icon === "string") it.icon = raw.icon;
     if (typeof raw.expandable === "boolean") it.expandable = raw.expandable;
+    if (raw.static === true) it.static = true;
     if (deep && Array.isArray(raw.children)) it.children = cleanItems(raw.children, false);
     out.push(it);
   }

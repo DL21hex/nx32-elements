@@ -44,6 +44,14 @@ describe("cleanItems", () => {
     expect(cleanItems("x")).toEqual([]);
   });
 
+  it("static: solo true lo marca quieto", () => {
+    expect(cleanItems([{ label: "Talento Humano", static: true }, { label: "A", static: "sí" }, { label: "B", static: false }])).toEqual([
+      { label: "Talento Humano", static: true },
+      { label: "A" },
+      { label: "B" },
+    ]);
+  });
+
   it("un nombre numérico (un año) pasa a texto en vez de perder el nivel; expandable: true se conserva", () => {
     expect(cleanItems([{ label: "Contabilidad" }, { label: 2024, expandable: true }, { label: Number.NaN }, { label: "Enero", expandable: "sí" }])).toEqual([
       { label: "Contabilidad" },

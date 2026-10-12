@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## 0.13.5 — 2026-10-12
+
+- **Los títulos de sección del panel de `<nx-sidemenu>` se distinguen de sus pantallas.** Antes
+  eran mayúsculas de 10 px en gris claro, más débiles que las opciones, y el espacio sobre un título
+  era casi el mismo que entre opciones: no se veía dónde empezaba cada grupo. Ahora van en 12 px,
+  peso 600 y color de texto, con más aire arriba (16 px; 8 px el primero de cada columna) que abajo,
+  y una línea fina que sale del título hasta el borde. Los íconos de las opciones bajan un tono para
+  no competir con los títulos.
+- **`<nx-breadcrumb>`: un nivel que solo dice dónde está.** `static: true` (`data-static` en los
+  hijos) es para el módulo, un grupo del menú que no es una página: se ve igual que los demás
+  nombres, pero no se pulsa, su separador no se abre y «‹ Padre» y `Alt+↑` lo saltan. Puede ir solo
+  sin ser la página actual, así que la etiqueta «Talento Humano» sobre el título y la ruta «Talento
+  Humano › Empleados › Pepito Pérez» de más adentro son el mismo elemento. En lo angosto, si arriba
+  solo hay niveles quietos, la ruta se queda entera en vez de pasar a «‹ Padre».
+
 ## 0.13.4 — 2026-10-11
 
 - **La fila «Total» de la matriz se cierra abajo.** Con pocas filas, las líneas de las columnas

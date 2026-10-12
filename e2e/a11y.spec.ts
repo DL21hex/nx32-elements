@@ -416,6 +416,35 @@ test("ficha lateral: cabecera de ficha, aviso, pestañas, campos en edición y e
   await audit(page, ["#dw-panel"]);
 });
 
+test("ficha lateral: la pestaña «Acciones» (con una corriendo) y el esqueleto mientras llega el registro", async ({ page }) => {
+  await open(page, "#/drawer");
+  await page.locator("#dw-open .nx-button__btn").click();
+  const panel = page.locator("#dw-panel");
+  await panel.getByRole("tab", { name: "Acciones" }).click();
+  const actions = panel.locator("#dw-actions");
+  await expect(actions.getByRole("list", { name: "Acciones" })).toBeVisible();
+  await audit(page, ["#dw-panel"]);
+  await actions.locator("nx-button").first().locator(".nx-button__btn").click();
+  await expect(actions).toHaveAttribute("aria-busy", "true");
+  await audit(page, ["#dw-panel"]);
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await page.locator("#dw-loading-open .nx-button__btn").click();
+  const slow = page.locator("#dw-loading");
+  await expect(slow.getByRole("status")).toHaveText("Cargando…");
+  await audit(page, ["#dw-loading"]);
+  await expect(slow.locator(".nx-dialog__loading")).toHaveCount(0);
+  await expect(slow).not.toHaveAttribute("aria-busy", "true");
+});
+
+test("cabecera de página con enlaces, cifras y una descarga", async ({ page }) => {
+  await open(page, "#/page-header");
+  const head = page.locator("#ph-kpis");
+  await expect(head.locator(".nx-page-header__kpi")).toHaveCount(4);
+  await expect(head.getByRole("link", { name: "Exportar esta página" })).toHaveAttribute("download", "incapacidades.html");
+  await audit(page, ["#ph-kpis"]);
+});
+
 test("alto contraste: la pestaña activa conserva el subrayado en Highlight; la píldora y el aviso, su borde", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   await open(page, "#/drawer");

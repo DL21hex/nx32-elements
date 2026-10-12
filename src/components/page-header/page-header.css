@@ -122,7 +122,9 @@ nx-page-header > .nx-page-header__kpis {
   font-size: 12px;
   line-height: 1.35;
 }
+/* El cambio no se parte a la mitad: si no cabe junto al valor, baja entero. */
 .nx-page-header__kpi-delta {
+  display: inline-block;
   margin-inline-start: 6px;
   color: var(--nx-muted-foreground);
   font-size: 12px;

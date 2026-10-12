@@ -10,7 +10,8 @@ import "../src/components/fields/index";
 import "../src/components/notice/index";
 import "../src/components/tabs/index";
 import "../src/components/badge/index";
-import { nxToast, type NxDialog, type NxFields, type NxNotice, type NxTabs, type FieldItem } from "../src/index";
+import "../src/components/actions/index";
+import { nxToast, type ActionItem, type NxActions, type NxDialog, type NxFields, type NxNotice, type NxTabs, type FieldItem } from "../src/index";
 
 const TODAY = "2026-10-01";
 const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -358,10 +359,52 @@ export function mountDrawerDemo(root: HTMLElement): void {
     paintAll();
     void panel.show();
   });
+  // Pasar de registro: en la app el siguiente se pide al servidor; mientras «llega», el esqueleto.
+  let navTimer = 0;
   panel.addEventListener("nx-dialog-nav", (e) => {
     add(`nx-dialog-nav · ${e.detail.dir}`);
     idx = Math.max(0, Math.min(PEOPLE.length - 1, idx + (e.detail.dir === "next" ? 1 : -1)));
-    paintAll();
+    panel.loading = true;
+    clearTimeout(navTimer);
+    navTimer = window.setTimeout(() => {
+      paintAll();
+      panel.loading = false;
+    }, 450);
+  });
+
+  // Acciones: un botón por acción con qué hace; la que corre espera y las demás se apagan.
+  const ACTIONS: ActionItem[] = [
+    { id: "codigo", label: "Generar código para cambiar la contraseña", icon: "shield-user", description: "Sirve una vez, durante 15 minutos. Dáselo en persona: no llega por correo." },
+    { id: "certificado", label: "Certificado laboral con salario", icon: "file-text", description: "Un PDF en otra pestaña, con la firma de Talento Humano.", href: "#/drawer", newTab: true },
+    { id: "desactivar", label: "Desactivar la cuenta", icon: "shield-alert", danger: true, description: "Deja de entrar desde ya. Su historial y sus documentos se conservan." },
+  ];
+  for (const list of [$<NxActions>("#dw-actions"), $<NxActions>("#dw-p-actions")]) {
+    list.items = ACTIONS;
+    list.addEventListener("nx-actions-action", (e) => {
+      add(`nx-actions-action · ${e.detail.id}`);
+      list.busy = e.detail.id;
+      window.setTimeout(() => {
+        list.busy = null;
+        void nxToast({ message: e.detail.id === "codigo" ? `Código para ${person().short}: 482 913` : `${e.detail.item.label}: listo`, tone: "success" });
+      }, 1200);
+    });
+  }
+
+  // Una ficha que tarda: abre con el esqueleto y el contenido llega después.
+  const slow = $<NxDialog>("#dw-loading");
+  $("#dw-loading-open").addEventListener("click", () => {
+    slow.heading = "";
+    slow.loading = true;
+    void slow.show();
+    window.setTimeout(() => {
+      slow.heading = "Andrés Pardo Villa";
+      $<NxFields>("#dw-loading-fields").items = [
+        { label: "Cargo", value: "Jefe de nómina" },
+        { label: "Área", value: "Nómina y compensación" },
+        { label: "Ingreso", value: "11 feb 2019" },
+      ];
+      slow.loading = false;
+    }, 1500);
   });
   panel.addEventListener("nx-dialog-action", async (e) => {
     add(`nx-dialog-action · ${e.detail.id}`);

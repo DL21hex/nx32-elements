@@ -457,7 +457,9 @@ nx-dialog[loading] > :not(.nx-dialog__head, .nx-dialog__guard, .nx-dialog__loadi
 .nx-dialog__head[data-skeleton] .nx-dialog__trow::before {
   content: "";
   display: block;
-  inline-size: min(220px, 60%);
+  flex: none;
+  /* El bloque del título se ajusta a su contenido: un porcentaje aquí no mide nada. */
+  inline-size: min(200px, 50vw);
   block-size: 18px;
   border-radius: 6px;
   background: var(--nx-border-subtle);

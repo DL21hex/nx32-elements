@@ -8,15 +8,15 @@
 
 nx-trend,
 .nx-trend-why {
-  --nx-trend-1: light-dark(#2a78d6, #3987e5);
-  --nx-trend-2: light-dark(#eb6834, #d95926);
-  --nx-trend-3: light-dark(#1baf7a, #199e70);
-  --nx-trend-4: light-dark(#eda100, #c98500);
-  --nx-trend-5: light-dark(#e87ba4, #d55181);
-  --nx-trend-6: #008300;
-  --nx-trend-7: light-dark(#4a3aa7, #9085e9);
-  --nx-trend-8: light-dark(#e34948, #e66767);
-  --nx-trend-muted: light-dark(#8b919b, #6f747d);
+  --nx-trend-1: var(--nx-chart-1);
+  --nx-trend-2: var(--nx-chart-2);
+  --nx-trend-3: var(--nx-chart-3);
+  --nx-trend-4: var(--nx-chart-4);
+  --nx-trend-5: var(--nx-chart-5);
+  --nx-trend-6: var(--nx-chart-6);
+  --nx-trend-7: var(--nx-chart-7);
+  --nx-trend-8: var(--nx-chart-8);
+  --nx-trend-muted: var(--nx-chart-muted);
   & [data-slot="1"] { --c: var(--nx-trend-1); }
   & [data-slot="2"] { --c: var(--nx-trend-2); }
   & [data-slot="3"] { --c: var(--nx-trend-3); }
@@ -179,6 +179,32 @@ nx-trend[busy] .nx-trend__plot {
 }
 .nx-trend__svg[data-active] .nx-trend__bar:not(.is-on) {
   opacity: 0.45;
+}
+/* Proyección: la barra en un tono suave con borde punteado, la línea punteada, y el rango como una
+   línea vertical con topes. */
+.nx-trend__bar.is-forecast {
+  fill-opacity: 0.28;
+  stroke: var(--c);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.nx-trend__mk.is-forecast {
+  fill: var(--nx-trend-surface, var(--nx-card));
+  stroke: var(--c);
+}
+.nx-trend__fline {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linejoin: round;
+}
+.nx-trend__range {
+  fill: none;
+  stroke: var(--nx-foreground);
+  stroke-width: 1.5;
+  opacity: 0.6;
+  pointer-events: none;
 }
 .nx-trend__flag {
   pointer-events: none;

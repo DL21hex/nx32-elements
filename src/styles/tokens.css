@@ -84,6 +84,29 @@
   --nx-warning-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
   --nx-warning-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
 
+  /* Gráficos (`nx-bars`, `nx-heatmap`, `nx-parts`, `nx-trend`…). La paleta categórica está validada
+     para daltonismo en claro y en oscuro, en este orden: el color sigue a la serie, nunca a su
+     posición, y no se repite (pasada la octava, «Otros»). `-muted` es la serie de referencia (el año
+     anterior). `-seq` es el extremo fuerte de la escala secuencial (el débil es la superficie) y
+     `-seq-ink`, el texto sobre él; `-neg`, el otro polo de una escala divergente. `-ord-1…4` es una
+     rampa ordinal (de lo reciente a lo viejo, de poco a mucho). */
+  --nx-chart-1: light-dark(#2a78d6, #3987e5);
+  --nx-chart-2: light-dark(#eb6834, #d95926);
+  --nx-chart-3: light-dark(#1baf7a, #199e70);
+  --nx-chart-4: light-dark(#eda100, #c98500);
+  --nx-chart-5: light-dark(#e87ba4, #d55181);
+  --nx-chart-6: #008300;
+  --nx-chart-7: light-dark(#4a3aa7, #9085e9);
+  --nx-chart-8: light-dark(#e34948, #e66767);
+  --nx-chart-muted: light-dark(#8b919b, #6f747d);
+  --nx-chart-seq: light-dark(#184f95, #86b6ef);
+  --nx-chart-seq-ink: light-dark(#ffffff, #0d1a2e);
+  --nx-chart-neg: light-dark(#b8322f, #f08a87);
+  --nx-chart-ord-1: light-dark(#86b6ef, #1c5cab);
+  --nx-chart-ord-2: light-dark(#3987e5, #3987e5);
+  --nx-chart-ord-3: light-dark(#1c5cab, #86b6ef);
+  --nx-chart-ord-4: light-dark(#0d366b, #cde2fb);
+
   --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
     0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
   /* Una hoja sobre el fondo (el panel de filtros, la caja de la tabla): solo en oscuro. En claro la
@@ -240,5 +263,79 @@
     forced-color-adjust: none;
     border-color: CanvasText;
     border-block-start-color: Highlight;
+  }
+}
+
+/* El tooltip de los gráficos (`ChartTip` de core/chart.ts): uno por componente, dentro de él. Va
+   aquí y no en la hoja de cada gráfico: así no se repite. */
+.nx-chart-tip {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 3;
+  min-inline-size: 150px;
+  max-inline-size: 280px;
+  padding: 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-popover);
+  box-shadow: var(--nx-shadow-popover);
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.nx-chart-tip[hidden] {
+  display: none;
+}
+.nx-chart-tip__title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+.nx-chart-tip__row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  & > span {
+    color: var(--nx-muted-foreground);
+  }
+  & > b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+  }
+}
+.nx-chart-tip__foot {
+  margin: 5px 0 0;
+  padding-block-start: 5px;
+  border-block-start: 1px solid var(--nx-border-subtle);
+  color: var(--nx-muted-foreground);
+}
+/* La muestra de color de una serie (leyenda, tooltip, lista): `data-nx-slot` elige el color. */
+.nx-chart-sw {
+  display: inline-block;
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 3px;
+  background: var(--c, var(--nx-chart-1));
+  flex: none;
+}
+[data-nx-slot="1"] { --c: var(--nx-chart-1); }
+[data-nx-slot="2"] { --c: var(--nx-chart-2); }
+[data-nx-slot="3"] { --c: var(--nx-chart-3); }
+[data-nx-slot="4"] { --c: var(--nx-chart-4); }
+[data-nx-slot="5"] { --c: var(--nx-chart-5); }
+[data-nx-slot="6"] { --c: var(--nx-chart-6); }
+[data-nx-slot="7"] { --c: var(--nx-chart-7); }
+[data-nx-slot="8"] { --c: var(--nx-chart-8); }
+[data-nx-slot="m"] { --c: var(--nx-chart-muted); }
+[data-nx-slot="o1"] { --c: var(--nx-chart-ord-1); }
+[data-nx-slot="o2"] { --c: var(--nx-chart-ord-2); }
+[data-nx-slot="o3"] { --c: var(--nx-chart-ord-3); }
+[data-nx-slot="o4"] { --c: var(--nx-chart-ord-4); }
+@media (forced-colors: active) {
+  .nx-chart-tip {
+    border-color: CanvasText;
   }
 }

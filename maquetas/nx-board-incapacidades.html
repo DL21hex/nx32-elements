@@ -1,0 +1,1660 @@
+<title>Tablero de incapacidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Tablero de incapacidades: una sola grilla de paneles que comparten filtros. Todo clic en una marca
+   (barra, celda, fila, leyenda) filtra el resto del tablero; el panel dueño de esa dimensión no se
+   filtra a sí mismo, solo resalta lo elegido y atenúa lo demás.
+   Distribución: cabecera · barra de filtros pegada arriba · cifras · tendencia + lectura · mapa de calor
+   + día de inicio · diagnósticos + duración + quién paga · cartera + para actuar + SG-SST · detalle. */
+:root {
+  color-scheme: light dark;
+  --h: 215;
+  --canvas: light-dark(oklch(0.975 0.003 250), oklch(0.16 0.004 250));
+  --card: light-dark(oklch(1 0 0), oklch(0.205 0.005 250));
+  --pop: light-dark(oklch(1 0 0), oklch(0.25 0.006 250));
+  --line-soft: light-dark(oklch(0.93 0.004 250), oklch(1 0 0 / 0.07));
+  --line: light-dark(oklch(0.89 0.005 250), oklch(1 0 0 / 0.11));
+  --fg: light-dark(oklch(0.2 0.008 250), oklch(0.955 0.003 250));
+  --fg-2: light-dark(oklch(0.42 0.01 250), oklch(0.78 0.006 250));
+  --fg-3: light-dark(oklch(0.52 0.01 250), oklch(0.66 0.007 250));
+  --fg-4: light-dark(oklch(0.68 0.008 250), oklch(0.5 0.007 250));
+  --accent: light-dark(oklch(0.52 0.12 var(--h)), oklch(0.74 0.09 var(--h)));
+  --accent-ink: light-dark(oklch(0.46 0.12 var(--h)), oklch(0.8 0.085 var(--h)));
+  --accent-soft: light-dark(oklch(0.52 0.12 var(--h) / 0.09), oklch(0.74 0.09 var(--h) / 0.15));
+  --accent-line: light-dark(oklch(0.52 0.12 var(--h) / 0.4), oklch(0.74 0.09 var(--h) / 0.45));
+  --on-accent: light-dark(oklch(1 0 0), oklch(0.18 0.02 var(--h)));
+  --hover: light-dark(oklch(0.2 0.01 250 / 0.045), oklch(1 0 0 / 0.055));
+  --ring: light-dark(oklch(0.52 0.12 var(--h) / 0.6), oklch(0.74 0.09 var(--h) / 0.7));
+  --shadow-pop: 0 1px 2px light-dark(oklch(0.2 0.02 250 / 0.08), oklch(0 0 0 / 0.3)),
+    0 12px 32px -6px light-dark(oklch(0.2 0.02 250 / 0.2), oklch(0 0 0 / 0.6));
+
+  /* Datos. Paleta categórica validada (orden fijo; el color sigue al tipo, nunca a su posición). */
+  --s1: light-dark(#2a78d6, #3987e5);
+  --s2: light-dark(#eb6834, #d95926);
+  --s3: light-dark(#1baf7a, #199e70);
+  --s4: light-dark(#eda100, #c98500);
+  --s5: light-dark(#e87ba4, #d55181);
+  --viz: var(--s1);
+  --ref: light-dark(#898781, #9a9993);
+  --grid: light-dark(#e6e5df, #2c2c2a);
+  --axis: light-dark(#c3c2b7, #45443f);
+  /* Quién paga: otra pregunta, otros colores (no se cruzan con los tipos). */
+  --p-emp: light-dark(#8f8d86, #77756f);
+  --p-eps: light-dark(#4a3aa7, #9085e9);
+  --p-arl: light-dark(#008300, #1f9d1f);
+  --p-afp: light-dark(#5f7391, #8ea0bd);
+  /* Escala secuencial (mapa de calor): de la superficie al tono fuerte. */
+  --seq-hi: light-dark(#184f95, #86b6ef);
+  --seq-ink: light-dark(#ffffff, #0d1a2e);
+  /* Rampa ordinal de antigüedad de la cartera (más vieja = más intensa). */
+  --a1: light-dark(#86b6ef, #1c5cab);
+  --a2: light-dark(#3987e5, #3987e5);
+  --a3: light-dark(#1c5cab, #86b6ef);
+  --a4: light-dark(#0d366b, #cde2fb);
+  /* Estados: siempre con ícono y texto, nunca solo color. */
+  --crit: #d03b3b;
+  --serious: #ec835a;
+  --warn: #fab219;
+  --good: #0ca30c;
+  --bad-ink: light-dark(#b42727, #ff8f87);
+  --good-ink: light-dark(#006300, #3ccb3c);
+  --warn-ink: light-dark(#8a5a00, #f5c451);
+
+  --r: 10px;
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+/* El tema se decide en <body>: el visor de artefactos maneja la raíz. */
+body { color-scheme: light dark; }
+:root[data-theme="dark"] body { color-scheme: dark; }
+:root[data-theme="light"] body { color-scheme: light; }
+:root body[data-scheme="dark"] { color-scheme: dark; }
+:root body[data-scheme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--canvas); color: var(--fg);
+  font: 14px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+h1, h2, h3, p { margin: 0; }
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.num, td, .hm, .kpi .v { font-variant-numeric: tabular-nums; }
+.code { font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.wrap { max-width: 1560px; margin: 0 auto; padding-inline: clamp(16px, 2.6vw, 32px); padding-block: 22px 56px; }
+
+/* ------------------------------------------------------------ cabecera */
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.crumb { display: flex; gap: 6px; color: var(--fg-3); font-size: 13px; }
+.crumb span { color: var(--fg-4); }
+h1 { font-size: 26px; font-weight: 650; letter-spacing: -0.015em; margin-top: 2px; text-wrap: balance; }
+.meta { color: var(--fg-3); font-size: 13px; margin-top: 2px; }
+.meta b { color: var(--fg-2); font-weight: 500; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tools .lbl { color: var(--fg-3); font-size: 13px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg-2); font-size: 13px;
+}
+.btn:hover { color: var(--fg); background: color-mix(in oklab, var(--card), var(--fg) 4%); }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+.btn.ico { width: 34px; padding: 0; justify-content: center; }
+
+/* ------------------------------------------------------------ filtros */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap;
+  margin: 16px calc(-1 * clamp(16px, 2.6vw, 32px)) 14px; padding: 10px clamp(16px, 2.6vw, 32px);
+  background: color-mix(in oklab, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line-soft);
+}
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--hover); border: 1px solid var(--line-soft); }
+.seg button { border: 0; background: none; height: 28px; padding: 0 11px; border-radius: 6px; color: var(--fg-2); font-size: 13px; white-space: nowrap; }
+.seg button:hover { color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); font-weight: 550; box-shadow: 0 1px 2px light-dark(oklch(0.2 0.02 250 / 0.12), oklch(0 0 0 / 0.4)); }
+.seg.sm button { height: 24px; padding: 0 9px; font-size: 12.5px; }
+.field { display: inline-flex; align-items: center; gap: 8px; color: var(--fg-3); font-size: 13px; }
+.field select {
+  height: 34px; padding: 0 30px 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+  color: var(--fg); appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px; background-repeat: no-repeat;
+}
+.chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 10px; border-radius: 999px;
+  border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent-ink); font-size: 12.5px;
+}
+.chip small { color: var(--fg-3); font-size: 12px; }
+.chip .x { width: 14px; height: 14px; }
+.chip:hover { background: color-mix(in oklab, var(--accent-soft), var(--accent) 10%); }
+.chip-clear { border: 0; background: none; color: var(--fg-3); font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; padding: 0 4px; }
+.chip-hint { color: var(--fg-4); font-size: 12.5px; }
+
+/* ------------------------------------------------------------ grilla */
+.board { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; grid-auto-flow: dense; }
+.s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s6 { grid-column: span 6; }
+.s7 { grid-column: span 7; } .s5 { grid-column: span 5; } .s4 { grid-column: span 4; } .s3 { grid-column: span 3; }
+@media (max-width: 1180px) {
+  .s8 { grid-column: span 12; } .s7, .s5, .s4, .s3 { grid-column: span 6; }
+}
+@media (max-width: 760px) {
+  .s8, .s7, .s6, .s5, .s4, .s3 { grid-column: span 12; }
+}
+.panel {
+  position: relative; min-width: 0; display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 18px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+}
+.ph { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.panel h2 { font-size: 14px; font-weight: 600; letter-spacing: -0.005em; }
+.sub { color: var(--fg-3); font-size: 12.5px; margin-top: 1px; }
+.empty { color: var(--fg-3); font-size: 13px; padding: 18px 0; }
+.note { color: var(--fg-3); font-size: 12px; }
+.note a, .lnk { color: var(--accent-ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
+
+/* ------------------------------------------------------------ cifras */
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; position: relative; }
+@media (max-width: 1180px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi:first-child { grid-column: span 2; } }
+.kpi {
+  min-width: 0; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 4px;
+  padding: 14px 16px 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+}
+.kpi h3 { font-size: 12.5px; font-weight: 500; color: var(--fg-2); }
+.kpi .v { font-size: 27px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+.kpi .v small { font-size: 15px; font-weight: 500; color: var(--fg-3); margin-left: 2px; }
+.delta { font-size: 12.5px; color: var(--fg-3); display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.delta b { font-weight: 600; }
+.delta .bad { color: var(--bad-ink); } .delta .good { color: var(--good-ink); } .delta .flat { color: var(--fg-2); }
+.spark { position: relative; height: 34px; margin-top: 6px; }
+.spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.spark .end { position: absolute; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--viz); box-shadow: 0 0 0 2px var(--card); transform: translateY(-50%); }
+.kpi .foot { font-size: 11.5px; color: var(--fg-3); border-top: 1px solid var(--line-soft); padding-top: 7px; margin-top: 4px; }
+
+/* ------------------------------------------------------------ leyenda que filtra */
+.legend { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.lg {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px 4px 7px; border: 1px solid transparent; border-radius: 7px;
+  background: none; font-size: 12.5px; color: var(--fg-2); text-align: left;
+}
+.lg:hover { background: var(--hover); }
+.lg .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.lg b { font-weight: 600; color: var(--fg); }
+.lg small { color: var(--fg-3); font-size: 12px; }
+.lg[aria-pressed="true"] { border-color: var(--line); background: var(--hover); }
+.lg.dim { opacity: 0.45; }
+.lg.ref { cursor: default; }
+.lg.ref .sw { height: 0; border-top: 2px dashed var(--ref); border-radius: 0; width: 14px; }
+.lg.ref .sw.hatch { width: 11px; height: 11px; border: 1px dashed var(--fg-3); border-radius: 2px; background: repeating-linear-gradient(45deg, transparent 0 2px, var(--fg-4) 2px 3px); }
+.plot .hit.nf { cursor: default; }
+.plot { position: relative; min-height: 260px; }
+.plot svg { display: block; width: 100%; overflow: visible; }
+.plot text { fill: var(--fg-3); font-size: 11px; font-family: var(--font); }
+.plot .hit { fill: transparent; cursor: pointer; }
+.plot .hit:hover { fill: var(--hover); }
+
+/* ------------------------------------------------------------ lectura */
+.ins { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ins li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px 10px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.ins li:first-child { border-top: 0; padding-top: 2px; }
+.ins .mk { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--hover); color: var(--fg-2); }
+.ins .mk.bad { color: var(--bad-ink); } .ins .mk.good { color: var(--good-ink); }
+.ins .mk .i { width: 14px; height: 14px; }
+.ins p { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; }
+.ins p b { color: var(--fg); font-weight: 600; }
+.ins .lnk { grid-column: 2; justify-self: start; font-size: 12.5px; }
+
+/* ------------------------------------------------------------ mapa de calor */
+.hm-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px 2px; }
+.hm { display: grid; gap: 3px; min-width: min-content; font-size: 11.5px; }
+.hm .hd { color: var(--fg-3); font-size: 11px; text-align: center; padding: 2px 0 4px; background: none; border: 0; border-radius: 4px; }
+.hm button.hd:hover { color: var(--fg); background: var(--hover); }
+.hm .rl {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 8px 0 2px; border: 0; background: none;
+  font-size: 12.5px; color: var(--fg-2); text-align: left; white-space: nowrap; border-radius: 5px; min-height: 30px;
+}
+.hm .rl:hover { color: var(--fg); background: var(--hover); }
+.hm .rl small { color: var(--fg-4); font-size: 11px; }
+.hm .c { min-height: 30px; border: 0; border-radius: 4px; display: grid; place-items: center; font-size: 11px; padding: 0; }
+.hm .c:hover { outline: 2px solid var(--fg); outline-offset: -1px; }
+.hm .tot { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; padding-left: 6px; font-size: 12px; color: var(--fg); font-weight: 550; }
+.hm .tot small { font-size: 11px; font-weight: 500; }
+.hm .dim { opacity: 0.3; }
+.hm .on { color: var(--fg); font-weight: 600; }
+.scale { display: flex; align-items: center; gap: 8px; color: var(--fg-3); font-size: 11.5px; }
+.scale i { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in oklab, var(--seq-hi) 8%, var(--card)), var(--seq-hi)); }
+
+/* ------------------------------------------------------------ columnas (día de inicio, duración) */
+.cols { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; height: 188px; align-items: end; padding-top: 18px; }
+.col { height: 100%; display: grid; grid-template-rows: 1fr auto; gap: 6px; border: 0; background: none; padding: 0; border-radius: 6px; min-width: 0; }
+.col:hover .bar-v { filter: brightness(1.08); }
+.col:hover .cl { color: var(--fg); }
+.col .stk { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.bar-v { width: min(100%, 34px); border-radius: 4px 4px 0 0; background: var(--viz); min-height: 2px; }
+.col .cv { font-size: 11.5px; color: var(--fg-2); margin-bottom: 4px; font-weight: 550; }
+.col .cl { font-size: 11.5px; color: var(--fg-3); text-align: center; white-space: nowrap; }
+.col.dim { opacity: 0.35; }
+.col.on .cl { color: var(--fg); font-weight: 600; }
+.refline { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--ref); pointer-events: none; }
+.refline span { position: absolute; right: 0; top: -17px; font-size: 11px; color: var(--fg-3); background: var(--card); padding: 0 2px; }
+.cols-base { border-top: 1px solid var(--axis); margin-top: -1px; }
+
+/* ------------------------------------------------------------ barras horizontales */
+.hb { display: grid; gap: 2px; }
+.hb-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 64px 46px; align-items: center; gap: 4px 10px;
+  padding: 5px 6px; margin: 0 -6px; border: 0; border-radius: 6px; background: none; text-align: left;
+}
+.hb-row:hover { background: var(--hover); }
+.hb-row .lbl { min-width: 0; display: flex; gap: 8px; align-items: baseline; font-size: 13px; color: var(--fg-2); }
+.hb-row .lbl span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-row .val { font-size: 12.5px; text-align: right; color: var(--fg); font-weight: 550; }
+.hb-row .acc { font-size: 11.5px; text-align: right; color: var(--fg-3); }
+.hb-row .track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--hover); overflow: hidden; }
+.hb-row .fill { height: 100%; border-radius: 0 3px 3px 0; background: var(--viz); }
+.hb-row.dim { opacity: 0.4; }
+.hb-row.on .lbl { color: var(--fg); font-weight: 600; }
+.hb-head { display: grid; grid-template-columns: minmax(0, 1fr) 64px 46px; gap: 10px; font-size: 11px; color: var(--fg-3); text-align: right; padding: 0 0 2px; }
+.hb-head span:first-child { text-align: left; }
+
+/* ------------------------------------------------------------ partes de un todo y cartera */
+.parts { display: flex; gap: 2px; height: 14px; }
+.parts span { min-width: 3px; height: 100%; }
+.parts span:first-child { border-radius: 4px 0 0 4px; }
+.parts span:last-child { border-radius: 0 4px 4px 0; }
+.parts span:only-child { border-radius: 4px; }
+.plist { display: grid; gap: 10px; }
+.prow { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; }
+.prow .sw { width: 10px; height: 10px; border-radius: 3px; align-self: center; }
+.prow b { font-weight: 550; font-size: 13px; }
+.prow .amt { font-size: 13px; font-weight: 600; text-align: right; }
+.prow small { grid-column: 2; color: var(--fg-3); font-size: 12px; }
+.prow .pct { grid-column: 3; color: var(--fg-3); font-size: 12px; text-align: right; }
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid var(--line-soft); padding-top: 12px; }
+.trio div { display: grid; gap: 1px; }
+.trio span { font-size: 11.5px; color: var(--fg-3); }
+.trio b { font-size: 14px; font-weight: 600; }
+
+.ag-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--fg-3); }
+.ag-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ag-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.ag { display: grid; gap: 2px; }
+.ag-row {
+  display: grid; grid-template-columns: 112px minmax(0, 1fr) 72px 56px; gap: 10px; align-items: center;
+  padding: 6px; margin: 0 -6px; border: 0; border-radius: 6px; background: none; text-align: left; font-size: 13px;
+}
+.ag-row:hover { background: var(--hover); }
+.ag-head { display: grid; grid-template-columns: 112px minmax(0, 1fr) 72px 56px; gap: 10px; font-size: 11px; color: var(--fg-3); text-align: right; }
+.ag-head span:first-child { text-align: left; }
+.ag-row .pd { text-align: right; color: var(--fg-2); font-size: 12.5px; }
+.ag-row .pd.slow { color: var(--bad-ink); font-weight: 600; }
+.ag-row .nm { color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-row .amt { text-align: right; font-weight: 600; font-size: 12.5px; }
+.ag-row .stack { display: flex; gap: 2px; height: 12px; }
+.ag-row .stack span { height: 100%; min-width: 2px; }
+.ag-row .stack span:last-child { border-radius: 0 4px 4px 0; }
+.ag-row.dim { opacity: 0.4; }
+.ag-row.on .nm { color: var(--fg); font-weight: 600; }
+.ag-foot { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--fg-3); border-top: 1px solid var(--line-soft); padding-top: 10px; }
+.ag-foot b { color: var(--fg); font-weight: 600; }
+
+/* ------------------------------------------------------------ para actuar */
+.al { list-style: none; margin: 0; padding: 0; display: grid; }
+.al li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 2px 10px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.al li:first-child { border-top: 0; padding-top: 0; }
+.sev { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; grid-row: span 3; }
+.sev .i { width: 15px; height: 15px; stroke-width: 2; }
+.sev.crit { background: color-mix(in oklab, var(--crit) 14%, transparent); color: var(--crit); }
+.sev.serious { background: color-mix(in oklab, var(--serious) 18%, transparent); color: light-dark(#b2552e, var(--serious)); }
+.sev.warn { background: color-mix(in oklab, var(--warn) 20%, transparent); color: var(--warn-ink); }
+.al .t { font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.al .t small { font-weight: 500; font-size: 11.5px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.al p { font-size: 12.5px; color: var(--fg-2); }
+.al .lnk { justify-self: start; font-size: 12.5px; margin-top: 2px; }
+.more { font-size: 12.5px; color: var(--fg-3); }
+
+/* ------------------------------------------------------------ SG-SST */
+.sst { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.sst th { font-weight: 500; color: var(--fg-3); font-size: 11px; text-align: right; padding: 0 0 6px; }
+.sst th:first-child { text-align: left; }
+.sst td { padding: 7px 0; border-top: 1px solid var(--line-soft); text-align: right; vertical-align: top; }
+.sst td:first-child { text-align: left; color: var(--fg-2); padding-right: 8px; }
+.sst td:first-child small { display: block; color: var(--fg-4); font-size: 11px; }
+.sst td b { font-weight: 600; }
+.sst .prev { color: var(--fg-3); padding-left: 10px; }
+
+/* ------------------------------------------------------------ detalle */
+.tbl-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg-3); }
+.search input { border: 0; outline: 0; background: none; width: 230px; max-width: 52vw; color: var(--fg); }
+.tbl-wrap { overflow-x: auto; margin: 0 -18px; }
+table.det { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 980px; }
+.det th { position: relative; text-align: left; font-weight: 500; color: var(--fg-3); font-size: 12px; padding: 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.det th button { width: 100%; text-align: inherit; border: 0; background: none; padding: 8px 10px; color: inherit; font-size: inherit; display: flex; gap: 4px; align-items: center; justify-content: inherit; }
+.det th button:hover { color: var(--fg); }
+.det th[aria-sort] button { color: var(--fg); font-weight: 600; }
+.det th.r, .det td.r { text-align: right; }
+.det th.r button { justify-content: flex-end; }
+.det th:first-child button, .det td:first-child { padding-left: 18px; }
+.det th:last-child button, .det td:last-child { padding-right: 18px; }
+.det td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.det tbody tr { cursor: pointer; }
+.det tbody tr:hover td { background: var(--hover); }
+.det .who b { display: block; font-weight: 550; }
+.det .who small { color: var(--fg-3); font-size: 12px; }
+.det .dx { max-width: 260px; }
+.det .dx span:last-child { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-2); }
+.tp { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tp i { width: 8px; height: 8px; border-radius: 2px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; border: 1px solid var(--line); color: var(--fg-2); }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-4); }
+.pill.good i { background: var(--good); } .pill.info i { background: var(--accent); }
+.pill.warn i { background: var(--warn); } .pill.crit i { background: var(--crit); }
+.pill.crit { color: var(--bad-ink); border-color: color-mix(in oklab, var(--crit) 40%, transparent); }
+.pill.muted { color: var(--fg-3); border-style: dashed; }
+.act { font-size: 11px; color: var(--accent-ink); font-weight: 600; margin-left: 4px; }
+.tbl-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--fg-3); }
+
+/* ------------------------------------------------------------ tooltip */
+#tip {
+  position: fixed; z-index: 60; pointer-events: none; min-width: 170px; max-width: 280px; padding: 9px 11px;
+  background: var(--pop); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-pop);
+  font-size: 12.5px; line-height: 1.4;
+}
+#tip .tt { font-weight: 600; margin-bottom: 4px; }
+#tip .tr { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+#tip .tr i { width: 8px; height: 8px; border-radius: 2px; }
+#tip .tr span { color: var(--fg-2); }
+#tip .tr b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+#tip .tf { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line-soft); color: var(--fg-3); }
+#tip .tf b { color: var(--fg); }
+
+/* ------------------------------------------------------------ ficha */
+dialog.sheet {
+  margin: 0 0 0 auto; padding: 0; border: 0; width: min(580px, 100%); height: 100%; max-height: 100%;
+  background: var(--card); color: var(--fg); box-shadow: var(--shadow-pop); border-left: 1px solid var(--line);
+}
+dialog.sheet::backdrop { background: oklch(0.15 0.01 250 / 0.38); }
+.sh { display: flex; flex-direction: column; height: 100%; }
+.sh-head { display: flex; gap: 12px; align-items: flex-start; padding: 18px 20px 14px; border-bottom: 1px solid var(--line-soft); }
+.sh-head .face { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 650; font-size: 13px; color: #fff; flex: none; }
+.sh-head h2 { font-size: 17px; font-weight: 650; }
+.sh-head p { color: var(--fg-3); font-size: 13px; }
+.sh-head .btn { margin-left: auto; }
+.sh-body { flex: 1; overflow: auto; padding: 16px 20px 28px; display: grid; gap: 22px; align-content: start; }
+.sh-body h3 { font-size: 12px; font-weight: 600; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.facts div { display: grid; gap: 1px; }
+.facts span { font-size: 12px; color: var(--fg-3); }
+.facts b { font-size: 14px; font-weight: 600; }
+.dxbox { display: grid; gap: 2px; }
+.dxbox b { font-size: 15px; font-weight: 600; }
+.phases { position: relative; display: flex; gap: 2px; height: 26px; margin-top: 4px; }
+.phases span { height: 100%; min-width: 4px; }
+.phases span:first-child { border-radius: 5px 0 0 5px; }
+.phases span:last-child { border-radius: 0 5px 5px 0; }
+.phases span:only-child { border-radius: 5px; }
+.phases span.fut { opacity: 0.35; background-image: repeating-linear-gradient(135deg, transparent 0 4px, var(--card) 4px 6px); }
+.today { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--fg); border-radius: 1px; }
+.today span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 600; white-space: nowrap; background: none; color: var(--fg); }
+.axis { position: relative; height: 18px; font-size: 11px; color: var(--fg-3); margin-top: 4px; }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis span:first-child { transform: none; }
+.axis span:last-child { transform: translateX(-100%); }
+.seglist { display: grid; gap: 8px; margin-top: 12px; }
+.seglist .prow small { grid-column: 2 / -1; }
+.hist { display: grid; gap: 2px; }
+.hist button { display: grid; grid-template-columns: 86px minmax(0, 1fr) 54px; gap: 10px; align-items: baseline; padding: 6px; margin: 0 -6px; border: 0; background: none; border-radius: 6px; text-align: left; font-size: 13px; }
+.hist button:hover { background: var(--hover); }
+.hist button[aria-current="true"] { background: var(--accent-soft); }
+.hist .r { text-align: right; color: var(--fg-2); }
+.hist .d { color: var(--fg-3); font-size: 12.5px; }
+.hist .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ------------------------------------------------------------ piezas */
+.pieces-panel { margin-bottom: 14px; padding: 16px 18px; border: 1.5px dashed var(--accent-line); border-radius: var(--r); background: var(--accent-soft); }
+.pieces-panel h2 { font-size: 14px; font-weight: 600; }
+.pieces-panel .sub { margin-bottom: 12px; }
+.plist2 { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px 22px; }
+.plist2 li { display: grid; gap: 2px; font-size: 12.5px; color: var(--fg-2); }
+.plist2 code { font-family: var(--mono); font-size: 12.5px; color: var(--fg); font-weight: 500; }
+.kind { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; font-size: 10.5px; font-family: var(--font); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: 1px; }
+.kind.nuevo { background: var(--accent); color: var(--on-accent); }
+.kind.ampliar { background: var(--warn); color: #3a2600; }
+.kind.existe { background: var(--line); color: var(--fg-2); }
+body.pieces [data-piece] { outline: 1.5px dashed var(--accent-line); outline-offset: 3px; }
+body.pieces [data-piece]::before {
+  content: "<" attr(data-piece) ">  " attr(data-kind); position: absolute; z-index: 5; top: -11px; right: 12px;
+  padding: 1px 7px; border-radius: 5px; font: 500 11px/18px var(--mono); white-space: nowrap;
+  background: var(--accent); color: var(--on-accent);
+}
+body.pieces [data-kind="existe"]::before { background: var(--fg-2); color: var(--card); }
+body.pieces [data-kind="ampliar"]::before { background: var(--warn); color: #3a2600; }
+.seg, .field { position: relative; }
+
+/* ------------------------------------------------------------ personas */
+.people { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px 30px; }
+@media (max-width: 760px) { .people { grid-template-columns: minmax(0, 1fr); } }
+.people > div { min-width: 0; display: grid; gap: 12px; align-content: start; }
+.big { font-size: 17px; line-height: 1.4; color: var(--fg-2); text-wrap: balance; }
+.big b { color: var(--fg); font-weight: 650; }
+.bf-head { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--fg-3); }
+.bf { display: grid; gap: 2px; }
+.bf button { display: grid; grid-template-columns: minmax(0, 1fr) auto 58px; gap: 4px 12px; align-items: baseline; padding: 6px; margin: 0 -6px; border: 0; background: none; border-radius: 6px; text-align: left; font-size: 13px; }
+.bf button:hover { background: var(--hover); }
+.bf .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+.bf .n small { font-weight: 400; }
+.bf small { color: var(--fg-3); font-size: 12px; }
+.bf .sc { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bf .meter { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--hover); overflow: hidden; }
+.bf .meter i { display: block; height: 100%; background: var(--viz); border-radius: 0 2px 2px 0; }
+.rsv { display: inline-flex; align-items: center; gap: 5px; color: var(--fg-3); font-size: 12.5px; }
+.rsv .i { width: 13px; height: 13px; }
+.reserved { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; color: var(--fg-2); font-size: 13px; }
+.reserved .i { margin-top: 2px; color: var(--fg-3); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .bar-v, .fill, .parts span, .ag-row .stack span { transition: height 240ms ease, width 240ms ease; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/><path d="M12 9v11" opacity="0"/></symbol>
+  <symbol id="i-trend-up" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-trend-down" viewBox="0 0 24 24"><path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+  <symbol id="i-steth" viewBox="0 0 24 24"><path d="M5 3v6a5 5 0 0 0 10 0V3"/><path d="M10 14v2a5 5 0 0 0 10 0v-3"/><circle cx="20" cy="11" r="2"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1 0-2-.5-2.5-1.5M12 6.5v11"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M20 15.5A4.5 4.5 0 0 0 17.5 7a6 6 0 0 0-11.4 1.8A4 4 0 0 0 7 16.5"/><path d="M9 19l-1 2M13 18l-1 3M17 18l-1 2"/></symbol>
+  <symbol id="i-octa" viewBox="0 0 24 24"><path d="M8 2h8l6 6v8l-6 6H8l-6-6V8z"/><path d="M12 8v5M12 16.5v.01"/></symbol>
+  <symbol id="i-tri" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17v.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-blocks" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <nav class="crumb" aria-label="Ruta">Talento humano <span>›</span> Reportes</nav>
+      <h1>Incapacidades</h1>
+      <p class="meta">Datos de ejemplo · corte <b>30 sep 2026</b> · <b id="m-hc">1.240</b> trabajadores</p>
+    </div>
+    <div class="tools">
+      <span class="lbl" id="role-lbl">Ver como</span>
+      <div class="seg" id="f-role" role="group" aria-labelledby="role-lbl">
+        <button type="button" data-role="sst" aria-pressed="true">Seguridad y salud</button>
+        <button type="button" data-role="nom" aria-pressed="false">Nómina</button>
+      </div>
+      <button class="btn" id="b-pieces" type="button" aria-pressed="false"><svg class="i"><use href="#i-blocks"/></svg>Piezas</button>
+      <button class="btn ico" id="b-theme" type="button" aria-label="Ver en oscuro" title="Ver en oscuro"><svg class="i"><use href="#i-moon"/></svg></button>
+    </div>
+  </header>
+
+  <div class="bar" id="bar" data-piece="nx-board" data-kind="nuevo">
+    <div class="seg" id="f-period" role="group" aria-label="Período">
+      <button type="button" data-period="12m" aria-pressed="true">Últimos 12 meses</button>
+      <button type="button" data-period="ytd" aria-pressed="false">Año 2026</button>
+      <button type="button" data-period="q" aria-pressed="false">Trimestre</button>
+    </div>
+    <label class="field">Comparar con
+      <select id="f-compare"><option value="prev">Periodo anterior</option><option value="year">El mismo periodo de 2025</option></select>
+    </label>
+    <label class="field">Sede
+      <select id="f-sede"><option value="">Todas</option><option>Funza</option><option>Bogotá</option><option>Barranquilla</option></select>
+    </label>
+    <div class="chips" id="chips" aria-live="polite"></div>
+  </div>
+
+  <section class="pieces-panel" id="pieces" hidden>
+    <h2>Piezas del tablero</h2>
+    <p class="sub">Lo que hace falta en nx32-elements para armar este tablero. Cada panel lleva su etiqueta.</p>
+    <ul class="plist2">
+      <li><span><code>&lt;nx-board&gt;</code><span class="kind nuevo">nuevo</span></span>La grilla de paneles y el estado de filtros que comparten. Clic en cualquier marca filtra el resto; chips y «Quitar filtros». Campos sensibles por rol: el diagnóstico por persona solo lo ve Seguridad y salud.</li>
+      <li><span><code>&lt;nx-date-range&gt;</code><span class="kind existe">existe</span></span>Período con comparación (<code>compare="previous"</code> o el mismo periodo del año anterior).</li>
+      <li><span><code>&lt;nx-select&gt;</code><span class="kind existe">existe</span></span>Filtros de dimensión (sede, y luego área, EPS, cargo).</li>
+      <li><span><code>&lt;nx-stats&gt;</code><span class="kind ampliar">ampliar</span></span>Cifra con delta que sabe si subir es malo, sparkline con su punto final y una línea de pie (fórmula o desglose).</li>
+      <li><span><code>&lt;nx-trend kind="stack"&gt;</code><span class="kind ampliar">ampliar</span></span>Barras apiladas por serie, la serie de referencia punteada (ya existe <code>muted</code>), una leyenda con totales que filtra y la proyección de los meses que vienen con su rango.</li>
+      <li><span><code>&lt;nx-insights&gt;</code><span class="kind nuevo">nuevo</span></span>Frases que el tablero calcula con los filtros puestos, cada una con su acción.</li>
+      <li><span><code>&lt;nx-heatmap&gt;</code><span class="kind nuevo">nuevo</span></span>Matriz con escala secuencial, columna de totales y delta; filas, columnas y celdas filtran.</li>
+      <li><span><code>&lt;nx-bars&gt;</code><span class="kind nuevo">nuevo</span></span>Barras horizontales o columnas: % acumulado (Pareto), línea de referencia y apiladas por tramo (cartera).</li>
+      <li><span><code>&lt;nx-parts&gt;</code><span class="kind nuevo">nuevo</span></span>Partes de un todo en una barra al 100 % con montos y reglas.</li>
+      <li><span><code>&lt;nx-alerts&gt;</code><span class="kind nuevo">nuevo</span></span>Lista por gravedad (ícono y texto, no solo color), con plazo y acción.</li>
+      <li><span><code>&lt;nx-grid&gt;</code><span class="kind existe">existe</span></span>El detalle, enlazado a los filtros del tablero.</li>
+      <li><span><code>&lt;nx-phases&gt;</code><span class="kind nuevo">nuevo</span></span>Tramos sobre un eje de días (quién paga cada día de la incapacidad), con «hoy» y lo que falta. Va en la ficha (<code>&lt;nx-dialog&gt;</code>).</li>
+    </ul>
+  </section>
+
+  <main class="board" id="board">
+    <section class="kpis s12" id="kpis" data-piece="nx-stats" data-kind="ampliar" aria-label="Cifras del periodo"></section>
+
+    <section class="panel s8" data-piece='nx-trend kind="stack"' data-kind="ampliar">
+      <div class="ph">
+        <div><h2 id="trend-title">Días de incapacidad por mes</h2><p class="sub" id="trend-sub"></p></div>
+        <div class="seg sm" id="f-metric" role="group" aria-label="Medida">
+          <button type="button" data-metric="dias" aria-pressed="true">Días</button>
+          <button type="button" data-metric="eventos" aria-pressed="false">Incapacidades</button>
+          <button type="button" data-metric="valor" aria-pressed="false">Valor</button>
+        </div>
+      </div>
+      <div class="legend" id="trend-legend"></div>
+      <div class="plot" id="trend-plot"></div>
+    </section>
+
+    <section class="panel s4" data-piece="nx-insights" data-kind="nuevo">
+      <div><h2>Lectura</h2><p class="sub">Calculada con los filtros puestos</p></div>
+      <ol class="ins" id="insights"></ol>
+    </section>
+
+    <section class="panel s8" data-piece="nx-heatmap" data-kind="nuevo">
+      <div class="ph">
+        <div><h2>Ausentismo por área y mes</h2><p class="sub">Días de incapacidad por causa médica sobre días programados, en %</p></div>
+        <div class="scale"><span>0</span><i></i><span id="hm-max"></span></div>
+      </div>
+      <div class="hm-wrap"><div class="hm" id="heat"></div></div>
+    </section>
+
+    <section class="panel s4" data-piece="nx-alerts" data-kind="nuevo">
+      <div><h2>Para actuar</h2><p class="sub" id="al-sub">Casos abiertos al corte</p></div>
+      <ol class="al" id="alerts"></ol>
+    </section>
+
+    <section class="panel s5" data-piece="nx-bars" data-kind="nuevo">
+      <div><h2>Diagnósticos que más días cuestan</h2><p class="sub">CIE-10 · sin licencias de maternidad y paternidad</p></div>
+      <div id="dx"></div>
+    </section>
+
+    <section class="panel s4" data-piece="nx-bars" data-kind="nuevo">
+      <div class="ph">
+        <div><h2>Día en que empiezan</h2><p class="sub" id="dow-sub"></p></div>
+        <div class="seg sm" id="f-dow" role="group" aria-label="Duración">
+          <button type="button" data-short="1" aria-pressed="true">De 1 a 3 días</button>
+          <button type="button" data-short="0" aria-pressed="false">Todas</button>
+        </div>
+      </div>
+      <div id="dow"></div>
+    </section>
+
+    <section class="panel s3" data-piece="nx-bars" data-kind="nuevo">
+      <div><h2>Duración</h2><p class="sub">Incapacidades por días que duran</p></div>
+      <div id="dur"></div>
+    </section>
+
+    <section class="panel s8" data-piece="nx-stats + nx-bars" data-kind="nuevo">
+      <div><h2>Personas</h2><p class="sub">Quién concentra los días y a quién se le repiten</p></div>
+      <div class="people" id="people"></div>
+    </section>
+
+    <section class="panel s4" data-piece="nx-stats layout=list" data-kind="ampliar">
+      <div><h2>Indicadores SG-SST</h2><p class="sub">Resolución 0312 de 2019 · promedio mensual</p></div>
+      <div id="sst"></div>
+    </section>
+
+    <section class="panel s5" data-piece="nx-parts" data-kind="nuevo">
+      <div><h2>Quién paga</h2><p class="sub" id="pay-sub">Valor de las incapacidades del periodo</p></div>
+      <div id="pay"></div>
+    </section>
+
+    <section class="panel s7" data-piece="nx-bars stacked" data-kind="nuevo">
+      <div><h2>Por recobrar, por entidad</h2><p class="sub">Días desde que terminó la incapacidad</p></div>
+      <div class="ag-legend" id="ag-legend"></div>
+      <div id="aging"></div>
+    </section>
+
+    <section class="panel s12" data-piece="nx-grid" data-kind="existe">
+      <div class="ph">
+        <div><h2>Detalle</h2><p class="sub" id="tbl-sub"></p></div>
+        <div class="tbl-tools">
+          <label class="search"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar persona, diagnóstico o código" autocomplete="off"></label>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="det" id="det"></table></div>
+      <div class="tbl-foot"><span id="tbl-count"></span><button type="button" class="btn" id="tbl-more">Mostrar 20 más</button></div>
+    </section>
+  </main>
+</div>
+
+<div id="tip" role="tooltip" hidden></div>
+
+<dialog class="sheet" id="ficha" aria-labelledby="f-name" data-piece="nx-dialog + nx-phases" data-kind="nuevo"><div class="sh" id="ficha-in"></div></dialog>
+
+<script>
+(() => {
+  "use strict";
+  // ================================================================ utilidades
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const NF = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+  const NF1 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const fInt = (n) => NF.format(Math.round(n));
+  const fPct = (x, d = 1) => new Intl.NumberFormat("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d }).format(x * 100) + " %";
+  const fMoney = (v) => {
+    const a = Math.abs(v);
+    if (a >= 1e9) return "$ " + NF1.format(v / 1e9) + " mil M";
+    if (a >= 1e6) return "$ " + NF1.format(v / 1e6) + " M";
+    if (a >= 1e3) return "$ " + NF.format(v / 1e3) + " mil";
+    return "$ " + NF.format(v);
+  };
+  const fMoneyFull = (v) => "$ " + NF.format(Math.round(v));
+  const sum = (a) => a.reduce((s, x) => s + x, 0);
+
+  let seed = 20261012;
+  function rnd() {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  function wpick(items) {
+    let s = 0; for (const it of items) s += it[1];
+    let x = rnd() * s;
+    for (const it of items) { x -= it[1]; if (x <= 0) return it[0]; }
+    return items[items.length - 1][0];
+  }
+  function poisson(l) { const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= rnd(); } while (p > L); return k - 1; }
+
+  // ================================================================ calendario
+  const DAY = 864e5;
+  const dn = (y, m, d) => Date.UTC(y, m - 1, d) / DAY;
+  const MSHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const MLONG = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const MONTHS = [];
+  for (let i = 0; i < 24; i++) {
+    const y = 2024 + Math.floor((9 + i) / 12), m = ((9 + i) % 12) + 1;
+    const s = dn(y, m, 1), e = dn(m === 12 ? y + 1 : y, m === 12 ? 1 : m + 1, 1) - 1;
+    MONTHS.push({ i, y, m, s, e, len: e - s + 1, short: MSHORT[m - 1], long: MLONG[m - 1] + " de " + y, label: MSHORT[m - 1] + " " + String(y).slice(2) });
+  }
+  const CORTE = dn(2026, 9, 30);
+  const dateOf = (d) => new Date(d * DAY);
+  function monthIdx(d) { const t = dateOf(d); return (t.getUTCFullYear() - 2024) * 12 + t.getUTCMonth() - 9; }
+  const dowOf = (d) => dateOf(d).getUTCDay();
+  const fDate = (d) => { const t = dateOf(d); return t.getUTCDate() + " " + MSHORT[t.getUTCMonth()] + " " + t.getUTCFullYear(); };
+  const DOWS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const DOWL = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+  // ================================================================ catálogos
+  const AREAS = [
+    { id: "prod", name: "Producción", hc: 420, rate: 0.1, at: 0.12, el: 0.02, cargo: "Operario de producción", sal: [1.6, 2.8] },
+    { id: "emp", name: "Empacadoras", hc: 310, rate: 0.115, at: 0.05, el: 0.07, cargo: "Empacador", sal: [1.5, 2.2], fem: 0.72 },
+    { id: "log", name: "Logística", hc: 180, rate: 0.1, at: 0.1, el: 0.02, cargo: "Auxiliar de bodega", sal: [1.6, 3] },
+    { id: "man", name: "Mantenimiento", hc: 70, rate: 0.09, at: 0.15, el: 0.01, cargo: "Técnico de mantenimiento", sal: [2.2, 4.5], fem: 0.08 },
+    { id: "cal", name: "Calidad", hc: 45, rate: 0.07, at: 0.03, el: 0.01, cargo: "Analista de calidad", sal: [2, 4] },
+    { id: "ven", name: "Ventas", hc: 120, rate: 0.06, at: 0.02, el: 0, cargo: "Asesor comercial", sal: [2, 6] },
+    { id: "adm", name: "Administración", hc: 95, rate: 0.05, at: 0.01, el: 0.005, cargo: "Analista administrativo", sal: [2.5, 9] },
+  ];
+  const AREA = Object.fromEntries(AREAS.map((a) => [a.id, a]));
+  const SEDES = { prod: "Funza", emp: "Funza", man: "Funza", cal: "Funza", log: "Barranquilla", adm: "Bogotá" };
+  const TIPOS = [
+    { id: "EG", name: "Enfermedad general", short: "Enf. general", c: "var(--s1)" },
+    { id: "AT", name: "Accidente de trabajo", short: "Acc. de trabajo", c: "var(--s2)" },
+    { id: "EL", name: "Enfermedad laboral", short: "Enf. laboral", c: "var(--s3)" },
+    { id: "MAT", name: "Licencia de maternidad", short: "Maternidad", c: "var(--s4)" },
+    { id: "PAT", name: "Licencia de paternidad", short: "Paternidad", c: "var(--s5)" },
+  ];
+  const TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
+  const PAYERS = [
+    { id: "emp", name: "Empresa", c: "var(--p-emp)", rule: "Días 1 y 2 de enfermedad general" },
+    { id: "eps", name: "EPS", c: "var(--p-eps)", rule: "Enfermedad general desde el día 3, y licencias" },
+    { id: "arl", name: "ARL", c: "var(--p-arl)", rule: "Accidente de trabajo y enfermedad laboral" },
+    { id: "afp", name: "Fondo de pensiones", c: "var(--p-afp)", rule: "Enfermedad general del día 181 al 540" },
+  ];
+  const PI = { emp: 0, eps: 1, arl: 2, afp: 3 };
+  const DX = {
+    "J06.9": ["Infección aguda de las vías respiratorias superiores", 1, 3],
+    "A09": ["Diarrea y gastroenteritis de presunto origen infeccioso", 1, 3],
+    "M54.5": ["Lumbago no especificado", 2, 10],
+    "K29.7": ["Gastritis, no especificada", 1, 3],
+    "R51": ["Cefalea", 1, 2],
+    "J11.1": ["Influenza con otras manifestaciones respiratorias", 3, 5],
+    "N39.0": ["Infección de vías urinarias, sitio no especificado", 2, 4],
+    "B34.9": ["Infección viral, no especificada", 2, 4],
+    "H10.9": ["Conjuntivitis, no especificada", 2, 3],
+    "U07.1": ["COVID-19, virus identificado", 5, 7],
+    "F41.1": ["Trastorno de ansiedad generalizada", 5, 30],
+    "F32.9": ["Episodio depresivo, no especificado", 10, 60],
+    "M51.1": ["Trastorno de disco lumbar con radiculopatía", 15, 90],
+    "K35.8": ["Apendicitis aguda", 10, 20],
+    "C50.9": ["Tumor maligno de la mama, parte no especificada", 60, 240],
+    "S93.4": ["Esguince de tobillo", 5, 20],
+    "S61.0": ["Herida de dedo(s) de la mano", 3, 10],
+    "S60.2": ["Contusión de la mano", 2, 7],
+    "S05.0": ["Traumatismo de la conjuntiva y abrasión corneal", 1, 3],
+    "S33.5": ["Esguince de la columna lumbar", 5, 15],
+    "S82.2": ["Fractura de la diáfisis de la tibia", 30, 90],
+    "G56.0": ["Síndrome del túnel carpiano", 10, 30],
+    "M65.4": ["Tenosinovitis de estiloides radial (De Quervain)", 7, 21],
+    "M75.1": ["Síndrome del manguito rotador", 15, 60],
+    "M77.1": ["Epicondilitis lateral", 7, 21],
+    "O80": ["Licencia de maternidad (parto único espontáneo)", 126, 126],
+    "—": ["Licencia de paternidad", 14, 14],
+  };
+  const EG_W = [["J06.9", 18], ["A09", 10], ["M54.5", 12], ["K29.7", 6], ["R51", 5], ["J11.1", 5], ["N39.0", 5], ["B34.9", 7], ["H10.9", 3], ["U07.1", 2], ["F41.1", 3.5], ["F32.9", 1.5], ["M51.1", 1], ["K35.8", 0.7]];
+  const RESP = new Set(["J06.9", "J11.1", "B34.9"]);
+  const AT_W = [["S93.4", 5], ["S61.0", 6], ["S60.2", 5], ["S05.0", 3], ["S33.5", 4], ["S82.2", 0.6]];
+  const EL_W = [["G56.0", 4], ["M65.4", 3], ["M75.1", 3], ["M77.1", 2]];
+  // Temporadas de lluvia (abril-mayo y octubre-noviembre): más infecciones respiratorias.
+  const SEASON = { 1: 0.95, 2: 1, 3: 1.05, 4: 1.2, 5: 1.25, 6: 1, 7: 0.95, 8: 0.95, 9: 1, 10: 1.2, 11: 1.25, 12: 0.85 };
+  const EPS_W = [["Sura", 28], ["Sanitas", 18], ["Nueva EPS", 16], ["Compensar", 14], ["Salud Total", 12], ["Famisanar", 12]];
+  const AFP_W = [["Porvenir", 40], ["Protección", 30], ["Colpensiones", 20], ["Colfondos", 10]];
+  const ARL = "ARL Sura";
+  const FEM = ["María", "Luisa", "Ana", "Paola", "Diana", "Carolina", "Sandra", "Yolanda", "Marcela", "Lina", "Natalia", "Andrea", "Claudia", "Daniela", "Leidy", "Viviana", "Johana", "Angie", "Liliana", "Gloria", "Érika", "Tatiana", "Yésica", "Valentina"];
+  const MAS = ["Juan", "Carlos", "Andrés", "Jorge", "Luis", "Diego", "Óscar", "Fabián", "Wilson", "Jhon", "Camilo", "Sebastián", "Édgar", "Héctor", "Mauricio", "Fredy", "Julián", "Alejandro", "Nelson", "Iván", "Brayan", "Esteban", "Ricardo", "Hernán"];
+  const APE = ["Rodríguez", "Gómez", "González", "Martínez", "García", "López", "Hernández", "Sánchez", "Ramírez", "Pérez", "Díaz", "Muñoz", "Rojas", "Moreno", "Jiménez", "Vargas", "Castro", "Ortiz", "Rubio", "Suárez", "Cárdenas", "Ospina", "Quintero", "Mejía", "Restrepo", "Cardona", "Bermúdez", "Salazar", "Arias", "Pineda", "Galindo", "Villamil", "Murcia", "Bohórquez"];
+  const MINDAY = 1423500 / 30;
+  // Días que tarda cada entidad en pagar un recobro radicado (para los datos de ejemplo).
+  const PAYDAYS = { Sura: 45, Sanitas: 62, Compensar: 70, "Salud Total": 84, Famisanar: 108, "Nueva EPS": 138, "ARL Sura": 38 };
+  const META = 0.02;
+
+  // ================================================================ trabajadores
+  const EMP = [];
+  const byArea = {};
+  for (const a of AREAS) {
+    byArea[a.id] = [];
+    for (let k = 0; k < a.hc; k++) {
+      const f = rnd() < (a.fem ?? 0.45);
+      const e = {
+        id: EMP.length + 1, area: a.id, f,
+        sede: a.id === "ven" ? (k < 80 ? "Bogotá" : "Barranquilla") : SEDES[a.id],
+        name: (f ? pick(FEM) : pick(MAS)) + " " + pick(APE) + " " + pick(APE),
+        cargo: a.cargo + (a.id === "emp" && f ? "a" : ""),
+        sal: Math.round((a.sal[0] + (a.sal[1] - a.sal[0]) * Math.pow(rnd(), 1.6)) * 1e6 / 1000) * 1000,
+        eps: wpick(EPS_W), afp: wpick(AFP_W),
+      };
+      EMP.push(e); byArea[a.id].push(e);
+    }
+  }
+  const HC = {};
+  for (const e of EMP) { HC[e.area] ??= {}; HC[e.area][e.sede] = (HC[e.area][e.sede] || 0) + 1; }
+
+  // ================================================================ incapacidades
+  function payer(t, k) {
+    if (t === "AT" || t === "EL") return ["arl", 1];
+    if (t === "MAT" || t === "PAT") return ["eps", 1];
+    if (k <= 2) return ["emp", 2 / 3];
+    if (k <= 90) return ["eps", 2 / 3];
+    if (k <= 180) return ["eps", 0.5];
+    if (k <= 540) return ["afp", 0.5];
+    return ["eps", 0.5];
+  }
+  const durOf = (n) => (n <= 2 ? "1–2" : n <= 7 ? "3–7" : n <= 15 ? "8–15" : n <= 30 ? "16–30" : n <= 90 ? "31–90" : n <= 180 ? "91–180" : ">180");
+  const DURS = ["1–2", "3–7", "8–15", "16–30", "31–90", "91–180", ">180"];
+  const DATA = [];
+  function mk(e, tipo, cie, start, dias, prorrogas) {
+    const end = start + dias - 1, last = Math.min(end, CORTE);
+    const r = { id: DATA.length + 1, e, tipo, cie, start, dias, end, md: {}, mv: {}, pay: { emp: 0, eps: 0, arl: 0, afp: 0 } };
+    for (let d = start, k = 1; d <= last; d++, k++) {
+      const mi = monthIdx(d);
+      const [p, pct] = payer(tipo, k);
+      const v = Math.max((e.sal / 30) * pct, MINDAY);
+      r.pay[p] += v;
+      if (mi < 0 || mi > 23) continue;
+      r.md[mi] = (r.md[mi] || 0) + 1;
+      (r.mv[mi] ||= [0, 0, 0, 0])[PI[p]] += v;
+    }
+    r.acum = last - start + 1;
+    r.active = end > CORTE;
+    r.mi = monthIdx(start);
+    r.dow = dowOf(start);
+    r.dur = durOf(r.acum);
+    r.ent = tipo === "AT" || tipo === "EL" ? ARL : e.eps;
+    r.rec = r.pay.eps + r.pay.arl + r.pay.afp;
+    r.valor = r.rec + r.pay.emp;
+    r.prorrogas = prorrogas ?? (r.acum > 30 ? Math.floor((r.acum - 1) / 30) : 0);
+    if (r.rec === 0) r.est = "No aplica";
+    else if (r.active) r.est = "Radicado";
+    else {
+      const age = CORTE - end;
+      r.est = age > 120 ? wpick([["Pagado", 85], ["Glosado", 6], ["Aprobado", 5], ["Sin radicar", 4]])
+        : age > 60 ? wpick([["Pagado", 50], ["Aprobado", 25], ["Radicado", 15], ["Glosado", 5], ["Sin radicar", 5]])
+        : age > 30 ? wpick([["Pagado", 15], ["Aprobado", 25], ["Radicado", 45], ["Sin radicar", 10], ["Glosado", 5]])
+        : wpick([["Aprobado", 5], ["Radicado", 50], ["Sin radicar", 45]]);
+    }
+    if (r.est === "Pagado") { const h = ((r.id * 2654435761) >>> 0) / 4294967296; r.paidIn = Math.round((PAYDAYS[r.ent] ?? 90) * (0.7 + h * 0.6)); }
+    DATA.push(r);
+    return r;
+  }
+  function startIn(mi, shortEG) {
+    const M = MONTHS[mi];
+    let d = M.s + Math.floor(rnd() * M.len);
+    if (dowOf(d) === 0) d += rnd() < 0.85 ? 1 : 0;
+    // Las cortas tienden a empezar el lunes.
+    if (shortEG && rnd() < 0.13) { const w = dowOf(d); if (w >= 2) d -= w - 1; }
+    return Math.max(M.s, Math.min(d, M.e, CORTE));
+  }
+  for (let mi = 0; mi < 24; mi++) {
+    const M = MONTHS[mi];
+    const growth = mi >= 12 ? 1.02 : 1;
+    for (const a of AREAS) {
+      const extra = a.id === "emp" && mi >= 12 ? 1.3 : 1;
+      const n = poisson(a.hc * a.rate * SEASON[M.m] * growth * extra);
+      for (let k = 0; k < n; k++) {
+        const e = pick(byArea[a.id]);
+        const u = rnd();
+        const tipo = u < a.at ? "AT" : u < a.at + a.el ? "EL" : "EG";
+        let cie;
+        if (tipo === "AT") cie = wpick(AT_W);
+        else if (tipo === "EL") cie = wpick(EL_W);
+        else cie = wpick(EG_W.map(([c, w]) => [c, RESP.has(c) ? w * Math.pow(SEASON[M.m], 4) : w]));
+        const [, lo, hi] = DX[cie];
+        const dias = lo + Math.floor((hi - lo + 1) * Math.pow(rnd(), 1.7));
+        mk(e, tipo, cie, startIn(mi, tipo === "EG" && dias <= 3), dias);
+      }
+    }
+    for (let k = poisson(1.4); k > 0; k--) { let e; do { e = pick(EMP); } while (!e.f); mk(e, "MAT", "O80", startIn(mi), 126); }
+    for (let k = poisson(1.8); k > 0; k--) { let e; do { e = pick(EMP); } while (e.f); mk(e, "PAT", "—", startIn(mi), 14); }
+  }
+  // Casos largos y una persona que se repite: para que «Para actuar» tenga qué decir.
+  const findEmp = (area, f) => byArea[area].find((e) => f == null || e.f === f);
+  const L1 = findEmp("prod", false); L1.name = "Wilson Cárdenas Murcia";
+  mk(L1, "EG", "M51.1", dn(2026, 3, 18), 260, 7);
+  const L2 = findEmp("adm", true); L2.name = "Gloria Pineda Restrepo";
+  mk(L2, "EG", "C50.9", dn(2026, 4, 6), 300, 6);
+  const L3 = findEmp("log", false); L3.name = "Fredy Ospina Galindo";
+  mk(L3, "EG", "M51.1", dn(2026, 5, 4), 190, 5);
+  const L4 = findEmp("ven", true); L4.name = "Marcela Quintero Arias";
+  mk(L4, "EG", "F32.9", dn(2026, 6, 1), 150, 4);
+  const L5 = findEmp("emp", true); L5.name = "Leidy Bohórquez Rubio";
+  mk(L5, "EL", "M75.1", dn(2026, 6, 22), 120, 3);
+  const L6 = findEmp("man", false); L6.name = "Héctor Villamil Suárez";
+  mk(L6, "AT", "S82.2", dn(2026, 7, 1), 120, 3);
+  const L7 = byArea.emp[40]; L7.name = "Yolanda Mejía Castro";
+  mk(L7, "EG", "M51.1", dn(2024, 12, 2), 232, 8);
+  const R1 = byArea.emp[60]; R1.name = "Angie Murcia Ortiz";
+  mk(R1, "EG", "J06.9", dn(2026, 7, 13), 2); mk(R1, "EG", "A09", dn(2026, 8, 17), 2); mk(R1, "EG", "M54.5", dn(2026, 9, 21), 3);
+
+  // ================================================================ estado
+  const PERIODS = {
+    "12m": { cur: range(12, 23), prev: range(0, 11), year: range(0, 11), label: "oct 25 – sep 26" },
+    ytd: { cur: range(15, 23), prev: range(6, 14), year: range(3, 11), label: "ene – sep 26" },
+    q: { cur: range(21, 23), prev: range(18, 20), year: range(9, 11), label: "jul – sep 26" },
+  };
+  function range(a, b) { const o = []; for (let i = a; i <= b; i++) o.push(i); return o; }
+  const DIMS = ["tipo", "area", "mes", "cie", "dur", "dow", "ent", "est", "frec"];
+  const DIM_LABEL = { tipo: "Tipo", area: "Área", mes: "Mes", cie: "Diagnóstico", dur: "Duración", dow: "Empieza", ent: "Entidad", est: "Recobro", frec: "Veces" };
+  const S = { role: "sst", period: "12m", compare: "prev", sede: "", metric: "dias", dowShort: true, sel: Object.fromEntries(DIMS.map((d) => [d, new Set()])) };
+  const T = { sort: "start", dir: -1, q: "", limit: 20 };
+
+  const keyOf = (dim, r) => dim === "tipo" ? r.tipo : dim === "area" ? r.e.area : dim === "cie" ? r.cie : dim === "dur" ? r.dur : dim === "dow" ? String(r.dow) : dim === "ent" ? r.ent : dim === "frec" ? (FREQ.get(r.e.id) ?? "0") : r.est;
+  let FREQ = new Map();
+  // Cuántas incapacidades empezó cada persona en el periodo (para filtrar por «veces»).
+  function computeFreq() {
+    const cur = curMonths(), c = new Map();
+    FREQ = new Map();
+    for (const r of DATA) if (pass(r, "frec") && cur.includes(r.mi)) c.set(r.e.id, (c.get(r.e.id) || 0) + 1);
+    for (const [id, n] of c) FREQ.set(id, n >= 5 ? "5+" : String(n));
+  }
+  // Con rol Nómina y un filtro de diagnóstico, una lista de nombres diría quién tiene qué.
+  const hidePeople = () => S.role === "nom" && S.sel.cie.size > 0;
+  const reserved = (msg) => `<div class="reserved"><svg class="i"><use href="#i-lock"/></svg><span>${msg}</span></div>`;
+  const RESERVED_MSG = "Con un filtro de diagnóstico, el detalle por persona solo lo ve Seguridad y salud en el trabajo.";
+  function pass(r, ex) {
+    const exs = ex == null ? [] : [].concat(ex);
+    if (S.sede && r.e.sede !== S.sede) return false;
+    for (const dim of DIMS) {
+      if (dim === "mes" || exs.includes(dim)) continue;
+      const set = S.sel[dim];
+      if (!set.size) continue;
+      if (dim === "ent") { if (!(set.has(r.ent) || (r.pay.afp > 0 && set.has(r.e.afp)))) return false; continue; }
+      if (!set.has(keyOf(dim, r))) return false;
+    }
+    return true;
+  }
+  const passOrg = (r) => (!S.sede || r.e.sede === S.sede) && (!S.sel.area.size || S.sel.area.has(r.e.area));
+  const per = () => PERIODS[S.period];
+  const cmpBase = () => (S.compare === "year" ? per().year : per().prev);
+  function curMonths(ex) {
+    const cur = per().cur;
+    const exs = ex == null ? [] : [].concat(ex);
+    return !exs.includes("mes") && S.sel.mes.size ? cur.filter((m) => S.sel.mes.has(m)) : cur;
+  }
+  function cmpMonths(ex) { const shift = per().cur[0] - cmpBase()[0]; return curMonths(ex).map((m) => m - shift); }
+  function cmpLabel() {
+    const c = cmpBase(); const a = MONTHS[c[0]], b = MONTHS[c[c.length - 1]];
+    return a.short + " " + String(a.y).slice(2) + " – " + b.short + " " + String(b.y).slice(2);
+  }
+  function hc(ex) {
+    const exs = ex == null ? [] : [].concat(ex);
+    let n = 0;
+    for (const a of AREAS) {
+      if (!exs.includes("area") && S.sel.area.size && !S.sel.area.has(a.id)) continue;
+      for (const [sede, c] of Object.entries(HC[a.id])) if (!S.sede || sede === S.sede) n += c;
+    }
+    return n;
+  }
+  const sumDays = (r, ms) => { let s = 0; for (const m of ms) s += r.md[m] || 0; return s; };
+  function sumVal(r, ms) { const o = [0, 0, 0, 0]; for (const m of ms) { const v = r.mv[m]; if (v) { o[0] += v[0]; o[1] += v[1]; o[2] += v[2]; o[3] += v[3]; } } return o; }
+  const touches = (r, ms) => ms.includes(r.mi) || ms.some((m) => r.md[m]);
+  const isMed = (r) => r.tipo !== "MAT" && r.tipo !== "PAT";
+  function measure(r, ms, metric) {
+    if (metric === "eventos") return ms.includes(r.mi) ? 1 : 0;
+    if (metric === "valor") return sum(sumVal(r, ms));
+    return sumDays(r, ms);
+  }
+  function agg(ms, ex, filter) {
+    const o = { dias: 0, med: 0, ev: 0, evDias: 0, val: [0, 0, 0, 0], valor: 0 };
+    for (const r of DATA) {
+      if (!pass(r, ex) || (filter && !filter(r))) continue;
+      const d = sumDays(r, ms);
+      if (d) {
+        o.dias += d; if (isMed(r)) o.med += d;
+        const v = sumVal(r, ms); for (let i = 0; i < 4; i++) o.val[i] += v[i];
+      }
+      if (ms.includes(r.mi)) { o.ev++; o.evDias += r.acum; }
+    }
+    o.valor = sum(o.val);
+    return o;
+  }
+
+  // ================================================================ tooltip
+  const TIPS = [];
+  const tip = (html) => { TIPS.push(html); return `data-tip="${TIPS.length - 1}"`; };
+  const tipRows = (title, rows, foot) => `<div class="tt">${title}</div>` +
+    rows.map(([c, l, v]) => `<div class="tr">${c ? `<i style="background:${c}"></i>` : "<span></span>"}<span>${l}</span><b>${v}</b></div>`).join("") +
+    (foot ? `<div class="tf">${foot}</div>` : "");
+  const tipEl = $("#tip");
+  function placeTip(x, y) {
+    const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    tipEl.style.left = Math.min(x + 14, vw - w - 8) + "px";
+    tipEl.style.top = (y + 14 + h > vh ? y - h - 10 : y + 14) + "px";
+  }
+  document.addEventListener("pointerover", (e) => {
+    const t = e.target instanceof Element && e.target.closest("[data-tip]");
+    if (!t) return;
+    tipEl.innerHTML = TIPS[+t.dataset.tip] ?? "";
+    tipEl.hidden = false; placeTip(e.clientX, e.clientY);
+  });
+  document.addEventListener("pointermove", (e) => { if (!tipEl.hidden) placeTip(e.clientX, e.clientY); });
+  document.addEventListener("pointerout", (e) => {
+    const t = e.target instanceof Element && e.target.closest("[data-tip]");
+    if (t && !(e.relatedTarget instanceof Node && t.contains(e.relatedTarget))) tipEl.hidden = true;
+  });
+  document.addEventListener("focusin", (e) => {
+    const t = e.target instanceof Element && e.target.closest("[data-tip]");
+    if (!t) { tipEl.hidden = true; return; }
+    tipEl.innerHTML = TIPS[+t.dataset.tip] ?? ""; tipEl.hidden = false;
+    const b = t.getBoundingClientRect(); placeTip(b.left, b.bottom);
+  });
+
+  // ================================================================ cifras
+  function delta(cur, prev, { pp = false } = {}) {
+    if (!prev) return `<span class="delta"><span class="flat">Sin dato para comparar</span></span>`;
+    const ch = pp ? cur - prev : (cur - prev) / prev;
+    const flat = Math.abs(ch) < (pp ? 0.0005 : 0.005);
+    const cls = flat ? "flat" : ch > 0 ? "bad" : "good";
+    const arrow = flat ? "=" : ch > 0 ? "▲" : "▼";
+    const txt = pp ? NF1.format(Math.abs(ch) * 100) + " pp" : fPct(Math.abs(ch), 0);
+    const word = flat ? "igual que" : ch > 0 ? "más que" : "menos que";
+    return `<p class="delta"><b class="${cls}">${arrow} ${txt}</b><span>${word} ${cmpLabel()}</span></p>`;
+  }
+  function spark(vals, goal) {
+    const n = vals.length, max = Math.max(...vals, goal ?? 0, 1e-9), min = Math.min(...vals, goal ?? Infinity);
+    const lo = Math.max(0, min - (max - min) * 0.25);
+    const y = (v) => 32 - ((v - lo) / (max - lo || 1)) * 28 - 2;
+    const x = (i) => (n === 1 ? 100 : (i / (n - 1)) * 100);
+    const pts = vals.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`);
+    const line = "M" + pts.join("L");
+    const area = line + `L100,34L0,34Z`;
+    const endTop = (y(vals[n - 1]) / 34) * 100;
+    return `<div class="spark"><svg viewBox="0 0 100 34" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${area}" fill="var(--viz)" opacity="0.1"/><path d="${line}" fill="none" stroke="var(--viz)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${goal != null ? `<line x1="0" x2="100" y1="${y(goal).toFixed(2)}" y2="${y(goal).toFixed(2)}" stroke="var(--ref)" stroke-width="1.25" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>` : ""}</svg>
+      <span class="end" style="top:${endTop}%"></span></div>`;
+  }
+  function renderKpis() {
+    const cur = curMonths(), cmp = cmpMonths();
+    const A = agg(cur), B = agg(cmp);
+    const H = hc();
+    const prog = (ms) => H * 30 * ms.length;
+    const pA = H ? A.med / prog(cur) : 0, pB = H ? B.med / prog(cmp) : 0;
+    const months = per().cur.map((m) => [m]);
+    const series = months.map((ms) => agg(ms));
+    const kp = [
+      { h: "Ausentismo por causa médica", v: fPct(pA, 2), d: delta(pA, pB, { pp: true }), s: series.map((o) => (H ? o.med / (H * 30) : 0)),
+        g: META, foot: `Meta ${fPct(META, 2)} (punteada): ${pA <= META ? "vas" : "estás"} ${NF1.format(Math.abs(pA - META) * 100)} pp ${pA <= META ? "por debajo" : "por encima"}` },
+      { h: "Días de incapacidad", v: fInt(A.dias), d: delta(A.dias, B.dias), s: series.map((o) => o.dias),
+        foot: `${fInt(A.dias - A.med)} de licencias de maternidad y paternidad` },
+      { h: "Incapacidades", v: fInt(A.ev), d: delta(A.ev, B.ev), s: series.map((o) => o.ev),
+        foot: `${A.ev ? NF1.format(A.evDias / A.ev) : "0"} días en promedio cada una` },
+      { h: "Valor pagado", v: fMoney(A.valor), d: delta(A.valor, B.valor), s: series.map((o) => o.valor),
+        foot: `La empresa asume ${fMoney(A.val[0])} (días 1 y 2)` },
+    ];
+    // Por recobrar: una existencia, no un flujo; se compara con su propia antigüedad.
+    const pend = pending(cur);
+    const old = sum(pend.rows.map((x) => x.b[3]));
+    const html = kp.map((k) => `<article class="kpi"><h3>${k.h}</h3><p class="v">${k.v}</p>${k.d}${spark(k.s, k.g)}<p class="foot">${k.foot}</p></article>`).join("") +
+      `<article class="kpi"><h3>Por recobrar</h3><p class="v">${fMoney(pend.total)}</p>
+        <p class="delta"><b class="${old / (pend.total || 1) > 0.25 ? "bad" : "flat"}">${fPct(old / (pend.total || 1), 0)}</b><span>con más de 90 días</span></p>
+        <div class="spark"><div class="parts" style="height:10px;margin-top:14px" ${tip(tipRows("Antigüedad de lo pendiente", AGES.map((a, i) => [a.c, a.name, fMoney(sum(pend.rows.map((x) => x.b[i])))])))}>${AGES.map((a, i) => { const v = sum(pend.rows.map((x) => x.b[i])); return v ? `<span style="flex:${v};background:${a.c}"></span>` : ""; }).join("")}</div></div>
+        <p class="foot">${fInt(pend.count)} incapacidades ante ${pend.rows.length} entidades</p></article>`;
+    $("#kpis").innerHTML = html;
+    $("#m-hc").textContent = fInt(H);
+  }
+
+  // ================================================================ tendencia
+  function niceTicks(max, n = 4) {
+    if (max <= 0) return [0, 1];
+    const raw = max / n, p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((k) => k * p).find((s) => s >= raw);
+    const top = Math.ceil(max / step) * step;
+    const o = []; for (let v = 0; v <= top + 1e-9; v += step) o.push(v);
+    return o;
+  }
+  const fMetric = (v, metric) => (metric === "valor" ? fMoney(v) : fInt(v));
+  const fAxis = (v, metric) => (metric === "valor" ? (v >= 1e6 ? NF.format(v / 1e6) + " M" : NF.format(v)) : NF.format(v));
+  function renderTrend() {
+    const metric = S.metric;
+    const titles = { dias: "Días de incapacidad por mes", eventos: "Incapacidades que empiezan cada mes", valor: "Valor de las incapacidades por mes" };
+    $("#trend-title").textContent = titles[metric];
+    const cur = per().cur, shift = cur[0] - cmpBase()[0];
+    const vals = cur.map(() => Object.fromEntries(TIPOS.map((t) => [t.id, 0])));
+    const ref = cur.map(() => 0);
+    for (const r of DATA) {
+      if (pass(r, "tipo")) cur.forEach((m, i) => { vals[i][r.tipo] += measure(r, [m], metric); });
+      if (pass(r)) cur.forEach((m, i) => { ref[i] += measure(r, [m - shift], metric); });
+    }
+    const totals = TIPOS.map((t) => sum(vals.map((v, i) => (S.sel.mes.size && !S.sel.mes.has(cur[i]) ? 0 : v[t.id]))));
+    const grand = sum(totals);
+    // Proyección: el mismo mes del año pasado × la tendencia de los últimos 6 meses.
+    const last = cur.at(-1), fut = [last + 1, last + 2, last + 3], six = range(last - 5, last);
+    let a6 = 0, b6 = 0; const pbase = fut.map(() => 0);
+    for (const r of DATA) {
+      if (!pass(r)) continue;
+      a6 += measure(r, six, metric); b6 += measure(r, six.map((x) => x - 12), metric);
+      fut.forEach((f, k) => { pbase[k] += measure(r, [f - 12], metric); });
+    }
+    const g = b6 ? a6 / b6 : 1, proj = pbase.map((v) => v * g), SPREAD = 0.14;
+    const tsel = S.sel.tipo;
+    $("#trend-sub").textContent = `${MONTHS[cur[0]].short} ${String(MONTHS[cur[0]].y).slice(2)} – ${MONTHS[cur.at(-1)].short} ${String(MONTHS[cur.at(-1)].y).slice(2)} · la línea es ${S.compare === "year" ? "el mismo periodo de 2025" : "el periodo anterior"}`;
+    $("#trend-legend").innerHTML = TIPOS.map((t, i) => {
+      const on = tsel.has(t.id), dim = tsel.size && !on;
+      return `<button type="button" class="lg${dim ? " dim" : ""}" aria-pressed="${on}" data-f="tipo:${t.id}"><span class="sw" style="background:${t.c}"></span>${t.name} <b>${fMetric(totals[i], metric)}</b><small>${grand ? fPct(totals[i] / grand, 0) : ""}</small></button>`;
+    }).join("") + `<span class="lg ref"><span class="sw"></span>${S.compare === "year" ? "Mismo periodo 2025" : "Periodo anterior"}</span><span class="lg ref"><span class="sw hatch"></span>Proyección</span>`;
+
+    const el = $("#trend-plot");
+    const W = Math.max(320, Math.round(el.clientWidth || 760)), H = 260;
+    const m = { l: 46, r: 8, t: 10, b: 34 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const stackTot = vals.map((v) => sum(TIPOS.map((t) => v[t.id])));
+    const ticks = niceTicks(Math.max(...stackTot, ...ref, ...proj.map((v) => v * (1 + SPREAD)), 1));
+    const ymax = ticks.at(-1);
+    const y = (v) => m.t + ih - (v / ymax) * ih;
+    const band = iw / (cur.length + 3), bw = Math.min(40, band * 0.62);
+    const cx = (i) => m.l + band * i + band / 2;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(titles[metric])}"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--hover)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--fg-4)" stroke-width="1.5"/></pattern></defs>`;
+    for (const t of ticks) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="${t ? "var(--grid)" : "var(--axis)"}"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${fAxis(t, metric)}</text>`;
+    cur.forEach((mi, i) => {
+      const M = MONTHS[mi];
+      const dimM = S.sel.mes.size && !S.sel.mes.has(mi);
+      let base = 0;
+      const shown = TIPOS.filter((t) => vals[i][t.id] > 0);
+      s += `<g opacity="${dimM ? 0.3 : 1}">`;
+      shown.forEach((t, j) => {
+        const v = vals[i][t.id];
+        const y0 = y(base), y1 = y(base + v);
+        let h = y0 - y1 - (j > 0 ? 2 : 0);
+        const yy = y1;
+        if (h < 0.5) { base += v; return; }
+        const x0 = cx(i) - bw / 2, op = tsel.size && !tsel.has(t.id) ? 0.22 : 1;
+        if (j === shown.length - 1) {
+          const rr = Math.min(4, h, bw / 2);
+          s += `<path d="M${x0},${yy + h}V${yy + rr}Q${x0},${yy} ${x0 + rr},${yy}H${x0 + bw - rr}Q${x0 + bw},${yy} ${x0 + bw},${yy + rr}V${yy + h}Z" fill="${t.c}" opacity="${op}"/>`;
+        } else s += `<rect x="${x0}" y="${yy}" width="${bw}" height="${h}" fill="${t.c}" opacity="${op}"/>`;
+        base += v;
+      });
+      s += `</g>`;
+      const lab = M.m === 1 || i === 0 ? `<tspan x="${cx(i)}" dy="0">${M.short}</tspan><tspan x="${cx(i)}" dy="13">${M.y}</tspan>` : M.short;
+      s += `<text x="${cx(i)}" y="${H - m.b + 16}" text-anchor="middle"${S.sel.mes.has(mi) ? ' style="fill:var(--fg);font-weight:600"' : ""}>${lab}</text>`;
+    });
+    const pts = ref.map((v, i) => `${cx(i).toFixed(1)},${y(v).toFixed(1)}`);
+    s += `<polyline points="${pts.join(" ")}" fill="none" stroke="var(--ref)" stroke-width="1.75" stroke-dasharray="5 4" stroke-linejoin="round"/>`;
+    ref.forEach((v, i) => { s += `<circle cx="${cx(i)}" cy="${y(v)}" r="3" fill="var(--card)" stroke="var(--ref)" stroke-width="1.5"/>`; });
+    cur.forEach((mi, i) => {
+      const M = MONTHS[mi];
+      const rows = TIPOS.filter((t) => vals[i][t.id] > 0).reverse().map((t) => [t.c, t.short, fMetric(vals[i][t.id], metric)]);
+      const curT = tsel.size ? sum([...tsel].map((id) => vals[i][id])) : stackTot[i];
+      const ch = ref[i] ? (curT - ref[i]) / ref[i] : 0;
+      const foot = `${tsel.size ? "Lo elegido" : "Total"} <b>${fMetric(curT, metric)}</b> · antes ${ref[i] ? `${fMetric(ref[i], metric)} (${ch >= 0 ? "+" : "−"}${fPct(Math.abs(ch), 0)})` : "sin dato"}`;
+      s += `<rect class="hit" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih}" rx="4" data-f="mes:${mi}" ${tip(tipRows(M.long[0].toUpperCase() + M.long.slice(1), rows, foot))}/>`;
+    });
+    const sepX = m.l + band * cur.length;
+    s += `<line x1="${sepX}" x2="${sepX}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--axis)" stroke-dasharray="2 3"/><text x="${sepX + 6}" y="${m.t + 10}">Proyección</text>`;
+    fut.forEach((f, k) => {
+      const i = cur.length + k, v = proj[k], lo = v * (1 - SPREAD), hi = v * (1 + SPREAD);
+      const x0 = cx(i) - bw / 2, yy = y(v), h = m.t + ih - yy;
+      const mo = (9 + f) % 12, name = MLONG[mo][0].toUpperCase() + MLONG[mo].slice(1);
+      if (h > 1) s += `<rect x="${x0 + 0.75}" y="${yy + 0.75}" width="${bw - 1.5}" height="${h - 0.75}" rx="3" fill="url(#hatch)" stroke="var(--fg-3)" stroke-dasharray="3 2"/>`;
+      s += `<path d="M${cx(i)},${y(hi)}V${y(lo)}M${cx(i) - 5},${y(hi)}H${cx(i) + 5}M${cx(i) - 5},${y(lo)}H${cx(i) + 5}" stroke="var(--fg-2)" stroke-width="1.5" fill="none"/>`;
+      s += `<text x="${cx(i)}" y="${H - m.b + 16}" text-anchor="middle" style="fill:var(--fg-4)">${MSHORT[mo]}</text>`;
+      s += `<rect class="hit nf" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih}" rx="4" ${tip(tipRows(name + " de 2026 · proyección", [[null, "Esperado", fMetric(v, metric)], [null, "Rango", fMetric(lo, metric) + " – " + fMetric(hi, metric)], [null, "Mismo mes de 2025", fMetric(pbase[k], metric)]], `Tendencia de los últimos 6 meses: ${g >= 1 ? "+" : "−"}${fPct(Math.abs(g - 1), 0)}`))}/>`;
+    });
+    s += `</svg>`;
+    el.innerHTML = s;
+  }
+
+  // ================================================================ lectura
+  function renderInsights() {
+    const out = [];
+    const cur = curMonths(), cmp = cmpMonths();
+    // 1. Cambio y quién lo explica
+    let tc = 0, tp = 0; const byA = {};
+    for (const r of DATA) {
+      if (!pass(r)) continue;
+      const a = sumDays(r, cur), b = sumDays(r, cmp);
+      tc += a; tp += b; (byA[r.e.area] ||= [0, 0]); byA[r.e.area][0] += a; byA[r.e.area][1] += b;
+    }
+    if (tp > 0) {
+      const ch = (tc - tp) / tp, up = ch >= 0;
+      let txt = `Los días de incapacidad <b>${up ? "subieron" : "bajaron"} ${fPct(Math.abs(ch), 0)}</b> frente a ${cmpLabel()}.`;
+      let f = null, fl = "";
+      if (S.sel.area.size !== 1) {
+        const diffs = Object.entries(byA).map(([k, [a, b]]) => [k, a - b]);
+        const tot = sum(diffs.map(([, d]) => (up ? Math.max(d, 0) : Math.max(-d, 0))));
+        const top = diffs.sort((x, z) => (up ? z[1] - x[1] : x[1] - z[1]))[0];
+        if (top && tot > 0) { txt += ` ${AREA[top[0]].name} explica <b>${fPct(Math.abs(top[1]) / tot, 0)}</b> ${up ? "del aumento" : "de la baja"}.`; f = "area:" + top[0]; fl = "Ver solo " + AREA[top[0]].name; }
+      }
+      out.push({ ic: up ? "i-trend-up" : "i-trend-down", tone: up ? "bad" : "good", txt, f, fl });
+    }
+    // 2. Efecto lunes
+    const c = [0, 0, 0, 0, 0, 0, 0];
+    for (const r of DATA) if (pass(r, "dow") && cur.includes(r.mi) && r.tipo === "EG" && r.acum <= 3) c[r.dow]++;
+    const n = sum(c);
+    if (n >= 12) {
+      const sh = c[1] / n;
+      out.push({ ic: "i-cal", tone: sh > 0.22 ? "bad" : "", txt: `De las incapacidades de 1 a 3 días, el <b>${fPct(sh, 0)}</b> empieza un lunes. Repartidas parejo entre lunes y sábado serían 17 %.`, f: S.sel.dow.has("1") ? null : "dow:1", fl: "Ver las que empiezan en lunes" });
+    }
+    // 3. Pareto de diagnósticos
+    const bd = {};
+    for (const r of DATA) if (pass(r, "cie") && isMed(r)) { const d = sumDays(r, cur); if (d) bd[r.cie] = (bd[r.cie] || 0) + d; }
+    const dx = Object.entries(bd).sort((a, b) => b[1] - a[1]);
+    const td = sum(dx.map((x) => x[1]));
+    if (dx.length > 3 && td) {
+      let acc = 0, k = 0; while (k < dx.length && acc / td < 0.5) acc += dx[k++][1];
+      out.push({ ic: "i-steth", tone: "", txt: `<b>${k} de ${dx.length} diagnósticos</b> suman el ${fPct(acc / td, 0)} de los días. El primero es ${DX[dx[0][0]][0].toLowerCase()} (${dx[0][0]}).`, f: S.sel.cie.size ? null : "cie:" + dx[0][0], fl: "Ver " + dx[0][0] });
+    }
+    // 4. Temporada de lluvias
+    if (cur.length >= 9 && !S.sel.mes.size && !S.sel.cie.size) {
+      const rm = cur.map((mi) => { let s = 0; for (const r of DATA) if (RESP.has(r.cie) && pass(r)) s += r.md[mi] || 0; return [mi, s]; });
+      const top = rm.slice().sort((a, b) => b[1] - a[1])[0];
+      const avg = sum(rm.map((x) => x[1])) / rm.length;
+      if (top && avg > 0) out.push({ ic: "i-rain", tone: "", txt: `Las infecciones respiratorias tocan techo en <b>${MLONG[MONTHS[top[0]].m - 1]}</b>, ${fPct(top[1] / avg - 1, 0)} sobre su promedio: coincide con la temporada de lluvias.`, f: "mes:" + top[0], fl: "Ver " + MLONG[MONTHS[top[0]].m - 1] });
+    }
+    // 5. Quién tarda en pagar
+    const pd = payDays();
+    if (pd.length >= 2) {
+      const slow = pd[0], fast = pd.at(-1);
+      out.push({ ic: "i-coin", tone: slow.d > 90 ? "bad" : "", txt: `${esc(slow.ent)} se demora <b>${fInt(slow.d)} días</b> en pagar un recobro; ${esc(fast.ent)}, ${fInt(fast.d)}. A ${esc(slow.ent)} se le deben ${fMoney(slow.p)}.`, f: S.sel.ent.size ? null : "ent:" + slow.ent, fl: "Ver " + slow.ent });
+    }
+    $("#insights").innerHTML = out.length ? out.slice(0, 5).map((o) => `<li><span class="mk ${o.tone}"><svg class="i"><use href="#${o.ic}"/></svg></span><p>${o.txt}</p>${o.f ? `<button type="button" class="lnk" data-f="${esc(o.f)}">${esc(o.fl)}</button>` : ""}</li>`).join("") : `<li class="empty">Sin datos con estos filtros.</li>`;
+  }
+
+  // ================================================================ mapa de calor
+  function renderHeat() {
+    const cur = per().cur;
+    const areas = AREAS.filter((a) => Object.entries(HC[a.id]).some(([sede, c]) => c && (!S.sede || sede === S.sede)));
+    const hcA = (a) => sum(Object.entries(HC[a.id]).filter(([sede]) => !S.sede || sede === S.sede).map(([, c]) => c));
+    const M = {}, P = {};
+    const shift = cur[0] - cmpBase()[0];
+    for (const r of DATA) {
+      if (!isMed(r) || !pass(r, ["area", "mes"])) continue;
+      const row = (M[r.e.area] ||= {});
+      for (const mi of cur) { const d = r.md[mi]; if (d) row[mi] = (row[mi] || 0) + d; }
+      P[r.e.area] = (P[r.e.area] || 0) + sumDays(r, cur.map((m) => m - shift));
+    }
+    let vmax = 0;
+    for (const a of areas) for (const mi of cur) vmax = Math.max(vmax, (M[a.id]?.[mi] || 0) / (hcA(a) * 30));
+    vmax = Math.max(vmax, 0.001);
+    $("#hm-max").textContent = NF1.format(vmax * 100) + " %";
+    const asel = S.sel.area, msel = S.sel.mes;
+    let h = `<span></span>`;
+    for (const mi of cur) h += `<button type="button" class="hd${msel.has(mi) ? " on" : ""}" data-f="mes:${mi}">${MONTHS[mi].short}</button>`;
+    h += `<span class="hd" style="text-align:right">Periodo</span>`;
+    for (const a of areas) {
+      const H = hcA(a), rowDim = asel.size && !asel.has(a.id);
+      h += `<button type="button" class="rl${asel.has(a.id) ? " on" : ""}${rowDim ? " dim" : ""}" data-f="area:${a.id}">${a.name}<small>${fInt(H)}</small></button>`;
+      let tot = 0;
+      for (const mi of cur) {
+        const d = M[a.id]?.[mi] || 0; tot += d;
+        const v = d / (H * 30), x = Math.round(6 + 94 * Math.min(1, v / vmax));
+        const dim = rowDim || (msel.size && !msel.has(mi));
+        h += `<button type="button" class="c${dim ? " dim" : ""}" style="background:color-mix(in oklab, var(--seq-hi) ${x}%, var(--card));color:${x > 55 ? "var(--seq-ink)" : "var(--fg-2)"}" data-f="area:${a.id},mes:${mi}" ${tip(tipRows(`${a.name} · ${MONTHS[mi].long}`, [[null, "Ausentismo", fPct(v, 2)], [null, "Días de incapacidad", fInt(d)], [null, "Días programados", fInt(H * 30)]]))}>${NF1.format(v * 100)}</button>`;
+      }
+      const pv = tot / (H * 30 * cur.length), pp = (P[a.id] || 0) / (H * 30 * cur.length);
+      const ch = pv - pp;
+      h += `<span class="tot${rowDim ? " dim" : ""}">${fPct(pv, 1)}<small class="${ch > 0.0005 ? "bad" : ch < -0.0005 ? "good" : ""}" style="color:${ch > 0.0005 ? "var(--bad-ink)" : ch < -0.0005 ? "var(--good-ink)" : "var(--fg-3)"}">${ch > 0.0005 ? "▲" : ch < -0.0005 ? "▼" : "="} ${NF1.format(Math.abs(ch) * 100)} pp</small></span>`;
+    }
+    const hm = $("#heat");
+    hm.style.gridTemplateColumns = `minmax(138px, auto) repeat(${cur.length}, minmax(36px, 1fr)) 74px`;
+    hm.innerHTML = h;
+  }
+
+  // ================================================================ día de inicio y duración
+  function columns(items, refVal, refLabel) {
+    const max = Math.max(...items.map((x) => x.v), refVal || 0, 1);
+    const ref = refVal ? `<div class="refline" style="bottom:${(refVal / max) * 100}%"><span>${refLabel}</span></div>` : "";
+    return `<div class="cols">${items.map((x) => `<button type="button" class="col${x.dim ? " dim" : ""}${x.on ? " on" : ""}" data-f="${x.f}" ${x.tip}><span class="stk"><span class="cv">${fInt(x.v)}</span><span class="bar-v" style="height:${(x.v / max) * 100}%"></span></span><span class="cl">${x.l}</span></button>`).join("")}
+      <div style="position:absolute;left:0;right:0;bottom:24px;top:18px;pointer-events:none">${ref}</div></div><div class="cols-base"></div>`;
+  }
+  function renderDow() {
+    const cur = curMonths();
+    const c = [0, 0, 0, 0, 0, 0, 0];
+    for (const r of DATA) if (pass(r, "dow") && cur.includes(r.mi) && (!S.dowShort || r.acum <= 3)) c[r.dow]++;
+    const n = sum(c), sel = S.sel.dow;
+    $("#dow-sub").textContent = `${fInt(n)} incapacidades ${S.dowShort ? "de 1 a 3 días" : ""}`.trim();
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    $("#dow").innerHTML = n ? columns(order.map((d) => ({
+      v: c[d], l: DOWS[d], f: "dow:" + d, on: sel.has(String(d)), dim: sel.size && !sel.has(String(d)),
+      tip: tip(tipRows(DOWL[d][0].toUpperCase() + DOWL[d].slice(1), [[null, "Incapacidades", fInt(c[d])], [null, "Del total", fPct(c[d] / n, 0)]])),
+    })), n / 6, "parejo") : `<p class="empty">Sin incapacidades con estos filtros.</p>`;
+  }
+  function renderDur() {
+    const cur = curMonths();
+    const c = Object.fromEntries(DURS.map((d) => [d, 0])), dd = Object.fromEntries(DURS.map((d) => [d, 0]));
+    for (const r of DATA) if (pass(r, "dur")) { if (cur.includes(r.mi)) c[r.dur]++; dd[r.dur] += sumDays(r, cur); }
+    const n = sum(Object.values(c)), td = sum(Object.values(dd)), sel = S.sel.dur;
+    $("#dur").innerHTML = n ? columns(DURS.map((d) => ({
+      v: c[d], l: d, f: "dur:" + d, on: sel.has(d), dim: sel.size && !sel.has(d),
+      tip: tip(tipRows(`De ${d} días`, [[null, "Incapacidades", fInt(c[d])], [null, "Del total", fPct(c[d] / n, 0)], [null, "Días en el periodo", fInt(dd[d])], [null, "Parte de los días", fPct(td ? dd[d] / td : 0, 0)]])),
+    }))) + `<p class="note">Las de más de 30 días son ${fPct(sum(["31–90", "91–180", ">180"].map((k) => c[k])) / n, 0)} de las incapacidades y ${fPct(td ? sum(["31–90", "91–180", ">180"].map((k) => dd[k])) / td : 0, 0)} de los días.</p>` : `<p class="empty">Sin incapacidades con estos filtros.</p>`;
+  }
+
+  // ================================================================ diagnósticos
+  function renderDx() {
+    const cur = curMonths();
+    const bd = {}, be = {}, bp = {};
+    for (const r of DATA) if (pass(r, "cie") && isMed(r)) { const d = sumDays(r, cur); if (d) { bd[r.cie] = (bd[r.cie] || 0) + d; (bp[r.cie] ||= new Set()).add(r.e.id); if (cur.includes(r.mi)) be[r.cie] = (be[r.cie] || 0) + 1; } }
+    let all = Object.entries(bd).sort((a, b) => b[1] - a[1]);
+    const few = S.role === "nom" ? all.filter(([c]) => bp[c].size < 5) : [];
+    if (few.length) all = all.filter(([c]) => bp[c].size >= 5);
+    const td = sum(all.map((x) => x[1]));
+    const sel = S.sel.cie;
+    let top = all.slice(0, 9);
+    for (const code of sel) if (!top.some((x) => x[0] === code) && bd[code]) top.push([code, bd[code]]);
+    const max = top.length ? top[0][1] : 1;
+    let acc = 0;
+    $("#dx").innerHTML = top.length ? `<div class="hb-head"><span>Diagnóstico</span><span>Días</span><span>Acum.</span></div><div class="hb">` + top.map(([code, d]) => {
+      acc += d;
+      const on = sel.has(code), dim = sel.size && !on;
+      return `<button type="button" class="hb-row${on ? " on" : ""}${dim ? " dim" : ""}" data-f="cie:${esc(code)}" ${tip(tipRows(`${code} · ${DX[code][0]}`, [[null, "Días en el periodo", fInt(d)], [null, "Incapacidades que empiezan", fInt(be[code] || 0)], [null, "Parte de los días", fPct(d / td, 1)]]))}>
+        <span class="lbl"><span class="code">${esc(code)}</span><span>${esc(DX[code][0])}</span></span><span class="val">${fInt(d)}</span><span class="acc">${fPct(acc / td, 0)}</span>
+        <span class="track"><span class="fill" style="width:${(d / max) * 100}%;display:block"></span></span></button>`;
+    }).join("") + `</div>${all.length > top.length ? `<p class="note">Y ${all.length - top.length} diagnósticos más con ${fPct(sum(all.slice(top.length).map((x) => x[1])) / td, 0)} de los días.</p>` : ""}${few.length ? `<p class="note">${few.length} ${few.length === 1 ? "diagnóstico oculto: lo tienen" : "diagnósticos ocultos: los tienen"} menos de 5 personas.</p>` : ""}` : `<p class="empty">Sin incapacidades con estos filtros.</p>`;
+  }
+
+  // ================================================================ quién paga
+  function renderPay() {
+    const cur = curMonths();
+    const A = agg(cur);
+    let paid = 0, proc = 0, glos = 0;
+    for (const r of DATA) {
+      if (!pass(r)) continue;
+      const v = sumVal(r, cur), ent = v[1] + v[2] + v[3];
+      if (!ent) continue;
+      if (r.est === "Pagado") paid += ent; else if (r.est === "Glosado") glos += ent; else proc += ent;
+    }
+    if (!A.valor) { $("#pay").innerHTML = `<p class="empty">Sin incapacidades con estos filtros.</p>`; return; }
+    $("#pay").innerHTML = `<div class="parts" style="height:16px">${PAYERS.map((p, i) => (A.val[i] ? `<span style="flex:${A.val[i]};background:${p.c}" ${tip(tipRows(p.name, [[p.c, "Valor", fMoney(A.val[i])], [null, "Parte", fPct(A.val[i] / A.valor, 1)]], p.rule))}></span>` : "")).join("")}</div>
+      <div class="plist">${PAYERS.map((p, i) => `<div class="prow"><span class="sw" style="background:${p.c}"></span><b>${p.name}</b><span class="amt">${fMoney(A.val[i])}</span><small>${p.rule}</small><span class="pct">${fPct(A.val[i] / A.valor, 0)}</span></div>`).join("")}</div>
+      <div class="trio"><div><span>Recuperado</span><b style="color:var(--good-ink)">${fMoney(paid)}</b></div><div><span>En trámite</span><b>${fMoney(proc)}</b></div><div><span>Glosado</span><b style="color:${glos ? "var(--bad-ink)" : "inherit"}">${fMoney(glos)}</b></div></div>
+      <p class="note">Enfermedad general: 66,67 % del salario hasta el día 90 y 50 % desde el 91, sin bajar del mínimo diario. Riesgos laborales y licencias: 100 %.</p>`;
+  }
+
+  // ================================================================ cartera
+  const AGES = [
+    { name: "0 a 30 días", c: "var(--a1)" }, { name: "31 a 60", c: "var(--a2)" },
+    { name: "61 a 90", c: "var(--a3)" }, { name: "Más de 90", c: "var(--a4)" },
+  ];
+  const PEND = new Set(["Sin radicar", "Radicado", "Aprobado", "Glosado"]);
+  function pending(ms, ex) {
+    const by = {}; let count = 0;
+    for (const r of DATA) {
+      if (!PEND.has(r.est) || !pass(r, ex) || !touches(r, ms)) continue;
+      const age = r.active ? (r.acum - 1) % 30 : CORTE - r.end;
+      const b = age <= 30 ? 0 : age <= 60 ? 1 : age <= 90 ? 2 : 3;
+      count++;
+      const add = (ent, v) => { if (v <= 0) return; const o = (by[ent] ||= { ent, b: [0, 0, 0, 0], t: 0, n: 0 }); o.b[b] += v; o.t += v; o.n++; };
+      add(r.ent, r.pay.eps + r.pay.arl);
+      add(r.e.afp, r.pay.afp);
+    }
+    const rows = Object.values(by).sort((a, b) => b.t - a.t);
+    return { rows, total: sum(rows.map((x) => x.t)), count };
+  }
+  function payDays() {
+    const by = {};
+    for (const r of DATA) if (r.paidIn && pass(r, "ent")) (by[r.ent] ||= []).push(r.paidIn);
+    const pend = Object.fromEntries(pending(curMonths(), "ent").rows.map((x) => [x.ent, x.t]));
+    return Object.entries(by).filter(([, a]) => a.length >= 5).map(([ent, a]) => {
+      a.sort((x, z) => x - z);
+      return { ent, d: a[Math.floor(a.length / 2)], n: a.length, p: pend[ent] || 0 };
+    }).sort((a, b) => b.d - a.d);
+  }
+  function renderAging() {
+    const p = pending(curMonths(), "ent");
+    $("#ag-legend").innerHTML = AGES.map((a) => `<span><i style="background:${a.c}"></i>${a.name}</span>`).join("");
+    if (!p.rows.length) { $("#aging").innerHTML = `<p class="empty">Nada pendiente con estos filtros.</p>`; return; }
+    const max = p.rows[0].t, sel = S.sel.ent;
+    const pdm = Object.fromEntries(payDays().map((x) => [x.ent, x.d]));
+    $("#aging").innerHTML = `<div class="ag-head"><span>Entidad</span><span></span><span>Debe</span><span>Paga en</span></div><div class="ag">${p.rows.slice(0, 8).map((x) => {
+      const on = sel.has(x.ent), dim = sel.size && !on;
+      return `<button type="button" class="ag-row${on ? " on" : ""}${dim ? " dim" : ""}" data-f="ent:${esc(x.ent)}" ${tip(tipRows(x.ent, AGES.map((a, i) => [a.c, a.name, fMoney(x.b[i])]), `${fInt(x.n)} incapacidades · <b>${fMoney(x.t)}</b>${pdm[x.ent] ? `<br>Paga en ${fInt(pdm[x.ent])} días (mediana)` : ""}`))}>
+        <span class="nm">${esc(x.ent)}</span><span class="stack" style="width:${(x.t / max) * 100}%">${x.b.map((v, i) => (v ? `<span style="flex:${v};background:${AGES[i].c}"></span>` : "")).join("")}</span><span class="amt">${fMoney(x.t)}</span><span class="pd${pdm[x.ent] > 90 ? " slow" : ""}">${pdm[x.ent] ? fInt(pdm[x.ent]) + " d" : "—"}</span></button>`;
+    }).join("")}</div><div class="ag-foot"><span>${fInt(p.count)} incapacidades pendientes</span><span>Total <b>${fMoney(p.total)}</b></span></div>`;
+  }
+
+  // ================================================================ para actuar
+  function renderAlerts() {
+    const items = [];
+    const R = DATA.filter((r) => pass(r, "mes"));
+    for (const r of R) {
+      if (!r.active || !isMed(r)) continue;
+      const a = r.acum, who = esc(r.e.name), dx = esc((S.role === "nom" ? TIPO[r.tipo].name : DX[r.cie][0]).toLowerCase());
+      if (r.tipo === "EG") {
+        if (a > 180) items.push({ sev: "crit", k: 0, a, t: "Pasó el día 180", txt: `${who} · ${dx}. Día ${a}: desde el día 181 paga ${esc(r.e.afp)}. Radicar el cobro ante el fondo.`, id: r.id });
+        else if (a >= 150) items.push({ sev: "serious", k: 1, a, t: "Se acerca al día 180", txt: `${who} · ${dx}. Día ${a}: el fondo asume en ${181 - a} días. Confirmar que tiene el concepto de rehabilitación.`, id: r.id });
+        else if (a >= 120) items.push({ sev: "serious", k: 1, a, t: "Concepto de rehabilitación", txt: `${who} · ${dx}. Día ${a}: la EPS debía emitirlo antes del día 120 y enviarlo al fondo antes del 150.`, id: r.id });
+        else if (a >= 90) items.push({ sev: "warn", k: 2, a, t: "Concepto de rehabilitación", txt: `${who} · ${dx}. Día ${a}: la EPS debe emitirlo antes del día 120.`, id: r.id });
+      } else if (a >= 60) items.push({ sev: "warn", k: 2, a, t: "Caso largo con la ARL", txt: `${who} · ${dx}. Día ${a}: pedir a la ARL el plan de rehabilitación y reintegro.`, id: r.id });
+    }
+    const recent = {};
+    for (const r of R) if (r.start > CORTE - 90 && r.start <= CORTE && isMed(r)) (recent[r.e.id] ||= []).push(r);
+    for (const list of Object.values(recent)) if (list.length >= 3) {
+      list.sort((a, b) => a.start - b.start);
+      const last = list.at(-1);
+      items.push({ sev: "warn", k: 2, a: list.length, t: "Se repite", txt: `${esc(last.e.name)} (${esc(AREA[last.e.area].name)}): ${list.length} incapacidades en 90 días${S.role === "nom" ? "" : ` (${list.map((x) => x.cie).join(", ")})`}. Remitir a medicina laboral.`, id: last.id });
+    }
+    const sr = R.filter((r) => r.est === "Sin radicar" && CORTE - r.end > 30);
+    if (sr.length) items.push({ sev: "serious", k: 1, a: sr.length, t: "Recobros sin radicar", txt: `${fInt(sr.length)} incapacidades por ${fMoney(sum(sr.map((r) => r.rec)))} terminaron hace más de 30 días y no se han radicado.`, f: "est:Sin radicar", fl: "Ver cuáles" });
+    const gl = R.filter((r) => r.est === "Glosado");
+    if (gl.length) items.push({ sev: "warn", k: 2, a: gl.length, t: "Recobros glosados", txt: `${fInt(gl.length)} por ${fMoney(sum(gl.map((r) => r.rec)))}: la entidad los devolvió. Corregir y volver a radicar.`, f: "est:Glosado", fl: "Ver cuáles" });
+    items.sort((a, b) => a.k - b.k || b.a - a.a);
+    const SEV = { crit: ["i-octa", "Urgente"], serious: ["i-tri", "Pronto"], warn: ["i-clock", "Seguimiento"] };
+    const shown = items.slice(0, 6);
+    if (hidePeople()) { $("#al-sub").textContent = "Casos abiertos al corte"; $("#alerts").innerHTML = `<li style="display:block">${reserved(RESERVED_MSG)}</li>`; return; }
+    $("#al-sub").textContent = items.length ? `${items.length} asuntos al 30 sep 2026` : "Nada pendiente al corte";
+    $("#alerts").innerHTML = shown.map((it) => `<li><span class="sev ${it.sev}"><svg class="i"><use href="#${SEV[it.sev][0]}"/></svg></span>
+      <p class="t">${it.t}<small>${SEV[it.sev][1]}</small></p><p>${it.txt}</p>
+      ${it.id ? `<button type="button" class="lnk" data-open="${it.id}">Abrir la ficha</button>` : `<button type="button" class="lnk" data-f="${esc(it.f)}">${it.fl}</button>`}</li>`).join("") +
+      (items.length > shown.length ? `<li style="display:block"><span class="more">Y ${items.length - shown.length} más de seguimiento.</span></li>` : "") ||
+      `<li style="display:block"><span class="empty">Nada pendiente con estos filtros.</span></li>`;
+  }
+
+  // ================================================================ personas
+  function renderPeople() {
+    const cur = curMonths(), P = new Map();
+    for (const r of DATA) {
+      if (!pass(r, "frec") || !cur.includes(r.mi)) continue;
+      let o = P.get(r.e.id);
+      if (!o) P.set(r.e.id, (o = { e: r.e, s: 0, d: 0, last: r }));
+      o.s++; o.d += r.acum; if (r.start > o.last.start) o.last = r;
+    }
+    const people = [...P.values()], el = $("#people");
+    if (!people.length) { el.innerHTML = `<p class="empty">Sin incapacidades con estos filtros.</p>`; return; }
+    const H = hc(), n = people.length, td = sum(people.map((p) => p.d));
+    const byD = people.slice().sort((a, b) => b.d - a.d), k = Math.max(1, Math.round(n * 0.1));
+    const share = sum(byD.slice(0, k).map((p) => p.d)) / td;
+    const BK = ["1", "2", "3", "4", "5+"], bk = (p) => (p.s >= 5 ? "5+" : String(p.s));
+    const cnt = Object.fromEntries(BK.map((b) => [b, 0]));
+    for (const p of people) cnt[bk(p)]++;
+    const sel = S.sel.frec;
+    const left = `<div><p class="big">El <b>10 %</b> de las personas con incapacidad suma el <b>${fPct(share, 0)}</b> de los días.</p>
+      <p class="note">${fInt(n)} de ${fInt(H)} trabajadores (${fPct(n / H, 0)}) empezó al menos una incapacidad en el periodo. Cuántas veces:</p>
+      ${columns(BK.map((b) => ({ v: cnt[b], l: b === "1" ? "1 vez" : b + " veces", f: "frec:" + b, on: sel.has(b), dim: sel.size && !sel.has(b),
+        tip: tip(tipRows(b === "1" ? "Una incapacidad" : b + " incapacidades", [[null, "Personas", fInt(cnt[b])], [null, "Del total", fPct(cnt[b] / n, 0)]])) })))}</div>`;
+    const list = people.filter((p) => !sel.size || sel.has(bk(p))).map((p) => ({ ...p, b: p.s * p.s * p.d })).sort((a, b) => b.b - a.b).slice(0, 7);
+    const maxB = list[0]?.b || 1;
+    const right = hidePeople() ? `<div>${reserved(RESERVED_MSG)}</div>` : `<div><div class="bf-head"><span>Factor de Bradford: veces² × días</span><span>Puntaje</span></div>
+      <div class="bf">${list.map((p) => `<button type="button" data-open="${p.last.id}"><span class="n">${esc(p.e.name)} <small>· ${esc(AREA[p.e.area].name)}</small></span><small>${p.s} ${p.s === 1 ? "vez" : "veces"} · ${fInt(p.d)} días</small><span class="sc">${fInt(p.b)}</span><span class="meter"><i style="width:${(p.b / maxB) * 100}%"></i></span></button>`).join("")}</div>
+      <p class="note">Pesa más la frecuencia que la duración. Sirve para remitir a medicina laboral, no para sancionar: quien está enfermo puede tener estabilidad laboral reforzada.</p></div>`;
+    el.innerHTML = left + right;
+  }
+
+  // ================================================================ SG-SST
+  function renderSst() {
+    const row = (ms) => {
+      const n = ms.length, H = hc();
+      let at = 0, atD = 0, med = 0, elNew = 0; const elPeople = new Set();
+      const endDay = MONTHS[ms.at(-1)].e;
+      for (const r of DATA) {
+        if (!passOrg(r)) continue;
+        if (r.tipo === "AT") { if (ms.includes(r.mi)) at++; atD += sumDays(r, ms); }
+        if (r.tipo === "EL") { if (r.start <= endDay) elPeople.add(r.e.id); if (ms.includes(r.mi)) elNew++; }
+        if (isMed(r)) med += sumDays(r, ms);
+      }
+      return { H, freq: H ? (at / H) * 100 / n : 0, sev: H ? (atD / H) * 100 / n : 0, aus: H ? med / (H * 30 * n) : 0, prev: H ? (elPeople.size / H) * 1e5 : 0, inc: H ? (elNew / H) * 1e5 : 0 };
+    };
+    const ms = per().cur, a = row(ms), b = row(ms.map((m) => m - (per().cur[0] - cmpBase()[0])));
+    const lines = [
+      ["Frecuencia de accidentalidad", "AT del mes ÷ trabajadores × 100", NF1.format(a.freq), NF1.format(b.freq), a.freq - b.freq],
+      ["Severidad de accidentalidad", "Días por AT ÷ trabajadores × 100", NF1.format(a.sev), NF1.format(b.sev), a.sev - b.sev],
+      ["Mortalidad por AT", "AT mortales ÷ AT del año × 100", "0 %", "0 %", 0],
+      ["Ausentismo por causa médica", "Días de incapacidad ÷ días programados", fPct(a.aus, 2), fPct(b.aus, 2), a.aus - b.aus],
+      ["Prevalencia de enfermedad laboral", "Casos nuevos y antiguos ÷ trabajadores × 100.000", fInt(a.prev), fInt(b.prev), a.prev - b.prev],
+      ["Incidencia de enfermedad laboral", "Casos nuevos ÷ trabajadores × 100.000", fInt(a.inc), fInt(b.inc), a.inc - b.inc],
+    ];
+    $("#sst").innerHTML = `<table class="sst"><thead><tr><th>Indicador</th><th>Ahora</th><th>Antes</th></tr></thead><tbody>${lines.map(([n, f, v, p, d]) => `<tr><td>${n}<small>${f}</small></td><td><b style="color:${d > 1e-9 ? "var(--bad-ink)" : d < -1e-9 ? "var(--good-ink)" : "inherit"}">${v}</b></td><td class="prev">${p}</td></tr>`).join("")}</tbody></table>
+      <p class="note">Solo filtran sede y área. «Antes» es ${cmpLabel()}.</p>`;
+  }
+
+  // ================================================================ detalle
+  const EST_TONE = { Pagado: "good", Aprobado: "info", Radicado: "", "Sin radicar": "warn", Glosado: "crit", "No aplica": "muted" };
+  const COLS = [
+    { k: "name", l: "Persona", v: (r) => r.e.name },
+    { k: "area", l: "Área", v: (r) => AREA[r.e.area].name },
+    { k: "tipo", l: "Tipo", v: (r) => TIPO[r.tipo].name },
+    { k: "cie", l: "Diagnóstico", v: (r) => r.cie },
+    { k: "start", l: "Inicio", v: (r) => r.start },
+    { k: "dias", l: "Días", v: (r) => r.acum, r: true },
+    { k: "valor", l: "Valor", v: (r) => r.valor, r: true },
+    { k: "ent", l: "Entidad", v: (r) => r.ent },
+    { k: "est", l: "Recobro", v: (r) => r.est },
+  ];
+  function tableRows() {
+    const cur = curMonths(), q = T.q.trim().toLowerCase();
+    let rows = DATA.filter((r) => pass(r) && touches(r, cur));
+    if (q) rows = rows.filter((r) => (r.e.name + " " + (S.role === "nom" ? TIPO[r.tipo].name : r.cie + " " + DX[r.cie][0]) + " " + AREA[r.e.area].name).toLowerCase().includes(q));
+    const col = COLS.find((c) => c.k === T.sort);
+    rows.sort((a, b) => { const x = col.v(a), y = col.v(b); return (x < y ? -1 : x > y ? 1 : 0) * T.dir || b.start - a.start; });
+    return rows;
+  }
+  function renderTable() {
+    if (hidePeople()) {
+      $("#tbl-sub").textContent = "Las incapacidades del periodo con los filtros puestos";
+      $("#det").innerHTML = `<tbody><tr><td style="padding:12px 18px;cursor:default">${reserved(RESERVED_MSG)}</td></tr></tbody>`;
+      $("#tbl-count").textContent = ""; $("#tbl-more").hidden = true; return;
+    }
+    const rows = tableRows();
+    const cur = curMonths();
+    $("#tbl-sub").textContent = `Las incapacidades del periodo con los filtros puestos · ${fInt(sum(rows.map((r) => sumDays(r, cur))))} días`;
+    const head = `<thead><tr>${COLS.map((c) => `<th class="${c.r ? "r" : ""}"${T.sort === c.k ? ` aria-sort="${T.dir > 0 ? "ascending" : "descending"}"` : ""}><button type="button" data-sort="${c.k}">${c.l}${T.sort === c.k ? (T.dir > 0 ? " ↑" : " ↓") : ""}</button></th>`).join("")}</tr></thead>`;
+    const body = rows.slice(0, T.limit).map((r) => `<tr data-open="${r.id}" tabindex="0">
+      <td class="who"><b>${esc(r.e.name)}</b><small>${esc(r.e.cargo)} · ${esc(r.e.sede)}</small></td>
+      <td>${esc(AREA[r.e.area].name)}</td>
+      <td><span class="tp"><i style="background:${TIPO[r.tipo].c}"></i>${TIPO[r.tipo].short}</span></td>
+      <td class="dx">${S.role === "nom" ? `<span class="rsv"><svg class="i"><use href="#i-lock"/></svg>Reservado</span>` : `<span class="code">${esc(r.cie)}</span><span>${esc(DX[r.cie][0])}</span>`}</td>
+      <td>${fDate(r.start)}</td>
+      <td class="r">${fInt(r.acum)}${r.active ? `<span class="act">sigue</span>` : ""}</td>
+      <td class="r">${fMoney(r.valor)}</td>
+      <td>${esc(r.rec ? r.ent : "—")}</td>
+      <td><span class="pill ${EST_TONE[r.est]}"><i></i>${r.est}</span></td></tr>`).join("");
+    $("#det").innerHTML = head + `<tbody>${body || `<tr><td colspan="9" class="empty" style="padding-left:18px">Sin incapacidades con estos filtros.</td></tr>`}</tbody>`;
+    $("#tbl-count").textContent = rows.length ? `${fInt(Math.min(T.limit, rows.length))} de ${fInt(rows.length)} incapacidades` : "";
+    $("#tbl-more").hidden = rows.length <= T.limit;
+  }
+
+  // ================================================================ ficha
+  const ficha = $("#ficha");
+  function hue(s) { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
+  function openFicha(id) {
+    const r = DATA.find((x) => x.id === +id);
+    if (!r) return;
+    const e = r.e, ini = e.name.split(" ").slice(0, 2).map((w) => w[0]).join("");
+    // Tramos: quién paga cada día y a qué porcentaje.
+    const segs = [];
+    for (let k = 1; k <= r.dias; k++) {
+      const [p, pct] = payer(r.tipo, k);
+      const last = segs.at(-1);
+      if (last && last.p === p && last.pct === pct) last.to = k; else segs.push({ p, pct, from: k, to: k });
+    }
+    const daily = (pct) => Math.max((e.sal / 30) * pct, MINDAY);
+    const total = r.dias;
+    const phases = segs.map((s) => {
+      const P = PAYERS[PI[s.p]], len = s.to - s.from + 1;
+      const done = Math.max(0, Math.min(s.to, r.acum) - s.from + 1);
+      const parts = [];
+      if (done) parts.push(`<span style="flex:${done};background:${P.c}" ${tip(tipRows(`Días ${s.from} a ${s.to}`, [[P.c, P.name, fPct(s.pct, s.pct === 2 / 3 ? 2 : 0)], [null, "Valor diario", fMoneyFull(daily(s.pct))]]))}></span>`);
+      if (len - done) parts.push(`<span class="fut" style="flex:${len - done};background-color:${P.c}"></span>`);
+      return parts.join("");
+    }).join("");
+    const marks = [1];
+    if (r.tipo === "EG" && total > 90) marks.push(90);
+    if (r.tipo === "EG" && total > 180) marks.push(180);
+    marks.push(total);
+    const axis = [...new Set(marks)].map((k) => `<span style="left:${((k - 1) / Math.max(1, total - 1)) * 100}%">día ${k}</span>`).join("");
+    const todayMark = r.active ? `<span class="today" style="left:calc(${(r.acum / total) * 100}% - 1px)"><span>hoy · día ${r.acum}</span></span>` : "";
+    const seglist = segs.map((s) => {
+      const P = PAYERS[PI[s.p]];
+      const done = Math.max(0, Math.min(s.to, r.acum) - s.from + 1);
+      return `<div class="prow"><span class="sw" style="background:${P.c}"></span><b>${P.name === "EPS" ? esc(e.eps) : P.name === "ARL" ? ARL : P.name === "Fondo de pensiones" ? esc(e.afp) : "Empresa"} · días ${s.from} a ${s.to}</b><span class="amt">${fMoney(done * daily(s.pct))}</span><small>${fPct(s.pct, s.pct === 2 / 3 ? 2 : 0)} del salario${done < s.to - s.from + 1 ? ` · ${done ? "faltan " + (s.to - s.from + 1 - done) + " días" : "todavía no empieza"}` : ""}</small></div>`;
+    }).join("");
+    const hist = DATA.filter((x) => x.e === e).sort((a, b) => b.start - a.start);
+    $("#ficha-in").innerHTML = `
+      <div class="sh-head"><span class="face" style="background:oklch(0.55 0.12 ${hue(e.name)})">${esc(ini)}</span>
+        <div><h2 id="f-name">${esc(e.name)}</h2><p>${esc(e.cargo)} · ${esc(AREA[e.area].name)} · ${esc(e.sede)}</p></div>
+        <button type="button" class="btn ico" id="f-close" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button></div>
+      <div class="sh-body">
+        <div class="dxbox"><span class="tp"><i style="background:${TIPO[r.tipo].c}"></i>${TIPO[r.tipo].name}</span>${S.role === "nom" ? `<b class="rsv" style="font-size:15px"><svg class="i"><use href="#i-lock"/></svg>Diagnóstico reservado</b><span class="note">Es un dato sensible (Ley 1581 de 2012): lo ven Seguridad y salud en el trabajo y medicina laboral.</span>` : `<b>${esc(DX[r.cie][0])}</b><span class="code">CIE-10 ${esc(r.cie)}</span>`}</div>
+        <div class="facts">
+          <div><span>Inicio</span><b>${fDate(r.start)}</b></div>
+          <div><span>${r.active ? "Va hasta" : "Fin"}</span><b>${fDate(r.end)}</b></div>
+          <div><span>Días</span><b>${fInt(r.active ? r.acum : r.dias)}${r.active ? ` de ${r.dias}` : ""}</b></div>
+          <div><span>Prórrogas</span><b>${r.prorrogas}</b></div>
+          <div><span>Salario base</span><b>${fMoneyFull(e.sal)}</b></div>
+          <div><span>Recobro</span><b><span class="pill ${EST_TONE[r.est]}"><i></i>${r.est}</span></b></div>
+        </div>
+        <section><h3>Quién paga cada día</h3>
+          <div class="phases" style="margin-top:${r.active ? 22 : 4}px" data-piece="nx-phases" data-kind="nuevo">${phases}${todayMark}</div>
+          <div class="axis">${axis}</div>
+          <div class="seglist">${seglist}</div></section>
+        <section><h3>Historial de ${esc(e.name.split(" ")[0])}</h3>
+          <div class="hist">${hist.map((x) => `<button type="button" data-open="${x.id}" aria-current="${x.id === r.id}"><span class="d">${fDate(x.start)}</span><span class="n">${S.role === "nom" ? TIPO[x.tipo].name : `<span class="code">${esc(x.cie)}</span> ${esc(DX[x.cie][0])}`}</span><span class="r">${fInt(x.acum)} d</span></button>`).join("")}</div>
+          ${hist.length >= 3 ? `<p class="note" style="margin-top:6px">${hist.length} incapacidades desde octubre de 2024.</p>` : ""}</section>
+      </div>`;
+    tipEl.hidden = true;
+    if (!ficha.open) { if (ficha.showModal) ficha.showModal(); else ficha.setAttribute("open", ""); }
+    $("#f-close").focus();
+  }
+  ficha.addEventListener("click", (e) => { if (e.target === ficha) ficha.close(); });
+
+  // ================================================================ chips y eventos
+  function valueLabel(dim, v) {
+    if (dim === "tipo") return TIPO[v].name;
+    if (dim === "area") return AREA[v].name;
+    if (dim === "mes") return MONTHS[v].label;
+    if (dim === "cie") return v;
+    if (dim === "dur") return v + " días";
+    if (dim === "dow") return DOWL[+v];
+    if (dim === "frec") return v === "1" ? "1 incapacidad" : v + " incapacidades";
+    return v;
+  }
+  function renderChips() {
+    const parts = [];
+    for (const dim of DIMS) for (const v of S.sel[dim]) parts.push(`<button type="button" class="chip" data-unf="${dim}:${esc(String(v))}" aria-label="Quitar ${DIM_LABEL[dim]}: ${esc(valueLabel(dim, v))}"><small>${DIM_LABEL[dim]}</small>${esc(valueLabel(dim, v))}<svg class="i x"><use href="#i-x"/></svg></button>`);
+    $("#chips").innerHTML = parts.length ? parts.join("") + (parts.length > 1 ? `<button type="button" class="chip-clear" data-clear>Quitar filtros</button>` : "") : `<span class="chip-hint">Toca una barra, una celda o una fila para filtrar todo el tablero</span>`;
+  }
+  function parseF(spec) {
+    return spec.split(",").map((p) => { const i = p.indexOf(":"); const d = p.slice(0, i); let v = p.slice(i + 1); if (d === "mes") v = +v; return [d, v]; });
+  }
+  function applyF(spec, add) {
+    const pairs = parseF(spec);
+    if (pairs.length === 1 && add) { const [d, v] = pairs[0]; const s = S.sel[d]; s.has(v) ? s.delete(v) : s.add(v); }
+    else {
+      const only = pairs.every(([d, v]) => S.sel[d].size === 1 && S.sel[d].has(v));
+      for (const [d, v] of pairs) { S.sel[d].clear(); if (!only) S.sel[d].add(v); }
+    }
+    T.limit = 20; render();
+  }
+  document.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const f = t.closest("[data-f]");
+    if (f) { applyF(f.dataset.f, e.ctrlKey || e.metaKey || e.shiftKey); return; }
+    const u = t.closest("[data-unf]");
+    if (u) { const [[d, v]] = parseF(u.dataset.unf); S.sel[d].delete(v); render(); return; }
+    if (t.closest("[data-clear]")) { for (const d of DIMS) S.sel[d].clear(); render(); return; }
+    const o = t.closest("[data-open]");
+    if (o) { openFicha(o.dataset.open); return; }
+    if (t.closest("#f-close")) { ficha.close(); return; }
+    const so = t.closest("[data-sort]");
+    if (so) { const k = so.dataset.sort; if (T.sort === k) T.dir *= -1; else { T.sort = k; T.dir = k === "start" || k === "dias" || k === "valor" ? -1 : 1; } renderTable(); return; }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target instanceof Element && e.target.matches("tr[data-open]")) openFicha(e.target.dataset.open);
+  });
+  function segBind(id, attr, fn) {
+    $(id).addEventListener("click", (e) => {
+      const b = e.target instanceof Element && e.target.closest(`[data-${attr}]`);
+      if (!b) return;
+      for (const x of $(id).querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
+      fn(b.dataset[attr]);
+    });
+  }
+  segBind("#f-period", "period", (v) => { S.period = v; S.sel.mes.clear(); $("#f-compare").options[1].text = "El mismo periodo de 2025"; render(); });
+  segBind("#f-metric", "metric", (v) => { S.metric = v; renderTrend(); });
+  segBind("#f-role", "role", (v) => { S.role = v; render(); });
+  segBind("#f-dow", "short", (v) => { S.dowShort = v === "1"; renderDow(); });
+  $("#f-compare").addEventListener("change", (e) => { S.compare = e.target.value; render(); });
+  $("#f-sede").addEventListener("change", (e) => { S.sede = e.target.value; render(); });
+  $("#q").addEventListener("input", (e) => { T.q = e.target.value; T.limit = 20; renderTable(); });
+  $("#tbl-more").addEventListener("click", () => { T.limit += 20; renderTable(); });
+
+  $("#b-pieces").addEventListener("click", (e) => {
+    const on = !document.body.classList.contains("pieces");
+    document.body.classList.toggle("pieces", on);
+    e.currentTarget.setAttribute("aria-pressed", String(on));
+    $("#pieces").hidden = !on;
+  });
+
+  // Tema: se decide en <body>; sin elección propia se sigue al visor y luego al sistema.
+  const themeBtn = $("#b-theme"), mq = matchMedia("(prefers-color-scheme: dark)"), root = document.documentElement;
+  const isDark = () => { const s = document.body.dataset.scheme || root.dataset.theme; return s ? s === "dark" : mq.matches; };
+  function paintThemeBtn() {
+    const d = isDark();
+    themeBtn.querySelector("use").setAttribute("href", d ? "#i-sun" : "#i-moon");
+    const l = d ? "Ver en claro" : "Ver en oscuro";
+    themeBtn.setAttribute("aria-label", l); themeBtn.title = l;
+  }
+  try { const sc = localStorage.getItem("nx-scheme"); if (sc === "light" || sc === "dark") document.body.dataset.scheme = sc; } catch {}
+  themeBtn.addEventListener("click", () => {
+    const next = isDark() ? "light" : "dark";
+    document.body.dataset.scheme = next;
+    try { localStorage.setItem("nx-scheme", next); } catch {}
+    paintThemeBtn();
+  });
+  mq.addEventListener?.("change", paintThemeBtn);
+  new MutationObserver(paintThemeBtn).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  paintThemeBtn();
+
+  function render() {
+    TIPS.length = 0;
+    computeFreq();
+    renderChips(); renderKpis(); renderTrend(); renderInsights(); renderHeat(); renderDow();
+    renderDx(); renderDur(); renderPay(); renderAging(); renderAlerts(); renderPeople(); renderSst(); renderTable();
+  }
+  let rw = 0;
+  if (window.ResizeObserver) new ResizeObserver(() => { cancelAnimationFrame(rw); rw = requestAnimationFrame(renderTrend); }).observe($("#trend-plot"));
+  render();
+  window.__board = { S, T, DATA, render, applyF, openFicha };
+})();
+</script>

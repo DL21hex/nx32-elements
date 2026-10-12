@@ -1,6 +1,6 @@
 {
   "name": "nx32-elements",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Componentes web ultraligeros, sin dependencias, compatibles con BDUI. Funcionan en HTML plano y en SolidJS.",
   "type": "module",
   "private": true,
@@ -204,6 +204,41 @@
       "types": "./dist/types/components/stats/index.d.ts",
       "import": "./dist/stats.js",
       "default": "./dist/stats.js"
+    },
+    "./board": {
+      "types": "./dist/types/components/board/index.d.ts",
+      "import": "./dist/board.js",
+      "default": "./dist/board.js"
+    },
+    "./bars": {
+      "types": "./dist/types/components/bars/index.d.ts",
+      "import": "./dist/bars.js",
+      "default": "./dist/bars.js"
+    },
+    "./heatmap": {
+      "types": "./dist/types/components/heatmap/index.d.ts",
+      "import": "./dist/heatmap.js",
+      "default": "./dist/heatmap.js"
+    },
+    "./parts": {
+      "types": "./dist/types/components/parts/index.d.ts",
+      "import": "./dist/parts.js",
+      "default": "./dist/parts.js"
+    },
+    "./phases": {
+      "types": "./dist/types/components/phases/index.d.ts",
+      "import": "./dist/phases.js",
+      "default": "./dist/phases.js"
+    },
+    "./alerts": {
+      "types": "./dist/types/components/alerts/index.d.ts",
+      "import": "./dist/alerts.js",
+      "default": "./dist/alerts.js"
+    },
+    "./insights": {
+      "types": "./dist/types/components/insights/index.d.ts",
+      "import": "./dist/insights.js",
+      "default": "./dist/insights.js"
     },
     "./print": {
       "types": "./dist/types/components/print/index.d.ts",

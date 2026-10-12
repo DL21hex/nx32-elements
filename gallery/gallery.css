@@ -1136,3 +1136,10 @@ td:first-child {
   border: 1px dashed var(--nx-border-strong);
   border-radius: 12px;
 }
+
+/* ---------------------------------------------------------------- Tablero (nx-board) */
+.bd-filters { display: flex; align-items: center; gap: 10px; color: var(--nx-muted-foreground); font-size: 13px; }
+.bd-seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--nx-border-subtle); border-radius: 9px; background: var(--nx-hover); }
+.bd-seg button { block-size: 28px; padding-inline: 11px; border: 0; border-radius: 6px; background: none; color: var(--nx-muted-foreground); font: inherit; cursor: pointer; }
+.bd-seg button[aria-pressed="true"] { background: var(--nx-card, var(--nx-background)); color: var(--nx-foreground); font-weight: 550; box-shadow: var(--nx-shadow-card); }
+#bd-p-det nx-grid { --nx-grid-height: 320px; }

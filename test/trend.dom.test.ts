@@ -285,3 +285,38 @@ describe("<nx-trend>", () => {
     expect([...el.querySelectorAll(".nx-trend__tick")].some((t) => t.textContent === "0")).toBe(true);
   });
 });
+
+describe("<nx-trend>: apiladas, proyección y tablero", () => {
+  it("apila las barras, dibuja la proyección con su rango y lleva las marcas del tablero", async () => {
+    await import("../src/components/board/index");
+    document.body.innerHTML = '<nx-board><nx-trend kind="bar" stacked dimension="tipo" period-dimension="mes" locale="es-CO"></nx-trend></nx-board>';
+    const el = document.querySelector("nx-trend") as NxTrend;
+    el.series = [
+      { id: "EG", label: "Enfermedad general", points: [{ x: "2026-07", y: 60 }, { x: "2026-08", y: 70 }] },
+      { id: "AT", label: "Accidente de trabajo", points: [{ x: "2026-07", y: 40 }, { x: "2026-08", y: 30 }] },
+      { id: "P", label: "Proyección", points: [{ x: "2026-09", y: 110, forecast: true, low: 95, high: 125 }] },
+    ];
+    await sleep(0);
+    const bars = [...el.querySelectorAll<SVGPathElement>(".nx-trend__bar")];
+    expect(bars).toHaveLength(5);
+    // La de arriba de cada periodo tiene la punta redonda (Q); la de abajo, plana.
+    const julEG = bars.find((b) => b.closest("[data-nx-filter='tipo:EG']") && b.getAttribute("data-nx-filter") === "mes:2026-07")!;
+    const julAT = bars.find((b) => b.closest("[data-nx-filter='tipo:AT']") && b.getAttribute("data-nx-filter") === "mes:2026-07")!;
+    expect(julEG.getAttribute("d")).not.toContain("Q");
+    expect(julAT.getAttribute("d")).toContain("Q");
+    expect(el.querySelector(".nx-trend__bar.is-forecast")).toBeTruthy();
+    expect(el.querySelector(".nx-trend__range")).toBeTruthy();
+    expect(el.querySelector(".nx-trend__table tbody")?.textContent).toContain("≈ 110");
+    const pt = [...el.querySelectorAll(".nx-trend__pt")].find((b) => b.getAttribute("aria-label")?.startsWith("Proyección"))!;
+    expect(pt.getAttribute("aria-label")).toContain("proyección 95 – 125");
+    // La leyenda filtra el tablero en vez de ocultar la serie.
+    const key = el.querySelector<HTMLButtonElement>('.nx-trend__key[data-id="AT"]')!;
+    expect(key.getAttribute("data-nx-filter")).toBe("tipo:AT");
+    key.click();
+    const board = document.querySelector("nx-board")!;
+    expect(board.filters).toEqual({ tipo: ["AT"] });
+    expect(el.querySelectorAll(".nx-trend__bar")).toHaveLength(5);
+    await sleep(0);
+    expect(el.querySelector("[data-nx-filter='tipo:EG']")?.getAttribute("data-nx-filter-state")).toBe("off");
+  });
+});

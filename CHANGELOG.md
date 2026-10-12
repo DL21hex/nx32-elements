@@ -1,5 +1,35 @@
 # Registro de cambios
 
+## 0.16.0 — 2026-10-12
+
+- **`<nx-board>` y `<nx-board-panel>`: un tablero BI con filtros cruzados.** Una grilla de 12
+  columnas con sus paneles (`span`, `heading`, `subheading`, `slot="actions"`) que comparten un
+  estado de filtros. Cualquier descendiente con `data-nx-filter="dimensión:valor"` es una marca: un
+  clic filtra todo el tablero (con Ctrl, Cmd o Mayús, suma), y el panel dueño de esa dimensión no se
+  filtra a sí mismo: el tablero marca cada marca como elegida o atenuada (`data-nx-filter-state`,
+  `aria-pressed`). Arriba, un chip por filtro y «Quitar filtros». El tablero no calcula: avisa
+  (`nx-board-change` `{filters, changed, reserved}`) y cada panel sabe qué pedir (`panel.filters`).
+  Con `restricted`, filtrar por una dimensión `sensitive` (el diagnóstico) reserva los paneles
+  `personal`. Funciones sueltas para calcular en el cliente (`matchesFilters`, `applyPairs`…). Sale
+  de la maqueta `maquetas/nx-board-incapacidades.html`.
+- **Los gráficos del tablero**, sobre un núcleo común (`src/core/chart.ts`: formato, ticks, colores
+  fijos por serie, marcas del tablero y tooltip) y tokens nuevos (`--nx-chart-1…8`, `-muted`,
+  `-seq`, `-seq-ink`, `-neg`, `-ord-1…4`; `<nx-trend>` pasa a usarlos):
+  - **`<nx-bars>`**: barras horizontales o columnas, apiladas por serie (paleta categórica u
+    ordinal), con el % acumulado (Pareto) como texto, línea de referencia y `limit`.
+  - **`<nx-heatmap>`**: una tabla con escala secuencial o divergente, totales con su cambio (subir
+    puede ser malo) y encabezados y celdas que filtran, con una sola parada de Tab y flechas.
+  - **`<nx-parts>`**: partes de un todo en una barra al 100 % y la lista que se lee.
+  - **`<nx-phases>`**: tramos sobre un eje de días, con hoy y lo que falta rayado.
+  - **`<nx-alerts>`**: lo que hay que hacer, por gravedad (ícono y palabra), con acciones que
+    enlazan, filtran o avisan.
+  - **`<nx-insights>`**: frases calculadas con `**énfasis**`, tono y acción.
+  - **`<nx-stats>`**: `delta` (la flecha y el color según si subir es malo o bueno) y `goal` (una
+    línea punteada en la minigráfica).
+  - **`<nx-trend>`**: `stacked`, puntos proyectados con su rango (`forecast`, `low`, `high`) y
+    `dimension` / `period-dimension` para filtrar un tablero.
+  - La galería (`#/board`) arma el tablero de incapacidades completo con todas las piezas.
+
 ## 0.15.0 — 2026-10-12
 
 - **`<nx-history variant="plain">`: sólo la línea de tiempo.** Sin buscador, sin filtros por

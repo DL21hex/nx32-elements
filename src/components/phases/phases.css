@@ -1,0 +1,185 @@
+/* <nx-phases>: tramos sobre un eje de días, con hoy marcado y lo que falta rayado. Los colores
+   salen de `data-nx-slot` (tokens.css); el tooltip es `.nx-chart-tip`. */
+nx-phases {
+  position: relative;
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+}
+.nx-phases__empty {
+  margin: 0;
+  color: var(--nx-muted-foreground);
+}
+.nx-phases__chart {
+  padding-block-start: 6px;
+}
+/* Lugar para la etiqueta de hoy, arriba de la barra. */
+.nx-phases__chart.has-today {
+  padding-block-start: 24px;
+}
+
+/* La barra: cada tramo en su lugar del eje (ancho = sus días), 2 px entre tramos y extremos
+   redondeados donde la barra empieza, termina o se corta. */
+.nx-phases__bar {
+  position: relative;
+  block-size: var(--nx-phases-height, 26px);
+}
+.nx-phases__seg {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+  min-inline-size: 4px;
+  overflow: hidden;
+}
+.nx-phases__seg.is-start {
+  border-start-start-radius: 5px;
+  border-end-start-radius: 5px;
+}
+.nx-phases__seg.is-end {
+  border-start-end-radius: 5px;
+  border-end-end-radius: 5px;
+}
+.nx-phases__done,
+.nx-phases__left {
+  flex: 0 1 0;
+  min-inline-size: 0;
+}
+.nx-phases__done {
+  background: var(--c, var(--nx-chart-1));
+}
+/* Lo que falta: atenuado y rayado con el color de la superficie (no se lee solo por el color). */
+.nx-phases__left {
+  opacity: 0.35;
+  background-color: var(--c, var(--nx-chart-1));
+  background-image: repeating-linear-gradient(135deg, transparent 0 4px, var(--nx-card) 4px 6px);
+}
+
+/* Hoy: una línea vertical que sobresale de la barra, con su etiqueta arriba. */
+.nx-phases__today {
+  position: absolute;
+  inset-block: -6px;
+  inline-size: 2px;
+  border-radius: 1px;
+  background: var(--nx-foreground);
+  pointer-events: none;
+}
+.nx-phases__today-label {
+  position: absolute;
+  inset-block-end: calc(100% + 2px);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nx-phases__today-label.is-start {
+  inset-inline-start: 0;
+  transform: none;
+}
+.nx-phases__today-label.is-end {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  transform: none;
+}
+
+/* El eje: las etiquetas no se salen por los bordes. */
+.nx-phases__axis {
+  position: relative;
+  block-size: 18px;
+  margin-block-start: 6px;
+  color: var(--nx-text-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.nx-phases__tick {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.nx-phases__tick.is-first {
+  transform: none;
+}
+.nx-phases__tick.is-last {
+  transform: translateX(-100%);
+}
+:dir(rtl) .nx-phases__tick {
+  transform: translateX(50%);
+}
+:dir(rtl) .nx-phases__tick.is-first {
+  transform: none;
+}
+:dir(rtl) .nx-phases__tick.is-last {
+  transform: translateX(100%);
+}
+:dir(rtl) .nx-phases__today-label {
+  transform: translateX(50%);
+}
+:dir(rtl) .nx-phases__today-label.is-start,
+:dir(rtl) .nx-phases__today-label.is-end {
+  transform: none;
+}
+
+/* La lista: muestra, nombre y rango, valor; debajo, la regla y lo que falta. */
+.nx-phases__list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-phases__row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+.nx-phases__row > .nx-chart-sw {
+  align-self: center;
+}
+.nx-phases__name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  min-inline-size: 0;
+  & > b {
+    font-weight: 550;
+  }
+}
+.nx-phases__range {
+  color: var(--nx-muted-foreground);
+}
+.nx-phases__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.nx-phases__sub {
+  grid-column: 2 / -1;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+  & > span + span::before {
+    content: "·";
+    content: "·" / "";
+    margin-inline: 6px;
+  }
+}
+.nx-phases__status {
+  color: var(--nx-muted-foreground);
+}
+
+@media (forced-colors: active) {
+  .nx-phases__seg,
+  .nx-phases__row > .nx-chart-sw {
+    border: 1px solid CanvasText;
+  }
+  .nx-phases__left {
+    forced-color-adjust: none;
+    opacity: 1;
+    background-image: repeating-linear-gradient(135deg, CanvasText 0 1px, Canvas 1px 6px);
+  }
+  .nx-phases__today {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+}

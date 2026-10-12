@@ -12,6 +12,7 @@
  */
 import { Base, boolAttr, upgrade } from "../../core/define";
 import { h, safeEndpoint, reducedMotion as reduced, emit, setAttr } from "../../core/dom";
+import { markAttrs } from "../../core/chart";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
 import { extent } from "../../core/time";
@@ -37,6 +38,8 @@ export const TREND_LABELS: TrendLabels = {
   versus: "vs. {period}",
   close: "Cerrar",
   ask: "Clic: ¿por qué?",
+  forecast: "proyección",
+  range: "{low} – {high}",
 };
 
 const NS = "http://www.w3.org/2000/svg";
@@ -71,7 +74,7 @@ type Geo = { L: number; R: number; T: number; B: number; band: number; y: (v: nu
 type Pt = { si: number; pi: number; xi: number; x: number; y: number; bar?: [number, number] };
 
 export class NxTrend extends Base {
-  static observedAttributes = ["series", "anomalies", "labels", "heading", "format", "currency", "kind", "height", "detect", "explain-endpoint", "locale", "busy"];
+  static observedAttributes = ["series", "anomalies", "labels", "heading", "format", "currency", "kind", "height", "detect", "explain-endpoint", "locale", "busy", "stacked", "dimension", "period-dimension"];
 
   #uid = `nx-trend${++uid}`;
   #series: TrendSeries[] = [];
@@ -206,6 +209,29 @@ export class NxTrend extends Base {
   set busy(v: boolean) {
     this.toggleAttribute("busy", !!v);
   }
+  /** Las barras se apilan en el periodo (una sobre otra) en vez de ir lado a lado. */
+  get stacked(): boolean {
+    return boolAttr(this, "stacked");
+  }
+  set stacked(v: boolean) {
+    this.toggleAttribute("stacked", !!v);
+  }
+  /** La dimensión de `<nx-board>` de las series (cada `id` es un valor): la leyenda filtra el
+   *  tablero en vez de ocultar series, y cada serie se atenúa cuando hay otra elegida. */
+  get dimension(): string | null {
+    return this.getAttribute("dimension");
+  }
+  set dimension(v: string | null) {
+    this.#attr("dimension", v);
+  }
+  /** La dimensión de `<nx-board>` de los periodos (cada `x` es un valor): tocar una barra o un
+   *  punto filtra ese periodo. */
+  get periodDimension(): string | null {
+    return this.getAttribute("period-dimension");
+  }
+  set periodDimension(v: string | null) {
+    this.#attr("period-dimension", v);
+  }
   /** Las anomalías que se ven (las dadas y las detectadas), con su apartamiento de la media. */
   get flags(): TrendFlag[] {
     return [...this.#flags];
@@ -275,6 +301,10 @@ export class NxTrend extends Base {
     if (x.muted) return "m";
     return String((this.#series.filter((q) => !q.muted).indexOf(x) % 8) + 1);
   }
+  /** La dimensión con que filtra una serie: ninguna si es de referencia o solo proyección (no son un valor). */
+  #dimOf(x: TrendSeries): string | null {
+    return x.muted || x.points.every((p) => p.forecast) ? null : this.dimension;
+  }
   #kind(x: TrendSeries): TrendKind {
     return x.kind ?? this.kind;
   }
@@ -301,7 +331,8 @@ export class NxTrend extends Base {
 
     this.#legend.addEventListener("click", (e) => {
       const b = (e.target as Element).closest<HTMLElement>("[data-id]");
-      if (!b) return;
+      // Con `dimension`, la leyenda filtra el tablero (lo hace `<nx-board>`), no oculta series.
+      if (!b || b.hasAttribute("data-nx-filter")) return;
       const id = b.dataset.id!;
       const on = this.#hidden.has(id);
       // La última serie visible no se oculta: el gráfico no se queda vacío por un clic.
@@ -374,9 +405,10 @@ export class NxTrend extends Base {
     this.#legend!.replaceChildren(
       ...this.#series.map((x) => {
         const on = !this.#hidden.has(x.id);
+        const mark = markAttrs([[this.#dimOf(x), x.id]], x.label);
         return h(
           "button",
-          { type: "button", class: "nx-trend__key", "data-id": x.id, "data-slot": this.#slot(x), "aria-pressed": String(on) },
+          { type: "button", class: "nx-trend__key", "data-id": x.id, "data-slot": this.#slot(x), "aria-pressed": mark["data-nx-filter"] ? null : String(on), ...mark },
           this.#mark(x, this.#series.indexOf(x)),
           x.label,
         );
@@ -416,7 +448,7 @@ export class NxTrend extends Base {
         ...vis.map((q, qi) => {
           const p = at[qi].get(x);
           const flag = flags.get(`${q.id}\u0000${x}`);
-          return h("td", flag ? { "data-flag": "" } : null, p?.y == null ? "—" : this.#fmt(q, p.y), flag ? h("small", null, ` · ${flag.label ?? L.anomaly}`) : null);
+          return h("td", flag ? { "data-flag": "" } : null, p?.y == null ? "—" : `${p.forecast ? "≈ " : ""}${this.#fmt(q, p.y)}`, flag ? h("small", null, ` · ${flag.label ?? L.anomaly}`) : null);
         }),
       ),
     );
@@ -458,9 +490,28 @@ export class NxTrend extends Base {
     // Escalas: el eje y sale de lo que se ve (desde cero si hay barras); el x, de todos los periodos.
     // Sin `Math.min(...vals)`: con ~120 000 valores lanza `RangeError`.
     const ext = extent((function* () {
-      for (const q of vis) for (const p of q.points) if (p.y !== null) yield p.y;
+      for (const q of vis)
+        for (const p of q.points) {
+          if (p.y !== null) yield p.y;
+          if (p.low !== undefined) yield p.low;
+          if (p.high !== undefined) yield p.high;
+        }
     })()) ?? [Infinity, -Infinity];
     const bars = vis.filter((q) => this.#kind(q) === "bar");
+    // Apiladas: la escala llega a la suma del periodo, y cada periodo sabe cuál es su barra de arriba.
+    const stack = this.stacked && bars.length > 1;
+    const sums = new Map<string, number>();
+    const topOf = new Map<string, number>();
+    if (stack) {
+      bars.forEach((q, j) => {
+        for (const p of q.points) {
+          if (p.y === null || p.y <= 0) continue;
+          sums.set(p.x, (sums.get(p.x) ?? 0) + p.y);
+          topOf.set(p.x, j);
+        }
+      });
+      for (const v of sums.values()) ext[1] = Math.max(ext[1], v);
+    }
     const lines = vis.filter((q) => this.#kind(q) === "line");
     const ticks = niceTicks(ext[0], ext[1], H < 200 ? 3 : 5, bars.length > 0);
     const lo = ticks[0];
@@ -502,22 +553,46 @@ export class NxTrend extends Base {
     svg.classList.toggle("is-enter", enter);
     const sIndex = (q: TrendSeries) => this.#series.indexOf(q);
 
-    // Barras: agrupadas en el periodo, de hasta 24 px, con 2 px de aire entre vecinas.
+    // Barras: agrupadas en el periodo, de hasta 24 px, con 2 px de aire entre vecinas; o apiladas
+    // (`stacked`), de hasta 40 px, con 2 px de superficie entre partes y la punta redonda arriba.
     const k = bars.length;
-    const gw = Math.min(band * 0.72, k * 24 + (k - 1) * 2);
-    const bw = k ? (gw - (k - 1) * 2) / k : 0;
+    const gw = stack ? Math.min(band * 0.62, 40) : Math.min(band * 0.72, k * 24 + (k - 1) * 2);
+    const bw = stack ? gw : k ? (gw - (k - 1) * 2) / k : 0;
     const y0 = y(Math.max(lo, Math.min(0, hi)));
+    const base = new Map<string, number>();
+    const pd = this.periodDimension?.trim() || null;
+    const periodMark = (x: string) => markAttrs([[pd, x]], periodLabel(x, loc, "full"));
+    const ranges: SVGElement[] = [];
+    const range = (px: number, p: { low?: number; high?: number }) => {
+      if (p.low === undefined || p.high === undefined) return;
+      const a = r1(y(p.high)), b = r1(y(p.low));
+      ranges.push(s("path", { d: `M${r1(px)} ${a}V${b}M${r1(px - 4)} ${a}H${r1(px + 4)}M${r1(px - 4)} ${b}H${r1(px + 4)}`, class: "nx-trend__range" }));
+    };
     bars.forEach((q, j) => {
-      const g = s("g", { class: "nx-trend__series", "data-slot": this.#slot(q) });
+      const g = s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), ...markAttrs([[this.#dimOf(q), q.id]], q.label) });
       q.points.forEach((p, pi) => {
         if (p.y === null) return;
         const i = xi.get(p.x)!;
-        const x = cx(i) - gw / 2 + j * (bw + 2);
-        const top = y(p.y);
-        const bar = s("path", { d: barPath(x, bw, y0, top), class: "nx-trend__bar", "data-i": i, "data-neg": p.y < 0 ? "" : null, style: `--d:${i}` });
+        let x: number, from: number, top: number, d: string;
+        if (stack && p.y > 0) {
+          const b0 = base.get(p.x) ?? 0;
+          base.set(p.x, b0 + p.y);
+          x = cx(i) - gw / 2;
+          from = b0 > 0 ? y(b0) - 2 : y0;
+          top = y(b0 + p.y);
+          const flat = topOf.get(p.x) !== j;
+          d = flat ? `M${r1(x)} ${r1(from)}V${r1(top)}H${r1(x + bw)}V${r1(from)}Z` : barPath(x, bw, from, top);
+          if (from <= top) return;
+        } else {
+          x = stack ? cx(i) - gw / 2 : cx(i) - gw / 2 + j * (bw + 2);
+          top = y(p.y);
+          d = barPath(x, bw, y0, top);
+        }
+        const bar = s("path", { d, class: `nx-trend__bar${p.forecast ? " is-forecast" : ""}`, "data-i": i, "data-neg": p.y < 0 ? "" : null, style: `--d:${i}`, ...periodMark(p.x) });
         g.append(bar);
         (this.#marks[i] ??= []).push(bar);
         this.#pts.push({ si: sIndex(q), pi, xi: i, x: x + bw / 2, y: top, bar: [x, bw] });
+        if (p.forecast) range(x + bw / 2, p);
       });
       kids.push(g);
     });
@@ -528,24 +603,32 @@ export class NxTrend extends Base {
     for (const q of lines) {
       const si = sIndex(q);
       let d = "";
+      let df = "";
       let gap = true;
+      let prev: [number, number] | null = null;
       const marks: SVGElement[] = [];
       q.points.forEach((p, pi) => {
-        if (p.y === null) return void (gap = true);
+        if (p.y === null) return void ((gap = true), (prev = null));
         const i = xi.get(p.x)!;
         const px = cx(i);
         const py = y(p.y);
-        d += `${gap ? "M" : "L"}${r1(px)} ${r1(py)}`;
+        // Lo proyectado va en su propio trazo punteado, que sale del último punto ocurrido.
+        if (p.forecast) {
+          df += df && !gap ? `L${r1(px)} ${r1(py)}` : prev ? `M${r1(prev[0])} ${r1(prev[1])}L${r1(px)} ${r1(py)}` : `M${r1(px)} ${r1(py)}`;
+          range(px, p);
+        } else d += `${gap ? "M" : "L"}${r1(px)} ${r1(py)}`;
         gap = false;
-        const mk = s("path", { d: shape(si, px, py), class: "nx-trend__mk", "data-i": i, style: `--d:${i}` });
+        prev = [px, py];
+        const mk = s("path", { d: shape(si, px, py), class: `nx-trend__mk${p.forecast ? " is-forecast" : ""}`, "data-i": i, style: `--d:${i}`, ...periodMark(p.x) });
         marks.push(mk);
         (this.#marks[i] ??= []).push(mk);
         this.#pts.push({ si, pi, xi: i, x: px, y: py });
       });
       const last = [...q.points].reverse().find((p) => p.y !== null);
       if (ends && last) labels.push({ y: y(last.y!), t: this.#fmt(q, last.y!, true), slot: this.#slot(q) });
-      kids.push(s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), "data-dense": dense ? "" : null }, s("path", { d, class: "nx-trend__line", pathLength: 1 }), ...marks));
+      kids.push(s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), "data-dense": dense ? "" : null, ...markAttrs([[this.#dimOf(q), q.id]], q.label) }, s("path", { d, class: "nx-trend__line", pathLength: 1 }), df ? s("path", { d: df, class: "nx-trend__fline" }) : "", ...marks));
     }
+    kids.push(...ranges);
     // Valor al final de cada línea; si dos chocan, se quedan en la leyenda y el tooltip.
     labels.sort((a, b) => a.y - b.y);
     labels.forEach((l, i) => {
@@ -591,7 +674,8 @@ export class NxTrend extends Base {
         const q = this.#series[p.si];
         const pt = q.points[p.pi];
         const flag = flags.get(`${q.id}\u0000${pt.x}`);
-        const label = `${q.label}, ${periodLabel(pt.x, loc, "full")}: ${this.#fmt(q, pt.y!)}${flag ? `, ${L.anomaly} ${flag.label ?? pctText(flag.delta, loc)}` : ""}`;
+        const fc = pt.forecast ? `, ${L.forecast}${pt.low !== undefined && pt.high !== undefined ? ` ${L.range.replace("{low}", this.#fmt(q, pt.low)).replace("{high}", this.#fmt(q, pt.high))}` : ""}` : "";
+        const label = `${q.label}, ${periodLabel(pt.x, loc, "full")}: ${this.#fmt(q, pt.y!)}${fc}${flag ? `, ${L.anomaly} ${flag.label ?? pctText(flag.delta, loc)}` : ""}`;
         return h("button", {
           type: "button",
           class: "nx-trend__pt",
@@ -601,6 +685,7 @@ export class NxTrend extends Base {
           "aria-label": label,
           "aria-haspopup": this.explainEndpoint ? "dialog" : null,
           style: `left:${r1(p.x)}px;top:${r1(p.y)}px`,
+          ...markAttrs([[this.periodDimension?.trim() || null, pt.x]], periodLabel(pt.x, loc, "full")),
         });
       }),
     );
@@ -631,7 +716,8 @@ export class NxTrend extends Base {
       const p = q.points.find((p) => p.x === period);
       if (!p || p.y === null) return [];
       const flag = this.#flags.find((f) => f.series === q.id && f.x === period);
-      return [h("div", { class: "nx-trend__row", "data-slot": this.#slot(q) }, h("i", { class: "nx-trend__lk" }), h("strong", null, this.#fmt(q, p.y)), h("span", null, q.label), flag ? h("em", null, flag.label ?? pctText(flag.delta, loc)) : null)];
+      const fc = p.forecast ? (p.low !== undefined && p.high !== undefined ? `${this.#labels.forecast} ${this.#labels.range.replace("{low}", this.#fmt(q, p.low)).replace("{high}", this.#fmt(q, p.high))}` : this.#labels.forecast) : "";
+      return [h("div", { class: "nx-trend__row", "data-slot": this.#slot(q) }, h("i", { class: "nx-trend__lk" }), h("strong", null, this.#fmt(q, p.y)), h("span", null, q.label), flag ? h("em", null, flag.label ?? pctText(flag.delta, loc)) : fc ? h("em", null, fc) : null)];
     });
     tip.replaceChildren(h("p", { class: "nx-trend__tip-h" }, periodLabel(period, loc, "full")), ...rows, this.explainEndpoint ? h("p", { class: "nx-trend__tip-ask" }, this.#labels.ask) : "");
     this.#placeTip(py);

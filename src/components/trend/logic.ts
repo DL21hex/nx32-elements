@@ -10,14 +10,19 @@ const PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/;
 /** Los puntos válidos, ordenados por `x` y sin repetidos (gana el último). `y` no numérico es `null`. */
 export function cleanPoints(v: unknown): TrendPoint[] {
   if (!Array.isArray(v)) return [];
-  const by = new Map<string, number | null>();
+  const by = new Map<string, TrendPoint>();
+  const num = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
   for (const raw of v) {
     const o = raw as Record<string, unknown> | null;
     const x = o && typeof o === "object" ? str(o.x)?.trim() : undefined;
     if (!x || !PERIOD.test(x)) continue;
-    by.set(x, typeof o!.y === "number" && Number.isFinite(o!.y) ? o!.y : null);
+    const p: TrendPoint = { x, y: num(o!.y) ? o!.y : null };
+    if (o!.forecast === true) p.forecast = true;
+    if (num(o!.low)) p.low = o!.low;
+    if (num(o!.high)) p.high = o!.high;
+    by.set(x, p);
   }
-  return [...by].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([x, y]) => ({ x, y }));
+  return [...by.values()].sort((a, b) => (a.x < b.x ? -1 : 1));
 }
 
 /** Las series válidas (con `id`, `label` y algún punto), sin lo que no es suyo. Un `id` repetido se descarta. */
@@ -63,36 +68,7 @@ export function periodsOf(series: readonly TrendSeries[]): string[] {
   return [...new Set(series.flatMap((s) => s.points.map((p) => p.x)))].sort();
 }
 
-/**
- * Ticks «redondos» para el eje y: 0 / 100 / 200… El dominio se amplía hasta el tick más cercano
- * (y a cero si `zero`, como piden las barras).
- */
-export function niceTicks(min: number, max: number, count = 5, zero = false): number[] {
-  if (zero) {
-    min = Math.min(0, min);
-    max = Math.max(0, max);
-  }
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1];
-  if (min > max) [min, max] = [max, min];
-  if (max === min) {
-    const pad = Math.abs(max) * 0.1 || 1;
-    min -= zero && min === 0 ? 0 : pad;
-    max += pad;
-  }
-  const raw = (max - min) / Math.max(1, Math.min(count, 20));
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const n = raw / mag;
-  const step = (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag;
-  const k0 = Math.floor(min / step + 1e-9);
-  const k1 = Math.ceil(max / step - 1e-9);
-  // Un rango que no cabe en un `number` (±1e308) o un paso que se pierde junto a valores enormes
-  // (1e17 con un rango de 64: `k + 1 === k` pasado 2⁵³) no dan ticks redondos: los extremos, y ya.
-  if (!Number.isFinite(step) || step <= 0 || !Number.isSafeInteger(k0) || !Number.isSafeInteger(k1) || k1 - k0 > 100) return [min, max];
-  const ticks: number[] = [];
-  // En pasos enteros y con 12 cifras, contra el ruido del punto flotante (3 × 0,2 = 0,6000…01).
-  for (let k = k0; k <= k1; k++) ticks.push(+(k * step).toPrecision(12));
-  return ticks;
-}
+export { niceTicks } from "../../core/chart";
 
 /** La media de los `window` valores anteriores al punto `i` (sin contar los nulos), o `null`. */
 export function movingMean(points: readonly TrendPoint[], i: number, window = 3): number | null {

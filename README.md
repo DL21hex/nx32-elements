@@ -30,6 +30,13 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-intent>` + lector de fechas y montos + núcleo (ESM) | ≈ 6,8 KB |
 | `<nx-tracker>` + festivos + núcleo (ESM) | ≈ 4,5 KB |
 | `<nx-stats>` + núcleo (ESM) | ≈ 4 KB |
+| `<nx-board>` + núcleo (ESM) | ≈ 4,9 KB |
+| `<nx-bars>` + núcleo (ESM) | ≈ 5,9 KB |
+| `<nx-heatmap>` + núcleo (ESM) | ≈ 6 KB |
+| `<nx-parts>` + núcleo (ESM) | ≈ 4,6 KB |
+| `<nx-phases>` + núcleo (ESM) | ≈ 5,4 KB |
+| `<nx-alerts>` + núcleo (ESM) | ≈ 3,5 KB |
+| `<nx-insights>` + núcleo (ESM) | ≈ 3,3 KB |
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
 | `<nx-org>` + núcleo (ESM) | ≈ 13,2 KB |
 | `<nx-breadcrumb>` + núcleo (ESM); el menú de hermanos, ≈ 1,8 KB, se carga al abrir el primero | ≈ 5,3 KB |
@@ -1468,7 +1475,7 @@ en SVG propio y sin librerías, con la pregunta que importa a un clic: **«¿por
 
 | | |
 |---|---|
-| Propiedades / atributos | `series` (`{id, label, points: {x, y}[], format?, currency?, kind?, muted?, hidden?}`; `x` «2026-08» o «2026-08-15»; `y` `null` corta la línea), `anomalies` (`{series, x, label?}`), `heading`, `kind` (`line`, `bar`), `format` (`number`, `money`, `percent`), `currency`, `height` (260), `detect` (sin valor: 3), `explain-endpoint`, `busy`, `locale`, `labels` · `flags`, `summary` |
+| Propiedades / atributos | `series` (`{id, label, points: {x, y, forecast?, low?, high?}[], format?, currency?, kind?, muted?, hidden?}`; `x` «2026-08» o «2026-08-15»; `y` `null` corta la línea), `anomalies` (`{series, x, label?}`), `heading`, `kind` (`line`, `bar`), `stacked`, `format` (`number`, `money`, `percent`), `currency`, `height` (260), `detect` (sin valor: 3), `explain-endpoint`, `dimension`, `period-dimension`, `busy`, `locale`, `labels` · `flags`, `summary` |
 | Métodos | `explain(id, x, pregunta?)`, `close()` |
 | Eventos | `nx-trend-why` `{question, series, point, previous, window, anomaly?}` (cancelable: no se abre el popover), `nx-trend-toggle` `{id, visible}` |
 | Funciones | `detectAnomalies(serie, umbral?, ventana?)`, `niceTicks(min, max)`, `periodLabel(x, locale, estilo)`, `summarizeTrend(series, anomalías, labels, locale)`, `trendQuestion(…)`, `trendContext(…)` |
@@ -2014,9 +2021,151 @@ después el mejor puente corto de cada mes.
 | | |
 |---|---|
 | `<nx-intent>` | `intents`, `examples`, `placeholder`, `today`, `currency`, `hotkey`, `value`, `locale`, `labels` · `match`, `focus()`, `clear()`, `submit()` · `nx-intent-change` `{text, match}`, `nx-intent-submit` `{text, id, intent, params, href, newTab}` (cancelable) · `understandIntent`, `findDate`, `findMonth`, `findTime`, `findAmount`, `withParams` |
-| `<nx-stats>` | `items` (`[{id?, label, value, format?, currency?, note?, badge?, trend?, meter?, ring?, href?, newTab?}]`), `layout`, `locale`, `labels` · `nx-stats-select` `{item, href}` (cancelable) |
+| `<nx-stats>` | `items` (`[{id?, label, value, format?, currency?, note?, badge?, trend?, goal?, delta?, meter?, ring?, href?, newTab?}]`; `delta`: `{value, format?, label?, polarity?}`), `layout`, `locale`, `labels` · `nx-stats-select` `{item, href}` (cancelable) |
 | `<nx-timeline>` | `lanes`, `items`, `legend` (`[{mark, label}]`), `holidays`, `start`, `end`, `today`, `heading`, `heading-level`, `summary`, `highlight`, `locale`, `labels` · `focusItem(id?)`, `scrollToDay(iso?)` · `nx-timeline-select` `{item, href, newTab}` (cancelable; `newTab` en una marca abre su enlace en otra pestaña) · CSS `--nx-timeline-bars`/`-ranges`/`-points`/`-axis` (altos), `--nx-timeline-month`, `--nx-timeline-label` |
 | `<nx-tracker>` | `items` (`[{id, title, subtitle?, icon?, eyebrow?, status?, steps?, days?, href?, actions?}]`), `holidays`, `workdays`, `empty`, `heading-level`, `locale`, `labels` · `nx-tracker-select` `{item, action, href}` (cancelable) |
+
+## `<nx-board>` y `<nx-board-panel>`
+
+**Un tablero BI**: una grilla de paneles que comparten sus filtros. Tocar una marca (una barra, una
+celda, una fila, un ítem de la leyenda) filtra todo el tablero, y el panel dueño de esa dimensión no
+se filtra a sí mismo: resalta lo elegido y atenúa lo demás. El tablero no calcula: dice qué está
+elegido y avisa; la app pide o calcula cada panel.
+
+```html
+<nx-board id="tablero">
+  <div slot="filters"><!-- período, sede: los controles de la app --></div>
+  <nx-board-panel span="12" variant="plain"><nx-stats id="cifras"></nx-stats></nx-board-panel>
+  <nx-board-panel span="8" heading="Días de incapacidad por mes" dimension="mes tipo" id="por-mes">
+    <div slot="actions"><!-- Días · Incapacidades · Valor --></div>
+    <button data-nx-filter="tipo:AT" data-nx-label="Accidente de trabajo">Accidente de trabajo</button>
+    <svg><rect data-nx-filter="mes:2026-08" …></rect></svg>
+  </nx-board-panel>
+  <nx-board-panel span="4" heading="Diagnósticos" dimension="cie" id="dx">…</nx-board-panel>
+  <nx-board-panel span="12" heading="Detalle" personal><nx-grid></nx-grid></nx-board-panel>
+</nx-board>
+<script>
+  tablero.dimensions = [
+    { id: "tipo", label: "Tipo", values: { AT: "Accidente de trabajo", EG: "Enfermedad general" } },
+    { id: "cie", label: "Diagnóstico", sensitive: true },
+  ];
+  tablero.addEventListener("nx-board-change", (e) => {
+    // Cada panel pide lo suyo: los filtros del tablero menos su propia dimensión.
+    for (const p of tablero.querySelectorAll("nx-board-panel")) pedir(p.id, p.filters);
+  });
+</script>
+```
+
+- **Marcas.** Cualquier descendiente con `data-nx-filter="dimensión:valor"` es una marca: no hace
+  falta que sea de la librería (un `<button>`, un `<rect>`, una fila). Una celda que es dos cosas
+  lleva dos pares: `"area:emp,mes:2026-08"`. Un clic deja esas dimensiones solo con ese valor y otro
+  clic lo quita; con <kbd>Ctrl</kbd>, <kbd>Cmd</kbd> o <kbd>Mayús</kbd>, lo suma. Una marca que no es
+  botón pero se enfoca (`tabindex`, `role="button"`) responde a <kbd>Enter</kbd> y <kbd>Espacio</kbd>.
+  Se corta en el primer «:», así un valor puede llevar «:»; una coma va como `%2C` (`filterSpec()` lo
+  escribe).
+- **Estado de las marcas.** El tablero les pone `data-nx-filter-state="on"` (elegida) u `"off"` (su
+  dimensión tiene algo elegido que no es ella: se atenúa, `--nx-board-dim`), y `aria-pressed` si son
+  botones. Las marcas que llegan después (un gráfico que se repinta) se marcan solas.
+- **Chips.** Arriba, uno por valor elegido, con el nombre de la dimensión y del valor (de
+  `dimensions` o del `data-nx-label` de la marca); cada uno se quita solo y, con dos o más, «Quitar
+  filtros». Sin filtros, una pista (`labels.hint`; vacía, el renglón no se pinta).
+- **Paneles.** `span` (de 1 a 12): cuando el tablero se angosta (≤ 1100 px), los de 7 o más van a lo
+  ancho y los de 6 o menos a media fila; en lo angosto (≤ 640 px), todos a lo ancho, y `dense` llena
+  los huecos. `heading` (un `<h2>`) y `subheading`; sus controles en un hijo `slot="actions"`;
+  `variant="plain"` sin borde ni fondo (un renglón de cifras); `busy` atenúa el contenido mientras
+  llegan los datos. `panel.filters` es lo que el panel tiene que pedir.
+- **Datos sensibles.** Con `restricted` (quien mira no ve el diagnóstico de cada persona), filtrar
+  por una dimensión `sensitive` reserva los paneles `personal`: se ve su título y un aviso, no su
+  contenido, porque una lista de nombres filtrada por diagnóstico diría quién tiene qué. Los totales
+  siguen a la vista. Es presentación: el servidor tampoco debe mandar esos datos (`reserved` en el
+  evento lo dice).
+- **Calcular en el cliente.** `board.passes(fila, except)` y `matchesFilters(fila, filtros, except)`:
+  la fila trae un campo por dimensión (`{tipo: "AT", area: "emp"}`), comparado como texto; si el
+  campo es una lista, basta uno.
+- Los hijos no se mueven (la hidratación de Solid sigue intacta): los chips y el título de cada panel
+  van al final del DOM y la grilla los sube; `reading-flow` hace que <kbd>Tab</kbd> siga lo que se ve.
+
+| | |
+|---|---|
+| `<nx-board>` | `filters` (`{dimensión: [valores]}`; asignarlo no avisa), `dimensions` (`[{id, label?, values?, sensitive?}]`), `restricted`, `labels` · `reserved` · `toggle(dimensión, valor, sumar?)`, `clear(dimensión?)`, `filtersFor(except?)`, `passes(fila, except?)` · `nx-board-change` `{filters, changed, reserved}` (un clic en una marca o un chip, `toggle()` o `clear()`) · CSS `--nx-board-gap`, `--nx-board-dim` |
+| `<nx-board-panel>` | `span`, `heading`, `subheading`, `dimension`, `variant` (`plain`), `personal`, `busy` · `filters` (solo lectura) · hijos: el contenido y `slot="actions"` |
+| Funciones | `parseFilter`, `filterSpec`, `applyPairs`, `markState`, `filtersWithout`, `matchesFilters`, `normalizeFilters`, `changedDims`, `dimList` |
+
+## Los gráficos del tablero: `<nx-bars>`, `<nx-heatmap>`, `<nx-parts>`, `<nx-phases>`, `<nx-alerts>` y `<nx-insights>`
+
+Las piezas que van dentro de un `<nx-board-panel>` (y que también sirven solas). Comparten un
+núcleo (`src/core/chart.ts`) y unas reglas:
+
+- **El color sigue a la serie, nunca a su posición**, y no se repite: `--nx-chart-1…8` es una paleta
+  categórica validada para daltonismo en claro y en oscuro; pasada la octava, «Otros». La escala
+  secuencial es `--nx-chart-seq` (con `--nx-chart-seq-ink` para el texto encima y `--nx-chart-neg`
+  para el otro polo de una divergente) y la ordinal, `--nx-chart-ord-1…4`. `<nx-trend>` usa la misma.
+- **El número está escrito**; el color, el largo y el tooltip acompañan. Un estado (bien, mal) va
+  con ícono y palabra, no solo con color. Marcas finas, extremos de 4 px, 2 px de superficie entre
+  partes apiladas, una línea punteada para la referencia. Nunca dos ejes: el acumulado de un Pareto
+  va como texto.
+- **Filtran el tablero con `dimension`**: sus marcas llevan `data-nx-filter` y `data-nx-label`, y el
+  `<nx-board>` hace el resto. Además emiten su `nx-<gráfico>-select`.
+- **El orden lo pone la app**: un ranking llega ordenado; los días de la semana, en su orden.
+
+```html
+<nx-board-panel span="5" heading="Diagnósticos que más días cuestan" dimension="cie">
+  <nx-bars dimension="cie" cumulative limit="6"></nx-bars>
+</nx-board-panel>
+<nx-board-panel span="8" heading="Ausentismo por área y mes" dimension="area mes">
+  <nx-heatmap format="percent" row-dimension="area" column-dimension="mes" total-label="Periodo"></nx-heatmap>
+</nx-board-panel>
+<script>
+  dx.items = [{ id: "M54.5", code: "M54.5", label: "Lumbago", value: 1062, note: "206 incapacidades" }, /* … */];
+  mapa.rows = [{ id: "emp", label: "Empacadoras", note: "310", total: 0.034, delta: 0.003 }, /* … */];
+  mapa.columns = [{ id: "2026-08", label: "ago" }, /* … */];
+  mapa.values = [[0.03, 0.039, 0.033], /* una fila por área */];
+</script>
+```
+
+- **`<nx-bars>`**: horizontales (nombre · valor (· acumulado) con la barra debajo, a lo ancho) o
+  columnas (`orientation="vertical"`, el valor arriba y el nombre abajo). Apiladas con `series` y
+  `parts` (`ramp="ordinal"` para tramos ordenados, como la antigüedad de una cartera, con leyenda).
+  `limit` muestra las primeras y resume las demás («Y 4 más con el 22 % del total»; nunca deja una
+  sola afuera). `reference` + `reference-label` dibujan la línea punteada («parejo»). `extra` es un
+  texto corto junto al valor («paga en 138 d»).
+- **`<nx-heatmap>`**: una `<table>` de verdad (el lector la recorre como tabla). Escala `sequential`
+  (de la superficie al tono fuerte; `min` y `max` la fijan para comparar dos mapas) o `diverging`
+  alrededor de `mid`. En `percent`, la celda dice «3,4» (el «%» lo dice el título) y la columna de
+  totales «3,4 %» con su cambio en puntos («▲ 0,3 pp»; un cambio que redondea a cero va sin flecha ni
+  color). El nombre de una fila filtra por ella, el de una columna por ella y una celda por las dos;
+  una sola parada de <kbd>Tab</kbd>, las flechas, Inicio y Fin (con Ctrl, la tabla).
+- **`<nx-parts>`**: partes de un todo («Quién paga»): una barra al 100 % (decorativa para el lector)
+  y la lista que se lee, con la muestra de color, el monto, la regla debajo y el porcentaje. Más de 8
+  partes se pliegan en «Otros». `slot` fija el color de una parte.
+- **`<nx-phases>`**: tramos sobre un eje de días («Quién paga cada día»): un trozo por tramo, la
+  línea de hoy (`today`) y lo que falta rayado; `ticks` para el eje y `list` para la lista con el
+  rango, el valor y «faltan 63 días». La barra es una imagen con un resumen para el lector.
+- **`<nx-alerts>`**: «Para actuar», por gravedad (`critical` Urgente, `serious` Pronto, `warning`
+  Seguimiento, `info` Aviso; ícono y palabra), con `meta` («Día 197»), texto y una acción que es un
+  enlace (`href`), un filtro del tablero (`filter`, la sintaxis de `data-nx-filter`) o un botón que
+  emite `nx-alerts-action` (cancelable). `limit` (6) con «Ver {n} más».
+- **`<nx-insights>`**: «Lectura», frases que la app calcula con los filtros puestos. `**así**` es la
+  única marca (se arma con nodos de texto), `tone` (`bad`, `good`, `neutral`) e `icon`, y la misma
+  acción que las alertas.
+
+Y dos ampliaciones: **`<nx-stats>`** acepta en cada cifra `delta` (`{value, format: "percent" |
+"points" | "number", label, polarity: "up-bad" | "up-good" | "neutral"}`: la flecha y el color dicen si
+el cambio es malo, y el sentido va en texto para el lector) y `goal` (una línea punteada en la
+minigráfica). **`<nx-trend>`** apila las barras con `stacked`, dibuja puntos proyectados
+(`{x, y, forecast: true, low, high}`: barra rayada o línea punteada con su rango) y filtra un tablero
+con `dimension` (la leyenda filtra en vez de ocultar; la serie de referencia y la de solo proyección
+no filtran) y `period-dimension` (una barra o un punto filtran su periodo).
+
+| | |
+|---|---|
+| `<nx-bars>` | `items` (`[{id, label, value, code?, note?, parts?, extra?}]`), `series` (`[{id, label, slot?}]`), `orientation`, `format`, `currency`, `decimals`, `limit`, `cumulative`, `reference`, `reference-label`, `dimension`, `selectable`, `ramp` (`categorical`, `ordinal`), `max`, `height` (columnas, 180), `locale`, `labels` · `nx-bars-select` `{item}` · CSS `--nx-bars-color`, `--nx-bars-thickness`, `--nx-bars-col` · `layoutBars`, `cleanBars`, `barPct` |
+| `<nx-heatmap>` | `rows` (`[{id, label, note?, total?, delta?}]`), `columns` (`[{id, label}]`), `values` (`[[…], …]`, `null` sin dato), `format`, `currency`, `decimals`, `min`, `max`, `mid`, `scale`, `polarity` (`up-bad`, `up-good`), `row-dimension`, `column-dimension`, `total-label`, `selectable`, `locale`, `labels` · `nx-heatmap-select` `{row, column, value}` · CSS `--nx-heatmap-cell`, `--nx-heatmap-height` · `heatDomain`, `intensity`, `moveCell` |
+| `<nx-parts>` | `items` (`[{id, label, value, note?, slot?}]`), `format`, `currency`, `dimension`, `locale`, `labels` · `nx-parts-select` `{item}` · `shownParts` |
+| `<nx-phases>` | `phases` (`[{id?, from, to, label, note?, slot?, value?}]`), `total`, `today`, `ticks`, `list`, `format`, `currency`, `locale`, `labels` · `cleanPhases`, `phaseProgress`, `axisTicks` |
+| `<nx-alerts>` | `items` (`[{id, severity, title, text?, meta?, action?: {label, href?, newTab?, filter?}}]`), `sort` (`severity`, `none`), `limit` (6), `empty`, `labels` · `nx-alerts-action` `{item}` (cancelable) · `sortAlerts`, `severityOf` |
+| `<nx-insights>` | `items` (`[{id, text, tone?, icon?, action?}]`), `empty`, `labels` · `nx-insights-action` `{item}` (cancelable) · `emphasis` |
+| Núcleo de gráficos | `src/core/chart.ts` (interno, lo comparten los gráficos): `chartValue`, `shareText`, `niceTicks`, `slotOf`, `foldOthers`, `markAttrs`, `filterSpec`, `tipContent`, `ChartTip` |
 
 ## `<nx-cards>`
 

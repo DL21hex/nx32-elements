@@ -56,3 +56,28 @@ describe("<nx-stats>", () => {
     expect(el.querySelector(".nx-stats__list")).toBeNull();
   });
 });
+
+describe("<nx-stats>: cambio y meta", () => {
+  it("la flecha y el color siguen a la polaridad; la meta va en la minigráfica", async () => {
+    const el = document.createElement("nx-stats") as NxStats;
+    el.setAttribute("locale", "es-CO");
+    el.items = [
+      { id: "aus", label: "Ausentismo", value: 0.0183, format: "percent", trend: [0.015, 0.017, 0.0183], goal: 0.02, delta: { value: 0.003, format: "points", label: "frente a 2025" } },
+      { id: "dias", label: "Días", value: 10012, delta: { value: -0.14 } },
+      { id: "ventas", label: "Ventas", value: 5, delta: { value: 0.2, polarity: "up-good" } },
+      { id: "x", label: "Igual", value: 5, delta: { value: 0.0001 } },
+    ];
+    document.body.append(el);
+    await tick();
+    const d = [...el.querySelectorAll(".nx-stats__delta")];
+    expect(d[0].className).toBe("nx-stats__delta is-bad");
+    expect(d[0].textContent).toBe("▲ Sube 0,3 pp frente a 2025");
+    expect(d[1].className).toBe("nx-stats__delta is-good");
+    expect(d[1].textContent).toMatch(/^▼ Baja 14\s?%$/);
+    expect(d[2].className).toBe("nx-stats__delta is-good");
+    expect(d[3].className).toBe("nx-stats__delta is-flat");
+    expect(d[3].textContent).toMatch(/^= Igual/);
+    const goal = el.querySelector(".nx-stats__spark-goal")!;
+    expect(Number(goal.getAttribute("y1"))).toBe(1.5);
+  });
+});

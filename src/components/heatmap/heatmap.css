@@ -1,0 +1,184 @@
+/*
+ * <nx-heatmap>. Una tabla: nombres de fila a la izquierda, columnas arriba, el valor escrito en cada
+ * celda y su color mezclado entre la superficie y el tono fuerte de la escala (--nx-chart-seq; en
+ * una divergente, --nx-chart-neg para el otro polo). Con muchas columnas se desplaza a lo ancho
+ * dentro de su caja; la página no.
+ *
+ * Variables propias:
+ *   --nx-heatmap-cell (36px): el ancho mínimo de una celda
+ *   --nx-heatmap-height (30px): el alto de una celda
+ */
+
+nx-heatmap {
+  position: relative;
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 12.5px;
+}
+.nx-heatmap__root {
+  display: grid;
+  gap: 10px;
+  min-inline-size: 0;
+}
+.nx-heatmap__empty {
+  margin: 0;
+  padding-block: 12px;
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+}
+.nx-heatmap__scroll {
+  overflow-x: auto;
+  margin-inline: -4px;
+  padding: 2px 4px;
+}
+.nx-heatmap__table {
+  inline-size: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+
+  & th {
+    padding: 0;
+    font-weight: 400;
+  }
+  & td {
+    padding: 0;
+  }
+  & thead th {
+    min-inline-size: var(--nx-heatmap-cell, 36px);
+    color: var(--nx-muted-foreground);
+    font-size: 11px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  & tbody th {
+    inline-size: 1%;
+    text-align: start;
+    white-space: nowrap;
+  }
+}
+.nx-heatmap__hd,
+.nx-heatmap__rl {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  inline-size: 100%;
+  min-block-size: 24px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.nx-heatmap__rl {
+  justify-content: space-between;
+  min-block-size: var(--nx-heatmap-height, 30px);
+  align-items: center;
+  padding-inline: 2px 10px;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+
+  & small {
+    color: var(--nx-text-tertiary);
+    font-size: 11px;
+  }
+}
+button.nx-heatmap__hd,
+button.nx-heatmap__rl,
+button.nx-heatmap__c {
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 1px;
+  }
+}
+button.nx-heatmap__hd:hover,
+button.nx-heatmap__rl:hover {
+  background: var(--nx-hover);
+  color: var(--nx-foreground);
+}
+button.nx-heatmap__hd[aria-pressed="true"],
+button.nx-heatmap__rl[aria-pressed="true"] {
+  color: var(--nx-foreground);
+  font-weight: 600;
+}
+.nx-heatmap__c {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  min-block-size: var(--nx-heatmap-height, 30px);
+  padding: 0 2px;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--nx-chart-seq) var(--nx-heatmap-mix, 6%), var(--nx-card, var(--nx-background)));
+  color: var(--nx-muted-foreground);
+  font: inherit;
+  font-size: 11px;
+
+  &[data-neg] {
+    background: color-mix(in oklab, var(--nx-chart-neg) var(--nx-heatmap-mix, 6%), var(--nx-card, var(--nx-background)));
+  }
+  &[data-strong] {
+    color: var(--nx-chart-seq-ink);
+  }
+  &[data-empty] {
+    background: none;
+    color: var(--nx-text-tertiary);
+  }
+}
+button.nx-heatmap__c:hover {
+  box-shadow: inset 0 0 0 2px var(--nx-foreground);
+}
+.nx-heatmap__totalhd {
+  padding-inline-start: 8px !important;
+  text-align: end !important;
+}
+.nx-heatmap__total {
+  padding-inline-start: 8px !important;
+  text-align: end;
+  white-space: nowrap;
+
+  & b {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  & small {
+    display: block;
+    color: var(--nx-muted-foreground);
+    font-size: 11px;
+  }
+  & .is-bad {
+    color: var(--nx-danger);
+  }
+  & .is-good {
+    color: var(--nx-success);
+  }
+}
+.nx-heatmap__scale {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--nx-muted-foreground);
+  font-size: 11.5px;
+
+  & i {
+    inline-size: 120px;
+    block-size: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, color-mix(in oklab, var(--nx-chart-seq) 6%, var(--nx-card, var(--nx-background))), var(--nx-chart-seq));
+  }
+  & i.is-diverging {
+    background: linear-gradient(90deg, var(--nx-chart-neg), color-mix(in oklab, var(--nx-chart-seq) 6%, var(--nx-card, var(--nx-background))), var(--nx-chart-seq));
+  }
+}
+@media (forced-colors: active) {
+  .nx-heatmap__c {
+    border: 1px solid CanvasText;
+  }
+}

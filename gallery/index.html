@@ -2762,6 +2762,67 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
         </template>
 
         <!-- ================================================================ Inicio del empleado -->
+        <template id="page-board">
+          <p class="eyebrow">Componentes</p>
+          <h1>Tablero BI <code class="tag">&lt;nx-board&gt;</code> <code class="tag">&lt;nx-bars&gt;</code> <code class="tag">&lt;nx-heatmap&gt;</code></h1>
+          <p class="lead">
+            Una grilla de paneles que comparten sus filtros: toca una barra, una fila o un ítem de la leyenda y todo el tablero
+            se filtra. El panel dueño de esa dimensión no se filtra a sí mismo: resalta lo elegido y atenúa lo demás. Arriba, un
+            chip por filtro. Con Ctrl, Cmd o Mayús, el clic suma. Datos inventados de incapacidades, enero a septiembre de 2026.
+          </p>
+
+          <nx-board id="bd-board">
+            <div slot="filters" class="bd-filters">
+              <span>Ver como</span>
+              <div class="bd-seg" role="group" aria-label="Ver como">
+                <button type="button" data-bd-role="sst" aria-pressed="true">Seguridad y salud</button>
+                <button type="button" data-bd-role="nom" aria-pressed="false">Nómina</button>
+              </div>
+            </div>
+            <nx-board-panel id="bd-p-stats" span="12" variant="plain"><nx-stats id="bd-stats" locale="es-CO"></nx-stats></nx-board-panel>
+            <nx-board-panel id="bd-p-mes" span="8" heading="Días de incapacidad por mes" subheading="Apilados por tipo; la línea es 2025 y lo rayado, la proyección" dimension="tipo mes">
+              <nx-trend id="bd-trend" kind="bar" stacked dimension="tipo" period-dimension="mes" height="280" locale="es-CO"></nx-trend>
+            </nx-board-panel>
+            <nx-board-panel id="bd-p-ins" span="4" heading="Lectura" subheading="Calculada con los filtros puestos"><nx-insights id="bd-insights"></nx-insights></nx-board-panel>
+            <nx-board-panel id="bd-p-heat" span="8" heading="Ausentismo por área y mes" subheading="Días de incapacidad sobre días programados, en %" dimension="area mes">
+              <nx-heatmap id="bd-heat" format="percent" row-dimension="area" column-dimension="mes" total-label="Periodo" locale="es-CO"></nx-heatmap>
+            </nx-board-panel>
+            <nx-board-panel id="bd-p-al" span="4" heading="Para actuar" subheading="Casos abiertos al 30 de septiembre"><nx-alerts id="bd-alerts" limit="5"></nx-alerts></nx-board-panel>
+            <nx-board-panel id="bd-p-dx" span="5" heading="Diagnósticos que más días cuestan" subheading="CIE-10, con el acumulado" dimension="cie">
+              <nx-bars id="bd-dx" dimension="cie" cumulative limit="6" locale="es-CO"></nx-bars>
+            </nx-board-panel>
+            <nx-board-panel id="bd-p-dow" span="4" heading="Día en que empiezan" subheading="Las de 1 a 3 días" dimension="dow">
+              <nx-bars id="bd-dow" dimension="dow" orientation="vertical" reference-label="parejo" locale="es-CO"></nx-bars>
+            </nx-board-panel>
+            <nx-board-panel id="bd-p-pay" span="3" heading="Quién paga" subheading="Valor del periodo"><nx-parts id="bd-pay" format="money" currency="COP" locale="es-CO"></nx-parts></nx-board-panel>
+            <nx-board-panel id="bd-p-ent" span="12" heading="Por recobrar, por entidad" subheading="Días desde que terminó la incapacidad" dimension="ent">
+              <nx-bars id="bd-ent" dimension="ent" ramp="ordinal" format="money" currency="COP" locale="es-CO"></nx-bars>
+            </nx-board-panel>
+            <nx-board-panel id="bd-p-det" span="12" heading="Detalle" subheading="Las últimas 400 incapacidades con los filtros puestos" personal><nx-grid id="bd-grid" locale="es-CO"></nx-grid></nx-board-panel>
+          </nx-board>
+          <nx-dialog id="bd-ficha" mode="panel" heading="Wilson Cárdenas · Producción" description="Trastorno de disco lumbar · 260 días, va en el 197">
+            <nx-phases id="bd-phases" today="197" list format="money" currency="COP" locale="es-CO"></nx-phases>
+          </nx-dialog>
+          <p class="sel-tip">
+            Elige «Nómina» y luego un diagnóstico: el detalle por persona se reserva, porque una lista de nombres filtrada por
+            diagnóstico diría quién tiene qué. Los totales siguen a la vista.
+          </p>
+          <ol class="stage__log btn-events" id="bd-log"></ol>
+
+          <h2>Cómo funciona</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Pieza</th><th>Qué hace</th></tr></thead>
+              <tbody>
+                <tr><td>Marcas</td><td>Cualquier descendiente con <code>data-nx-filter="dimensión:valor"</code> (o varios pares separados por coma, como una celda que es un área en un mes). <code>data-nx-label</code> le da nombre al chip. El tablero les pone <code>data-nx-filter-state</code> (<code>on</code> u <code>off</code>) y <code>aria-pressed</code> si son botones.</td></tr>
+                <tr><td>Paneles</td><td><code>span</code> (de 1 a 12), <code>heading</code>, <code>subheading</code>, <code>dimension</code> (la suya, o varias), <code>slot="actions"</code> para sus controles, <code>variant="plain"</code>, <code>busy</code> y <code>personal</code>. <code>panel.filters</code> da lo que el panel tiene que pedir.</td></tr>
+                <tr><td>Chips</td><td>Uno por valor elegido, cada uno se quita solo; con dos o más, «Quitar filtros». Los nombres salen de <code>dimensions</code> o de la marca.</td></tr>
+                <tr><td>Datos sensibles</td><td>Con <code>restricted</code>, filtrar por una dimensión <code>sensitive</code> reserva los paneles <code>personal</code>. Es presentación: el servidor tampoco debe mandar esos datos.</td></tr>
+                <tr><td>Gráficos</td><td><code>&lt;nx-stats&gt;</code> (cambio y meta), <code>&lt;nx-trend stacked&gt;</code> (con proyección), <code>&lt;nx-heatmap&gt;</code>, <code>&lt;nx-bars&gt;</code> (Pareto, columnas, apiladas), <code>&lt;nx-parts&gt;</code>, <code>&lt;nx-alerts&gt;</code>, <code>&lt;nx-insights&gt;</code> y <code>&lt;nx-phases&gt;</code> (en la ficha: «Ver quién paga cada día»). Con <code>dimension</code>, sus marcas filtran el tablero.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
         <template id="page-home">
           <p class="eyebrow">Componentes</p>
           <h1>Inicio del empleado <code class="tag">&lt;nx-intent&gt;</code> <code class="tag">&lt;nx-stats&gt;</code> <code class="tag">&lt;nx-timeline&gt;</code> <code class="tag">&lt;nx-tracker&gt;</code></h1>

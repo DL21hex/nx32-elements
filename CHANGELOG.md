@@ -1,5 +1,13 @@
 # Registro de cambios
 
+## 0.13.2 — 2026-10-11
+
+- **La matriz vuelve entera después de consultar un cruce.** Tocar un número abre la tabla con esos
+  dos filtros (como antes); volver con «Matriz» ahora quita lo que puso ese clic y la matriz se ve
+  como estaba, en vez de quedar en 1 × 1. Solo se quita si sigue igual: un filtro que la persona
+  cambió a mano en la tabla se queda, y en cada eje vuelve lo que tenía antes del clic. Se olvida al
+  asignar `filters` o aplicar una vista. Sin botones nuevos.
+
 ## 0.13.1 — 2026-10-11
 
 - **La matriz ya no alarga la página (ahora sí).** Cada cruce vacío lleva un texto para lectores de

@@ -653,6 +653,10 @@ export class NxGrid extends Base {
   #mxState: "idle" | "loading" | "failed" = "idle";
   #mxAc?: AbortController;
   #mxGen = 0;
+  /** Lo que puso el último cruce tocado (por columna: los filtros de antes y el que puso), para
+   *  quitarlo al volver a «Matriz» con el selector: así la matriz vuelve entera después de consultar
+   *  un cruce. Se olvida al aplicar una vista o al asignar `filters`. */
+  #mxDrill: { key: string; before: GridFilter[]; set: GridFilter }[] | null = null;
   #urls = new Map<string, { raw: string | null; at: string; url: string | undefined }>();
 
   // ---------------------------------------------------------------- propiedades
@@ -743,6 +747,7 @@ export class NxGrid extends Base {
     return this.#filters;
   }
   set filters(v: GridFilter[] | null | undefined) {
+    this.#mxDrill = null;
     this.#setFilters(validFilters(v), false);
   }
   /** Buscar en la tabla: quedan las filas que contienen este texto en alguna columna visible (sin
@@ -1683,6 +1688,7 @@ export class NxGrid extends Base {
   /** Aplica una vista (guardada, con su `id`, o suelta). Lo de columnas que ya no existen se quita,
    *  y se dice. */
   #applyView(v: unknown, id: string | null): void {
+    this.#mxDrill = null;
     const x = cleanView(v);
     const known = (k: string) => !this.#cols.length || this.#cols.some((c) => c.key === k);
     const gone = [...new Set([...x.filters.map((f) => f.key), ...(x.sort ? [x.sort.key] : [])].filter((k) => !known(k)))];
@@ -2305,6 +2311,19 @@ export class NxGrid extends Base {
 
   /** Cambia entre la tabla y la matriz por la persona: lo avisa (`nx-grid-layout`). */
   #setLayout(to: GridLayout): void {
+    // Volver a la matriz después de tocar un cruce: lo que puso ese clic se quita, si sigue igual (lo
+    // que la persona cambió a mano se queda), y la matriz se ve como estaba. Ir a la matriz por otro
+    // camino que no sea el selector no lo hace.
+    const drill = this.#mxDrill;
+    this.#mxDrill = null;
+    if (to === "matrix" && drill) {
+      let next = this.#filters;
+      for (const d of drill) {
+        const own = next.filter((f) => f.key === d.key);
+        if (JSON.stringify(own) === JSON.stringify([d.set])) next = [...next.filter((f) => f.key !== d.key), ...d.before];
+      }
+      if (next !== this.#filters) this.#setFilters(next);
+    }
     this.layout = to;
     this.#emit("nx-grid-layout", { layout: this.layout, matrix: this.matrix } satisfies GridLayoutDetail);
   }
@@ -2423,7 +2442,9 @@ export class NxGrid extends Base {
         if (col !== null) set.push([cfg.cols, col]);
         this.layout = "table";
         this.#emit("nx-grid-layout", { layout: "table", matrix: this.matrix } satisfies GridLayoutDetail);
-        if (set.length) this.#setFilters([...this.#filters.filter((f) => !set.some(([k]) => k === f.key)), ...set.map(([key, v]): GridFilter => ({ key, op: "in", values: [v] }))]);
+        const drilled = set.map(([key, v]) => ({ key, before: this.#filters.filter((f) => f.key === key), set: { key, op: "in", values: [v] } as GridFilter }));
+        if (set.length) this.#setFilters([...this.#filters.filter((f) => !set.some(([k]) => k === f.key)), ...drilled.map((d) => d.set)]);
+        this.#mxDrill = drilled.length ? drilled : null;
         this.#scroll!.scrollTop = 0;
         this.#scroll!.focus({ preventScroll: true });
       },

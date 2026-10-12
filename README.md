@@ -671,7 +671,9 @@ Una tabla de datos que se explora sola:
   elige qué mostrar; `matrix` dice lo que quedó. `matrix` vacío o `true`: las dos primeras que se
   puedan cruzar. Un cruce vuelve a la tabla con esos dos filtros puestos (como chips, emite
   `nx-grid-filter`); un encabezado o un total, con el de su columna (el otro eje se queda como
-  estaba); el total general, sin cambiar los filtros. La matriz muestra las mismas filas que la
+  estaba); el total general, sin cambiar los filtros. Volver con «Matriz» quita lo que puso ese clic
+  (si sigue igual: lo que la persona cambió a mano se queda) y la matriz se ve como estaba: tocar un
+  cruce es consultarlo. Asignar `filters` o aplicar una vista olvida el clic. La matriz muestra las mismas filas que la
   tabla: la búsqueda y todos los filtros, también los de sus dos columnas (filtrar «Cali» deja solo
   esa fila), así que su total es el de la tabla. Es una sola parada de
   Tab; dentro, las flechas, Inicio y Fin. En la matriz no se ven la selección, el pie ni los botones

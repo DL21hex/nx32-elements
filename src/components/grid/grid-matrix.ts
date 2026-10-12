@@ -173,6 +173,8 @@ export class MatrixUI {
   /** El botón que tiene la parada de Tab dentro de la tabla («fila,columna» de la cuadrícula). */
   #at = "";
   #sig = "";
+  /** Vuelve a medir las líneas cuando la tabla cambia de ancho (al llegar la fuente, por ejemplo). */
+  #ro?: ResizeObserver;
 
   constructor(host: MatrixHost) {
     this.#host = host;
@@ -257,6 +259,7 @@ export class MatrixUI {
         ),
       );
       this.#note.hidden = true;
+      this.#lines();
       return;
     }
     const sig = JSON.stringify([m, v.cells, L, G.loading, loc.locale, v.axes.map((c) => c.key)]);
@@ -275,6 +278,7 @@ export class MatrixUI {
     const x = resolve(v, L, loc);
     if (!x) {
       this.#box.replaceChildren(h("p", { class: "nx-grid__mx-state" }, this.#host.labels.empty));
+      this.#lines();
       return;
     }
     const { rows, cols, name, at, total, measure, inner, rowName, colName } = x;
@@ -332,9 +336,40 @@ export class MatrixUI {
       fill("td"),
     );
     this.#box.replaceChildren(h("table", { class: "nx-grid__mx" }, h("caption", { class: "nx-sr-only" }, `${rowName} × ${colName}`), h("thead", null, head), h("tbody", null, ...body), h("tfoot", null, foot)));
+    const table = this.#box.querySelector("table")!;
+    if (typeof ResizeObserver !== "undefined") {
+      this.#ro ??= new ResizeObserver(() => this.#lines());
+      this.#ro.disconnect();
+      this.#ro.observe(table);
+    }
+    this.#lines();
     // La parada de Tab: la que tenía o el primer cruce.
     const keep = this.#at && this.#box.querySelector(`[data-at="${this.#at}"]`) ? this.#at : (this.#box.querySelector<HTMLElement>("td > button")?.dataset.at ?? "0,1");
     this.#tab(keep);
+  }
+
+  /** Las líneas de las columnas debajo de la tabla, hasta el fondo de la caja: el ancho de cada
+   *  columna lo decide el navegador, así que se mide (el borde izquierdo de cada una, desde la
+   *  segunda, y el derecho de «Total») y cada línea es una capa del fondo que empieza en el pie de
+   *  la tabla. Como fondo no agrega scroll ni tapa nada; sin tabla, no hay líneas. */
+  #lines(): void {
+    const box = this.#box;
+    const table = box.querySelector<HTMLTableElement>("table.nx-grid__mx");
+    const cells = [...(table?.querySelectorAll<HTMLElement>("thead > tr > th:not(.nx-grid__mx-fill)") ?? [])];
+    if (!table || cells.length < 2) {
+      box.style.removeProperty("background-image");
+      box.style.removeProperty("background-position");
+      box.style.removeProperty("background-size");
+      return;
+    }
+    const left = table.getBoundingClientRect().left;
+    const xs = [...cells.slice(1).map((c) => c.getBoundingClientRect().left - left), cells.at(-1)!.getBoundingClientRect().right - left];
+    // Las marcadas: la que cierra los nombres de las filas y las dos de «Total».
+    const color = (i: number) => (i === 0 || i >= xs.length - 2 ? "var(--nx-border)" : "var(--nx-border-subtle)");
+    const top = table.offsetHeight;
+    box.style.backgroundImage = xs.map((_, i) => `linear-gradient(${color(i)}, ${color(i)})`).join(", ");
+    box.style.backgroundPosition = xs.map((x) => `${Math.round(x) - 1}px ${top}px`).join(", ");
+    box.style.backgroundSize = xs.map(() => "1px 100%").join(", ");
   }
 
   #tab(key: string): HTMLElement | null {

@@ -186,6 +186,22 @@ describe("<nx-grid> con matriz", () => {
     expect(el.selectedRows).toEqual([]);
   });
 
+  it("las líneas de las columnas siguen debajo de la tabla: una capa del fondo por línea", async () => {
+    const el = mount();
+    await toMatrix(el);
+    const box = el.querySelector<HTMLElement>(".nx-grid__mx-scroll")!;
+    // Pendiente | Aprobado | Total: el borde izquierdo de cada una y el derecho de «Total». Marcadas la
+    // primera (cierra los nombres) y las dos de «Total».
+    const strong = "linear-gradient(var(--nx-border), var(--nx-border))";
+    const subtle = "linear-gradient(var(--nx-border-subtle), var(--nx-border-subtle))";
+    expect(box.style.backgroundImage).toBe([strong, subtle, strong, strong].join(", "));
+    expect(box.style.backgroundSize.split(",")).toHaveLength(4);
+    // Sin tabla (nada que cruzar), sin líneas.
+    el.rows = [];
+    await vi.waitFor(() => expect(table(el)).toBeNull());
+    expect(box.style.backgroundImage).toBe("");
+  });
+
   it("un valor sin filas no sale: ni el que quita un filtro ni el declarado que no tiene", async () => {
     const el = mount();
     el.filters = [{ key: "estado", op: "notIn", values: ["anul"] }];

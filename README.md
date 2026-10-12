@@ -662,7 +662,7 @@ Una tabla de datos que se explora sola:
   que pide atención: «Sin asignar» en `warning`), y llevan su punto en los filtros y en el chip.
 - **Matriz (`matrix`, `layout`).** Con `matrix`, la barra ofrece «Tabla | Matriz» (`labels.layout`,
   `layoutTable`, `layoutMatrix`). La matriz ocupa el lugar de la tabla, con su mismo alto (se ve una
-  cosa a la vez): cruza dos columnas de pocos valores (`{"rows":"area","cols":"estado"}`) y en cada
+  cosa a la vez; con pocas filas, las líneas de sus columnas siguen hasta el fondo): cruza dos columnas de pocos valores (`{"rows":"area","cols":"estado"}`) y en cada
   cruce dice cuántas filas hay o, con `agg: "sum"` o `"avg"` y `value`, la suma o el promedio de una
   columna numérica, con los totales de cada fila, de cada columna y el general (el de un promedio se
   pondera por sus filas). Solo salen los valores con filas, como en el panel de filtros: las opciones

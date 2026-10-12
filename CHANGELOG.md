@@ -1,5 +1,14 @@
 # Registro de cambios
 
+## 0.13.3 — 2026-10-11
+
+- **La matriz, con sus celdas a la vista.** Cada celda lleva su línea, como en la tabla: antes solo
+  había líneas al cerrar los nombres de las filas y alrededor de «Total», y entre los números no se
+  veían las columnas. Y, como en la tabla con pocas filas, las líneas de las columnas siguen hasta el
+  fondo de la caja (las de las filas ya seguían hasta el borde derecho): la matriz mide sus columnas
+  y las dibuja como fondo debajo de la tabla, sin agregar scroll; vuelve a medir si la tabla cambia
+  de ancho (al llegar la fuente, por ejemplo).
+
 ## 0.13.2 — 2026-10-11
 
 - **La matriz vuelve entera después de consultar un cruce.** Tocar un número abre la tabla con esos

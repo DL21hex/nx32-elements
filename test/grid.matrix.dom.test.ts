@@ -92,7 +92,7 @@ describe("<nx-grid> con matriz", () => {
     expect(el.querySelector<HTMLElement>(".nx-grid__matrix")!.hidden).toBe(true);
   });
 
-  it("un cruce vuelve a la tabla con sus dos filtros; al volver, la matriz muestra solo eso", async () => {
+  it("un cruce vuelve a la tabla con sus dos filtros; la matriz cuenta lo que filtra la tabla", async () => {
     const el = mount();
     await toMatrix(el);
     const filtered = vi.fn();
@@ -105,11 +105,54 @@ describe("<nx-grid> con matriz", () => {
     ]);
     expect(filtered).toHaveBeenLastCalledWith(2);
     expect(el.count).toBe(2);
-    // La matriz cuenta las mismas filas que la tabla: sin los valores que quitan sus filtros.
+    // La matriz cuenta las mismas filas que la tabla: con esos filtros puestos (por la app o a mano,
+    // no por el clic, que se quita al volver), sin los valores que quitan.
+    el.filters = el.filters.slice();
     await toMatrix(el);
     expect(grid(el)).toEqual(["Proveedor|Pendiente|Total", "Aceros|2|2", "Total|2|2"]);
     expect(el.querySelector(".nx-grid__mx-note")!.textContent).toBe("Un cruce abre la tabla con esos dos filtros; un encabezado o un total, con el suyo.");
     expect(el.querySelector(".nx-grid__mx [aria-pressed]")).toBeNull();
+  });
+
+  it("volver a «Matriz» con el selector quita lo que puso el cruce: la matriz vuelve entera", async () => {
+    const el = mount();
+    await toMatrix(el);
+    cell(el, "Aceros", "pend")!.click();
+    expect(el.count).toBe(2);
+    const filtered = vi.fn();
+    el.addEventListener("nx-grid-filter", (e) => filtered((e as CustomEvent).detail.filters));
+    await toMatrix(el);
+    expect(el.filters).toEqual([]);
+    expect(filtered).toHaveBeenLastCalledWith([]);
+    expect(grid(el).at(-1)).toBe("Total|3|3|6");
+    // Una sola vez: volver a la tabla y a la matriz de nuevo no cambia nada más.
+    layoutBtn(el, "table").click();
+    await toMatrix(el);
+    expect(el.filters).toEqual([]);
+  });
+
+  it("vuelve a los filtros de antes del clic en ese eje, y deja lo que la persona cambió a mano", async () => {
+    const el = mount();
+    el.filters = [{ key: "estado", op: "notIn", values: ["anul"] }];
+    await toMatrix(el);
+    cell(el, "Aceros", "pend")!.click();
+    expect(el.filters).toEqual([
+      { key: "prov", op: "in", values: ["Aceros"] },
+      { key: "estado", op: "in", values: ["pend"] },
+    ]);
+    await toMatrix(el);
+    expect(el.filters).toEqual([{ key: "estado", op: "notIn", values: ["anul"] }]);
+    // Si la persona quitó a mano el chip de «Pendiente», eso se respeta: solo vuelve el proveedor.
+    cell(el, "Aceros", "pend")!.click();
+    [...el.querySelectorAll<HTMLButtonElement>(".nx-grid__chip [data-i]")].find((b) => b.getAttribute("aria-label")!.includes("Pendiente"))!.click();
+    expect(el.filters).toEqual([{ key: "prov", op: "in", values: ["Aceros"] }]);
+    await toMatrix(el);
+    expect(el.filters).toEqual([]);
+    // Asignar `filters` desde la app (o aplicar una vista) olvida el clic.
+    cell(el, "Aceros", "pend")!.click();
+    el.filters = [{ key: "prov", op: "in", values: ["Aceros"] }];
+    await toMatrix(el);
+    expect(el.filters).toEqual([{ key: "prov", op: "in", values: ["Aceros"] }]);
   });
 
   it("un encabezado pone el filtro de su eje y deja el otro; el total general no cambia nada", async () => {
@@ -117,6 +160,8 @@ describe("<nx-grid> con matriz", () => {
     await toMatrix(el);
     el.querySelector<HTMLButtonElement>('.nx-grid__mx thead button[data-col="apr"]')!.click();
     expect(el.filters).toEqual([{ key: "estado", op: "in", values: ["apr"] }]);
+    // Con ese filtro puesto por la app (el del clic se quitaría al volver), la matriz es la de lo filtrado.
+    el.filters = [{ key: "estado", op: "in", values: ["apr"] }];
     await toMatrix(el);
     expect(grid(el)).toEqual(["Proveedor|Aprobado|Total", "Aceros|1|1", "Empaques|1|1", "(Sin dato)|1|1", "Total|3|3"]);
     el.querySelector<HTMLButtonElement>('.nx-grid__mx tbody button[data-row="Aceros"]:not([data-col])')!.click();
@@ -124,11 +169,15 @@ describe("<nx-grid> con matriz", () => {
       { key: "estado", op: "in", values: ["apr"] },
       { key: "prov", op: "in", values: ["Aceros"] },
     ]);
+    // Al volver, se quita solo el proveedor que puso la fila; el estado era de antes.
     await toMatrix(el);
+    expect(el.filters).toEqual([{ key: "estado", op: "in", values: ["apr"] }]);
+    // El total general vuelve a la tabla sin cambiar nada, y no deja nada que quitar.
     el.querySelector<HTMLButtonElement>(".nx-grid__mx [data-all]")!.click();
     expect(el.layout).toBe("table");
-    expect(el.filters).toHaveLength(2);
-    expect(el.count).toBe(1);
+    expect(el.count).toBe(3);
+    await toMatrix(el);
+    expect(el.filters).toEqual([{ key: "estado", op: "in", values: ["apr"] }]);
     // «Sin dato» filtra por el valor vacío.
     el.filters = [];
     await toMatrix(el);

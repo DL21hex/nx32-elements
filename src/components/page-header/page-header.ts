@@ -95,6 +95,14 @@ export class NxPageHeader extends Base {
     this.#links = cleanLinks(v);
     if (this.isConnected) this.#paint();
   }
+  /** Formato de las cifras numéricas (`es-CO`, `en-US`…). Por defecto, el `lang` más cercano, o «es-CO». */
+  get locale(): string {
+    return resolveLocale(this);
+  }
+  set locale(v: string | null | undefined) {
+    if (v) this.setAttribute("locale", v);
+    else this.removeAttribute("locale");
+  }
   /** Textos de la interfaz (`PAGE_HEADER_LABELS`). */
   get labels(): PageHeaderLabels {
     return this.#labels;

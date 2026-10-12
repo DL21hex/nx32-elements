@@ -985,6 +985,11 @@ nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
   min-block-size: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  /* Las líneas de las columnas siguen hasta el fondo, debajo de la tabla, como en la tabla con pocas
+     filas: las mide la matriz y las pone como fondo (una capa por línea, desde el pie de la tabla);
+     `local`: se desplazan con ella. */
+  background-repeat: no-repeat;
+  background-attachment: local;
 }
 .nx-grid__mx {
   inline-size: 100%;
@@ -992,9 +997,12 @@ nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
   border-spacing: 0;
   font-variant-numeric: tabular-nums;
 
+  /* Cada celda con su línea, como en la tabla: más marcada al cerrar los nombres de las filas, antes
+     de «Total» y después de él. */
   & :is(th, td) {
     padding: 0;
     border-block-end: 1px solid var(--nx-border-subtle);
+    border-inline-end: 1px solid var(--nx-border-subtle);
     font-weight: 400;
     text-align: end;
     white-space: nowrap;
@@ -1032,15 +1040,14 @@ nx-grid:has(> .nx-grid__main.is-matrix) > .nx-grid__bar > [data-table-only] {
   & tfoot th:first-child {
     z-index: 2;
   }
-  & td.nx-grid__mx-tot:nth-last-child(2),
-  & thead th.nx-grid__mx-tot {
-    border-inline-start: 1px solid var(--nx-border);
+  & :is(th, td):is(:nth-last-child(2), :nth-last-child(3)) {
+    border-inline-end-color: var(--nx-border);
   }
-  /* Lo que sobra a la derecha: se lleva el ancho (las columnas miden lo suyo), con la línea que
-     cierra «Total» y las de las filas hasta el borde. */
+  /* Lo que sobra a la derecha: se lleva el ancho (las columnas miden lo suyo), con las líneas de las
+     filas hasta el borde. */
   & .nx-grid__mx-fill {
     inline-size: 100%;
-    border-inline-start: 1px solid var(--nx-border);
+    border-inline-end: 0;
   }
   & .nx-grid__mx-tot {
     font-weight: 600;

@@ -5,7 +5,7 @@
 En `src/bdui.ts`, dentro de `registry`:
 
 ```ts
-  ["Import", { tag: "nx-import", props: ["columns", "endpoint", "batch", "accept", "maxSize", "memory", "locale", "labels", "disabled"] }],
+  ["Import", { tag: "nx-import", props: ["columns", "endpoint", "template", "batch", "accept", "maxSize", "memory", "locale", "labels", "disabled"] }],
 ```
 
 (Todo es serializable: `columns` y `labels` son JSON; `maxSize` acepta número de bytes o «20MB».)

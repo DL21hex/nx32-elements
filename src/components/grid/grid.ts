@@ -453,7 +453,7 @@ export class NxGrid extends Base {
    *  acento: el del módulo («users» en Empleados). Sin `heading`, o con un nombre que no está
    *  registrado, no se pinta. */
   declare headingIcon: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout"];
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -817,6 +817,14 @@ export class NxGrid extends Base {
   }
   set groupBy(v: string | null) {
     this.#attr("group-by", v);
+  }
+  /** Sin «Agrupar por»: la tabla no ofrece agrupar ni agrupa (aunque `group-by` o una vista
+   *  guardada lo pidan). Para una tabla cuyas filas se leen una a una, como una bandeja. */
+  get noGroup(): boolean {
+    return boolAttr(this, "no-group");
+  }
+  set noGroup(v: boolean) {
+    this.toggleAttribute("no-group", !!v);
   }
   /** El campo que identifica cada fila (por defecto `id`). */
   get rowKey(): string {
@@ -1233,9 +1241,10 @@ export class NxGrid extends Base {
       this.#mxFor = { rows: null, key: "" };
       this.#paintAll();
     }
-    else if (name === "group-by") {
+    else if (name === "group-by" || name === "no-group") {
       this.#collapsed.clear();
       this.#refilter(true, "order");
+      if (name === "no-group") this.#paintChrome();
     } else this.#paintAll();
   }
 
@@ -1406,7 +1415,7 @@ export class NxGrid extends Base {
   }
 
   #groupable(): GridColumn[] {
-    if (this.#server) return [];
+    if (this.#server || this.noGroup) return [];
     return this.#cols.filter((c) => !isNumeric(c) && (colType(c) === "date" || this.#facetCols.includes(c)));
   }
 

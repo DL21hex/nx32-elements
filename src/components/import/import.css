@@ -86,6 +86,23 @@ nx-import[data-drag]::after {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+.nx-imp__template {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  color: var(--nx-primary-ink);
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+.nx-imp__template-icon {
+  inline-size: 16px;
+  block-size: 16px;
+}
 .nx-imp__error {
   padding: 8px 12px;
   border-radius: var(--nx-radius-md);

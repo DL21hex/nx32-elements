@@ -1,5 +1,21 @@
 # Registro de cambios
 
+## 0.15.0 — 2026-10-12
+
+- **`<nx-history variant="plain">`: sólo la línea de tiempo.** Sin buscador, sin filtros por
+  persona o campo y sin viaje en el tiempo (ni el panel de al lado ni la hora como botón de «ver
+  cómo estaba»): para la ficha angosta de un registro, donde lo que se busca es leer qué pasó. La
+  línea toma todo el ancho. Pasar a `plain` suelta los filtros y vuelve al presente.
+- **`<nx-history readonly>`: el historial sólo se lee.** Sin la caja «Agregar una nota…» ni
+  «Revertir», y `comment()` y `revert()` no hacen nada. Para una app que todavía no guarda notas: la
+  caja ya no promete algo que se pierde al recargar.
+- **`<nx-grid no-group>`: sin «Agrupar por».** Ni el selector ni la agrupación, aunque `group-by` o
+  una vista guardada la pidan. Para las tablas cuyas filas se leen una a una, como una bandeja.
+- **`<nx-import template="…">`: la plantilla dentro del importador.** El primer paso ofrece
+  «Descargar la plantilla» (un `<a download>` en otra pestaña) debajo de donde se suelta el archivo;
+  quien importa ya no la busca en otro botón. Solo URLs seguras; con un archivo leído no se ve.
+  Texto nuevo en `labels`: `template`.
+
 ## 0.14.0 — 2026-10-12
 
 - **`<nx-form>` pide un archivo (`type: "file"`).** «Elegir archivo o suéltalo aquí»: se abre con

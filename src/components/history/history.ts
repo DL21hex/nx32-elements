@@ -11,6 +11,10 @@
  *
  * Todo es JSON: `record` (hoy), `fields` y `events`, o `source`, una URL que los devuelve y pagina
  * hacia atrás con `?before=<id>` cuando se llega al final.
+ *
+ * `variant="plain"` deja sólo la línea de tiempo y la caja de notas: sin buscador, sin filtros por
+ * persona o campo y sin viaje en el tiempo (la ficha angosta de un registro, donde se lee qué pasó).
+ * `readonly` quita la caja de notas y «Revertir»: el historial sólo se lee.
  */
 import { Base, upgrade, attrProps } from "../../core/define";
 import { h, safeEndpoint, safeHref } from "../../core/dom";
@@ -21,7 +25,7 @@ import { clampDelay } from "../../core/time";
 import { nxToast } from "../toast/toast";
 import "../toast/index";
 import { atDate, canRevert, changedKeys, cleanEvents, cleanFields, cleanRecord, dayLabel, filterEvents, groupByDay, isLongText, mergeEvents, relTime, revertChange, revertedKeys, same, stampText, stateAt, tally, valueText, wordDiff, type DiffPart, type HistoryFilter } from "./logic";
-import type { HistoryActor, HistoryChange, HistoryEvent, HistoryField, HistoryLabels, HistoryPage, HistoryValue } from "./types";
+import type { HistoryActor, HistoryChange, HistoryEvent, HistoryField, HistoryLabels, HistoryPage, HistoryValue, HistoryVariant } from "./types";
 
 export const HISTORY_LABELS: HistoryLabels = {
   heading: "Historial",
@@ -83,7 +87,7 @@ export class NxHistory extends Base {
     attrProps(this, ["locale"]);
   }
   declare locale: string | null;
-  static observedAttributes = [...JSON_ATTRS, "source", "heading", "locale"];
+  static observedAttributes = [...JSON_ATTRS, "source", "heading", "locale", "variant", "readonly"];
 
   #uid = `nx-history${++uid}`;
   #record: Record<string, HistoryValue> = {};
@@ -112,7 +116,9 @@ export class NxHistory extends Base {
   // Nodos.
   #title?: HTMLElement;
   #search?: HTMLInputElement;
+  #searchBox?: HTMLElement;
   #chips?: HTMLElement;
+  #compose?: HTMLFormElement;
   #main?: HTMLElement;
   #feed?: HTMLOListElement;
   #foot?: HTMLElement;
@@ -165,6 +171,21 @@ export class NxHistory extends Base {
   get heading(): string {
     return this.getAttribute("heading") ?? this.#labels.heading;
   }
+  /** `plain`: sólo la línea de tiempo y las notas (sin buscador, filtros ni viaje en el tiempo). */
+  get variant(): HistoryVariant {
+    return this.getAttribute("variant") === "plain" ? "plain" : "full";
+  }
+  set variant(v: HistoryVariant | null | undefined) {
+    if (v === "plain") this.setAttribute("variant", "plain");
+    else this.removeAttribute("variant");
+  }
+  /** Sin caja de notas ni «Revertir»: el historial sólo se lee. */
+  get readonly(): boolean {
+    return this.hasAttribute("readonly");
+  }
+  set readonly(v: boolean) {
+    this.toggleAttribute("readonly", !!v);
+  }
   set heading(v: string) {
     this.setAttribute("heading", v);
   }
@@ -204,10 +225,10 @@ export class NxHistory extends Base {
     this.dispatchEvent(new CustomEvent("nx-history-travel", { detail: { id: this.at, record: this.snapshot }, bubbles: true, composed: true }));
   }
 
-  /** Agrega una nota: `nx-history-comment` (cancelable) y aparece al instante. */
+  /** Agrega una nota: `nx-history-comment` (cancelable) y aparece al instante. Con `readonly`, nada. */
   comment(text: string): boolean {
     const t = text.trim();
-    if (!t || !this.dispatchEvent(new CustomEvent("nx-history-comment", { detail: { text: t }, bubbles: true, composed: true, cancelable: true }))) return false;
+    if (!t || this.readonly || !this.dispatchEvent(new CustomEvent("nx-history-comment", { detail: { text: t }, bubbles: true, composed: true, cancelable: true }))) return false;
     this.#events = mergeEvents(this.#events, [{ id: `${this.#uid}-${Date.now()}-${++this.#seq}`, at: new Date().toISOString(), actor: this.#me(), action: "comment", note: t }]);
     this.#paint();
     return true;
@@ -221,7 +242,7 @@ export class NxHistory extends Base {
   async revert(id: string, field: string): Promise<Outcome> {
     const event = this.#events.find((e) => e.id === id);
     const change = event?.changes?.find((c) => c.field === field);
-    if (!event || !change || !canRevert(this.#record, event, change)) return "cancel";
+    if (this.readonly || !event || !change || !canRevert(this.#record, event, change)) return "cancel";
     const detail = { event, change };
     if (!this.dispatchEvent(new CustomEvent("nx-history-revert", { detail, bubbles: true, composed: true, cancelable: true }))) return "cancel";
     const was = this.#record[field] ?? null;
@@ -295,6 +316,13 @@ export class NxHistory extends Base {
       }
       return;
     }
+    // Sin buscador ni deslizador, nada de lo que dejaron puede seguir filtrando ni en el pasado.
+    if (name === "variant" && value === "plain" && old !== "plain") {
+      clearTimeout(this.#searchTimer);
+      this.#flt = {};
+      if (this.#search) this.#search.value = "";
+      this.#at = -1;
+    }
     if (name === "source" && value !== old) {
       // Otro registro: nada del anterior (su registro, si no vino por propiedad, filtros, «más»).
       if (!this.#ownRecord) this.#record = {};
@@ -367,14 +395,16 @@ export class NxHistory extends Base {
     this.setAttribute("role", "region");
     this.#title = h("h2", { class: "nx-history__title" });
     this.#search = h("input", { type: "search", class: "nx-history__q", autocomplete: "off" });
+    this.#searchBox = h("label", { class: "nx-history__search" }, glyph("search"), this.#search);
     this.#chips = h("div", { class: "nx-history__chips" });
     this.#feed = h("ol", { class: "nx-history__feed" });
     this.#foot = h("div", { class: "nx-history__foot" });
     const note = h("textarea", { class: "nx-history__note-in", rows: "1" });
+    this.#compose = h("form", { class: "nx-history__compose" }, h("span", { class: "nx-history__me" }), note, h("button", { type: "submit", class: "nx-history__send" }));
     this.#main = h(
       "div",
       { class: "nx-history__main" },
-      h("form", { class: "nx-history__compose" }, h("span", { class: "nx-history__me" }), note, h("button", { type: "submit", class: "nx-history__send" })),
+      this.#compose,
       this.#feed,
       this.#foot,
     );
@@ -391,7 +421,7 @@ export class NxHistory extends Base {
       h("dl", { class: "nx-history__state" }),
     );
     this.append(
-      h("header", { class: "nx-history__head" }, this.#title, h("label", { class: "nx-history__search" }, glyph("search"), this.#search), this.#chips),
+      h("header", { class: "nx-history__head" }, this.#title, this.#searchBox, this.#chips),
       h("div", { class: "nx-history__cols" }, this.#main, this.#panel),
     );
 
@@ -429,7 +459,7 @@ export class NxHistory extends Base {
     this.#range.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.#at >= 0) e.preventDefault(), this.travel(null);
     });
-    const form = this.#main.firstElementChild as HTMLFormElement;
+    const form = this.#compose;
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       if (this.comment(note.value)) (note.value = ""), (note.style.height = "");
@@ -457,7 +487,12 @@ export class NxHistory extends Base {
     this.#title!.textContent = this.heading;
     this.#search!.setAttribute("aria-label", L.search);
     this.#search!.placeholder = L.search;
-    const [me, note, send] = this.#main!.firstElementChild!.children as unknown as HTMLElement[];
+    const plain = this.variant === "plain";
+    this.#searchBox!.hidden = plain;
+    this.#chips!.hidden = plain;
+    this.#panel!.hidden = plain;
+    this.#compose!.hidden = this.readonly;
+    const [me, note, send] = this.#compose!.children as unknown as HTMLElement[];
     me.replaceChildren(this.#avatar(this.#me()));
     note.setAttribute("aria-label", L.note);
     note.setAttribute("placeholder", L.note);
@@ -465,7 +500,8 @@ export class NxHistory extends Base {
     this.#range!.setAttribute("aria-label", L.travel);
     this.#panel!.querySelector(".nx-history__eyebrow > :last-child")!.textContent = L.travel;
     this.#panel!.querySelector(".nx-history__present > :last-child")!.textContent = L.present;
-    this.#paintChips();
+    if (plain) this.#chips!.replaceChildren();
+    else this.#paintChips();
     this.#paintFeed();
     if (k && this.contains(document.activeElement) === false) {
       const [kind, id] = k.split("|");
@@ -560,7 +596,10 @@ export class NxHistory extends Base {
           { class: "nx-history__line" },
           h("strong", null, e.actor.name),
           ` ${this.#verb(e)} `,
-          h("button", { type: "button", class: "nx-history__when", "data-jump": i, "data-k": `j|${e.id}`, "aria-label": L.jump.replace("{time}", stamp) }, h("time", { datetime: e.at, title: stamp }, relTime(d, now, loc))),
+          // Sin viaje en el tiempo la hora sólo se lee: no es un botón que no hace nada.
+          this.variant === "plain"
+            ? h("time", { class: "nx-history__when", datetime: e.at, title: stamp }, relTime(d, now, loc))
+            : h("button", { type: "button", class: "nx-history__when", "data-jump": i, "data-k": `j|${e.id}`, "aria-label": L.jump.replace("{time}", stamp) }, h("time", { datetime: e.at, title: stamp }, relTime(d, now, loc))),
         ),
         e.changes ? h("ul", { class: "nx-history__changes" }, ...e.changes.map((c) => this.#change(e, c, rev.has(`${e.id}|${c.field}`)))) : null,
         e.note ? h("p", { class: "nx-history__note" }, e.note) : null,
@@ -578,7 +617,7 @@ export class NxHistory extends Base {
     const f = this.#field(c.field);
     const label = f?.label ?? c.field;
     const fresh = c.from === null || c.from === "";
-    const ok = !reverted && !this.#pending.has(e.id) && canRevert(this.#record, e, c);
+    const ok = !this.readonly && !reverted && !this.#pending.has(e.id) && canRevert(this.#record, e, c);
     return h(
       "li",
       { "data-reverted": reverted ? "" : null },

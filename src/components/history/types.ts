@@ -22,6 +22,9 @@ export interface HistoryField {
   options?: { value: string; label: string; tone?: HistoryTone }[];
 }
 
+/** `full` (por defecto): buscador, filtros y viaje en el tiempo. `plain`: sólo la línea y las notas. */
+export type HistoryVariant = "full" | "plain";
+
 export type HistoryAction = "create" | "update" | "delete" | "comment" | "status";
 
 /** Un campo que cambió: de qué valor a cuál. */

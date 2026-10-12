@@ -667,4 +667,17 @@ describe("<nx-import>: bordes y la demo de la galería", () => {
     expect(el.mapping).toEqual({ nit: 0, razon_social: 1, ciudad: 2, correo: 3, telefono: 4, cupo: 5, alta: 6, activo: 7 });
     expect(el.querySelector('.nx-imp__row[data-key="ciudad"] .nx-imp__info')!.textContent).toContain("Por el contenido");
   });
+
+  it("template: «Descargar la plantilla» en el primer paso, como descarga y sólo con una URL segura", () => {
+    const el = mount('template="/plantillas/clientes.xlsx"');
+    const link = el.querySelector<HTMLAnchorElement>(".nx-imp__template")!;
+    expect(link.textContent).toBe(IMPORT_LABELS.template);
+    expect(link.getAttribute("href")).toBe("/plantillas/clientes.xlsx");
+    expect(link.hasAttribute("download")).toBe(true);
+    expect(link.getAttribute("target")).toBe("_blank");
+    el.template = "javascript:alert(1)";
+    expect(el.querySelector(".nx-imp__template")).toBeNull();
+    el.template = null;
+    expect(el.querySelector(".nx-imp__template")).toBeNull();
+  });
 });

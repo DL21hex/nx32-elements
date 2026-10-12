@@ -175,6 +175,9 @@ nx-history .nx-glyph {
     overflow: auto;
     border: 0;
     border-inline-start: 1px solid var(--nx-border-subtle);
+  }  /* Sin el panel del tiempo, la línea toma todo el ancho. */
+  nx-history[variant="plain"] .nx-history__cols {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -322,7 +325,8 @@ nx-history .nx-glyph {
   background: none;
   color: var(--nx-text-tertiary);
   font-size: 12.5px;
-  &:hover {
+  /* Sólo la que viaja en el tiempo es un botón; en `plain` la hora sólo se lee. */
+  &:is(button):hover {
     color: var(--nx-primary-ink);
     text-decoration: underline;
   }

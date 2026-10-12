@@ -286,6 +286,20 @@ describe("<nx-trend>", () => {
   });
 });
 
+describe("<nx-trend>: porcentajes con signo", () => {
+  it("un valor negativo en % se lee negativo en el punto y en el eje", () => {
+    document.body.innerHTML = `<div lang="es-CO"><nx-trend heading="Margen" format="percent"></nx-trend></div>`;
+    const el = document.querySelector("nx-trend")!;
+    el.series = [{ id: "m", label: "Margen", points: months([0.05, -0.052, 0.12, -0.18]) }];
+    expect(pts(el)[1].getAttribute("aria-label")).toBe("Margen, febrero 2026: -5,2 %");
+    expect(pts(el)[3].getAttribute("aria-label")).toBe("Margen, abril 2026: -18 %");
+    const ticks = [...el.querySelectorAll(".nx-trend__tick")].map((t) => t.textContent ?? "").filter((t) => t.endsWith("%"));
+    expect(ticks.some((t) => t.startsWith("-"))).toBe(true);
+    expect(ticks).toContain("0 %");
+    expect(ticks.some((t) => /^[-−]0 %$/.test(t))).toBe(false);
+  });
+});
+
 describe("<nx-trend>: apiladas, proyección y tablero", () => {
   it("apila las barras, dibuja la proyección con su rango y lleva las marcas del tablero", async () => {
     await import("../src/components/board/index");

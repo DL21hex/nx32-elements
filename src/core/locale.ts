@@ -101,6 +101,22 @@ export interface NxFormat {
 
 const cache = new Map<string, NxFormat>();
 const space = (s: string) => s.replace(/[  ]/g, " ");
+const zeroBelow = new WeakMap<Intl.NumberFormat, number>();
+
+/**
+ * `f.format(n)` sin «-0»: ni -0 (`-0.0` en un JSON, una suma vacía en Rust) ni un negativo que se
+ * redondea a cero (-0,004 con 2 decimales) llevan signo. Los negativos que se ven, sí.
+ */
+export function formatZeroSafe(f: Intl.NumberFormat, n: number): string {
+  let below = zeroBelow.get(f);
+  if (below === undefined) {
+    // Por debajo de medio último decimal, Intl escribe cero (un porcentaje, dos decimales antes).
+    const o = f.resolvedOptions();
+    const d = typeof o.maximumFractionDigits === "number" && !o.maximumSignificantDigits ? o.maximumFractionDigits + (o.style === "percent" ? 2 : 0) : null;
+    zeroBelow.set(f, (below = d === null ? 0 : 0.5 * 10 ** -d));
+  }
+  return f.format(Math.abs(n) < below ? 0 : n + 0);
+}
 
 /** El formateador de un locale (inválido o ausente → «es-CO»). */
 export function nxFormat(locale?: string | null): NxFormat {
@@ -134,23 +150,22 @@ function build(locale: string): NxFormat {
     }
     return pair;
   };
-  // `n + 0`: -0 (`-0.0` en un JSON) se escribiría «-0», «-$ 0».
+  // Sin «-0», «-$ 0»: ver `formatZeroSafe`.
   return {
     locale,
-    number: (n) => space(nf.format(n + 0)),
-    compact: (n) => space(cf.format(n + 0)),
+    number: (n) => space(formatZeroSafe(nf, n)),
+    compact: (n) => space(formatZeroSafe(cf, n)),
     money(n, c, short = false) {
-      n += 0;
       const code = c.currency ?? "";
       if (/^[A-Z]{3}$/.test(code)) {
         try {
-          return space(currency(code)[short ? 1 : 0].format(n));
+          return space(formatZeroSafe(currency(code)[short ? 1 : 0], n));
         } catch {
           /* código desconocido: como símbolo */
         }
       }
       const sym = code || "$";
-      return short ? `${sym}${space(cf.format(n))}` : `${sym} ${space(nf.format(n))}`;
+      return short ? `${sym}${space(formatZeroSafe(cf, n))}` : `${sym} ${space(formatZeroSafe(nf, n))}`;
     },
     date(iso) {
       const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(iso);

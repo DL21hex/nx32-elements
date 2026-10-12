@@ -66,6 +66,7 @@ describe("<nx-stats>: cambio y meta", () => {
       { id: "dias", label: "Días", value: 10012, delta: { value: -0.14 } },
       { id: "ventas", label: "Ventas", value: 5, delta: { value: 0.2, polarity: "up-good" } },
       { id: "x", label: "Igual", value: 5, delta: { value: 0.0001 } },
+      { id: "n", label: "Casi nada", value: 5, delta: { value: -0.003, format: "number" } },
     ];
     document.body.append(el);
     await tick();
@@ -77,6 +78,9 @@ describe("<nx-stats>: cambio y meta", () => {
     expect(d[2].className).toBe("nx-stats__delta is-good");
     expect(d[3].className).toBe("nx-stats__delta is-flat");
     expect(d[3].textContent).toMatch(/^= Igual/);
+    // Un cambio que se escribe «0» es plano: nada de «▼ Baja 0».
+    expect(d[4].className).toBe("nx-stats__delta is-flat");
+    expect(d[4].textContent).toBe("= Igual 0");
     const goal = el.querySelector(".nx-stats__spark-goal")!;
     expect(Number(goal.getAttribute("y1"))).toBe(1.5);
   });

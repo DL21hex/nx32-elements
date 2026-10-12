@@ -1,5 +1,17 @@
 # Registro de cambios
 
+## 0.16.2 — 2026-10-12
+
+- **Ningún número sale «-0», tampoco al redondear.** Un negativo que se escribe como cero
+  (-0,004 con 2 decimales, -0,004 % con uno) salía «-0», «-0 %» o «-$ 0». `formatZeroSafe`
+  (`src/core/locale.ts`) lo escribe sin signo según los decimales de cada formateador, y lo usan
+  `nxFormat` (`number`, `compact`, `money`), `chartValue` y la cifra de `<nx-stats>`. En
+  `<nx-trend>`, un cambio que redondea a cero es «0 %» (no «+0 %» ni «−0 %») y la ficha «¿por qué?»
+  lo marca con «=», no con ▲ o ▼. En `<nx-stats>`, un `delta` numérico que se escribe «0» es plano
+  («= Igual 0», sin color).
+- **`<nx-trend>`: un valor en porcentaje conserva su signo.** Con `format="percent"`, el punto, el
+  tooltip y el eje escribían el valor absoluto: -5,2 % se leía «5,2 %». Ahora se lee «-5,2 %».
+
 ## 0.16.1 — 2026-10-12
 
 - **Los gráficos ya no escriben «-0».** Un `-0.0` en el JSON (en Rust, `Iterator::sum` de ningún

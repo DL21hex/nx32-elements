@@ -1,4 +1,5 @@
 /** Lógica pura de `<nx-trend>`: validar datos, escalas, anomalías, resumen y la pregunta. Sin DOM. */
+import { formatZeroSafe } from "../../core/locale";
 import type { TrendAnomaly, TrendContext, TrendFlag, TrendFormat, TrendKind, TrendLabels, TrendPoint, TrendSeries } from "./types";
 
 const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v : undefined);
@@ -159,11 +160,30 @@ export function periodLabel(x: string, locale = "es-CO", style: "short" | "long"
   return style === "long" ? t : t.replace(/ de /g, " ");
 }
 
-/** «+18 %», «−5,2 %»: con un decimal por debajo de 10 %. */
+const pctFormats = new Map<string, Intl.NumberFormat>();
+
+/** Un porcentaje ya multiplicado por 100, con un decimal por debajo de 10 y sin «-0». */
+function pctNumber(p: number, locale: string): string {
+  const key = `${locale}|${Math.abs(p) < 10 ? 1 : 0}`;
+  let f = pctFormats.get(key);
+  if (!f) pctFormats.set(key, (f = new Intl.NumberFormat(locale, { maximumFractionDigits: Math.abs(p) < 10 ? 1 : 0 })));
+  return formatZeroSafe(f, p);
+}
+
+/** El signo de un cambio tal como se escribe: 0 si sale «0 %» (−0,004 % no baja ni sube). */
+export function pctSign(delta: number): -1 | 0 | 1 {
+  return !(Math.abs(delta) * 100 >= 0.05) ? 0 : delta > 0 ? 1 : -1;
+}
+
+/** «+18 %», «−5,2 %»: con un decimal por debajo de 10 %. Sin `signed`, el tamaño del cambio («5,2 %»). */
 export function pctText(delta: number, locale = "es-CO", signed = true): string {
-  const p = Math.abs(delta) * 100;
-  const n = new Intl.NumberFormat(locale, { maximumFractionDigits: p < 10 ? 1 : 0 }).format(p);
-  return `${signed ? (delta > 0 ? "+" : delta < 0 ? "−" : "") : ""}${n} %`;
+  const s = signed ? pctSign(delta) : 0;
+  return `${s > 0 ? "+" : s < 0 ? "−" : ""}${pctNumber(Math.abs(delta) * 100, locale)} %`;
+}
+
+/** Un valor en porcentaje, con su signo si es negativo: 0,25 → «25 %», −0,052 → «-5,2 %». */
+export function pctValue(v: number, locale = "es-CO"): string {
+  return `${pctNumber(v * 100, locale)} %`;
 }
 
 const fill = (tpl: string, vars: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m);

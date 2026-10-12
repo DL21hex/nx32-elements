@@ -186,7 +186,7 @@ describe("<nx-grid> con matriz", () => {
     expect(el.selectedRows).toEqual([]);
   });
 
-  it("las líneas de las columnas siguen debajo de la tabla: una capa del fondo por línea", async () => {
+  it("las líneas de las columnas siguen debajo de la tabla, y una cierra la fila «Total»: una capa del fondo por línea", async () => {
     const el = mount();
     await toMatrix(el);
     const box = el.querySelector<HTMLElement>(".nx-grid__mx-scroll")!;
@@ -194,8 +194,9 @@ describe("<nx-grid> con matriz", () => {
     // primera (cierra los nombres) y las dos de «Total».
     const strong = "linear-gradient(var(--nx-border), var(--nx-border))";
     const subtle = "linear-gradient(var(--nx-border-subtle), var(--nx-border-subtle))";
-    expect(box.style.backgroundImage).toBe([strong, subtle, strong, strong].join(", "));
-    expect(box.style.backgroundSize.split(",")).toHaveLength(4);
+    // Primero, la que cierra la fila «Total», de borde a borde.
+    expect(box.style.backgroundImage).toBe([strong, strong, subtle, strong, strong].join(", "));
+    expect(box.style.backgroundSize.split(", ")).toEqual(["100% 1px", "1px 100%", "1px 100%", "1px 100%", "1px 100%"]);
     // Sin tabla (nada que cruzar), sin líneas.
     el.rows = [];
     await vi.waitFor(() => expect(table(el)).toBeNull());

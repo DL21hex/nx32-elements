@@ -1,5 +1,13 @@
 # Registro de cambios
 
+## 0.13.4 — 2026-10-11
+
+- **La fila «Total» de la matriz se cierra abajo.** Con pocas filas, las líneas de las columnas
+  seguían hasta el fondo y la fila «Total» no tenía línea debajo: parecía una celda gigante. Ahora
+  una línea la cierra de borde a borde, como «Total» a la derecha. Va con las líneas de las
+  columnas, como fondo debajo de la tabla: cuando la matriz desborda y «Total» queda fija abajo, no
+  se junta con la línea de la nota.
+
 ## 0.13.3 — 2026-10-11
 
 - **La matriz, con sus celdas a la vista.** Cada celda lleva su línea, como en la tabla: antes solo

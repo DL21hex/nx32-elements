@@ -44,7 +44,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-recurrence>` + núcleo (ESM); el intérprete de frases y los controles se cargan aparte | ≈ 9,4 KB |
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
-| `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 17,8 KB |
+| `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 19,1 KB |
 | `nx32-elements.css` (tokens + todos los componentes) | ≈ 70 KB |
 | `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 407 KB |
 
@@ -790,6 +790,7 @@ lee lo que trae la fila, no `Object`.
 |---|---|
 | Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
+| Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
@@ -2250,11 +2251,11 @@ lo escrito no se pierde.
   sección. Cada campo: `key`, `label`, `type`, `required`, `hint`, `placeholder`, `span` (de seis
   columnas; en angosto se reparten solas), `value`, `options`, límites (`min`/`max`, también
   `"today"` en fechas; `minLength`/`maxLength`; `pattern` con `patternMessage`), `rows`,
-  `currency`, `decimals`, `mono` y `autocomplete`. Tipos: `text`, `email`, `tel`, `url`, `textarea`,
-  `number`, `money` y `percent` (son `<nx-number>`, que se carga solo si el esquema los tiene),
-  `date`, `select`, `radio`, `segmented` (radios como botones pegados), `checkbox`, `checkboxes` y
-  `readonly` (un valor que no se edita aquí, con candado). Nada es una función: todo puede venir
-  del backend (BDUI).
+  `currency`, `decimals`, `mono`, `autocomplete` y, en un archivo, `accept` y `maxSize`. Tipos:
+  `text`, `email`, `tel`, `url`, `textarea`, `number`, `money` y `percent` (son `<nx-number>`, que
+  se carga solo si el esquema los tiene), `date`, `select`, `radio`, `segmented` (radios como
+  botones pegados), `checkbox`, `checkboxes`, `readonly` (un valor que no se edita aquí, con
+  candado), `rows` y `file`. Nada es una función: todo puede venir del backend (BDUI).
 - **Aparecer según otros campos (`when`).** `{tipoContrato: "Término fijo"}`, una lista (alguno
   de), `{not: …}` o `{filled: true}`, por clave. Lo oculto no se valida ni sale en `values`, y un
   campo que depende de uno oculto también se oculta.
@@ -2270,6 +2271,16 @@ lo escrito no se pierde.
   fila), `min`/`max` cuentan filas, `addLabel` es el botón. El valor es un arreglo de objetos;
   `fill()` agrega las filas que no estaban, y los errores del servidor por fila van como
   `"beneficiarios.0.nombre"`.
+- **Archivo (`type: "file"`).** Pide un archivo: «Elegir archivo o suéltalo aquí» (clic, <kbd>Enter</kbd>
+  o <kbd>Espacio</kbd> sobre el campo, o arrastrarlo encima) y, ya elegido, su nombre, su tamaño y
+  «Quitar». `accept` es la sintaxis de `<input accept>` (`".pdf,image/*"`) y `maxSize` el tope en
+  bytes (20 MB por defecto, como `<nx-doc-capture>`); un archivo que no cumple sale como error del
+  campo, igual que los demás. **No sube nada: el valor es el `File`; la aplicación lo sube al
+  enviar** (lo trae `values`, `nx-form-change` y `nx-form-submit`; para JSON, súbelo aparte y manda
+  su id). Uno solo por campo y nunca dentro de `rows` (se descarta con un aviso). `fill()` solo pone
+  un `File` (un texto se ignora; `null` lo quita), el borrador no guarda archivos y en lectura se ve
+  el nombre. El control es un `<input type=file>` de verdad, oculto a la vista: lleva la etiqueta
+  del campo, el anillo de foco y el error por `aria-describedby`.
 - **Llenar desde afuera: `fill(valores, origen)`.** Una requisición del servidor, la cédula, lo que
   dijo la app: cada dato lleva su chip (`origen` es `"Cédula"` o `{label, detail}`; `details` cambia
   el detalle de alguno) hasta que la persona lo cambia, el formulario dice «7 datos de
@@ -2356,7 +2367,7 @@ el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices
 | | |
 |---|---|
 | `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources` · `nx-form-change` `{key, value, values}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
-| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows)}` |
+| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes)}` |
 | `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |
 

@@ -901,3 +901,44 @@ describe("Tabla HTML al copiar", () => {
     expect(doc.querySelector("th:nth-child(2)")!.getAttribute("style")).toContain("text-align:right");
   });
 });
+
+describe("<nx-grid>: shownIds", () => {
+  it("los id de las filas que pasan la búsqueda y los filtros, en el orden de la tabla (y grupo por grupo)", () => {
+    const el = mount();
+    expect(el.shownIds).toEqual(["1", "2", "3", "4"]);
+    el.sort = { key: "monto", dir: -1 };
+    expect(el.shownIds).toEqual(["1", "4", "2", "3"]);
+    el.filters = [{ key: "estado", op: "in", values: ["pend"] }];
+    expect(el.shownIds).toEqual(["1", "4"]);
+    el.filters = [];
+    el.search = "aceros";
+    expect(el.shownIds).toEqual(["1", "3"]);
+    el.search = "";
+    el.sort = { key: "oc", dir: 1 };
+    // Agrupada: grupo por grupo (en el orden de los grupos), también las de un grupo plegado.
+    el.setAttribute("group-by", "prov");
+    const groups = [...el.querySelectorAll(".nx-grid__row--group")].map((g) => g.textContent ?? "");
+    const order = ["Aceros", "Empaques", "Químicos"].sort((a, b) => groups.findIndex((t) => t.includes(a)) - groups.findIndex((t) => t.includes(b)));
+    const byProv: Record<string, string[]> = { Aceros: ["1", "3"], Empaques: ["2"], Químicos: ["4"] };
+    expect(el.shownIds).toEqual(order.flatMap((p) => byProv[p]));
+    // Con `row-key`, el id es esa columna.
+    el.removeAttribute("group-by");
+    el.rowKey = "oc";
+    expect(el.shownIds).toEqual(["OC-1", "OC-2", "OC-3", "OC-4"]);
+  });
+
+  it("con source, los de las filas ya cargadas, en ese orden", async () => {
+    const fetch = vi.fn(async (_url: string, init: RequestInit) => {
+      const q = JSON.parse(init.body as string);
+      const rows = Array.from({ length: Math.min(q.limit, 250 - q.offset) }, (_, i) => ({ id: String(249 - q.offset - i), oc: `OC-${q.offset + i}`, prov: "Aceros", estado: "pend", monto: 1000 }));
+      return new Response(JSON.stringify({ rows, total: 250 }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    const el = mount('source="/datos"');
+    await new Promise((r) => setTimeout(r, 20));
+    expect(el.count).toBe(250);
+    const ids = el.shownIds;
+    expect(ids.length).toBe(100);
+    expect(ids.slice(0, 3)).toEqual(["249", "248", "247"]);
+  });
+});

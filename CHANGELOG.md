@@ -1,5 +1,23 @@
 # Registro de cambios
 
+## 0.14.0 — 2026-10-12
+
+- **`<nx-form>` pide un archivo (`type: "file"`).** «Elegir archivo o suéltalo aquí»: se abre con
+  un clic, con <kbd>Enter</kbd> o <kbd>Espacio</kbd>, o se arrastra encima; ya elegido, se ve su
+  nombre, su tamaño y «Quitar». `accept` (la sintaxis de `<input accept>`, `".pdf,image/*"`) y
+  `maxSize` (bytes; 20 MB por defecto, como `<nx-doc-capture>`) se revisan al elegir y salen como
+  error del campo; `required` y `when` funcionan como en los demás. **No sube nada: el valor es el
+  `File`** (`FormValue` lo incluye), y lo traen `values`, `nx-form-change` y `nx-form-submit`; la app
+  lo sube al enviar. `fill()` solo pone un `File` (un texto se ignora; `null` lo quita), el
+  borrador no guarda archivos, `reset()` lo deja vacío y en lectura se ve el nombre. Uno por campo y
+  nunca dentro de `rows` (se descarta con un aviso). El control es un `<input type=file>` de verdad,
+  oculto a la vista: lleva la etiqueta, el anillo de foco y el error por `aria-describedby`. Textos
+  nuevos en `labels`: `fileChoose`, `fileDrop`, `fileMax`, `fileRemove`, `fileBadType`, `fileTooBig`.
+- **`<nx-grid>`: `shownIds`.** Los `id` (según `row-key`) de las filas que pasan la búsqueda y los
+  filtros, en el orden en que se ven (agrupada, grupo por grupo). Es para el «anterior / siguiente»
+  de una ficha abierta desde una fila (`<nx-dialog nav>`): la app ya no tiene que repetir los
+  filtros ni el orden. Con `source`, los de las filas ya cargadas, en ese orden.
+
 ## 0.13.5 — 2026-10-12
 
 - **Los títulos de sección del panel de `<nx-sidemenu>` se distinguen de sus pantallas.** Antes

@@ -284,6 +284,120 @@ nx-form :is(.nx-form__add, .nx-form__row-del):focus-visible {
   outline-offset: 2px;
 }
 
+/* ---------------------------------------------------------------- archivo */
+
+/* El <input type=file> de verdad va oculto a la vista pero recibe el foco; el anillo lo lleva lo que
+   se ve (la zona o el archivo elegido). */
+.nx-form__file {
+  position: relative;
+}
+.nx-form__file-input {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+}
+.nx-form__file-zone,
+.nx-form__file-card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: var(--nx-field-height, 36px);
+  padding: 8px 12px;
+  border: 1px dashed var(--nx-border-strong);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  transition:
+    border-color var(--nx-motion-fast),
+    background var(--nx-motion-fast);
+}
+.nx-form__file-zone {
+  flex-wrap: wrap;
+  cursor: pointer;
+
+  &:hover {
+    border-style: solid;
+    border-color: var(--nx-primary-border);
+    background: var(--nx-primary-soft);
+  }
+}
+.nx-form__file-card {
+  border-style: solid;
+  border-color: var(--nx-border);
+}
+.nx-form__file-icon {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+  color: var(--nx-text-tertiary);
+}
+.nx-form__file-say {
+  color: var(--nx-muted-foreground);
+  font-size: 13.5px;
+
+  & strong {
+    color: var(--nx-primary-ink);
+    font-weight: 600;
+  }
+}
+.nx-form__file-lim {
+  margin-inline-start: auto;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+}
+.nx-form__file-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-form__file-size {
+  flex: none;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.nx-form__file-del {
+  flex: none;
+  margin-inline-start: auto;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: none;
+  color: var(--nx-muted-foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--nx-danger-soft);
+    color: var(--nx-danger);
+  }
+}
+.nx-form__file-input:focus-visible ~ :is(.nx-form__file-zone, .nx-form__file-card) {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+.nx-form__file[data-over] .nx-form__file-zone,
+.nx-form__file[data-over] .nx-form__file-card {
+  border-style: solid;
+  border-color: var(--nx-primary);
+  background: var(--nx-primary-soft);
+}
+nx-field[data-invalid] :is(.nx-form__file-zone, .nx-form__file-card) {
+  border-color: var(--nx-danger);
+}
+nx-field[data-warning] :is(.nx-form__file-zone, .nx-form__file-card) {
+  border-color: var(--nx-warning);
+}
+
 /* ---------------------------------------------------------------- índice */
 
 .nx-form__index {

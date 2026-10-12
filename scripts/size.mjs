@@ -74,7 +74,7 @@ const BUDGET = [
   ["dist/page-header.js", 1.75 * 1024, "page-header + núcleo (ESM)"],
   ["dist/fields.js", 5.25 * 1024, "fields + núcleo (ESM; lectura, resumen y edición en la misma rejilla)"],
   ["dist/field.js", 4 * 1024, "field + núcleo (ESM; el campo de la casa)"],
-  ["dist/form.js", 18 * 1024, "form + field + núcleo (ESM; nx-number y nx-select con import() si el esquema los usa)"],
+  ["dist/form.js", 19.25 * 1024, "form + field + núcleo (ESM; con el campo de archivo; nx-number y nx-select con import() si el esquema los usa)"],
   ["dist/tabs.js", 2.75 * 1024, "tabs + núcleo (ESM)"],
   ["dist/breadcrumb.js", 4.5 * 1024, "breadcrumb + núcleo (ESM; colapso y «‹ Padre»)"],
   // Importa el chunk del componente (ya cargado en la página): la cifra lo incluye; el menú solo son ~2,1 KB.

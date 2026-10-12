@@ -17,11 +17,12 @@ export type FormFieldType =
   | "checkbox"
   | "checkboxes"
   | "readonly"
-  | "rows";
+  | "rows"
+  | "file";
 
 /** El valor de un campo: texto (también las fechas, en ISO «2026-10-13»), número, sí/no, una lista
- *  (casillas), las filas de un campo `rows` o `null` si está vacío. */
-export type FormValue = string | number | boolean | string[] | FormRow[] | null;
+ *  (casillas), las filas de un campo `rows`, el `File` de un campo `file` o `null` si está vacío. */
+export type FormValue = string | number | boolean | string[] | FormRow[] | File | null;
 
 /** Una fila de un campo `rows`: el valor de cada uno de sus campos. */
 export type FormRow = Record<string, string | number | boolean | string[] | null>;
@@ -94,6 +95,10 @@ export interface FormField {
   fields?: FormField[];
   /** `rows`: el botón para agregar una fila («Agregar beneficiario»). */
   addLabel?: string;
+  /** `file`: los tipos que sirven, con la sintaxis de `<input accept>` («.pdf,image/*»). */
+  accept?: string;
+  /** `file`: el tamaño máximo, en bytes (20 MB por defecto). */
+  maxSize?: number;
 }
 
 export interface FormSection {
@@ -190,6 +195,14 @@ export interface FormLabels {
   rowsMax: string;
   /** El nombre de una fila para el lector de pantalla: «{label} {n}». */
   rowName: string;
+  /** Archivo: el botón, la invitación a soltarlo, el tope («Hasta {max}»), quitarlo y los errores
+   *  («{accept}» son los tipos que sirven; «{max}», el tope). */
+  fileChoose: string;
+  fileDrop: string;
+  fileMax: string;
+  fileRemove: string;
+  fileBadType: string;
+  fileTooBig: string;
 }
 
 export interface FormChangeDetail {

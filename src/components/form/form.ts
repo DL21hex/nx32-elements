@@ -33,7 +33,8 @@ import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import "../field/index";
 import type { NxField } from "../field/field";
-import { check, cleanSections, coerce, dateLimit, displayValue, hasOptions, isEmpty, isNumeric, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
+import { formatBytes } from "../capture/logic";
+import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isNumeric, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
 import type { FormChangeDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
 
 export const FORM_LABELS: FormLabels = {
@@ -95,11 +96,19 @@ export const FORM_LABELS: FormLabels = {
   rowsMin: "Agrega al menos {n}",
   rowsMax: "Máximo {n}",
   rowName: "{label}, fila {n}",
+  fileChoose: "Elegir archivo",
+  fileDrop: "o suéltalo aquí",
+  fileMax: "Hasta {max}",
+  fileRemove: "Quitar",
+  fileBadType: "Ese tipo de archivo no sirve aquí: elige {accept}",
+  fileTooBig: "El archivo pasa de {max}",
 };
 
 const CHECK = '<path d="M20 6 9 17l-5-5"/>';
 const DOWN = '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>';
 const PLUS = '<path d="M5 12h14"/><path d="M12 5v14"/>';
+const UPLOAD = '<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>';
+const FILE = '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>';
 const TRASH = '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>';
 const SVG = "http://www.w3.org/2000/svg";
 const RING = 2 * Math.PI * 7;
@@ -529,6 +538,7 @@ export class NxForm extends Base {
       this.submit();
     });
     f.addEventListener("click", (e) => {
+      if (this.#onFileClick(e)) return;
       const b = (e.target as Element).closest?.<HTMLButtonElement>("button[data-act]");
       const box = b?.closest<HTMLElement>("fieldset[data-key]");
       const s = box && this.#slots.get(box.dataset.key!);
@@ -543,6 +553,10 @@ export class NxForm extends Base {
       this.#byPerson(s, fix.value);
       s.field.focus();
     });
+    // Un archivo también se suelta encima.
+    f.addEventListener("dragover", (e) => this.#onDrag(e, true));
+    f.addEventListener("dragleave", (e) => this.#onDrag(e, false));
+    f.addEventListener("drop", (e) => this.#onDrop(e));
     this.addEventListener("keydown", (e) => this.#onKey(e));
     this.#next.addEventListener("click", () => this.#goNext());
     this.#cancelBtn.addEventListener("click", () => this.#emit("nx-form-cancel", {}));
@@ -691,6 +705,8 @@ export class NxForm extends Base {
       }
       case "checkbox":
         return h("label", { class: "nx-check" }, h("input", { type: "checkbox", name, value: "true" }), h("span", null, def.label));
+      case "file":
+        return this.#fileControl(def, name);
       case "number":
       case "money":
       case "percent": {
@@ -715,6 +731,80 @@ export class NxForm extends Base {
         });
       }
     }
+  }
+
+  /**
+   * Un archivo: el `<input type=file>` de verdad (oculto a la vista, pero es el que recibe el foco,
+   * lleva la etiqueta del campo y abre el selector con Enter o Espacio), la zona para elegirlo o
+   * soltarlo y, ya elegido, su nombre, su tamaño y «Quitar». No sube nada: el valor es el `File`.
+   */
+  #fileControl(def: FieldDef, name: string): HTMLElement {
+    const L = this.#labels;
+    const id = `${this.#uid}-${name.replace(/[^\w-]/g, "_")}`;
+    const limits = [def.accept ? acceptText(def.accept) : "", tpl(L.fileMax, { max: formatBytes(fileMaxSize(def), this.#fmt.locale) })].filter(Boolean).join(" · ");
+    const input = h("input", { type: "file", name, class: "nx-form__file-input", accept: def.accept || null, "aria-describedby": `${id}-lim` });
+    input.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      if (this.mode !== "read") input.click();
+    });
+    const zone = h(
+      "div",
+      { class: "nx-form__file-zone", "aria-hidden": "true" },
+      glyph(UPLOAD, "nx-form__file-icon"),
+      h("span", { class: "nx-form__file-say" }, h("strong", null, L.fileChoose), " ", L.fileDrop),
+      h("span", { class: "nx-form__file-lim", id: `${id}-lim` }, limits),
+    );
+    const card = h(
+      "div",
+      { class: "nx-form__file-card", hidden: true },
+      glyph(FILE, "nx-form__file-icon"),
+      h("span", { class: "nx-form__file-name" }),
+      h("span", { class: "nx-form__file-size" }),
+      h("button", { type: "button", class: "nx-form__file-del", "data-act": "file-remove" }, L.fileRemove),
+    );
+    return h("div", { class: "nx-form__file" }, input, zone, card);
+  }
+
+  /** La zona abre el selector; «Quitar» lo deja vacío. Devuelve si el clic era suyo. */
+  #onFileClick(e: Event): boolean {
+    const t = e.target as Element;
+    const box = t.closest?.<HTMLElement>(".nx-form__file");
+    const s = box && this.#slot(keyOf(box));
+    if (!box || !s || s.def.type !== "file") return false;
+    if (this.mode === "read") return true;
+    const input = box.querySelector<HTMLInputElement>("input[type=file]")!;
+    if (t.closest(".nx-form__file-del")) {
+      this.#byPerson(s, null);
+      input.focus();
+    } else if (t.closest(".nx-form__file-zone")) input.click();
+    return true;
+  }
+
+  #fileBox(e: Event): { box: HTMLElement; s: Slot } | null {
+    const box = (e.target as Element).closest?.<HTMLElement>(".nx-form__file");
+    const s = box && this.#slot(keyOf(box));
+    return box && s && s.def.type === "file" && this.mode !== "read" ? { box, s } : null;
+  }
+
+  #onDrag(e: DragEvent, over: boolean): void {
+    const at = this.#fileBox(e);
+    if (!at) return;
+    if (over) {
+      if (![...(e.dataTransfer?.types ?? [])].includes("Files")) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+      at.box.toggleAttribute("data-over", true);
+    } else if (!(e.relatedTarget instanceof Node && at.box.contains(e.relatedTarget))) at.box.removeAttribute("data-over");
+  }
+
+  #onDrop(e: DragEvent): void {
+    const at = this.#fileBox(e);
+    if (!at) return;
+    e.preventDefault();
+    at.box.removeAttribute("data-over");
+    const file = e.dataTransfer?.files?.[0];
+    if (file) this.#byPerson(at.s, file);
   }
 
   /** Los valores de partida: los de `values` o, si no, los del esquema. */
@@ -886,6 +976,9 @@ export class NxForm extends Base {
         return !!ctl.querySelector<HTMLInputElement>("input")?.checked;
       case "checkboxes":
         return [...ctl.querySelectorAll<HTMLInputElement>("input:checked")].map((i) => i.value);
+      case "file":
+        // Cancelar el selector no quita el que ya estaba.
+        return ctl.querySelector<HTMLInputElement>("input[type=file]")?.files?.[0] ?? this.#get(s);
       case "radio":
       case "segmented":
         return ctl.querySelector<HTMLInputElement>("input:checked")?.value ?? null;
@@ -921,6 +1014,8 @@ export class NxForm extends Base {
       case "segmented":
         for (const i of ctl.querySelectorAll<HTMLInputElement>("input")) i.checked = Array.isArray(v) ? (v as unknown[]).includes(i.value) : i.value === v;
         return;
+      case "file":
+        return this.#writeFile(ctl, v);
       case "select": {
         const sel = ctl as HTMLSelectElement;
         const val = v == null ? "" : String(v);
@@ -934,6 +1029,31 @@ export class NxForm extends Base {
     }
   }
 
+  /** El archivo elegido a la vista: su nombre y su tamaño, o la zona para elegirlo. */
+  #writeFile(ctl: HTMLElement, v: FormValue): void {
+    const file = isFile(v) ? v : null;
+    const input = ctl.querySelector<HTMLInputElement>("input[type=file]")!;
+    const card = ctl.querySelector<HTMLElement>(".nx-form__file-card")!;
+    ctl.querySelector<HTMLElement>(".nx-form__file-zone")!.hidden = !!file;
+    card.hidden = !file;
+    ctl.toggleAttribute("data-filled", !!file);
+    if (!file) {
+      // El mismo archivo, elegido otra vez después de quitarlo, vuelve a avisar.
+      if (input.value)
+        try {
+          input.value = "";
+        } catch {
+          /* algunos navegadores no lo permiten */
+        }
+      return;
+    }
+    card.querySelector(".nx-form__file-name")!.textContent = file.name;
+    card.querySelector(".nx-form__file-size")!.textContent = formatBytes(file.size, this.#fmt.locale);
+    const del = card.querySelector<HTMLButtonElement>(".nx-form__file-del")!;
+    del.textContent = this.#labels.fileRemove;
+    del.setAttribute("aria-label", `${this.#labels.fileRemove} ${file.name}`);
+  }
+
   // ---------------------------------------------------------------- lo que hace la persona
 
   #onEdit(e: Event): void {
@@ -941,11 +1061,15 @@ export class NxForm extends Base {
     const s = this.#slot(keyOf(e.target));
     if (!s || s.def.type === "rows") return;
     const v = this.#read(s);
-    if (sameValue(v, this.#get(s))) return;
+    // El mismo archivo llega con `input` y con `change`; `<nx-field>` borra el error con cada uno: se
+    // vuelve a poner (un archivo que no sirve se avisa al elegirlo).
+    if (sameValue(v, this.#get(s))) return void (s.def.type === "file" && this.#paint());
     // Una lista, una fecha o una opción se dan por revisadas al elegir; el texto, al salir.
     const t = s.def.type;
     if (t !== "text" && t !== "textarea" && t !== "email" && t !== "tel" && t !== "url" && !isNumeric(t)) this.#touched.add(s.key);
     this.#setByPerson(s, v);
+    // El archivo elegido se ve con su nombre (los demás controles ya muestran lo que se escribió).
+    if (t === "file") this.#write(s);
   }
 
   /** La persona puso este valor (escribiendo o con el arreglo de un aviso). */
@@ -1026,7 +1150,7 @@ export class NxForm extends Base {
     // Un select con buscador usa Enter para elegir: ahí no.
     if (e.key !== "Enter" || mod || e.shiftKey || e.altKey || e.isComposing || e.defaultPrevented || this.mode === "read") return;
     const t = e.target;
-    if (!(t instanceof HTMLInputElement || t instanceof HTMLSelectElement) || t.type === "submit" || t.type === "button" || t.closest("nx-select")) return;
+    if (!(t instanceof HTMLInputElement || t instanceof HTMLSelectElement) || t.type === "submit" || t.type === "button" || t.type === "file" || t.closest("nx-select")) return;
     const k = keyOf(t);
     if (!k || !this.#form!.contains(t)) return;
     e.preventDefault();
@@ -1107,6 +1231,8 @@ export class NxForm extends Base {
         }
         continue;
       }
+      // Un archivo solo llega como `File` (o `null`, que lo quita): un texto no es un archivo.
+      if (def.type === "file" && raw !== null && !isFile(raw)) continue;
       const v = coerce(def, raw, this.#fmt);
       const cur = this.#v[k] ?? null;
       const typed = !force && def.type !== "readonly" && this.#touched.has(k) && !this.#marks[k] && !isEmpty(cur);
@@ -1475,7 +1601,7 @@ export class NxForm extends Base {
     let any = false;
     for (const [k, raw] of Object.entries(d.v)) {
       const def = this.#defs.get(k);
-      if (!def || def.type === "readonly") continue;
+      if (!def || def.type === "readonly" || def.type === "file") continue;
       const v = coerce(def, raw, this.#fmt);
       if (sameValue(v, this.#v[k])) continue;
       this.#v[k] = v;
@@ -1503,7 +1629,8 @@ export class NxForm extends Base {
     if (!key) return;
     // Solo lo que cambió frente al registro: al volver, se aplica encima del que traiga la app.
     const v: Record<string, FormValue> = {};
-    for (const k of this.#defs.keys()) if (!sameValue(this.#v[k], this.#initial[k])) v[k] = this.#v[k] ?? null;
+    // Un archivo no va al borrador: no cabe en `localStorage` y el navegador no deja reponerlo.
+    for (const [k, def] of this.#defs) if (def.type !== "file" && !sameValue(this.#v[k], this.#initial[k])) v[k] = this.#v[k] ?? null;
     try {
       if (Object.keys(v).length) {
         const t = Date.now();

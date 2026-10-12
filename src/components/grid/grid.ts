@@ -932,6 +932,21 @@ export class NxGrid extends Base {
   get count(): number {
     return this.#rowCount();
   }
+  /**
+   * Los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que
+   * se ven: el orden de la tabla y, agrupada, grupo por grupo (también las de un grupo plegado).
+   * Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin
+   * repetir los filtros ni el orden en la app. Con `source`, los de las filas ya cargadas, en ese
+   * orden (no las de las páginas que aún no se pidieron).
+   */
+  get shownIds(): string[] {
+    const rows = this.#server
+      ? [...this.#blocks].sort((a, b) => a[0] - b[0]).flatMap(([, b]) => (Array.isArray(b) ? b : []))
+      : this.#groups
+        ? this.#groups.flatMap((g) => g.rows)
+        : this.#sorted;
+    return rows.map((r) => this.#ids.get(r)).filter((id): id is string => id !== undefined);
+  }
   /** Las filas seleccionadas (las que están cargadas). */
   get selectedRows(): GridRow[] {
     return this.selected.map((id) => this.#byId.get(id)).filter((r): r is GridRow => !!r);

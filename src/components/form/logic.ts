@@ -4,9 +4,12 @@
  * servidor puede usar lo mismo.
  */
 import type { NxFormat } from "../../core/locale";
+import { acceptsFile, formatBytes } from "../capture/logic";
 import type { FormCondition, FormField, FormFieldType, FormLabels, FormOption, FormRow, FormRule, FormSection, FormValue } from "./types";
 
-export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows"];
+export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows", "file"];
+/** El tamaño máximo de un archivo si el campo no trae `maxSize` (20 MB, como `<nx-doc-capture>`). */
+export const FILE_MAX_SIZE = 20 * 1024 * 1024;
 /** Con más opciones que esto, un `select` lleva buscador (`<nx-select>`). */
 export const SEARCH_FROM = 12;
 const NUMERIC = new Set<FormFieldType>(["number", "money", "percent"]);
@@ -63,6 +66,11 @@ function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean)
     return null;
   }
   const t = f.type as FormFieldType;
+  // Un archivo no va en una fila: su valor no es texto y las filas se guardan en el borrador.
+  if (nested && t === "file") {
+    console.warn(`[nx-form] un archivo no va dentro de una fila: "${key}" no se pinta`);
+    return null;
+  }
   if (t !== undefined && (!FORM_TYPES.includes(t) || (nested && t === "rows"))) console.warn(`[nx-form] tipo ${nested && t === "rows" ? "rows dentro de una fila" : `desconocido "${String(t)}"`} en "${key}": se usa text`);
   const type: FormFieldType = FORM_TYPES.includes(t) && !(nested && t === "rows") ? t : "text";
   const options = (Array.isArray(f.options) ? f.options : []).map(optionOf).filter((o): o is FormOption => !!o);
@@ -100,6 +108,30 @@ export function cleanSections(raw: unknown): SectionDef[] {
     out.push({ id: str(s.id) || `s${i + 1}`, heading: str(s.heading), description: str(s.description), fields });
   });
   return out;
+}
+
+/** Un archivo del navegador (`File`). Por su forma, no con `instanceof`: sirve con el `File` de otro
+ *  marco (un iframe) y en el servidor. */
+export function isFile(v: unknown): v is File {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const f = v as Record<string, unknown>;
+  return typeof f.name === "string" && typeof f.size === "number" && typeof f.type === "string" && typeof f.slice === "function";
+}
+
+/** El tope de un campo `file`, en bytes. */
+export function fileMaxSize(def: Pick<FormField, "maxSize">): number {
+  const n = numLimit(def.maxSize);
+  return n !== null && n > 0 ? n : FILE_MAX_SIZE;
+}
+
+/** `accept` para leerlo: «.pdf, image/*» → «PDF, image/*». */
+export function acceptText(accept: string): string {
+  return accept
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => (t.startsWith(".") ? t.slice(1).toUpperCase() : t))
+    .join(", ");
 }
 
 /** Vacío: `null`, texto en blanco, lista sin elementos o una casilla sin marcar. */
@@ -241,6 +273,12 @@ export function check(def: FieldDef, value: FormValue | undefined, ctx: CheckCon
     if (def.required) out.error = def.type === "checkbox" ? L.check : hasOptions(def.type) ? L.choose : L.required;
     return out;
   }
+  if (def.type === "file") {
+    if (!isFile(value)) out.error = L.required;
+    else if (def.accept && !acceptsFile(def.accept, value.name, value.type)) out.error = fill(L.fileBadType, { accept: acceptText(def.accept) });
+    else if (value.size > fileMaxSize(def)) out.error = fill(L.fileTooBig, { max: formatBytes(fileMaxSize(def), ctx.fmt.locale) });
+    return out;
+  }
   const text = typeof value === "string" ? value.trim() : "";
   switch (def.type) {
     case "email": {
@@ -322,6 +360,7 @@ export function displayValue(def: FieldDef, value: FormValue | undefined, fmt: N
   if (def.type === "checkbox") return value ? labels.yes : labels.no;
   if (isEmpty(value)) return "";
   if (def.type === "rows") return String(Array.isArray(value) ? value.length : 0);
+  if (isFile(value)) return value.name;
   if (Array.isArray(value)) return (value as string[]).map((v) => optionLabel(def, String(v))).join(", ");
   if (typeof value === "number") {
     if (def.type === "money") return fmt.money(value, { currency: def.currency ?? currency });
@@ -361,6 +400,9 @@ export function coerce(def: FieldDef, v: unknown, fmt: NxFormat): FormValue {
     });
   }
   if (v === null || v === undefined) return def.type === "checkbox" ? false : def.type === "checkboxes" ? [] : null;
+  // Un archivo solo es un `File`: un texto (el nombre que trae un registro, un borrador) no lo es.
+  if (def.type === "file") return isFile(v) ? v : null;
+  if (isFile(v)) return null;
   switch (def.type) {
     case "checkbox":
       return v === true || v === "true" || v === 1 || v === "1" || v === "on";

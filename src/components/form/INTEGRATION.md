@@ -2,7 +2,9 @@
 
 Un formulario entero desde un esquema JSON (`sections` o `fields`): cada campo es un `<nx-field>`
 con su control (montos y números con `<nx-number>`; listas largas, con `search` o `source`, con
-`<nx-select>`; los dos se cargan aparte, solo si el esquema los usa). Filas (`rows`), condiciones
+`<nx-select>`; los dos se cargan aparte, solo si el esquema los usa). Filas (`rows`), un archivo
+(`file`: el valor es el `File`, la app lo sube; `accept` y `maxSize` con la lógica de
+`<nx-doc-capture>`, `capture/logic.ts`; nunca en una fila ni en el borrador), condiciones
 (`when`), lo habitual de una opción (`fills`), llenar desde afuera con origen (`fill`, `undo`),
 validación al salir o al enviar, avisos con arreglo, índice de secciones, pie con lo que falta,
 borrador en el navegador (`draft`) y lectura (`mode="read"`).
@@ -27,5 +29,5 @@ van siempre como texto (nunca HTML).
 
 | Pieza | Tamaño (min + gzip) | Referencia |
 |---|---|---|
-| `dist/form.js` (con `<nx-field>` y el núcleo; `<nx-number>` y `<nx-select>` con `import()`) | 17,75 KB | 18 KB |
-| `dist/form.css` (con `field.css`) | 3,47 KB | 3,75 KB |
+| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>` y `<nx-select>` con `import()`) | 19,12 KB | 19,25 KB |
+| `dist/form.css` (con `field.css`) | 3,70 KB | 3,75 KB |

@@ -30,6 +30,8 @@ export interface ChartValueOptions {
 /** Un valor escrito con el locale. Un porcentaje llega como fracción (0,25 → «25 %»). */
 export function chartValue(v: number, o: ChartValueOptions): string {
   if (!Number.isFinite(v)) return "";
+  // -0 (una suma vacía en Rust, `-0.0` en el JSON) se escribiría «-0»: + 0 lo vuelve 0.
+  v += 0;
   const f = nxFormat(o.locale);
   const d = typeof o.decimals === "number" && o.decimals >= 0 ? Math.min(6, Math.floor(o.decimals)) : null;
   if (o.format === "percent") {
@@ -81,10 +83,11 @@ export function niceTicks(min: number, max: number, count = 5, zero = false): nu
   const k1 = Math.ceil(max / step - 1e-9);
   // Un rango que no cabe en un `number` (±1e308) o un paso que se pierde junto a valores enormes
   // (1e17 con un rango de 64: `k + 1 === k` pasado 2⁵³) no dan ticks redondos: los extremos, y ya.
-  if (!Number.isFinite(step) || step <= 0 || !Number.isSafeInteger(k0) || !Number.isSafeInteger(k1) || k1 - k0 > 100) return [min, max];
+  if (!Number.isFinite(step) || step <= 0 || !Number.isSafeInteger(k0) || !Number.isSafeInteger(k1) || k1 - k0 > 100) return [min + 0, max + 0];
   const ticks: number[] = [];
   // En pasos enteros y con 12 cifras, contra el ruido del punto flotante (3 × 0,2 = 0,6000…01).
-  for (let k = k0; k <= k1; k++) ticks.push(+(k * step).toPrecision(12));
+  // (+ 0: un tick en -0 se escribiría «-0».)
+  for (let k = k0; k <= k1; k++) ticks.push(+(k * step).toPrecision(12) + 0);
   return ticks;
 }
 

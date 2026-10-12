@@ -32,8 +32,8 @@ function svg(tag: string, attrs: Record<string, string | number>): SVGElement {
 
 /** El valor escrito con el locale: un número con su formato; un texto, tal cual. */
 export function statValue(item: StatItem, locale: string): string {
-  const v = item.value;
-  if (!finite(v)) return String(v ?? "");
+  if (!finite(item.value)) return String(item.value ?? "");
+  const v = item.value + 0; // -0 → 0: nada de «-0 %»
   const f = nxFormat(locale);
   if (item.format === "money") return f.money(v, { currency: item.currency });
   if (item.format === "percent") {

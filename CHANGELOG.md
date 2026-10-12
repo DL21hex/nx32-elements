@@ -1,5 +1,14 @@
 # Registro de cambios
 
+## 0.16.1 — 2026-10-12
+
+- **Los gráficos ya no escriben «-0».** Un `-0.0` en el JSON (en Rust, `Iterator::sum` de ningún
+  `f64` da -0.0) salía «-0», «-0 %» o «-$ 0» en tooltips, ejes, totales y celdas de `<nx-bars>`,
+  `<nx-heatmap>`, `<nx-parts>`, `<nx-phases>`, `<nx-trend>` y `<nx-stats>`. Ahora el formato lo
+  vuelve 0 en el origen: `chartValue` (y con él `shareText`), los ticks de `niceTicks`, la cifra de
+  `<nx-stats>` y `nxFormat` (`number`, `compact`, `money`), así que tampoco sale en `<nx-grid>`.
+  Los negativos de verdad conservan su signo.
+
 ## 0.16.0 — 2026-10-12
 
 - **`<nx-board>` y `<nx-board-panel>`: un tablero BI con filtros cruzados.** Una grilla de 12

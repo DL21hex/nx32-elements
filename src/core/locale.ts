@@ -134,11 +134,13 @@ function build(locale: string): NxFormat {
     }
     return pair;
   };
+  // `n + 0`: -0 (`-0.0` en un JSON) se escribiría «-0», «-$ 0».
   return {
     locale,
-    number: (n) => space(nf.format(n)),
-    compact: (n) => space(cf.format(n)),
+    number: (n) => space(nf.format(n + 0)),
+    compact: (n) => space(cf.format(n + 0)),
     money(n, c, short = false) {
+      n += 0;
       const code = c.currency ?? "";
       if (/^[A-Z]{3}$/.test(code)) {
         try {

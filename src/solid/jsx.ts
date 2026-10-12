@@ -429,6 +429,7 @@ declare module "solid-js" {
       locked: boolean;
       "no-footer": boolean;
       "no-group": boolean;
+      "client-only": boolean;
     }
     interface CustomEvents {
       "nx-jobs-change": CustomEvent<{ jobs: Job[] }>;

@@ -16,6 +16,9 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   source?: string;
   /** Con `source`: si la consulta completa tiene hasta este tanto de filas, se trae una vez y se filtra en el cliente. */
   clientMax?: number;
+  /** Con `source`: el origen solo sirve el conjunto entero. Se pide una vez sin filtros, búsqueda
+   *  ni orden (hasta `clientMax` filas, o 20.000) y todo se filtra aquí. */
+  clientOnly?: boolean;
   filters?: GridFilter[];
   sort?: GridSort | null;
   /** Buscar en la tabla: lo que dice la caja (asignarlo busca). */
@@ -87,7 +90,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "noGroup", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "clientOnly", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "noGroup", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -112,6 +115,7 @@ export function Grid(props: GridProps): JSX.Element {
       on:nx-grid-layout={own((e) => local.onLayout?.(e))}
       attr:source={local.source}
       attr:client-max={local.clientMax ? String(local.clientMax) : undefined}
+      bool:client-only={!!local.clientOnly}
       attr:group-by={local.groupBy}
       attr:height={local.height === undefined ? undefined : String(local.height)}
       attr:heading={local.heading || undefined}

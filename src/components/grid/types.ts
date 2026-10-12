@@ -371,11 +371,27 @@ export interface GridPage {
   matrix?: GridMatrixCell[];
 }
 
-/** `nx-grid-error`: un bloque del servidor no llegó (se vuelve a pedir más tarde, con más espera cada vez). */
+/**
+ * `nx-grid-error`: un bloque del servidor no llegó. Se vuelve a pedir más tarde, con más espera cada
+ * vez, solo si el fallo puede pasar solo (la red, un 5xx o un 429); un 4xx no se repite: lo arregla
+ * la persona o la app (`retrying: false`). Sale una vez por intento: para avisar una sola vez por
+ * fallo, la app mira `attempt === 1`.
+ */
 export interface GridErrorDetail {
   offset: number;
   limit: number;
+  /** El fallo en una línea (`HTTP 500`, o el mensaje de la red), como antes de la 0.17.0. */
   error: string;
+  /** El estado HTTP; 0 si no hubo respuesta (la red, una respuesta que no se pudo leer). */
+  status: number;
+  /** Lo que dice el servidor (el `error` o el `message` de su JSON) o, si no dice nada, `error`. */
+  message: string;
+  /** El cuerpo de la respuesta: el JSON leído, el texto si no es JSON, o `null`. */
+  body: unknown;
+  /** Qué intento de este bloque fue (1 el primero). */
+  attempt: number;
+  /** Si la tabla lo volverá a pedir sola. */
+  retrying: boolean;
 }
 
 /** `nx-grid-action`: la persona pulsó el botón de una acción de fila (las que son enlace no emiten). */

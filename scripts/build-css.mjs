@@ -55,6 +55,7 @@ const entries = {
   "intent": "src/components/intent/intent.css",
   "tracker": "src/components/tracker/tracker.css",
   "stats": "src/components/stats/stats.css",
+  "board": "src/components/board/board.css",
   "cards": "src/components/cards/cards.css",
   "handoff": "src/components/handoff/handoff.css",
   "award": "src/components/award/award.css",

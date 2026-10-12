@@ -1,0 +1,235 @@
+/*
+ * <nx-board> y <nx-board-panel>. Una grilla de 12 columnas; cada panel dice cuántas ocupa (`span`).
+ * El tablero es su propio contenedor: cuando se angosta (≤ 1100 px), los paneles de 7 o más van a lo
+ * ancho y los de 6 o menos a media fila; en lo angosto (≤ 640 px), todos a lo ancho. `dense` llena
+ * los huecos con los paneles que vienen después.
+ *
+ * Variables propias:
+ *   --nx-board-gap (14px): el espacio entre paneles
+ *   --nx-board-dim (0.35): la opacidad de una marca atenuada
+ */
+
+nx-board {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: var(--nx-board-gap, 14px);
+  container: nx-board / inline-size;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+  /* Los chips van al final del DOM y `order` los sube: Tab y el lector siguen lo que se ve. */
+  reading-flow: grid-order;
+}
+/* Lo que no es un panel (los controles de la app en `slot="filters"`, otro bloque) va a lo ancho. */
+nx-board > * {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+nx-board > [slot="filters"] {
+  order: -2;
+}
+nx-board > nx-board-panel {
+  grid-column: span var(--nx-board-span, 12);
+  align-self: stretch;
+}
+nx-board-panel[span="1"] { --nx-board-span: 1; }
+nx-board-panel[span="2"] { --nx-board-span: 2; }
+nx-board-panel[span="3"] { --nx-board-span: 3; }
+nx-board-panel[span="4"] { --nx-board-span: 4; }
+nx-board-panel[span="5"] { --nx-board-span: 5; }
+nx-board-panel[span="6"] { --nx-board-span: 6; }
+nx-board-panel[span="7"] { --nx-board-span: 7; }
+nx-board-panel[span="8"] { --nx-board-span: 8; }
+nx-board-panel[span="9"] { --nx-board-span: 9; }
+nx-board-panel[span="10"] { --nx-board-span: 10; }
+nx-board-panel[span="11"] { --nx-board-span: 11; }
+@container nx-board (max-width: 1100px) {
+  nx-board > nx-board-panel:is([span="7"], [span="8"], [span="9"], [span="10"], [span="11"]) {
+    --nx-board-span: 12;
+  }
+  nx-board > nx-board-panel:is([span="1"], [span="2"], [span="3"], [span="4"], [span="5"], [span="6"]) {
+    --nx-board-span: 6;
+  }
+}
+@container nx-board (max-width: 640px) {
+  nx-board > nx-board-panel {
+    --nx-board-span: 12;
+  }
+}
+
+/* ---------------------------------------------------------------- chips */
+
+.nx-board__chips {
+  order: -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 28px;
+
+  &:focus {
+    outline: none;
+  }
+}
+.nx-board__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 28px;
+  padding-inline: 10px 6px;
+  border: 1px solid var(--nx-primary-border);
+  border-radius: 14px;
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in oklab, var(--nx-primary-soft), var(--nx-primary) 8%);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 1px;
+  }
+  & .nx-glyph {
+    inline-size: 13px;
+    block-size: 13px;
+  }
+}
+.nx-board__chip-dim {
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.nx-board__clear {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--nx-muted-foreground);
+  font: inherit;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--nx-foreground);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+  }
+}
+.nx-board__hint {
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+}
+
+/* ---------------------------------------------------------------- marcas */
+
+/* Cualquier descendiente con `data-nx-filter` filtra el tablero: se ve que se toca y, cuando su
+   dimensión tiene algo elegido que no es ella, se atenúa. */
+nx-board [data-nx-filter] {
+  cursor: pointer;
+}
+nx-board [data-nx-filter-state="off"] {
+  opacity: var(--nx-board-dim, 0.35);
+}
+@media (prefers-reduced-motion: no-preference) {
+  nx-board [data-nx-filter] {
+    transition: opacity var(--nx-motion-fast, 140ms);
+  }
+}
+
+/* ---------------------------------------------------------------- panel */
+
+/* Una tarjeta: el título (y el subtítulo) arriba a la izquierda, sus controles a la derecha y el
+   contenido debajo, a lo ancho. El bloque del título va al final del DOM: `grid-row: 1` lo sube. */
+nx-board-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  gap: 12px 10px;
+  min-inline-size: 0;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-lg, 12px);
+  background: var(--nx-card, var(--nx-background));
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+  reading-flow: grid-order;
+}
+nx-board-panel[variant="plain"] {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+nx-board-panel > * {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+nx-board-panel > .nx-board-panel__head {
+  grid-row: 1;
+  grid-column: 1;
+}
+nx-board-panel > [slot="actions"] {
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.nx-board-panel__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.nx-board-panel__subheading {
+  margin: 2px 0 0;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+nx-board-panel[busy] > :not(.nx-board-panel__head, [slot="actions"]) {
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+  nx-board-panel > :not(.nx-board-panel__head) {
+    transition: opacity var(--nx-motion-base, 200ms);
+  }
+}
+
+/* Reservado: se ve el título y el aviso, no el contenido. */
+nx-board-panel[data-nx-reserved] > :not(.nx-board-panel__head, .nx-board-panel__reserved) {
+  display: none;
+}
+.nx-board-panel__reserved {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--nx-border);
+  border-radius: var(--nx-radius-md, 8px);
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+
+  & .nx-glyph {
+    flex: none;
+    inline-size: 15px;
+    block-size: 15px;
+    margin-block-start: 2px;
+  }
+}

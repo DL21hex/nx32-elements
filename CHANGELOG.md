@@ -1,5 +1,19 @@
 # Registro de cambios
 
+## 0.16.0 — 2026-10-12
+
+- **`<nx-board>` y `<nx-board-panel>`: un tablero BI con filtros cruzados.** Una grilla de 12
+  columnas con sus paneles (`span`, `heading`, `subheading`, `slot="actions"`) que comparten un
+  estado de filtros. Cualquier descendiente con `data-nx-filter="dimensión:valor"` es una marca: un
+  clic filtra todo el tablero (con Ctrl, Cmd o Mayús, suma), y el panel dueño de esa dimensión no se
+  filtra a sí mismo: el tablero marca cada marca como elegida o atenuada (`data-nx-filter-state`,
+  `aria-pressed`). Arriba, un chip por filtro y «Quitar filtros». El tablero no calcula: avisa
+  (`nx-board-change` `{filters, changed, reserved}`) y cada panel sabe qué pedir (`panel.filters`).
+  Con `restricted`, filtrar por una dimensión `sensitive` (el diagnóstico) reserva los paneles
+  `personal`. Funciones sueltas para calcular en el cliente (`matchesFilters`, `applyPairs`…). Sale
+  de la maqueta `maquetas/nx-board-incapacidades.html`; los gráficos que van adentro (mapa de calor,
+  barras, partes de un todo) vienen después.
+
 ## 0.15.0 — 2026-10-12
 
 - **`<nx-history variant="plain">`: sólo la línea de tiempo.** Sin buscador, sin filtros por

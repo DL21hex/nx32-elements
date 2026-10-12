@@ -106,6 +106,9 @@ import type { NxRecurrence } from "../components/recurrence/recurrence";
 import type { RecurrenceChangeDetail, RecurrenceErrorDetail, RecurrenceHolidayMode, RecurrenceLabels, RecurrenceRule, RecurrenceValue, RecurrenceValueFormat } from "../components/recurrence/types";
 import type { NxJobs } from "../components/jobs/jobs";
 import type { Job, JobEvent, JobResult, JobSpec, JobStatus, JobsErrorDetail, JobsLabels } from "../components/jobs/types";
+import type { NxBoard } from "../components/board/board";
+import type { NxBoardPanel } from "../components/board/panel";
+import type { BoardChangeDetail, BoardDimension, BoardFilters, BoardLabels } from "../components/board/types";
 import type { NxSidemenu } from "../components/sidemenu/sidemenu";
 import type { MenuItem, OpenChangeDetail, SelectDetail, SidemenuLabels, ToggleDetail } from "../components/sidemenu/types";
 
@@ -159,7 +162,7 @@ declare module "solid-js" {
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | undefined;
       schema: CaptureSchemaItem[] | undefined;
       suggestions: string[] | undefined;
       context: unknown;
@@ -181,7 +184,8 @@ declare module "solid-js" {
       columns: GridColumn[] | KanbanColumn[] | ImportColumnInput[];
       cards: KanbanCard[] | undefined;
       rows: GridRow[] | CardsRow[] | undefined;
-      filters: GridFilter[] | undefined;
+      filters: GridFilter[] | BoardFilters | undefined;
+      dimensions: BoardDimension[] | undefined;
       sort: GridSort | null | undefined;
       search: string | undefined;
       view: Partial<GridView> | undefined;
@@ -270,7 +274,7 @@ declare module "solid-js" {
       active: string | undefined;
       label: string | undefined;
       icon: string | undefined;
-      variant: ButtonVariant | FieldsVariant | FormVariant | HistoryVariant | undefined;
+      variant: ButtonVariant | FieldsVariant | FormVariant | HistoryVariant | "plain" | undefined;
       type: "button" | "submit" | "reset" | undefined;
       "log-mode": LogMode | undefined;
       stream: string | undefined;
@@ -342,6 +346,8 @@ declare module "solid-js" {
       warning: string | undefined;
       "source-detail": string | undefined;
       span: string | undefined;
+      /** La dimensión de un `<nx-board-panel>`. */
+      dimension: string | undefined;
       field: string | undefined;
       draft: string | undefined;
       "submit-label": string | undefined;
@@ -369,6 +375,8 @@ declare module "solid-js" {
       collapsible: boolean;
       "auto-collapse": boolean;
       busy: boolean;
+      restricted: boolean;
+      personal: boolean;
       "icon-only": boolean;
       "new-tab": boolean;
       download: boolean;
@@ -431,6 +439,7 @@ declare module "solid-js" {
       "nx-intent-submit": CustomEvent<IntentSubmitDetail>;
       "nx-tracker-select": CustomEvent<TrackerSelectDetail>;
       "nx-stats-select": CustomEvent<StatsSelectDetail>;
+      "nx-board-change": CustomEvent<BoardChangeDetail>;
       "nx-cards-open": CustomEvent<CardsOpenDetail>;
       "nx-cards-action": CustomEvent<CardsActionDetail>;
       "nx-cards-level": CustomEvent<{ level: CardsLevel }>;
@@ -560,6 +569,8 @@ declare module "solid-js" {
       "nx-intent": HTMLAttributes<NxIntent>;
       "nx-tracker": HTMLAttributes<NxTracker>;
       "nx-stats": HTMLAttributes<NxStats>;
+      "nx-board": HTMLAttributes<NxBoard>;
+      "nx-board-panel": HTMLAttributes<NxBoardPanel> & { heading?: string };
       "nx-cards": HTMLAttributes<NxCards>;
       "nx-handoff": HTMLAttributes<NxHandoff> & { endpoint?: string; for?: string };
       "nx-guard": HTMLAttributes<NxGuard> & { endpoint?: string };

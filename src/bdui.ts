@@ -51,6 +51,8 @@ const registry = new Map<string, Entry>(
     Intent: "intent",
     Tracker: "tracker",
     Stats: "stats",
+    Board: "board",
+    BoardPanel: "board-panel",
     Cards: "cards",
     Print: "print",
     Badge: "badge",

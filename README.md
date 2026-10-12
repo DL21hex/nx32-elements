@@ -30,6 +30,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-intent>` + lector de fechas y montos + núcleo (ESM) | ≈ 6,8 KB |
 | `<nx-tracker>` + festivos + núcleo (ESM) | ≈ 4,5 KB |
 | `<nx-stats>` + núcleo (ESM) | ≈ 4 KB |
+| `<nx-board>` + núcleo (ESM) | ≈ 4,9 KB |
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
 | `<nx-org>` + núcleo (ESM) | ≈ 13,2 KB |
 | `<nx-breadcrumb>` + núcleo (ESM); el menú de hermanos, ≈ 1,8 KB, se carga al abrir el primero | ≈ 5,3 KB |
@@ -2017,6 +2018,72 @@ después el mejor puente corto de cada mes.
 | `<nx-stats>` | `items` (`[{id?, label, value, format?, currency?, note?, badge?, trend?, meter?, ring?, href?, newTab?}]`), `layout`, `locale`, `labels` · `nx-stats-select` `{item, href}` (cancelable) |
 | `<nx-timeline>` | `lanes`, `items`, `legend` (`[{mark, label}]`), `holidays`, `start`, `end`, `today`, `heading`, `heading-level`, `summary`, `highlight`, `locale`, `labels` · `focusItem(id?)`, `scrollToDay(iso?)` · `nx-timeline-select` `{item, href, newTab}` (cancelable; `newTab` en una marca abre su enlace en otra pestaña) · CSS `--nx-timeline-bars`/`-ranges`/`-points`/`-axis` (altos), `--nx-timeline-month`, `--nx-timeline-label` |
 | `<nx-tracker>` | `items` (`[{id, title, subtitle?, icon?, eyebrow?, status?, steps?, days?, href?, actions?}]`), `holidays`, `workdays`, `empty`, `heading-level`, `locale`, `labels` · `nx-tracker-select` `{item, action, href}` (cancelable) |
+
+## `<nx-board>` y `<nx-board-panel>`
+
+**Un tablero BI**: una grilla de paneles que comparten sus filtros. Tocar una marca (una barra, una
+celda, una fila, un ítem de la leyenda) filtra todo el tablero, y el panel dueño de esa dimensión no
+se filtra a sí mismo: resalta lo elegido y atenúa lo demás. El tablero no calcula: dice qué está
+elegido y avisa; la app pide o calcula cada panel.
+
+```html
+<nx-board id="tablero">
+  <div slot="filters"><!-- período, sede: los controles de la app --></div>
+  <nx-board-panel span="12" variant="plain"><nx-stats id="cifras"></nx-stats></nx-board-panel>
+  <nx-board-panel span="8" heading="Días de incapacidad por mes" dimension="mes tipo" id="por-mes">
+    <div slot="actions"><!-- Días · Incapacidades · Valor --></div>
+    <button data-nx-filter="tipo:AT" data-nx-label="Accidente de trabajo">Accidente de trabajo</button>
+    <svg><rect data-nx-filter="mes:2026-08" …></rect></svg>
+  </nx-board-panel>
+  <nx-board-panel span="4" heading="Diagnósticos" dimension="cie" id="dx">…</nx-board-panel>
+  <nx-board-panel span="12" heading="Detalle" personal><nx-grid></nx-grid></nx-board-panel>
+</nx-board>
+<script>
+  tablero.dimensions = [
+    { id: "tipo", label: "Tipo", values: { AT: "Accidente de trabajo", EG: "Enfermedad general" } },
+    { id: "cie", label: "Diagnóstico", sensitive: true },
+  ];
+  tablero.addEventListener("nx-board-change", (e) => {
+    // Cada panel pide lo suyo: los filtros del tablero menos su propia dimensión.
+    for (const p of tablero.querySelectorAll("nx-board-panel")) pedir(p.id, p.filters);
+  });
+</script>
+```
+
+- **Marcas.** Cualquier descendiente con `data-nx-filter="dimensión:valor"` es una marca: no hace
+  falta que sea de la librería (un `<button>`, un `<rect>`, una fila). Una celda que es dos cosas
+  lleva dos pares: `"area:emp,mes:2026-08"`. Un clic deja esas dimensiones solo con ese valor y otro
+  clic lo quita; con <kbd>Ctrl</kbd>, <kbd>Cmd</kbd> o <kbd>Mayús</kbd>, lo suma. Una marca que no es
+  botón pero se enfoca (`tabindex`, `role="button"`) responde a <kbd>Enter</kbd> y <kbd>Espacio</kbd>.
+  Se corta en el primer «:», así un valor puede llevar «:»; una coma va como `%2C` (`filterSpec()` lo
+  escribe).
+- **Estado de las marcas.** El tablero les pone `data-nx-filter-state="on"` (elegida) u `"off"` (su
+  dimensión tiene algo elegido que no es ella: se atenúa, `--nx-board-dim`), y `aria-pressed` si son
+  botones. Las marcas que llegan después (un gráfico que se repinta) se marcan solas.
+- **Chips.** Arriba, uno por valor elegido, con el nombre de la dimensión y del valor (de
+  `dimensions` o del `data-nx-label` de la marca); cada uno se quita solo y, con dos o más, «Quitar
+  filtros». Sin filtros, una pista (`labels.hint`; vacía, el renglón no se pinta).
+- **Paneles.** `span` (de 1 a 12): cuando el tablero se angosta (≤ 1100 px), los de 7 o más van a lo
+  ancho y los de 6 o menos a media fila; en lo angosto (≤ 640 px), todos a lo ancho, y `dense` llena
+  los huecos. `heading` (un `<h2>`) y `subheading`; sus controles en un hijo `slot="actions"`;
+  `variant="plain"` sin borde ni fondo (un renglón de cifras); `busy` atenúa el contenido mientras
+  llegan los datos. `panel.filters` es lo que el panel tiene que pedir.
+- **Datos sensibles.** Con `restricted` (quien mira no ve el diagnóstico de cada persona), filtrar
+  por una dimensión `sensitive` reserva los paneles `personal`: se ve su título y un aviso, no su
+  contenido, porque una lista de nombres filtrada por diagnóstico diría quién tiene qué. Los totales
+  siguen a la vista. Es presentación: el servidor tampoco debe mandar esos datos (`reserved` en el
+  evento lo dice).
+- **Calcular en el cliente.** `board.passes(fila, except)` y `matchesFilters(fila, filtros, except)`:
+  la fila trae un campo por dimensión (`{tipo: "AT", area: "emp"}`), comparado como texto; si el
+  campo es una lista, basta uno.
+- Los hijos no se mueven (la hidratación de Solid sigue intacta): los chips y el título de cada panel
+  van al final del DOM y la grilla los sube; `reading-flow` hace que <kbd>Tab</kbd> siga lo que se ve.
+
+| | |
+|---|---|
+| `<nx-board>` | `filters` (`{dimensión: [valores]}`; asignarlo no avisa), `dimensions` (`[{id, label?, values?, sensitive?}]`), `restricted`, `labels` · `reserved` · `toggle(dimensión, valor, sumar?)`, `clear(dimensión?)`, `filtersFor(except?)`, `passes(fila, except?)` · `nx-board-change` `{filters, changed, reserved}` (un clic en una marca o un chip, `toggle()` o `clear()`) · CSS `--nx-board-gap`, `--nx-board-dim` |
+| `<nx-board-panel>` | `span`, `heading`, `subheading`, `dimension`, `variant` (`plain`), `personal`, `busy` · `filters` (solo lectura) · hijos: el contenido y `slot="actions"` |
+| Funciones | `parseFilter`, `filterSpec`, `applyPairs`, `markState`, `filtersWithout`, `matchesFilters`, `normalizeFilters`, `changedDims`, `dimList` |
 
 ## `<nx-cards>`
 

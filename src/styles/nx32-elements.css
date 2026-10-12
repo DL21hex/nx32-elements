@@ -44,6 +44,7 @@
 @import "../components/intent/intent.css";
 @import "../components/tracker/tracker.css";
 @import "../components/stats/stats.css";
+@import "../components/board/board.css";
 @import "../components/cards/cards.css";
 @import "../components/print/print.css";
 @import "../components/signature/signature.css";

@@ -72,6 +72,7 @@ export default defineConfig(({ command, mode }) => {
           "intent": "src/components/intent/index.ts",
           "tracker": "src/components/tracker/index.ts",
           "stats": "src/components/stats/index.ts",
+          "board": "src/components/board/index.ts",
           "cards": "src/components/cards/index.ts",
           "handoff": "src/components/handoff/index.ts",
           "award": "src/components/award/index.ts",

@@ -50,6 +50,7 @@ export * from "./components/timeline/index";
 export * from "./components/intent/index";
 export * from "./components/tracker/index";
 export * from "./components/stats/index";
+export * from "./components/board/index";
 export * from "./components/cards/index";
 export * from "./components/handoff/index";
 export * from "./components/award/index";

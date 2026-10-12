@@ -49,6 +49,7 @@ import { mountHandoffDemo } from "./demo-handoff";
 import { mountAwardDemo } from "./demo-award";
 import { mountLauncherDemo, mountLauncherHomeDemo } from "./demo-launcher";
 import { mountHomeDemo } from "./demo-home";
+import { mountBoardDemo } from "./demo-board";
 import "./pages/home.css";
 import { mountCardsDemo } from "./demo-cards";
 import { mountOrgDemo } from "./demo-org";
@@ -171,6 +172,7 @@ const NAV: MenuItem[] = [
     section: "Componentes",
     children: [
       { id: "grid", label: "Tabla", href: "#/grid", icon: "chart-column" },
+      { id: "board", label: "Tablero BI", href: "#/board", icon: "layout-dashboard" },
       { id: "kanban", label: "Tablero", href: "#/kanban", icon: "layout-dashboard" },
       { id: "cards", label: "Tarjetas con zoom", href: "#/cards", icon: "layout-dashboard" },
       { id: "trend", label: "Tendencias", href: "#/trend", icon: "chart-column" },
@@ -261,6 +263,7 @@ const PAGES: Record<string, { template: string; mount?: (root: HTMLElement) => v
   "#/launcher": { template: "page-launcher", mount: mountLauncherDemo },
   "#/launcher-inicio": { template: "page-launcher-inicio", mount: mountLauncherHomeDemo },
   "#/home": { template: "page-home", mount: mountHomeDemo },
+  "#/board": { template: "page-board", mount: mountBoardDemo },
   "#/cards": { template: "page-cards", mount: mountCardsDemo },
   "#/org": { template: "page-org", mount: mountOrgDemo },
   "#/account": { template: "page-account", mount: mountAccountDemo },

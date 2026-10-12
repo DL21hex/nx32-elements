@@ -122,6 +122,7 @@ import type { AlertItem, AlertsActionDetail, AlertsLabels } from "../components/
 import type { NxInsights } from "../components/insights/insights";
 import type { InsightItem, InsightsActionDetail, InsightsLabels } from "../components/insights/types";
 import type { NxActions } from "../components/actions/actions";
+import type { PageHeaderKpi, PageHeaderLabels, PageHeaderLink } from "../components/page-header/types";
 import type { ActionItem, ActionsActionDetail, ActionsLabels } from "../components/actions/types";
 import type { NxSidemenu } from "../components/sidemenu/sidemenu";
 import type { MenuItem, OpenChangeDetail, SelectDetail, SidemenuLabels, ToggleDetail } from "../components/sidemenu/types";
@@ -171,12 +172,15 @@ declare module "solid-js" {
       me: PresenceUser | ChecklistPerson | null | undefined;
       items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | null | undefined;
       tabs: TabItem[] | null | undefined;
+      /** `<nx-page-header>`: las cifras y los enlaces bajo el título. */
+      kpis: PageHeaderKpi[] | null | undefined;
+      links: PageHeaderLink[] | null | undefined;
       units: OrgUnit[] | null | undefined;
       people: OrgPerson[] | null | undefined;
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | undefined;
       schema: CaptureSchemaItem[] | undefined;
       suggestions: string[] | undefined;
       context: unknown;

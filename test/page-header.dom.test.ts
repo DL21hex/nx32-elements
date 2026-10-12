@@ -66,4 +66,70 @@ describe("<nx-page-header>", () => {
     el.heading = "Tres";
     expect(el.querySelector("h1 .nx-page-title__icon")).not.toBeNull();
   });
+
+  it("kpis: un <dl> con valor (con el locale), etiqueta y cambio con tono; los inválidos no salen", () => {
+    const el = mount('<nx-page-header heading="Incapacidades" locale="es-CO"></nx-page-header>');
+    el.kpis = [
+      { id: "open", label: "Abiertas", value: 1284, delta: "+12 esta semana", tone: "warning", hint: "Sin cerrar" },
+      { label: "Días", value: "3.402" },
+      { label: "", value: 3 },
+      { label: "Sin valor", value: "" },
+      { label: "Tono raro", value: 2, delta: "x", tone: "rojo" as never },
+    ];
+    const dl = el.querySelector("dl.nx-page-header__kpis")!;
+    expect(dl.getAttribute("aria-label")).toBe("Cifras");
+    const kpis = [...dl.querySelectorAll(".nx-page-header__kpi")];
+    expect(kpis).toHaveLength(3);
+    expect(kpis[0].querySelector("dt")!.textContent).toBe("Abiertas");
+    expect(kpis[0].querySelector("dd")!.firstChild!.textContent).toBe("1.284");
+    expect(kpis[0].querySelector(".nx-page-header__kpi-delta")!.getAttribute("data-tone")).toBe("warning");
+    expect(kpis[0].getAttribute("title")).toBe("Sin cerrar");
+    expect(kpis[0].getAttribute("data-kpi")).toBe("open");
+    expect(kpis[1].querySelector("dd")!.textContent).toBe("3.402");
+    expect(kpis[2].querySelector(".nx-page-header__kpi-delta")!.getAttribute("data-tone")).toBe("neutral");
+    // El mismo arreglo otra vez no rehace los nodos; vacío, se van.
+    const first = dl.firstElementChild;
+    el.kpis = [...el.kpis];
+    expect(dl.firstElementChild).toBe(first);
+    el.kpis = [];
+    expect(el.querySelector(".nx-page-header__kpis")).toBeNull();
+  });
+
+  it("links: <a> de verdad con ícono, otra pestaña y descarga; una dirección insegura no sale", () => {
+    const el = mount('<nx-page-header heading="Incapacidades"></nx-page-header>');
+    el.setAttribute(
+      "links",
+      JSON.stringify([
+        { label: "Reporte de ausentismo", href: "/hcm/incapacities/report", icon: "users" },
+        { label: "Plantilla", href: "/hcm/incapacities/template.xlsx", newTab: true, download: "plantilla.xlsx" },
+        { label: "Malo", href: "javascript:alert(1)" },
+      ]),
+    );
+    const group = el.querySelector(".nx-page-header__links")!;
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.getAttribute("aria-label")).toBe("Enlaces");
+    const links = [...group.querySelectorAll<HTMLAnchorElement>("a")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/hcm/incapacities/report", "/hcm/incapacities/template.xlsx"]);
+    expect(links[0].querySelector(".nx-page-header__link-icon svg")).not.toBeNull();
+    expect(links[0].hasAttribute("target")).toBe(false);
+    expect(links[1].getAttribute("target")).toBe("_blank");
+    expect(links[1].getAttribute("rel")).toBe("noopener noreferrer");
+    expect(links[1].getAttribute("download")).toBe("plantilla.xlsx");
+    expect(links[1].textContent).toBe("Plantilla");
+    el.removeAttribute("links");
+    expect(el.querySelector(".nx-page-header__links")).toBeNull();
+  });
+
+  it("los enlaces y las cifras van después del título y antes de la navegación, sin mover a los del autor", () => {
+    const el = mount('<nx-page-header heading="Uno"><nav id="ruta">Inicio</nav><div slot="nav" id="tabs">Pestañas</div></nx-page-header>');
+    el.links = [{ label: "Otra", href: "/otra" }];
+    el.kpis = [{ label: "Total", value: 3 }];
+    el.labels = { kpis: "Indicadores" };
+    // El lugar en pantalla lo pone `order` (CSS); en el DOM, los del autor siguen en su orden y lo
+    // del componente va después de ellos.
+    const kids = [...el.children].map((c) => c.id || c.className);
+    expect(kids.filter((k) => !k.startsWith("nx-"))).toEqual(["ruta", "tabs"]);
+    expect(kids.slice(-2)).toEqual(["nx-page-header__links", "nx-page-header__kpis"]);
+    expect(el.querySelector(".nx-page-header__kpis")!.getAttribute("aria-label")).toBe("Indicadores");
+  });
 });

@@ -91,3 +91,13 @@ describe("<nx-heatmap>", () => {
     expect(el.querySelector(".nx-heatmap__empty")?.textContent).toBe("Sin datos.");
   });
 });
+
+describe("<nx-heatmap>: cambio que redondea a cero", () => {
+  it("no lleva flecha ni color", async () => {
+    document.body.innerHTML = `<nx-heatmap format="percent" rows='[{"id":"a","label":"A","total":0.02,"delta":0.0002}]' columns='[{"id":"x","label":"X"}]' values='[[0.02]]'></nx-heatmap>`;
+    await tick();
+    const small = document.querySelector(".nx-heatmap__total small")!;
+    expect(small.textContent).toBe("= 0,0 pp");
+    expect(small.className).toBe("");
+  });
+});

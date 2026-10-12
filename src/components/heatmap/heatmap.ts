@@ -179,8 +179,13 @@ export class NxHeatmap extends Base {
     return this.format === "money" ? chartValue(v, { format: "money", currency: this.currency, locale: resolveLocale(this), short: true }) : this.#fmt(v);
   }
 
+  /** Un cambio que se escribe como cero no lleva flecha ni color. */
+  #flat(d: number): boolean {
+    return this.format === "percent" ? Math.round(Math.abs(d) * 1000) === 0 : this.#fmt(Math.abs(d)) === this.#fmt(0);
+  }
+
   #delta(d: number): string {
-    const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "=";
+    const arrow = this.#flat(d) ? "=" : d > 0 ? "▲" : "▼";
     const loc = resolveLocale(this);
     if (this.format === "percent") return `${arrow} ${fill(this.#labels.points, { n: chartValue(Math.abs(d) * 100, { locale: loc, decimals: 1 }) })}`;
     return `${arrow} ${this.#fmt(Math.abs(d))}`;
@@ -243,8 +248,9 @@ export class NxHeatmap extends Base {
         const td = h("td", { class: "nx-heatmap__total" });
         if (r.total !== undefined) td.append(h("b", null, this.#fmt(r.total)));
         if (r.delta !== undefined) {
-          const bad = upGood ? r.delta < 0 : r.delta > 0;
-          const good = upGood ? r.delta > 0 : r.delta < 0;
+          const flat = this.#flat(r.delta);
+          const bad = !flat && (upGood ? r.delta < 0 : r.delta > 0);
+          const good = !flat && (upGood ? r.delta > 0 : r.delta < 0);
           td.append(h("small", { class: bad ? "is-bad" : good ? "is-good" : "" }, this.#delta(r.delta)));
         }
         tr.append(td);

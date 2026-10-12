@@ -23,4 +23,7 @@ Archivos: `parts.ts`, `logic.ts` (qué partes se pintan, sin DOM: `shownParts`),
 
 ## Peso
 
-Sin medir todavía (no se corrió `npm run build`).
+| Pieza | Tamaño (min + gzip) | Referencia |
+|---|---|---|
+| `dist/parts.js` (con el núcleo) | 4,55 KB | 4,75 KB |
+| `dist/parts.css` | 0,69 KB | 1,5 KB |

@@ -25,4 +25,7 @@ ticks por defecto; sin DOM), `types.ts`, `phases.css`, `index.ts`. Pruebas:
 
 ## Peso
 
-Sin medir todavía (no se corrió `npm run build`).
+| Pieza | Tamaño (min + gzip) | Referencia |
+|---|---|---|
+| `dist/phases.js` (con el núcleo) | 5,44 KB | 5,5 KB |
+| `dist/phases.css` | 0,94 KB | 1,5 KB |

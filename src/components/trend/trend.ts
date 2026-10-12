@@ -301,6 +301,10 @@ export class NxTrend extends Base {
     if (x.muted) return "m";
     return String((this.#series.filter((q) => !q.muted).indexOf(x) % 8) + 1);
   }
+  /** La dimensión con que filtra una serie: ninguna si es de referencia o solo proyección (no son un valor). */
+  #dimOf(x: TrendSeries): string | null {
+    return x.muted || x.points.every((p) => p.forecast) ? null : this.dimension;
+  }
   #kind(x: TrendSeries): TrendKind {
     return x.kind ?? this.kind;
   }
@@ -328,7 +332,7 @@ export class NxTrend extends Base {
     this.#legend.addEventListener("click", (e) => {
       const b = (e.target as Element).closest<HTMLElement>("[data-id]");
       // Con `dimension`, la leyenda filtra el tablero (lo hace `<nx-board>`), no oculta series.
-      if (!b || this.dimension?.trim()) return;
+      if (!b || b.hasAttribute("data-nx-filter")) return;
       const id = b.dataset.id!;
       const on = this.#hidden.has(id);
       // La última serie visible no se oculta: el gráfico no se queda vacío por un clic.
@@ -401,7 +405,7 @@ export class NxTrend extends Base {
     this.#legend!.replaceChildren(
       ...this.#series.map((x) => {
         const on = !this.#hidden.has(x.id);
-        const mark = markAttrs([[this.dimension, x.id]], x.label);
+        const mark = markAttrs([[this.#dimOf(x), x.id]], x.label);
         return h(
           "button",
           { type: "button", class: "nx-trend__key", "data-id": x.id, "data-slot": this.#slot(x), "aria-pressed": mark["data-nx-filter"] ? null : String(on), ...mark },
@@ -565,7 +569,7 @@ export class NxTrend extends Base {
       ranges.push(s("path", { d: `M${r1(px)} ${a}V${b}M${r1(px - 4)} ${a}H${r1(px + 4)}M${r1(px - 4)} ${b}H${r1(px + 4)}`, class: "nx-trend__range" }));
     };
     bars.forEach((q, j) => {
-      const g = s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), ...markAttrs([[this.dimension, q.id]], q.label) });
+      const g = s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), ...markAttrs([[this.#dimOf(q), q.id]], q.label) });
       q.points.forEach((p, pi) => {
         if (p.y === null) return;
         const i = xi.get(p.x)!;
@@ -622,7 +626,7 @@ export class NxTrend extends Base {
       });
       const last = [...q.points].reverse().find((p) => p.y !== null);
       if (ends && last) labels.push({ y: y(last.y!), t: this.#fmt(q, last.y!, true), slot: this.#slot(q) });
-      kids.push(s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), "data-dense": dense ? "" : null, ...markAttrs([[this.dimension, q.id]], q.label) }, s("path", { d, class: "nx-trend__line", pathLength: 1 }), df ? s("path", { d: df, class: "nx-trend__fline" }) : "", ...marks));
+      kids.push(s("g", { class: "nx-trend__series", "data-slot": this.#slot(q), "data-dense": dense ? "" : null, ...markAttrs([[this.#dimOf(q), q.id]], q.label) }, s("path", { d, class: "nx-trend__line", pathLength: 1 }), df ? s("path", { d: df, class: "nx-trend__fline" }) : "", ...marks));
     }
     kids.push(...ranges);
     // Valor al final de cada línea; si dos chocan, se quedan en la leyenda y el tooltip.

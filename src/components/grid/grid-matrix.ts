@@ -348,7 +348,8 @@ export class MatrixUI {
     this.#tab(keep);
   }
 
-  /** Las líneas de las columnas debajo de la tabla, hasta el fondo de la caja: el ancho de cada
+  /** Las líneas de las columnas debajo de la tabla, hasta el fondo de la caja, y la que cierra la
+   *  fila «Total»: el ancho de cada
    *  columna lo decide el navegador, así que se mide (el borde izquierdo de cada una, desde la
    *  segunda, y el derecho de «Total») y cada línea es una capa del fondo que empieza en el pie de
    *  la tabla. Como fondo no agrega scroll ni tapa nada; sin tabla, no hay líneas. */
@@ -367,9 +368,13 @@ export class MatrixUI {
     // Las marcadas: la que cierra los nombres de las filas y las dos de «Total».
     const color = (i: number) => (i === 0 || i >= xs.length - 2 ? "var(--nx-border)" : "var(--nx-border-subtle)");
     const top = table.offsetHeight;
-    box.style.backgroundImage = xs.map((_, i) => `linear-gradient(${color(i)}, ${color(i)})`).join(", ");
-    box.style.backgroundPosition = xs.map((x) => `${Math.round(x) - 1}px ${top}px`).join(", ");
-    box.style.backgroundSize = xs.map(() => "1px 100%").join(", ");
+    // Y la que cierra la fila «Total», de borde a borde: sin ella, las columnas parecían seguir dentro
+    // de esa fila. Va como fondo, no como borde de la fila: fija abajo cuando la matriz desborda, un
+    // borde se juntaría con el de la nota; así solo aparece cuando sobra espacio debajo.
+    const strong = "linear-gradient(var(--nx-border), var(--nx-border))";
+    box.style.backgroundImage = [strong, ...xs.map((_, i) => `linear-gradient(${color(i)}, ${color(i)})`)].join(", ");
+    box.style.backgroundPosition = [`0 ${top}px`, ...xs.map((x) => `${Math.round(x) - 1}px ${top}px`)].join(", ");
+    box.style.backgroundSize = ["100% 1px", ...xs.map(() => "1px 100%")].join(", ");
   }
 
   #tab(key: string): HTMLElement | null {

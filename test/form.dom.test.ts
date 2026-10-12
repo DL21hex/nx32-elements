@@ -571,3 +571,162 @@ describe("<nx-form>: listas largas con <nx-select>", () => {
     expect(field(f, "jefe").getAttribute("text")).toBe("Carlos Pertuz");
   });
 });
+
+describe("<nx-form>: archivo (file)", () => {
+  const FIELDS = [
+    { key: "tipo", label: "Tipo", type: "segmented" as const, options: ["Enfermedad", "Licencia"] },
+    { key: "soporte", label: "Soporte", type: "file" as const, required: true, accept: ".pdf,image/*", maxSize: 2048 },
+    { key: "acta", label: "Acta", type: "file" as const, when: { tipo: "Licencia" } },
+    { key: "nota", label: "Nota" },
+  ];
+  const pdf = (size = 100, name = "incapacidad.pdf", type = "application/pdf") => new File([new Uint8Array(size)], name, { type });
+  async function mountFile(attrs = ""): Promise<NxForm> {
+    document.body.innerHTML = `<nx-form locale="es-CO" ${attrs}></nx-form>`;
+    const f = document.querySelector("nx-form")!;
+    f.fields = FIELDS;
+    await tick();
+    return f;
+  }
+  const input = (f: NxForm, k = "soporte") => f.querySelector<HTMLInputElement>(`nx-field[data-key="${k}"] input[type=file]`)!;
+  /** Lo que hace el navegador al elegir en el selector. */
+  function choose(f: NxForm, file: File, k = "soporte") {
+    const el = input(f, k);
+    Object.defineProperty(el, "files", { value: [file], configurable: true });
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  function drop(f: NxForm, file: File, k = "soporte") {
+    const zone = f.querySelector(`nx-field[data-key="${k}"] .nx-form__file-zone`)!;
+    const e = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(e, "dataTransfer", { value: { files: [file], types: ["Files"] } });
+    zone.dispatchEvent(e);
+    return e;
+  }
+
+  it("un input de verdad con la etiqueta del campo; el valor es el File, con nombre, tamaño y «Quitar»", async () => {
+    const f = await mountFile();
+    const el = input(f);
+    expect(el.accept).toBe(".pdf,image/*");
+    expect(f.querySelector<HTMLLabelElement>('nx-field[data-key="soporte"] label.nx-field__label')!.htmlFor).toBe(el.id);
+    const lim = f.querySelector('nx-field[data-key="soporte"] .nx-form__file-lim')!;
+    expect(lim.textContent).toBe("PDF, image/* · Hasta 2 KB");
+    expect(el.getAttribute("aria-describedby")!.split(" ")).toContain(lim.id);
+    expect(f.querySelector<HTMLElement>('nx-field[data-key="soporte"] .nx-form__file-card')!.hidden).toBe(true);
+
+    const changes: unknown[] = [];
+    f.addEventListener("nx-form-change", (e) => changes.push(e.detail.value));
+    const file = pdf(1536);
+    choose(f, file);
+    expect(f.values.soporte).toBe(file);
+    expect(changes).toEqual([file]);
+    const card = f.querySelector<HTMLElement>('nx-field[data-key="soporte"] .nx-form__file-card')!;
+    expect(card.hidden).toBe(false);
+    expect(f.querySelector<HTMLElement>('nx-field[data-key="soporte"] .nx-form__file-zone')!.hidden).toBe(true);
+    expect(card.querySelector(".nx-form__file-name")!.textContent).toBe("incapacidad.pdf");
+    expect(card.querySelector(".nx-form__file-size")!.textContent).toBe("1,5 KB");
+    const del = card.querySelector<HTMLButtonElement>(".nx-form__file-del")!;
+    expect(del.getAttribute("aria-label")).toBe("Quitar incapacidad.pdf");
+
+    // Cancelar el selector (sin archivo) no quita el que estaba.
+    Object.defineProperty(el, "files", { value: [], configurable: true });
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(f.values.soporte).toBe(file);
+
+    del.click();
+    expect(f.values.soporte).toBeNull();
+    expect(changes).toEqual([file, null]);
+    expect(card.hidden).toBe(true);
+    expect(field(f, "soporte").getAttribute("error")).toBe("Falta este dato");
+  });
+
+  it("soltar un archivo; tipo y tamaño se validan como error del campo; Enter abre el selector", async () => {
+    const f = await mountFile();
+    const e = drop(f, pdf(10, "datos.xlsx", "application/vnd.ms-excel"));
+    expect(e.defaultPrevented).toBe(true);
+    expect(f.values.soporte).toBeInstanceOf(File);
+    expect(field(f, "soporte").getAttribute("error")).toBe("Ese tipo de archivo no sirve aquí: elige PDF, image/*");
+    expect(input(f).getAttribute("aria-invalid")).toBe("true");
+    expect(f.submit()).toBe(false);
+    expect(f.missing).toEqual(["soporte"]);
+    choose(f, pdf(4096));
+    expect(field(f, "soporte").getAttribute("error")).toBe("El archivo pasa de 2 KB");
+    drop(f, pdf(100, "foto.png", "image/png"));
+    expect(field(f, "soporte").hasAttribute("error")).toBe(false);
+
+    const click = vi.spyOn(input(f), "click").mockImplementation(() => {});
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    input(f).dispatchEvent(enter);
+    input(f).dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
+    f.querySelector<HTMLElement>('nx-field[data-key="acta"] .nx-form__file-zone');
+    expect(click).toHaveBeenCalledTimes(2);
+    expect(enter.defaultPrevented).toBe(true);
+    // La zona también lo abre (con el archivo quitado, se ve otra vez).
+    f.querySelector<HTMLButtonElement>('nx-field[data-key="soporte"] .nx-form__file-del')!.click();
+    f.querySelector<HTMLElement>('nx-field[data-key="soporte"] .nx-form__file-zone')!.click();
+    expect(click).toHaveBeenCalledTimes(3);
+  });
+
+  it("obligatorio al enviar; when lo oculta (ni se valida ni sale en values); nx-form-submit lleva el File", async () => {
+    const f = await mountFile();
+    let sent: Record<string, unknown> | null = null;
+    f.addEventListener("nx-form-submit", (e) => (sent = e.detail.values));
+    expect(f.submit()).toBe(false);
+    expect(f.missing).toEqual(["soporte"]);
+    expect(field(f, "acta").hidden).toBe(true);
+    const file = pdf();
+    choose(f, file);
+    expect(f.submit()).toBe(true);
+    expect(sent!.soporte).toBe(file);
+    expect("acta" in sent!).toBe(false);
+    pick(f, "tipo", "Licencia");
+    expect(field(f, "acta").hidden).toBe(false);
+    const acta = pdf(10, "acta.pdf");
+    choose(f, acta, "acta");
+    expect(f.values.acta).toBe(acta);
+    pick(f, "tipo", "Enfermedad");
+    expect("acta" in f.values).toBe(false);
+  });
+
+  it("fill solo pone un File: un texto se ignora y null lo quita; reset lo deja vacío; en lectura, el nombre", async () => {
+    const f = await mountFile();
+    expect(f.fill({ soporte: "incapacidad.pdf", nota: "Hola" }, "Correo")).toBe(1);
+    expect(f.values.soporte).toBeNull();
+    const file = pdf();
+    choose(f, file);
+    f.fill({ soporte: "otro.pdf" }, "Correo");
+    expect(f.values.soporte).toBe(file);
+    f.fill({ soporte: null }, null, { force: true });
+    expect(f.values.soporte).toBeNull();
+    const nuevo = pdf(10, "nuevo.pdf");
+    f.fill({ soporte: nuevo }, "Escáner");
+    expect(f.values.soporte).toBe(nuevo);
+    expect(field(f, "soporte").getAttribute("source")).toBe("Escáner");
+
+    f.mode = "read";
+    expect(field(f, "soporte").getAttribute("text")).toBe("nuevo.pdf");
+    f.mode = "edit";
+    f.reset();
+    expect(f.values.soporte).toBeNull();
+    expect(f.querySelector<HTMLElement>('nx-field[data-key="soporte"] .nx-form__file-card')!.hidden).toBe(true);
+    f.mode = "read";
+    expect(field(f, "soporte").getAttribute("text")).toBe("");
+  });
+
+  it("el borrador no guarda archivos (ni los repone)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let f = await mountFile('draft="incap"');
+    choose(f, pdf());
+    vi.advanceTimersByTime(700);
+    expect(localStorage.getItem("nx-form:incap")).toBeNull();
+    type(f.querySelector<HTMLInputElement>('nx-field[data-key="nota"] input')!, "Con soporte");
+    vi.advanceTimersByTime(700);
+    const saved = JSON.parse(localStorage.getItem("nx-form:incap")!);
+    expect(saved.v).toEqual({ nota: "Con soporte" });
+    // Un borrador viejo (o escrito a mano) con un archivo no lo repone.
+    localStorage.setItem("nx-form:incap", JSON.stringify({ v: { nota: "Hola", soporte: { name: "x.pdf" } }, t: Date.now() }));
+    document.body.innerHTML = "";
+    f = await mountFile('draft="incap"');
+    expect(f.values.nota).toBe("Hola");
+    expect(f.values.soporte).toBeNull();
+  });
+});

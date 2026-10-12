@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { nxFormat } from "../src/core/locale";
 import { FORM_LABELS } from "../src/components/form/form";
-import { check, cleanSections, coerce, dateLimit, displayValue, emailTypo, isEmpty, isISODate, matches, parseDateText, sameValue, todayISO, usesSearch, visibleKeys, type FieldDef } from "../src/components/form/logic";
+import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, emailTypo, FILE_MAX_SIZE, fileMaxSize, isEmpty, isFile, isISODate, matches, parseDateText, sameValue, todayISO, usesSearch, visibleKeys, type FieldDef } from "../src/components/form/logic";
 
 const fmt = nxFormat("es-CO");
 const ctx = { labels: FORM_LABELS, fmt, today: "2026-10-07" };
@@ -183,5 +183,51 @@ describe("filas, buscador y fechas de documento", () => {
     expect(usesSearch(sel({ source: "/ciudades" }))).toBe(true);
     expect(usesSearch(sel({ options: Array.from({ length: 13 }, (_, i) => ({ value: String(i) })) }))).toBe(true);
     expect(usesSearch(def({ key: "t", search: true }))).toBe(false);
+  });
+});
+
+describe("archivo (file)", () => {
+  const pdf = (size = 1000, name = "soporte.pdf", type = "application/pdf") => new File([new Uint8Array(size)], name, { type });
+
+  it("isFile reconoce un File por su forma; coerce solo acepta un File", () => {
+    const f = def({ key: "soporte", type: "file" });
+    const file = pdf();
+    expect(isFile(file)).toBe(true);
+    expect(isFile("soporte.pdf")).toBe(false);
+    expect(isFile({ name: "x", size: 1, type: "" })).toBe(false);
+    expect(coerce(f, file, fmt)).toBe(file);
+    expect(coerce(f, "soporte.pdf", fmt)).toBeNull();
+    expect(coerce(f, {}, fmt)).toBeNull();
+    expect(coerce(f, null, fmt)).toBeNull();
+    // Un File en un campo de texto no se vuelve texto.
+    expect(coerce(def({ key: "t" }), file, fmt)).toBeNull();
+    expect(sameValue(file, file)).toBe(true);
+    expect(sameValue(file, pdf())).toBe(false);
+    expect(isEmpty(file)).toBe(false);
+    expect(displayValue(f, file, fmt, FORM_LABELS)).toBe("soporte.pdf");
+    expect(displayValue(f, null, fmt, FORM_LABELS)).toBe("");
+  });
+
+  it("check: obligatorio, tipo según accept y tamaño según maxSize (20 MB por defecto)", () => {
+    const f = def({ key: "soporte", type: "file", required: true, accept: ".pdf,image/*", maxSize: 2048 });
+    expect(check(f, null, ctx).error).toBe("Falta este dato");
+    expect(check(def({ key: "x", type: "file" }), null, ctx).error).toBe("");
+    expect(check(f, pdf(), ctx).error).toBe("");
+    expect(check(f, pdf(10, "foto.jpg", "image/jpeg"), ctx).error).toBe("");
+    expect(check(f, pdf(10, "datos.xlsx", "application/vnd.ms-excel"), ctx).error).toBe("Ese tipo de archivo no sirve aquí: elige PDF, image/*");
+    expect(check(f, pdf(4096), ctx).error).toBe("El archivo pasa de 2 KB");
+    expect(fileMaxSize({})).toBe(FILE_MAX_SIZE);
+    expect(FILE_MAX_SIZE).toBe(20 * 1024 * 1024);
+    expect(check(def({ key: "x", type: "file" }), pdf(FILE_MAX_SIZE + 1), ctx).error).toBe("El archivo pasa de 20 MB");
+    expect(acceptText(".pdf, .XML ,image/*")).toBe("PDF, XML, image/*");
+  });
+
+  it("un archivo dentro de una fila se descarta con un aviso", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const out = cleanSections([{ fields: [{ key: "hijos", label: "Hijos", type: "rows", fields: [{ key: "nombre", label: "Nombre" }, { key: "registro", label: "Registro civil", type: "file" }] }, { key: "soporte", label: "Soporte", type: "file" }] }]);
+    expect(out[0].fields[0].subs!.map((x) => x.key)).toEqual(["nombre"]);
+    expect(out[0].fields[1].type).toBe("file");
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });

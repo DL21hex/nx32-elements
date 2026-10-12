@@ -1,0 +1,376 @@
+<title>Matriz y volver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens de nx32-elements (paleta «NX32», tono 210). Una página: arriba, el selector de la maqueta
+   (Hoy / Vuelve sola / Panel); debajo, la tabla de Empleados con su barra, sus chips y la matriz o la tabla. */
+:root {
+  --canvas: oklch(0.982 0.003 250);
+  --card: oklch(1 0 0);
+  --border-subtle: oklch(0.93 0.004 250);
+  --border: oklch(0.89 0.005 250);
+  --border-strong: oklch(0.82 0.006 250);
+  --fg: oklch(0.2 0.008 250);
+  --muted: oklch(0.44 0.01 250);
+  --tertiary: oklch(0.51 0.01 250);
+  --quaternary: oklch(0.66 0.008 250);
+  --primary: oklch(0.52 0.16 210);
+  --primary-ink: oklch(0.45 0.16 210);
+  --primary-soft: oklch(0.52 0.16 210 / 0.09);
+  --primary-border: oklch(0.52 0.16 210 / 0.35);
+  --hover: oklch(0.2 0.01 250 / 0.045);
+  --ring: oklch(0.52 0.16 210 / 0.6);
+  --note: oklch(0.96 0.02 85);
+  --scrim: oklch(0.2 0.01 250 / 0.28);
+  --note-ink: oklch(0.42 0.06 70);
+  --dot-obra: oklch(0.58 0.2 305);
+  --dot-fijo: oklch(0.68 0.14 75);
+  --shadow: 0 1px 2px rgb(15 20 30 / 0.06), 0 6px 18px -6px rgb(15 20 30 / 0.12);
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --r-md: 8px; --r-lg: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: oklch(0.165 0.004 250); --card: oklch(0.205 0.005 250);
+    --border-subtle: oklch(1 0 0 / 0.07); --border: oklch(1 0 0 / 0.11); --border-strong: oklch(1 0 0 / 0.17);
+    --fg: oklch(0.955 0.003 250); --muted: oklch(0.76 0.006 250); --tertiary: oklch(0.66 0.007 250); --quaternary: oklch(0.53 0.007 250);
+    --primary: oklch(0.72 0.118 210); --primary-ink: oklch(0.77 0.112 210); --primary-soft: oklch(0.72 0.118 210 / 0.15);
+    --primary-border: oklch(0.72 0.118 210 / 0.4); --hover: oklch(1 0 0 / 0.055); --ring: oklch(0.72 0.118 210 / 0.7);
+    --note: oklch(0.27 0.03 80); --note-ink: oklch(0.85 0.08 85); --scrim: oklch(0 0 0 / 0.55);
+    --dot-obra: oklch(0.72 0.16 305); --dot-fijo: oklch(0.8 0.13 80);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px -6px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: oklch(0.165 0.004 250); --card: oklch(0.205 0.005 250);
+  --border-subtle: oklch(1 0 0 / 0.07); --border: oklch(1 0 0 / 0.11); --border-strong: oklch(1 0 0 / 0.17);
+  --fg: oklch(0.955 0.003 250); --muted: oklch(0.76 0.006 250); --tertiary: oklch(0.66 0.007 250); --quaternary: oklch(0.53 0.007 250);
+  --primary: oklch(0.72 0.118 210); --primary-ink: oklch(0.77 0.112 210); --primary-soft: oklch(0.72 0.118 210 / 0.15);
+  --primary-border: oklch(0.72 0.118 210 / 0.4); --hover: oklch(1 0 0 / 0.055); --ring: oklch(0.72 0.118 210 / 0.7);
+  --note: oklch(0.27 0.03 80); --note-ink: oklch(0.85 0.08 85); --scrim: oklch(0 0 0 / 0.55);
+  --dot-obra: oklch(0.72 0.16 305); --dot-fijo: oklch(0.8 0.13 80);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px -6px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--fg); font: 13px/1.4 var(--font); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.page { max-width: 1040px; margin: 0 auto; padding-block: 24px 40px; padding-inline: 16px; display: grid; gap: 16px; }
+
+/* La maqueta: qué se compara y cómo probarlo. No es parte del componente. */
+.mock { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 14px; border: 1px dashed var(--border-strong); border-radius: var(--r-lg); background: var(--note); color: var(--note-ink); }
+.mock strong { font-weight: 600; }
+.mock p { margin: 0; flex: 1 1 320px; min-width: 0; }
+
+.seg { display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); }
+.seg button { border: 0; background: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary-ink); box-shadow: inset 0 0 0 1px var(--primary-border); }
+
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.head span { color: var(--tertiary); }
+
+/* La barra de la tabla. */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.search { flex: 1 1 220px; min-width: 0; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); color: var(--quaternary); display: flex; align-items: center; }
+.btn { height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); cursor: pointer; }
+.btn:hover { background: var(--hover); }
+
+/* La fila de los filtros puestos: el total y los chips. */
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 28px; }
+.count { color: var(--muted); margin-inline-end: 4px; }
+.count b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 4px 0 10px; border: 1px solid var(--primary-border); border-radius: 999px; background: var(--primary-soft); color: var(--primary-ink); font-weight: 500; }
+.chip button { width: 20px; height: 20px; border: 0; border-radius: 999px; background: none; color: inherit; cursor: pointer; line-height: 1; }
+.chip button:hover { background: var(--primary-soft); }
+.clear { border: 0; background: none; color: var(--primary-ink); cursor: pointer; padding: 0 4px; }
+
+/* La caja (matriz o tabla), del mismo alto. */
+.box { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--card); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; height: 400px; }
+.scroll { flex: 1; min-height: 0; overflow: auto; position: relative; }
+.mx-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); color: var(--muted); font-weight: 500; }
+.mx-bar select { height: 30px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); color: var(--fg); }
+.note { margin: 0; padding: 8px 12px; border-top: 1px solid var(--border-subtle); color: var(--tertiary); font-size: 12px; }
+
+table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { white-space: nowrap; border-bottom: 1px solid var(--border-subtle); }
+thead th { position: sticky; top: 0; z-index: 1; background: var(--card); color: var(--muted); font-weight: 500; border-bottom-color: var(--border); }
+
+.mx td, .mx th { text-align: end; padding: 0; }
+.mx th:first-child { text-align: start; border-right: 1px solid var(--border); }
+.mx .tot { font-weight: 600; border-left: 1px solid var(--border); }
+.mx .fill { width: 100%; border-left: 1px solid var(--border); }
+.mx tfoot td, .mx tfoot th { border-top: 1px solid var(--border); border-bottom: 0; }
+.mx button { display: block; width: 100%; min-height: 36px; padding: 0 14px; border: 0; background: none; text-align: inherit; cursor: pointer; font-weight: inherit; }
+.mx button:hover { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.mx td > button { background: color-mix(in oklab, var(--primary) calc(var(--w, 0) * 22%), transparent); }
+.mx td.tot > button { background: none; }
+.mx .zero { padding: 0 14px; color: var(--quaternary); }
+.mx thead th { padding: 0; }
+.mx thead th.tot { padding: 0 14px; }
+.mx tfoot th { padding: 0 14px; color: var(--muted); }
+
+.tb th, .tb td { text-align: start; padding: 0 10px; height: 32px; border-right: 1px solid var(--border-subtle); }
+.tb th:last-child, .tb td:last-child { border-right: 0; }
+.tb thead th { height: 36px; font-size: 12px; font-weight: 600; background: oklch(from var(--card) calc(l - 0.012) c h); }
+.tb tbody tr:hover td { background: var(--hover); }
+.who { display: flex; align-items: center; gap: 8px; }
+.av { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; font-size: 10px; font-weight: 600; background: var(--primary-soft); color: var(--primary-ink); }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; margin-inline-end: 6px; vertical-align: 1px; }
+.dot.obra { background: var(--dot-obra); }
+.dot.fijo { background: var(--dot-fijo); }
+.tb .num { color: var(--tertiary); }
+
+/* «Panel»: las filas de un cruce encima de la matriz, sin tocar la vista ni los filtros. */
+.scrim { position: fixed; inset: 0; background: var(--scrim); }
+.panel { position: fixed; inset-block: 0; inset-inline-end: 0; width: min(420px, 100%); display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--border); box-shadow: var(--shadow); }
+.panel-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 18px 12px; border-bottom: 1px solid var(--border-subtle); }
+.panel-head > div { flex: 1; min-width: 0; }
+.panel h2 { margin: 0; font-size: 16px; font-weight: 600; text-wrap: balance; }
+.panel-head p { margin: 2px 0 0; color: var(--tertiary); }
+.x { width: 30px; height: 30px; border: 0; border-radius: var(--r-md); background: none; cursor: pointer; font-size: 18px; color: var(--muted); }
+.x:hover { background: var(--hover); }
+.list { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; min-height: 0; }
+.list li { display: flex; align-items: center; gap: 10px; padding: 8px 18px; border-bottom: 1px solid var(--border-subtle); }
+.list li > div { min-width: 0; }
+.list .meta { color: var(--tertiary); font-size: 12px; }
+.panel-foot { padding: 12px 18px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--card); font-weight: 500; }
+.btn.primary:hover { background: var(--primary-ink); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .box { transition: box-shadow 0.2s; }
+}
+</style>
+
+<div class="page">
+  <div class="mock" role="group" aria-label="Maqueta">
+    <div class="seg" id="mode">
+      <button type="button" data-mode="hoy" aria-pressed="false">Hoy</button>
+      <button type="button" data-mode="sola" aria-pressed="true">Vuelve sola</button>
+      <button type="button" data-mode="panel" aria-pressed="false">Panel</button>
+    </div>
+    <p id="how"></p>
+  </div>
+
+  <div class="head">
+    <h1>Empleados</h1>
+    <span>Activos de Agropecuaria Verona e Inversora Horizonte</span>
+  </div>
+
+  <div class="bar">
+    <div class="seg" id="layout" aria-label="Ver como">
+      <button type="button" data-layout="table" aria-pressed="false">Tabla</button>
+      <button type="button" data-layout="matrix" aria-pressed="true">Matriz</button>
+    </div>
+    <div class="search">Buscar en la tabla</div>
+    <button type="button" class="btn">Filtros</button>
+    <button type="button" class="btn">Exportar</button>
+  </div>
+
+  <div class="chips" id="chips" aria-live="polite"></div>
+
+  <div class="box" id="box"></div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
+  <header class="panel-head">
+    <div>
+      <h2 id="panel-title"></h2>
+      <p id="panel-sub"></p>
+    </div>
+    <button type="button" class="x" id="panel-close" aria-label="Cerrar">×</button>
+  </header>
+  <ul class="list" id="panel-list"></ul>
+  <footer class="panel-foot">
+    <button type="button" class="btn primary" id="panel-table">Ver en la tabla</button>
+  </footer>
+</aside>
+
+<script>
+// Los 362 activos de la captura: Verona (Burdeos 54, Donama 114) e Inversora Horizonte (Finca Federica 193,
+// La Perla 1); 3 por obra o labor (2 en Donama, 1 en Finca Federica), el resto a término fijo.
+const SUBS = [
+  { name: "Burdeos", company: "Agropecuaria Verona S.A.S.", n: 54, obra: 0 },
+  { name: "Donama", company: "Agropecuaria Verona S.A.S.", n: 114, obra: 2 },
+  { name: "Finca Federica", company: "Inversora Horizonte Agrícola S.A.S.", n: 193, obra: 1 },
+  { name: "La Perla - Horizonte", company: "Inversora Horizonte Agrícola S.A.S.", n: 1, obra: 0 },
+];
+const CONTRACTS = ["Obra o labor", "Término fijo"];
+const FIRST = ["Luis", "María", "José", "Ana", "Carlos", "Yuliana", "Jhon", "Diana", "Andrés", "Leidy", "Jorge", "Paola", "Wilmer", "Sandra", "Edwin", "Marcela", "Fredy", "Katherine", "Óscar", "Luz Dary"];
+const LAST = ["Mosquera", "Palacios", "Rentería", "Córdoba", "Mena", "Asprilla", "Murillo", "Valencia", "Cuesta", "Ibargüen", "Perea", "Hinestroza", "Lozano", "Moreno", "Rivas", "Quejada"];
+const ROWS = [];
+let k = 0;
+for (const s of SUBS) {
+  for (let i = 0; i < s.n; i++, k++) {
+    const first = FIRST[(k * 7) % FIRST.length];
+    const a = LAST[(k * 3) % LAST.length];
+    const b = LAST[(k * 5 + 2) % LAST.length];
+    const day = 1 + ((k * 11) % 28);
+    const month = 1 + ((k * 5) % 12);
+    const year = 2016 + ((k * 3) % 10);
+    ROWS.push({
+      name: `${first} ${a} ${b}`,
+      initials: first[0] + a[0],
+      company: s.company,
+      sub: s.name,
+      contract: i < s.obra ? "Obra o labor" : "Término fijo",
+      since: `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`,
+    });
+  }
+}
+
+const HOW = {
+  hoy: "<strong>Hoy:</strong> toca un número de la matriz (p. ej. «2», Donama × Obra o labor) y vuelve con «Matriz»: queda la matriz de lo filtrado, de 1 × 1.",
+  sola: "<strong>Vuelve sola:</strong> toca un número y vuelve con «Matriz»: la matriz está completa otra vez. Lo que puso el clic se quita; un filtro que pongas a mano se queda.",
+  panel: "<strong>Panel:</strong> toca un número: sus filas se abren encima, y la matriz no cambia. Cierra con × o Esc. «Ver en la tabla» las lleva a la tabla, como hoy.",
+};
+
+// `drilled`: lo que puso el último clic en la matriz ({eje: [antes, puesto]}), para quitarlo al volver.
+const state = { mode: "sola", layout: "matrix", sub: null, contract: null, drilled: null, peek: null };
+const $ = (s) => document.querySelector(s);
+const fmt = (n) => n.toLocaleString("es-CO");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function filtered() {
+  return ROWS.filter((r) => (!state.sub || r.sub === state.sub) && (!state.contract || r.contract === state.contract));
+}
+
+// Tocar la matriz. «Panel»: abre las filas encima, sin tocar nada. Si no, el eje (o los dos) pasa a
+// ese valor y se ve la tabla; con «Vuelve sola» se anota qué puso el clic.
+function drill(sub, contract) {
+  if (state.mode === "panel") return openPanel(sub, contract);
+  apply(sub, contract);
+}
+
+function apply(sub, contract) {
+  const drilled = {};
+  if (sub !== undefined) { drilled.sub = [state.sub, sub]; state.sub = sub; }
+  if (contract !== undefined) { drilled.contract = [state.contract, contract]; state.contract = contract; }
+  state.drilled = state.mode === "sola" ? drilled : null;
+  state.layout = "table";
+  render();
+}
+
+function setLayout(l) {
+  // «Vuelve sola»: al volver a la matriz, cada filtro que puso el clic (y que sigue igual) vuelve a
+  // como estaba. Lo que la persona cambió a mano se queda.
+  if (l === "matrix" && state.drilled) {
+    for (const [key, [before, set]] of Object.entries(state.drilled)) if (state[key] === set) state[key] = before;
+  }
+  state.drilled = null;
+  state.layout = l;
+  render();
+}
+
+function openPanel(sub, contract) {
+  const rows = filtered().filter((r) => (sub === undefined || r.sub === sub) && (contract === undefined || r.contract === contract));
+  state.peek = { sub, contract };
+  const title = [sub, contract].filter((x) => x !== undefined).join(" · ") || "Todos";
+  $("#panel-title").textContent = title;
+  $("#panel-sub").textContent = `${fmt(rows.length)} ${rows.length === 1 ? "empleado" : "empleados"}`;
+  $("#panel-list").innerHTML = rows.slice(0, 200).map((r) => `<li><span class="av" aria-hidden="true">${esc(r.initials)}</span><div><div>${esc(r.name)}</div><div class="meta">${esc(r.sub)} · <span class="dot ${r.contract === "Obra o labor" ? "obra" : "fijo"}" aria-hidden="true"></span>${esc(r.contract)} · desde ${r.since}</div></div></li>`).join("");
+  $("#scrim").hidden = false;
+  $("#panel").hidden = false;
+  $("#panel-close").focus();
+}
+
+function closePanel() {
+  state.peek = null;
+  $("#scrim").hidden = true;
+  $("#panel").hidden = true;
+}
+
+function renderChips() {
+  const n = filtered().length;
+  const parts = [];
+  parts.push(`<span class="count"><b>${fmt(n)}</b> ${n === 1 ? "empleado" : "empleados"}</span>`);
+  if (state.sub) parts.push(`<span class="chip">Subdivisión: ${esc(state.sub)}<button type="button" data-clear="sub" aria-label="Quitar Subdivisión">×</button></span>`);
+  if (state.contract) parts.push(`<span class="chip">Contrato: ${esc(state.contract)}<button type="button" data-clear="contract" aria-label="Quitar Contrato">×</button></span>`);
+  if (state.sub || state.contract) parts.push(`<button type="button" class="clear" data-clear="all">Limpiar todo</button>`);
+  $("#chips").innerHTML = parts.join("");
+}
+
+function renderMatrix() {
+  const rows = filtered();
+  const subs = SUBS.map((s) => s.name).filter((s) => rows.some((r) => r.sub === s));
+  const cons = CONTRACTS.filter((c) => rows.some((r) => r.contract === c));
+  const count = (s, c) => rows.filter((r) => (s === null || r.sub === s) && (c === null || r.contract === c)).length;
+  const max = Math.max(1, ...subs.flatMap((s) => cons.map((c) => count(s, c))));
+  const cell = (s, c) => {
+    const v = count(s, c);
+    if (!v) return `<td class="zero" aria-label="${esc(s)}, ${esc(c)}: ninguna">·</td>`;
+    return `<td style="--w:${(v / max).toFixed(3)}"><button type="button" data-sub="${esc(s)}" data-contract="${esc(c)}" aria-label="${esc(s)}, ${esc(c)}: ${v}">${fmt(v)}</button></td>`;
+  };
+  const body = subs.map((s) => `<tr><th scope="row"><button type="button" data-sub="${esc(s)}">${esc(s)}</button></th>${cons.map((c) => cell(s, c)).join("")}<td class="tot"><button type="button" data-sub="${esc(s)}">${fmt(count(s, null))}</button></td><td class="fill" aria-hidden="true"></td></tr>`).join("");
+  $("#box").innerHTML = `
+    <div class="mx-bar">Filas <select id="mx-rows" aria-label="Filas"><option>Subdivisión</option></select>
+      Columnas <select id="mx-cols" aria-label="Columnas"><option>Contrato</option></select></div>
+    <div class="scroll"><table class="mx">
+      <thead><tr><th scope="col"></th>${cons.map((c) => `<th scope="col"><button type="button" data-contract="${esc(c)}">${esc(c)}</button></th>`).join("")}<th scope="col" class="tot">Total</th><th class="fill" aria-hidden="true"></th></tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot><tr><th scope="row">Total</th>${cons.map((c) => `<td class="tot"><button type="button" data-contract="${esc(c)}">${fmt(count(null, c))}</button></td>`).join("")}<td class="tot"><button type="button" data-all>${fmt(rows.length)}</button></td><td class="fill" aria-hidden="true"></td></tr></tfoot>
+    </table></div>
+    <p class="note">Un cruce abre la tabla con esos dos filtros; un encabezado o un total, con el suyo.</p>`;
+}
+
+function renderTable() {
+  const rows = filtered();
+  $("#box").innerHTML = `<div class="scroll"><table class="tb">
+    <thead><tr><th scope="col">Empleado</th><th scope="col">Empresa</th><th scope="col">Subdivisión</th><th scope="col">Contrato</th><th scope="col">Ingreso</th><th scope="col" aria-hidden="true"></th></tr></thead>
+    <tbody>${rows.map((r) => `<tr><td><span class="who"><span class="av" aria-hidden="true">${esc(r.initials)}</span>${esc(r.name)}</span></td><td>${esc(r.company)}</td><td>${esc(r.sub)}</td><td><span class="dot ${r.contract === "Obra o labor" ? "obra" : "fijo"}" aria-hidden="true"></span>${esc(r.contract)}</td><td class="num">${r.since}</td><td style="width:100%"></td></tr>`).join("")}</tbody>
+  </table></div>`;
+}
+
+function render() {
+  for (const b of document.querySelectorAll("#mode button")) b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode));
+  for (const b of document.querySelectorAll("#layout button")) b.setAttribute("aria-pressed", String(b.dataset.layout === state.layout));
+  $("#how").innerHTML = HOW[state.mode];
+  renderChips();
+  if (state.layout === "matrix") renderMatrix();
+  else renderTable();
+}
+
+$("#mode").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-mode]");
+  if (!b) return;
+  closePanel();
+  Object.assign(state, { mode: b.dataset.mode, layout: "matrix", sub: null, contract: null, drilled: null });
+  render();
+});
+$("#layout").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-layout]");
+  if (b) setLayout(b.dataset.layout);
+});
+$("#chips").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-clear]");
+  if (!c) return;
+  if (c.dataset.clear === "all") Object.assign(state, { sub: null, contract: null });
+  else state[c.dataset.clear] = null;
+  render();
+});
+$("#box").addEventListener("click", (e) => {
+  const b = e.target.closest(".mx button");
+  if (!b) return;
+  if (b.hasAttribute("data-all")) return drill(undefined, undefined);
+  drill(b.dataset.sub ?? undefined, b.dataset.contract ?? undefined);
+});
+
+$("#panel-close").addEventListener("click", closePanel);
+$("#scrim").addEventListener("click", closePanel);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && state.peek) closePanel();
+});
+$("#panel-table").addEventListener("click", () => {
+  const { sub, contract } = state.peek;
+  closePanel();
+  apply(sub, contract);
+});
+
+render();
+</script>

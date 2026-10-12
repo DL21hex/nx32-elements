@@ -22,6 +22,7 @@ import type { NxField } from "../components/field/field";
 import type { FieldActionDetail, FieldLabels } from "../components/field/types";
 import type { NxForm } from "../components/form/form";
 import type { FormChangeDetail, FormField, FormFillDetail, FormLabels, FormMode, FormSection, FormSubmitDetail, FormValue, FormVariant } from "../components/form/types";
+import type { HistoryVariant } from "../components/history/types";
 import type { NxFields } from "../components/fields/fields";
 import type { FieldItem, FieldsActionDetail, FieldsLabels, FieldsVariant } from "../components/fields/types";
 import type { NxTabs } from "../components/tabs/tabs";
@@ -269,7 +270,7 @@ declare module "solid-js" {
       active: string | undefined;
       label: string | undefined;
       icon: string | undefined;
-      variant: ButtonVariant | FieldsVariant | FormVariant | undefined;
+      variant: ButtonVariant | FieldsVariant | FormVariant | HistoryVariant | undefined;
       type: "button" | "submit" | "reset" | undefined;
       "log-mode": LogMode | undefined;
       stream: string | undefined;
@@ -279,6 +280,7 @@ declare module "solid-js" {
       name: string | undefined;
       value: string | undefined;
       endpoint: string | undefined;
+      template: string | undefined;
       question: string | undefined;
       action: string | undefined;
       "review-below": string | undefined;
@@ -388,6 +390,7 @@ declare module "solid-js" {
       optional: boolean;
       locked: boolean;
       "no-footer": boolean;
+      "no-group": boolean;
     }
     interface CustomEvents {
       "nx-jobs-change": CustomEvent<{ jobs: Job[] }>;

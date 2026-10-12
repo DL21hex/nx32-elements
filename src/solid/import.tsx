@@ -12,6 +12,8 @@ export interface ImportProps extends Omit<JSX.HTMLAttributes<NxImport>, "onError
   columns: ImportColumnInput[];
   /** Recibe `POST {rows, offset}` por lotes y puede responder `{errors: [{row, field?, message}]}`. Sin él, solo `onDone`. */
   endpoint?: string;
+  /** URL de la plantilla: «Descargar la plantilla» en el primer paso. */
+  template?: string;
   /** Filas por lote (500). */
   batch?: number;
   accept?: string;
@@ -32,13 +34,14 @@ export interface ImportProps extends Omit<JSX.HTMLAttributes<NxImport>, "onError
 }
 
 export function Import(props: ImportProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "endpoint", "batch", "accept", "maxSize", "memory", "locale", "labels", "disabled", "onParsed", "onMapped", "onDone", "onError", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "endpoint", "template", "batch", "accept", "maxSize", "memory", "locale", "labels", "disabled", "onParsed", "onMapped", "onDone", "onError", "children"]);
   return (
     <nx-import
       {...rest}
       prop:columns={local.columns}
       prop:labels={local.labels}
       attr:endpoint={local.endpoint}
+      attr:template={local.template}
       attr:batch={local.batch === undefined ? undefined : String(local.batch)}
       attr:accept={local.accept}
       attr:max-size={local.maxSize === undefined ? undefined : String(local.maxSize)}

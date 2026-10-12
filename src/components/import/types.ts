@@ -162,6 +162,8 @@ export interface ImportMessages {
 }
 
 export interface ImportLabels extends ImportMessages {
+  /** El enlace a la plantilla (`template`). */
+  template: string;
   /** «Paso {n} de {total} · » */
   step: string;
   stepFile: string;

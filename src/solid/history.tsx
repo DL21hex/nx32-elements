@@ -3,9 +3,9 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/history/index";
 import type { NxHistory } from "../components/history/history";
-import type { HistoryActor, HistoryCommitDetail, HistoryEvent, HistoryField, HistoryLabels, HistoryRevertDetail, HistoryValue } from "../components/history/types";
+import type { HistoryActor, HistoryCommitDetail, HistoryEvent, HistoryField, HistoryLabels, HistoryRevertDetail, HistoryValue, HistoryVariant } from "../components/history/types";
 
-export type { NxHistory, HistoryActor, HistoryCommitDetail, HistoryEvent, HistoryField, HistoryLabels, HistoryRevertDetail };
+export type { NxHistory, HistoryActor, HistoryCommitDetail, HistoryEvent, HistoryField, HistoryLabels, HistoryRevertDetail, HistoryVariant };
 
 export interface HistoryProps extends Omit<JSX.HTMLAttributes<NxHistory>, "children"> {
   /** El registro como está hoy. */
@@ -19,6 +19,10 @@ export interface HistoryProps extends Omit<JSX.HTMLAttributes<NxHistory>, "child
   /** Milisegundos para deshacer una reversión (7000); 0 la registra al instante. */
   undo?: number;
   heading?: string;
+  /** `plain`: sólo la línea de tiempo y las notas (sin buscador, filtros ni viaje en el tiempo). */
+  variant?: HistoryVariant;
+  /** Sin caja de notas ni «Revertir». */
+  readonly?: boolean;
   locale?: string;
   labels?: Partial<HistoryLabels>;
   /** Cancelable: la reversión no se aplica. */
@@ -33,7 +37,7 @@ export interface HistoryProps extends Omit<JSX.HTMLAttributes<NxHistory>, "child
 }
 
 export function History(props: HistoryProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["record", "fields", "events", "source", "user", "undo", "heading", "locale", "labels", "onRevert", "onCommit", "onComment", "onTravel", "children"]);
+  const [local, rest] = splitProps(props, ["record", "fields", "events", "source", "user", "undo", "heading", "variant", "readonly", "locale", "labels", "onRevert", "onCommit", "onComment", "onTravel", "children"]);
   return (
     <nx-history
       {...rest}
@@ -44,6 +48,8 @@ export function History(props: HistoryProps): JSX.Element {
       prop:labels={local.labels}
       attr:source={local.source}
       attr:heading={local.heading}
+      attr:variant={local.variant === "plain" ? "plain" : undefined}
+      bool:readonly={!!local.readonly}
       attr:undo={local.undo === undefined ? undefined : String(local.undo)}
       attr:locale={local.locale}
       on:nx-history-revert={(e) => e.target === e.currentTarget && local.onRevert?.(e)}

@@ -482,6 +482,17 @@ describe("<nx-grid>", () => {
     expect(column(el, 0)).toEqual(["OC-2", "OC-4"]);
   });
 
+  it("no-group: sin «Agrupar por» y sin grupos, aunque group-by lo pida", () => {
+    const el = mount('group-by="prov" no-group');
+    expect(el.noGroup).toBe(true);
+    expect(el.querySelector<HTMLElement>(".nx-grid__group")!.hidden).toBe(true);
+    expect(el.querySelectorAll(".nx-grid__row--group")).toHaveLength(0);
+    // Quitarlo devuelve el selector y la agrupación pedida.
+    el.noGroup = false;
+    expect(el.querySelector<HTMLElement>(".nx-grid__group")!.hidden).toBe(false);
+    expect(el.querySelectorAll(".nx-grid__row--group").length).toBeGreaterThan(0);
+  });
+
   it("removeColumn quita la columna con su filtro y su orden", () => {
     const el = mount();
     const counts: number[] = [];

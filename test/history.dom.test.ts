@@ -403,4 +403,51 @@ describe("<nx-history>: revisión", () => {
     const el = mount('undo="3000000000"');
     expect(el.undo).toBe(2_147_483_647);
   });
+
+  describe("variant=plain y readonly", () => {
+    it("plain: sólo la línea; sin buscador, filtros ni viaje en el tiempo", () => {
+      const el = mount('variant="plain"');
+      expect(el.variant).toBe("plain");
+      expect(el.querySelector<HTMLElement>(".nx-history__search")!.hidden).toBe(true);
+      expect(el.querySelector<HTMLElement>(".nx-history__chips")!.hidden).toBe(true);
+      expect(el.querySelector(".nx-history__chips")!.childElementCount).toBe(0);
+      expect(el.querySelector<HTMLElement>(".nx-history__panel")!.hidden).toBe(true);
+      // La hora sólo se lee: no hay botones de «ver cómo estaba».
+      expect(el.querySelectorAll("[data-jump]")).toHaveLength(0);
+      expect(el.querySelectorAll("time.nx-history__when")).toHaveLength(evs(el).length);
+      expect(evs(el)).toHaveLength(EVENTS.length);
+      expect(el.querySelector(".nx-history__title")!.textContent).toBe("OC-2291");
+      // Las notas siguen.
+      expect(el.querySelector<HTMLElement>(".nx-history__compose")!.hidden).toBe(false);
+    });
+
+    it("pasar a plain suelta los filtros y vuelve al presente", () => {
+      const el = mount();
+      el.querySelector<HTMLButtonElement>('[data-filter="actor"][data-v="Laura Gómez"]')!.click();
+      expect(evs(el)).toHaveLength(1);
+      slide(el, 1);
+      expect(el.at).toBe("2");
+      el.variant = "plain";
+      expect(evs(el)).toHaveLength(EVENTS.length);
+      expect(el.at).toBeNull();
+      el.variant = "full";
+      expect(el.querySelector<HTMLElement>(".nx-history__panel")!.hidden).toBe(false);
+      expect(el.querySelectorAll("[data-jump]").length).toBe(EVENTS.length);
+    });
+
+    it("readonly: sin caja de notas ni «Revertir», y comment() no agrega nada", () => {
+      const el = mount("readonly");
+      expect(el.readonly).toBe(true);
+      expect(el.querySelector<HTMLElement>(".nx-history__compose")!.hidden).toBe(true);
+      expect(el.querySelectorAll(".nx-history__revert")).toHaveLength(0);
+      const heard = vi.fn();
+      el.addEventListener("nx-history-comment", heard);
+      expect(el.comment("hola")).toBe(false);
+      expect(heard).not.toHaveBeenCalled();
+      expect(evs(el)).toHaveLength(EVENTS.length);
+      el.readonly = false;
+      expect(el.querySelector<HTMLElement>(".nx-history__compose")!.hidden).toBe(false);
+      expect(el.querySelectorAll(".nx-history__revert").length).toBeGreaterThan(0);
+    });
+  });
 });

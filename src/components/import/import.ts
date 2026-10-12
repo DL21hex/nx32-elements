@@ -11,9 +11,12 @@
  * 3. **Revisión.** Cada fila se normaliza y valida; primero las que tienen errores, con la celda
  *    editable ahí mismo. Se corrigen o se omiten, y se importa: con `endpoint`, en lotes con avance,
  *    cancelable, y lo que el servidor rechaza vuelve a la revisión.
+ *
+ * Con `template` (la URL del archivo de ejemplo), el primer paso ofrece «Descargar la plantilla»
+ * debajo de donde se suelta el archivo: quien importa no busca la plantilla en otro botón.
  */
 import { Base, boolAttr, upgrade } from "../../core/define";
-import { h, safeEndpoint, emit, setAttr } from "../../core/dom";
+import { h, safeEndpoint, safeHref, emit, setAttr } from "../../core/dom";
 import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
@@ -104,10 +107,12 @@ export const IMPORT_LABELS: ImportLabels = {
   yes: "Sí",
   no: "No",
   failedFile: "filas-sin-importar",
+  template: "Descargar la plantilla",
 };
 
 const UPLOAD = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>';
 const CHECK = '<path d="M20 6 9 17l-5-5"/>';
+const DOWNLOAD = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>';
 const ACCEPT = ".csv,.tsv,.txt,.xlsx,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 /** Filas de la revisión que se pintan como mucho (las demás se cuentan: «y N más»). */
 const LIMIT = 200;
@@ -128,7 +133,7 @@ function store(): Storage | null {
 }
 
 export class NxImport extends Base {
-  static observedAttributes = ["columns", "endpoint", "batch", "accept", "max-size", "memory", "locale", "labels", "disabled"];
+  static observedAttributes = ["columns", "endpoint", "batch", "accept", "max-size", "memory", "locale", "labels", "disabled", "template"];
 
   #uid = `nx-imp${++uid}`;
   #labels: ImportLabels = IMPORT_LABELS;
@@ -184,6 +189,13 @@ export class NxImport extends Base {
   }
   set endpoint(v: string | null) {
     this.#attr("endpoint", v);
+  }
+  /** La URL de la plantilla (un .xlsx o .csv de ejemplo): «Descargar la plantilla» en el primer paso. */
+  get template(): string | null {
+    return this.getAttribute("template");
+  }
+  set template(v: string | null) {
+    this.#attr("template", v);
   }
   /** Filas por lote (por defecto 500). */
   get batch(): number {
@@ -833,6 +845,9 @@ export class NxImport extends Base {
         h("span", { class: "nx-imp__drop-text" }, h("strong", null, t ? L.change : L.drop), h("small", null, fmtLabel(L.dropHint, { max: this.#size(this.maxSize), mod: mac ? "⌘" : "Ctrl" }))),
       ),
     ];
+    // Sólo antes de elegir: con un archivo ya leído, lo que sigue es revisar sus columnas.
+    const template = t ? undefined : safeHref(this.template);
+    if (template) out.push(h("a", { class: "nx-imp__template", href: template, download: "", target: "_blank", rel: "noopener" }, glyph(DOWNLOAD, "nx-imp__template-icon"), L.template));
     if (this.#error) out.push(h("p", { class: "nx-imp__error", role: "alert" }, this.#error));
     if (!t) return out;
     const f = this.#file!;

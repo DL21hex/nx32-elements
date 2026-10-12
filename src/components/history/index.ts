@@ -6,7 +6,7 @@ define("nx-history", NxHistory);
 export { NxHistory, HISTORY_LABELS } from "./history";
 export { stateAt as historyStateAt, wordDiff, revertChange, cleanEvents as cleanHistoryEvents } from "./logic";
 export type { DiffPart, HistoryFilter } from "./logic";
-export type { HistoryAction, HistoryActor, HistoryChange, HistoryCommitDetail, HistoryEvent, HistoryField, HistoryFieldType, HistoryLabels, HistoryPage, HistoryRevertDetail, HistoryTone, HistoryValue } from "./types";
+export type { HistoryAction, HistoryActor, HistoryChange, HistoryCommitDetail, HistoryEvent, HistoryField, HistoryFieldType, HistoryLabels, HistoryPage, HistoryRevertDetail, HistoryTone, HistoryValue, HistoryVariant } from "./types";
 
 declare global {
   interface HTMLElementTagNameMap {

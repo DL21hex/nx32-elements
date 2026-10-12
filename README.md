@@ -653,6 +653,8 @@ Una tabla de datos que se explora sola:
   (`<nx-page-header>`), la tabla no lleva otro: `segments` pinta los atajos como el mismo filtro
   segmentado («Todos» y uno por atajo, con su conteo) en la primera fila, sin título. Sin título ni
   `segments`, los atajos son tarjetas.
+- **Sin agrupar (`no-group`).** Quita «Agrupar por» y no agrupa aunque `group-by` o una vista
+  guardada lo pidan: para una tabla cuyas filas se leen una a una, como una bandeja.
 - **Puntos de color (`dot`).** Una columna con `dot: true` muestra un punto antes de cada valor en vez
   de la píldora: para clasificar sin gritar (el tipo de contrato, la sede). El color es el `tone` de
   la opción o, sin tono, uno de ocho por el lugar de la opción en `options` (con `options`, ninguno se
@@ -788,7 +790,7 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
@@ -1211,7 +1213,7 @@ La máquina del tiempo de un registro: quién cambió qué y cuándo, y cómo es
 
 | | |
 |---|---|
-| Propiedades / atributos | `record`, `fields` (`{key, label, type?, currency?, options?}`), `events` (`{id, at, actor: {name, avatar?}, action, changes?: [{field, from, to}], note?, revertOf?}`), `source`, `user`, `undo` (ms, 7000; 0 = sin aviso), `heading`, `locale`, `labels` · `at`, `snapshot` |
+| Propiedades / atributos | `record`, `fields` (`{key, label, type?, currency?, options?}`), `events` (`{id, at, actor: {name, avatar?}, action, changes?: [{field, from, to}], note?, revertOf?}`), `source`, `user`, `undo` (ms, 7000; 0 = sin aviso), `heading`, `variant` (`plain`: sólo la línea y las notas), `readonly` (sin notas ni «Revertir»), `locale`, `labels` · `at`, `snapshot` |
 | Métodos | `travel(id \| null)`, `revert(id, field)` → `"commit"` \| `"undo"` \| `"cancel"`, `comment(text)`, `reload()` |
 | Eventos | `nx-history-revert` `{event, change}` (cancelable), `nx-history-commit` `{event, change, revert, record}`, `nx-history-comment` `{text}` (cancelable), `nx-history-travel` `{id, record}` |
 
@@ -1613,6 +1615,9 @@ de 3 · Columnas»), controles de formulario normales y botones Anterior / Sigui
   índice en el lote) y esas filas vuelven a la revisión para corregirlas y reenviar solo esas. Al
   final, «Importamos 1.197 clientes» y un CSV (con BOM, para Excel) con lo que no entró y el motivo.
 - 50.000 filas × 15 columnas se revisan por tramos, sin congelar la página.
+- **Plantilla (`template`).** La URL de un archivo de ejemplo: el primer paso ofrece «Descargar la
+  plantilla» debajo de donde se suelta el archivo (un `<a download>` en otra pestaña), así quien
+  importa no la busca en otro botón. Solo URLs seguras; con un archivo ya leído, no se ve.
 
 ```html
 <nx-import id="clientes" endpoint="/api/clientes/importar" columns='[
@@ -1629,7 +1634,7 @@ de 3 · Columnas»), controles de formulario normales y botones Anterior / Sigui
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns` (`{key, label, type?, required?, unique?, options?, aliases?, min?, max?, pattern?, hint?}`), `endpoint`, `batch` (500), `accept`, `max-size` («20MB»), `memory`, `locale`, `labels` (plural con «uno\|varios»), `disabled` · `state`, `rows`, `mapping` (solo lectura) |
+| Propiedades / atributos | `columns` (`{key, label, type?, required?, unique?, options?, aliases?, min?, max?, pattern?, hint?}`), `endpoint`, `template` (URL de la plantilla), `batch` (500), `accept`, `max-size` («20MB»), `memory`, `locale`, `labels` (plural con «uno\|varios»), `disabled` · `state`, `rows`, `mapping` (solo lectura) |
 | Métodos | `load(archivo \| texto)`, `reset()` |
 | Eventos | `nx-import-parsed` `{name, sheet?, sheets?, headers, headerRow, rows}`, `nx-import-mapped` `{mapping, fixed, remembered}`, `nx-import-done` `{rows, skipped, mapping, fixed, headers}`, `nx-import-error` `{code, message}` (`size`, `read`, `empty`, `network`) |
 | Funciones | `parseCsv`, `decodeImportBytes`, `detectHeaderRow`, `autoMapColumns`, `validateImportRows`, `normalizeImportValue`, `parseImportNumber`, `parseImportDate`, `importRowsToCsv`…: la misma lógica sin DOM, para un backend en JavaScript |

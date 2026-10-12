@@ -13,6 +13,10 @@
   nunca dentro de `rows` (se descarta con un aviso). El control es un `<input type=file>` de verdad,
   oculto a la vista: lleva la etiqueta, el anillo de foco y el error por `aria-describedby`. Textos
   nuevos en `labels`: `fileChoose`, `fileDrop`, `fileMax`, `fileRemove`, `fileBadType`, `fileTooBig`.
+- **`<nx-grid>`: `shownIds`.** Los `id` (según `row-key`) de las filas que pasan la búsqueda y los
+  filtros, en el orden en que se ven (agrupada, grupo por grupo). Es para el «anterior / siguiente»
+  de una ficha abierta desde una fila (`<nx-dialog nav>`): la app ya no tiene que repetir los
+  filtros ni el orden. Con `source`, los de las filas ya cargadas, en ese orden.
 
 ## 0.13.5 — 2026-10-12
 

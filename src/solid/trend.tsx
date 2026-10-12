@@ -25,6 +25,12 @@ export interface TrendProps extends Omit<JSX.HTMLAttributes<NxTrend>, "onToggle"
   /** Protocolo de IA que contesta «¿por qué?» (POST `{question, context}`). */
   explainEndpoint?: string;
   busy?: boolean;
+  /** Las barras se apilan en el periodo. */
+  stacked?: boolean;
+  /** La dimensión de `<Board>` de las series: la leyenda filtra el tablero. */
+  dimension?: string;
+  /** La dimensión de `<Board>` de los periodos: una barra o un punto filtran ese periodo. */
+  periodDimension?: string;
   locale?: string;
   labels?: Partial<TrendLabels>;
   /** Clic o Enter en un punto (cancelable: no se abre el popover). */
@@ -36,7 +42,7 @@ export interface TrendProps extends Omit<JSX.HTMLAttributes<NxTrend>, "onToggle"
 }
 
 export function Trend(props: TrendProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["series", "anomalies", "heading", "kind", "format", "currency", "height", "detect", "explainEndpoint", "busy", "locale", "labels", "onWhy", "onToggle", "children"]);
+  const [local, rest] = splitProps(props, ["series", "anomalies", "heading", "kind", "format", "currency", "height", "detect", "explainEndpoint", "busy", "stacked", "dimension", "periodDimension", "locale", "labels", "onWhy", "onToggle", "children"]);
   return (
     <nx-trend
       {...rest}
@@ -52,6 +58,9 @@ export function Trend(props: TrendProps): JSX.Element {
       attr:explain-endpoint={local.explainEndpoint}
       attr:locale={local.locale}
       bool:busy={!!local.busy}
+      bool:stacked={!!local.stacked}
+      attr:dimension={local.dimension || undefined}
+      attr:period-dimension={local.periodDimension || undefined}
       on:nx-trend-why={(e) => e.target === e.currentTarget && local.onWhy?.(e)}
       on:nx-trend-toggle={(e) => e.target === e.currentTarget && local.onToggle?.(e)}
     />

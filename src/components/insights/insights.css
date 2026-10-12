@@ -1,0 +1,89 @@
+/* <nx-insights>: «Lectura», frases con su marca (teñida por el tono) y, si aplica, qué mirar. */
+nx-insights {
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+}
+.nx-insights__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-insights__item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--nx-border-subtle);
+}
+.nx-insights__item:first-child {
+  padding-top: 2px;
+  border-top: 0;
+}
+.nx-insights__mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--nx-hover);
+  color: var(--nx-muted-foreground);
+}
+.nx-insights__mark.is-bad {
+  color: var(--nx-danger);
+}
+.nx-insights__mark.is-good {
+  color: var(--nx-success);
+}
+.nx-insights__mark .nx-glyph,
+.nx-insights__mark svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+.nx-insights__text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--nx-muted-foreground);
+  overflow-wrap: anywhere;
+}
+.nx-insights__text b {
+  font-weight: 600;
+  color: var(--nx-foreground);
+}
+.nx-insights__action {
+  grid-column: 2;
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.nx-insights__action:hover {
+  text-decoration-thickness: 2px;
+}
+.nx-insights__action:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.nx-insights__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--nx-muted-foreground);
+}
+@media (forced-colors: active) {
+  .nx-insights__mark {
+    border: 1px solid CanvasText;
+  }
+}

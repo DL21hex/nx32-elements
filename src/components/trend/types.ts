@@ -11,6 +11,11 @@ export type TrendFormat = "number" | "money" | "percent";
 export interface TrendPoint {
   x: string;
   y: number | null;
+  /** Un valor proyectado (no ocurrido): se dibuja rayado o punteado y se dice «proyección». */
+  forecast?: boolean;
+  /** El rango de la proyección: una línea vertical con topes de `low` a `high`. */
+  low?: number;
+  high?: number;
 }
 
 export interface TrendSeries {
@@ -89,4 +94,8 @@ export interface TrendLabels {
   close: string;
   /** Pista en el tooltip. */
   ask: string;
+  /** Un punto proyectado. */
+  forecast: string;
+  /** El rango de una proyección: «{low} – {high}». */
+  range: string;
 }

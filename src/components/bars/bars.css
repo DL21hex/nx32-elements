@@ -1,0 +1,284 @@
+/*
+ * <nx-bars>. Horizontal: cada renglón es nombre · valor (· acumulado) con la barra debajo, a lo
+ * ancho. Vertical: columnas con el valor arriba y el nombre abajo. Marcas finas, extremos de 4 px,
+ * un riel suave detrás y 2 px de superficie entre las partes apiladas.
+ *
+ * Variables propias:
+ *   --nx-bars-color (--nx-chart-1): el color de una barra simple
+ *   --nx-bars-thickness (6px): el grueso de una barra horizontal
+ *   --nx-bars-col (34px): el ancho máximo de una columna
+ */
+
+nx-bars {
+  position: relative;
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+}
+.nx-bars__root {
+  display: grid;
+  gap: 10px;
+}
+.nx-bars__empty,
+.nx-bars__more,
+.nx-bars__reflabel {
+  margin: 0;
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+}
+.nx-bars__empty {
+  padding-block: 12px;
+  font-size: 13px;
+}
+.nx-bars__reflabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 6px;
+
+  & i {
+    inline-size: 14px;
+    border-block-start: 1.5px dashed var(--nx-chart-muted);
+  }
+}
+
+/* ---------------------------------------------------------------- leyenda */
+.nx-bars__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+
+  & li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+/* ---------------------------------------------------------------- horizontal */
+.nx-bars__list,
+.nx-bars__cols {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-bars__list {
+  display: grid;
+  gap: 2px;
+}
+.nx-bars__head,
+.nx-bars__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.nx-bars__head,
+.nx-bars__row.has-cum {
+  grid-template-columns: minmax(0, 1fr) auto 3.5em;
+}
+.nx-bars__head {
+  padding-block-end: 2px;
+  color: var(--nx-muted-foreground);
+  font-size: 11px;
+  text-align: end;
+}
+.nx-bars__row {
+  inline-size: 100%;
+  margin: 0;
+  padding: 5px 6px;
+  margin-inline: -6px;
+  box-sizing: content-box;
+  border: 0;
+  border-radius: var(--nx-radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.nx-bars__row,
+button.nx-bars__col {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--nx-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: -1px;
+  }
+  &[aria-pressed="true"] .nx-bars__name,
+  &[aria-pressed="true"] .nx-bars__collabel {
+    color: var(--nx-foreground);
+    font-weight: 600;
+  }
+}
+.nx-bars__label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-inline-size: 0;
+  color: var(--nx-muted-foreground);
+}
+.nx-bars__code {
+  flex: none;
+  color: var(--nx-text-tertiary);
+  font-family: var(--nx-font-mono);
+  font-size: 11.5px;
+}
+.nx-bars__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-bars__value,
+.nx-bars__cum {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+.nx-bars__value {
+  font-weight: 550;
+
+  & small {
+    color: var(--nx-muted-foreground);
+    font-size: 12px;
+    font-weight: 400;
+  }
+}
+.nx-bars__cum {
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+}
+.nx-bars__track {
+  position: relative;
+  grid-column: 1 / -1;
+  display: block;
+  block-size: var(--nx-bars-thickness, 6px);
+  border-radius: 3px;
+  background: var(--nx-hover);
+}
+.nx-bars__track > .nx-bars__fill {
+  display: flex;
+  block-size: 100%;
+  border-radius: 0 3px 3px 0;
+  background: var(--nx-bars-color, var(--nx-chart-1));
+}
+.nx-bars__ref {
+  position: absolute;
+  inset-block: -3px;
+  border-inline-start: 1.5px dashed var(--nx-chart-muted);
+}
+
+/* Partes apiladas: cada una con su color y 2 px de superficie entre ellas. */
+.nx-bars__fill.is-stack {
+  gap: 2px;
+  background: none;
+
+  & > i {
+    flex: 1 1 0;
+    min-inline-size: 2px;
+    min-block-size: 2px;
+    background: var(--c);
+  }
+}
+.nx-bars__track > .nx-bars__fill.is-stack > i:last-child {
+  border-radius: 0 3px 3px 0;
+}
+
+/* ---------------------------------------------------------------- columnas */
+.nx-bars__plot {
+  position: relative;
+  border-block-end: 0;
+}
+.nx-bars__cols {
+  display: grid;
+  gap: 6px;
+  block-size: 100%;
+
+  & > li {
+    min-inline-size: 0;
+  }
+}
+.nx-bars__col {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 22px;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nx-radius-md);
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.nx-bars__stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-block-size: 0;
+  padding-block-start: 18px;
+  border-block-end: 1px solid var(--nx-border);
+}
+.nx-bars__colval {
+  margin-block-end: 3px;
+  color: var(--nx-muted-foreground);
+  font-size: 11.5px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nx-bars__stack > .nx-bars__fill {
+  display: flex;
+  flex-direction: column-reverse;
+  inline-size: min(100%, var(--nx-bars-col, 34px));
+  min-block-size: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--nx-bars-color, var(--nx-chart-1));
+  overflow: hidden;
+}
+.nx-bars__collabel {
+  align-self: center;
+  overflow: hidden;
+  color: var(--nx-muted-foreground);
+  font-size: 11.5px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-bars__hline {
+  position: absolute;
+  inset-inline: 0;
+  border-block-start: 1.5px dashed var(--nx-chart-muted);
+  pointer-events: none;
+
+  & span {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-end: 2px;
+    padding-inline: 3px;
+    background: var(--nx-card, var(--nx-background));
+    color: var(--nx-muted-foreground);
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nx-bars__fill {
+    transition: inline-size var(--nx-motion-base) var(--nx-ease-out), block-size var(--nx-motion-base) var(--nx-ease-out);
+  }
+}
+@media (forced-colors: active) {
+  .nx-bars__fill,
+  .nx-bars__fill.is-stack > i {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+}

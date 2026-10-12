@@ -1,0 +1,113 @@
+/* <nx-parts>: una barra al 100 % con las partes y la lista con monto, regla y porcentaje. Los
+   colores salen de `data-nx-slot` (tokens.css); el tooltip es `.nx-chart-tip`. */
+nx-parts {
+  position: relative;
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+}
+.nx-parts__root {
+  display: grid;
+  gap: 14px;
+}
+.nx-parts__empty {
+  margin: 0;
+  color: var(--nx-muted-foreground);
+}
+
+/* La barra: separaciones de 2 px del color de la superficie (el hueco deja ver el fondo), extremos
+   redondeados, y una parte chica que se sigue viendo. */
+.nx-parts__bar {
+  display: flex;
+  gap: 2px;
+  block-size: var(--nx-parts-height, 16px);
+}
+.nx-parts__seg {
+  flex: 0 1 0;
+  min-inline-size: 3px;
+  background: var(--c, var(--nx-chart-1));
+}
+.nx-parts__seg:first-child {
+  border-start-start-radius: 4px;
+  border-end-start-radius: 4px;
+}
+.nx-parts__seg:last-child {
+  border-start-end-radius: 4px;
+  border-end-end-radius: 4px;
+}
+
+/* La lista: muestra, nombre y monto; debajo, la regla y el porcentaje. */
+.nx-parts__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-parts__row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 10px;
+  inline-size: 100%;
+  margin: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--nx-radius-sm, 5px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.nx-parts__row {
+  cursor: pointer;
+}
+button.nx-parts__row:hover {
+  background: var(--nx-hover);
+}
+button.nx-parts__row:focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 1px;
+}
+.nx-parts__row > .nx-chart-sw {
+  align-self: center;
+}
+.nx-parts__name {
+  min-inline-size: 0;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.nx-parts__amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.nx-parts__note {
+  grid-column: 2;
+  min-inline-size: 0;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+}
+.nx-parts__share {
+  grid-column: 3;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nx-parts__seg {
+    transition: flex-grow var(--nx-motion-base, 220ms) var(--nx-ease-out, ease);
+  }
+  button.nx-parts__row {
+    transition: background var(--nx-motion-fast, 140ms);
+  }
+}
+/* Con colores forzados, las partes serían un solo bloque: cada una con su borde. */
+@media (forced-colors: active) {
+  .nx-parts__seg,
+  .nx-parts__row > .nx-chart-sw {
+    border: 1px solid CanvasText;
+  }
+}

@@ -17,7 +17,7 @@ import { nxFormat, resolveLocale } from "../../core/locale";
 import { sparkPaths } from "../../core/spark";
 import type { StatItem, StatsLabels, StatsSelectDetail } from "./types";
 
-export const STATS_LABELS: StatsLabels = { group: "Resumen" };
+export const STATS_LABELS: StatsLabels = { group: "Resumen", up: "Sube", down: "Baja", same: "Igual", points: "{n} pp" };
 
 const SVG = "http://www.w3.org/2000/svg";
 const TONES = /^(neutral|info|success|warning|danger)$/;
@@ -145,6 +145,8 @@ export class NxStats extends Base {
       top.append(h("span", { class: `nx-stats__badge is-${tone}` }, it.badge.label));
     }
     text.append(top, h("span", { class: "nx-stats__value" }, statValue(it, locale)));
+    const delta = this.#delta(it, locale);
+    if (delta) text.append(delta);
     if (it.note) text.append(h("span", { class: "nx-stats__note" }, it.note));
     const shape = this.#shape(it);
     const href = safeHref(it.href);
@@ -155,6 +157,36 @@ export class NxStats extends Base {
     } else box = h("div", { class: "nx-stats__item" }, text);
     if (shape) box.append(shape);
     return h("li", null, box);
+  }
+
+  /** El cambio frente a otro periodo, con la flecha y su color según si subir es malo o bueno. */
+  #delta(it: StatItem, locale: string): HTMLElement | null {
+    const d = it.delta;
+    if (!d || !finite(d.value)) return null;
+    const L = this.#labels;
+    const flat = Math.abs(d.value) < (d.format === "number" ? 1e-9 : 0.0005);
+    const dir = flat ? "same" : d.value > 0 ? "up" : "down";
+    const pol = d.polarity === "up-good" || d.polarity === "neutral" ? d.polarity : "up-bad";
+    const tone = flat || pol === "neutral" ? "is-flat" : (dir === "up") === (pol === "up-bad") ? "is-bad" : "is-good";
+    const f = nxFormat(locale);
+    const abs = Math.abs(d.value);
+    let text: string;
+    if (d.format === "points") text = L.points.replace("{n}", new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(abs * 100));
+    else if (d.format === "number") text = f.number(abs);
+    else {
+      try {
+        text = new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: abs < 0.1 ? 1 : 0 }).format(abs);
+      } catch {
+        text = `${f.number(abs * 100)} %`;
+      }
+    }
+    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "=";
+    return h(
+      "span",
+      { class: `nx-stats__delta ${tone}` },
+      h("b", null, h("span", { "aria-hidden": "true" }, `${arrow} `), h("span", { class: "nx-sr-only" }, `${L[dir]} `), text),
+      d.label ? h("span", null, ` ${d.label}`) : null,
+    );
   }
 
   /** La forma que acompaña a la cifra (decorativa: el número ya lo dice). */
@@ -176,10 +208,15 @@ export class NxStats extends Base {
       (bar.firstChild as HTMLElement).style.width = `${Math.min(100, Math.max(0, (it.meter.value / it.meter.max) * 100))}%`;
       return bar;
     }
-    const sp = sparkPaths(it.trend, 28);
+    const goal = finite(it.goal) ? it.goal : null;
+    const sp = sparkPaths(it.trend, 28, goal === null ? [] : [goal]);
     if (sp) {
       const s = svg("svg", { class: "nx-stats__spark", viewBox: "0 0 100 28", preserveAspectRatio: "none", "aria-hidden": "true" });
       s.append(svg("path", { class: "nx-stats__spark-area", d: sp.area }), svg("path", { class: "nx-stats__spark-line", d: sp.line, "vector-effect": "non-scaling-stroke" }));
+      if (goal !== null) {
+        const y = sp.y(goal);
+        s.append(svg("line", { class: "nx-stats__spark-goal", x1: 0, x2: 100, y1: y, y2: y, "vector-effect": "non-scaling-stroke" }));
+      }
       return s;
     }
     return null;

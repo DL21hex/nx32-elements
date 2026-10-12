@@ -180,6 +180,32 @@ nx-trend[busy] .nx-trend__plot {
 .nx-trend__svg[data-active] .nx-trend__bar:not(.is-on) {
   opacity: 0.45;
 }
+/* Proyección: la barra en un tono suave con borde punteado, la línea punteada, y el rango como una
+   línea vertical con topes. */
+.nx-trend__bar.is-forecast {
+  fill-opacity: 0.28;
+  stroke: var(--c);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.nx-trend__mk.is-forecast {
+  fill: var(--nx-trend-surface, var(--nx-card));
+  stroke: var(--c);
+}
+.nx-trend__fline {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linejoin: round;
+}
+.nx-trend__range {
+  fill: none;
+  stroke: var(--nx-foreground);
+  stroke-width: 1.5;
+  opacity: 0.6;
+  pointer-events: none;
+}
 .nx-trend__flag {
   pointer-events: none;
   & rect {

@@ -45,6 +45,12 @@
 @import "../components/tracker/tracker.css";
 @import "../components/stats/stats.css";
 @import "../components/board/board.css";
+@import "../components/bars/bars.css";
+@import "../components/heatmap/heatmap.css";
+@import "../components/parts/parts.css";
+@import "../components/phases/phases.css";
+@import "../components/alerts/alerts.css";
+@import "../components/insights/insights.css";
 @import "../components/cards/cards.css";
 @import "../components/print/print.css";
 @import "../components/signature/signature.css";

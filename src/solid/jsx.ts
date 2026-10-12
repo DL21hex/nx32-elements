@@ -109,6 +109,18 @@ import type { Job, JobEvent, JobResult, JobSpec, JobStatus, JobsErrorDetail, Job
 import type { NxBoard } from "../components/board/board";
 import type { NxBoardPanel } from "../components/board/panel";
 import type { BoardChangeDetail, BoardDimension, BoardFilters, BoardLabels } from "../components/board/types";
+import type { NxBars } from "../components/bars/bars";
+import type { BarItem, BarSeries, BarsLabels, BarsSelectDetail } from "../components/bars/types";
+import type { NxHeatmap } from "../components/heatmap/heatmap";
+import type { HeatColumn, HeatmapLabels, HeatmapSelectDetail, HeatRow } from "../components/heatmap/types";
+import type { NxParts } from "../components/parts/parts";
+import type { PartItem, PartsLabels, PartsSelectDetail } from "../components/parts/types";
+import type { NxPhases } from "../components/phases/phases";
+import type { Phase, PhasesLabels } from "../components/phases/types";
+import type { NxAlerts } from "../components/alerts/alerts";
+import type { AlertItem, AlertsActionDetail, AlertsLabels } from "../components/alerts/types";
+import type { NxInsights } from "../components/insights/insights";
+import type { InsightItem, InsightsActionDetail, InsightsLabels } from "../components/insights/types";
 import type { NxSidemenu } from "../components/sidemenu/sidemenu";
 import type { MenuItem, OpenChangeDetail, SelectDetail, SidemenuLabels, ToggleDetail } from "../components/sidemenu/types";
 
@@ -146,23 +158,23 @@ declare module "solid-js" {
       filter: AwardFilter | undefined;
       formats: string[] | undefined;
       anomalies: TrendAnomaly[] | undefined;
-      values: WhatIfValues | Record<string, FormValue> | null | undefined;
+      values: WhatIfValues | Record<string, FormValue> | (number | null)[][] | null | undefined;
       sections: FormSection[] | null | undefined;
       warnings: Record<string, string> | null | undefined;
       hints: Record<string, string> | null | undefined;
       scenarios: WhatIfScenario[] | undefined;
-      series: WhatIfSeries[] | TrendSeries[] | undefined;
+      series: WhatIfSeries[] | TrendSeries[] | BarSeries[] | undefined;
       outputs: WhatIfMetric[] | undefined;
       inputs: WhatIfInput[] | undefined;
       me: PresenceUser | ChecklistPerson | null | undefined;
-      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | null | undefined;
+      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | null | undefined;
       tabs: TabItem[] | null | undefined;
       units: OrgUnit[] | null | undefined;
       people: OrgPerson[] | null | undefined;
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | undefined;
       schema: CaptureSchemaItem[] | undefined;
       suggestions: string[] | undefined;
       context: unknown;
@@ -181,11 +193,13 @@ declare module "solid-js" {
       // Los atajos del selector de fechas y los de la tabla: la misma propiedad en dos componentes.
       presets: DateRangePresetInput[] | GridPreset[] | undefined;
       selection: SelectOption[] | undefined;
-      columns: GridColumn[] | KanbanColumn[] | ImportColumnInput[];
+      columns: GridColumn[] | KanbanColumn[] | ImportColumnInput[] | HeatColumn[];
       cards: KanbanCard[] | undefined;
-      rows: GridRow[] | CardsRow[] | undefined;
+      rows: GridRow[] | CardsRow[] | HeatRow[] | undefined;
       filters: GridFilter[] | BoardFilters | undefined;
       dimensions: BoardDimension[] | undefined;
+      phases: Phase[] | undefined;
+      ticks: number[] | undefined;
       sort: GridSort | null | undefined;
       search: string | undefined;
       view: Partial<GridView> | undefined;
@@ -241,7 +255,7 @@ declare module "solid-js" {
       handoff: string | undefined;
       "value-format": SignatureFormat | RecurrenceValueFormat | undefined;
       "pen-color": string | undefined;
-      orientation: PrintOrientation | undefined;
+      orientation: PrintOrientation | "horizontal" | "vertical" | undefined;
       margin: string | undefined;
       zoom: string | undefined;
       toolbar: "false" | undefined;
@@ -339,6 +353,8 @@ declare module "solid-js" {
       phrase: string | undefined;
       compare: string | undefined;
       today: string | undefined;
+      /** El último día del eje de `<nx-phases>`. */
+      total: string | undefined;
       "fiscal-start": string | undefined;
       "week-start": string | undefined;
       hint: string | undefined;
@@ -353,6 +369,17 @@ declare module "solid-js" {
       "submit-label": string | undefined;
       "cancel-label": string | undefined;
       index: "auto" | "none" | undefined;
+      // Gráficos del tablero (nx-bars, nx-heatmap, nx-phases…).
+      "column-dimension": string | undefined;
+      "period-dimension": string | undefined;
+      mid: string | undefined;
+      polarity: string | undefined;
+      ramp: string | undefined;
+      reference: string | undefined;
+      "reference-label": string | undefined;
+      "row-dimension": string | undefined;
+      scale: string | undefined;
+      "total-label": string | undefined;
     }
     interface ExplicitBoolAttributes {
       sticky: boolean;
@@ -376,6 +403,9 @@ declare module "solid-js" {
       "auto-collapse": boolean;
       busy: boolean;
       restricted: boolean;
+      list: boolean;
+      cumulative: boolean;
+      stacked: boolean;
       personal: boolean;
       "icon-only": boolean;
       "new-tab": boolean;
@@ -440,6 +470,11 @@ declare module "solid-js" {
       "nx-tracker-select": CustomEvent<TrackerSelectDetail>;
       "nx-stats-select": CustomEvent<StatsSelectDetail>;
       "nx-board-change": CustomEvent<BoardChangeDetail>;
+      "nx-bars-select": CustomEvent<BarsSelectDetail>;
+      "nx-heatmap-select": CustomEvent<HeatmapSelectDetail>;
+      "nx-parts-select": CustomEvent<PartsSelectDetail>;
+      "nx-alerts-action": CustomEvent<AlertsActionDetail>;
+      "nx-insights-action": CustomEvent<InsightsActionDetail>;
       "nx-cards-open": CustomEvent<CardsOpenDetail>;
       "nx-cards-action": CustomEvent<CardsActionDetail>;
       "nx-cards-level": CustomEvent<{ level: CardsLevel }>;
@@ -571,6 +606,12 @@ declare module "solid-js" {
       "nx-stats": HTMLAttributes<NxStats>;
       "nx-board": HTMLAttributes<NxBoard>;
       "nx-board-panel": HTMLAttributes<NxBoardPanel> & { heading?: string };
+      "nx-bars": HTMLAttributes<NxBars>;
+      "nx-heatmap": HTMLAttributes<NxHeatmap>;
+      "nx-parts": HTMLAttributes<NxParts>;
+      "nx-phases": HTMLAttributes<NxPhases>;
+      "nx-alerts": HTMLAttributes<NxAlerts>;
+      "nx-insights": HTMLAttributes<NxInsights>;
       "nx-cards": HTMLAttributes<NxCards>;
       "nx-handoff": HTMLAttributes<NxHandoff> & { endpoint?: string; for?: string };
       "nx-guard": HTMLAttributes<NxGuard> & { endpoint?: string };

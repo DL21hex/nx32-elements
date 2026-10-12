@@ -10,14 +10,19 @@ const PERIOD = /^\d{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?$/;
 /** Los puntos válidos, ordenados por `x` y sin repetidos (gana el último). `y` no numérico es `null`. */
 export function cleanPoints(v: unknown): TrendPoint[] {
   if (!Array.isArray(v)) return [];
-  const by = new Map<string, number | null>();
+  const by = new Map<string, TrendPoint>();
+  const num = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
   for (const raw of v) {
     const o = raw as Record<string, unknown> | null;
     const x = o && typeof o === "object" ? str(o.x)?.trim() : undefined;
     if (!x || !PERIOD.test(x)) continue;
-    by.set(x, typeof o!.y === "number" && Number.isFinite(o!.y) ? o!.y : null);
+    const p: TrendPoint = { x, y: num(o!.y) ? o!.y : null };
+    if (o!.forecast === true) p.forecast = true;
+    if (num(o!.low)) p.low = o!.low;
+    if (num(o!.high)) p.high = o!.high;
+    by.set(x, p);
   }
-  return [...by].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([x, y]) => ({ x, y }));
+  return [...by.values()].sort((a, b) => (a.x < b.x ? -1 : 1));
 }
 
 /** Las series válidas (con `id`, `label` y algún punto), sin lo que no es suyo. Un `id` repetido se descarta. */

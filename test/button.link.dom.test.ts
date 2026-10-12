@@ -42,6 +42,22 @@ describe("<nx-button href>: un enlace de verdad", () => {
     expect(inner(el).hasAttribute("download")).toBe(false);
   });
 
+  it("download con nombre: el archivo se guarda así; con new-tab, la descarga no reemplaza la página", () => {
+    const el = mount('<nx-button label="Exportar" icon="download" href="/reportes/incapacidades.xlsx?inline=0" download="incapacidades-octubre.xlsx" new-tab></nx-button>');
+    const a = inner(el);
+    expect(a.getAttribute("download")).toBe("incapacidades-octubre.xlsx");
+    expect(a.getAttribute("target")).toBe("_blank");
+    expect(el.download).toBe(true);
+    // Ocupado (la app prepara el archivo) o apagado: sin `href`, ni la descarga ni la pestaña salen.
+    el.busy = true;
+    expect(a.hasAttribute("href")).toBe(false);
+    expect(a.getAttribute("aria-busy")).toBe("true");
+    el.busy = false;
+    expect(a.getAttribute("href")).toBe("/reportes/incapacidades.xlsx?inline=0");
+    el.setAttribute("download", "");
+    expect(a.getAttribute("download")).toBe("");
+  });
+
   it("una dirección que no es segura no se pinta: el enlace queda apagado", () => {
     for (const bad of ["javascript:alert(1)", " java\tscript:alert(1)", "data:text/html,<b>x</b>", ""]) {
       const el = mount("<nx-button label='Ir'></nx-button>");

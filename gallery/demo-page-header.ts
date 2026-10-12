@@ -8,7 +8,7 @@ import "../src/components/page-header/index";
 import "../src/components/breadcrumb/index";
 import "../src/components/button/index";
 import "../src/components/grid/index";
-import type { GridColumn, GridPreset, GridRow, NxGrid } from "../src/index";
+import type { GridColumn, GridPreset, GridRow, NxGrid, NxPageHeader } from "../src/index";
 
 const COLS: GridColumn[] = [
   { key: "name", label: "Empleado", width: 220, sticky: true },
@@ -39,4 +39,16 @@ export function mountPageHeaderDemo(root: HTMLElement): void {
   grid.columns = COLS;
   grid.rows = ROWS;
   grid.presets = PRESETS;
+  // Las cifras y los enlaces de la cabecera (como propiedades; también aceptan JSON en el atributo).
+  const head = root.querySelector<NxPageHeader>("#ph-kpis")!;
+  head.links = [
+    { label: "Reporte de ausentismo", href: "#/board", icon: "chart-column" },
+    { label: "Catálogo de diagnósticos", href: "#/page-header", icon: "list-checks" },
+  ];
+  head.kpis = [
+    { id: "abiertas", label: "Abiertas", value: 128, delta: "+12 esta semana", tone: "warning" },
+    { id: "dias", label: "Días este mes", value: 3402 },
+    { id: "prorrogas", label: "Prórrogas", value: 17, delta: "3 nuevas", tone: "info" },
+    { id: "cobro", label: "Por cobrar a la EPS", value: "$ 48,2 M", delta: "−8 %", tone: "success", hint: "Frente al mes pasado" },
+  ];
 }

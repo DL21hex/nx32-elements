@@ -79,6 +79,7 @@ export default defineConfig(({ command, mode }) => {
           "phases": "src/components/phases/index.ts",
           "alerts": "src/components/alerts/index.ts",
           "insights": "src/components/insights/index.ts",
+          "actions": "src/components/actions/index.ts",
           "cards": "src/components/cards/index.ts",
           "handoff": "src/components/handoff/index.ts",
           "award": "src/components/award/index.ts",

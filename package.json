@@ -1,6 +1,6 @@
 {
   "name": "nx32-elements",
-  "version": "0.16.2",
+  "version": "0.17.0",
   "description": "Componentes web ultraligeros, sin dependencias, compatibles con BDUI. Funcionan en HTML plano y en SolidJS.",
   "type": "module",
   "private": true,
@@ -239,6 +239,11 @@
       "types": "./dist/types/components/insights/index.d.ts",
       "import": "./dist/insights.js",
       "default": "./dist/insights.js"
+    },
+    "./actions": {
+      "types": "./dist/types/components/actions/index.d.ts",
+      "import": "./dist/actions.js",
+      "default": "./dist/actions.js"
     },
     "./print": {
       "types": "./dist/types/components/print/index.d.ts",

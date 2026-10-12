@@ -59,6 +59,7 @@ const registry = new Map<string, Entry>(
     Phases: "phases",
     Alerts: "alerts",
     Insights: "insights",
+    Actions: "actions",
     Cards: "cards",
     Print: "print",
     Badge: "badge",

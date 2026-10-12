@@ -330,7 +330,8 @@ describe("modo servidor", () => {
     expect(empty.hidden).toBe(false);
     expect(empty.classList.contains("is-loading")).toBe(false);
     expect(empty.textContent).toBe("No se pudieron cargar las filasReintentar");
-    expect(errors).toEqual([{ offset: 0, limit: 100, error: "HTTP 500" }]);
+    // Sin JSON que explique, `message` es el mismo `error`; el cuerpo viaja como texto.
+    expect(errors).toEqual([{ offset: 0, limit: 100, error: "HTTP 500", status: 500, message: "HTTP 500", body: "x", attempt: 1, retrying: true }]);
     fail = false;
     empty.querySelector<HTMLButtonElement>("[data-retry]")!.click();
     await sleep(20);

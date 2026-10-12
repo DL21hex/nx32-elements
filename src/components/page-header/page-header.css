@@ -1,8 +1,9 @@
 /*
  * <nx-page-header>. Una fila que se parte: la ruta ocupa su renglón; el bloque del título (con su
  * subtítulo) y las acciones comparten el siguiente (las acciones bajan DEBAJO del bloque si no
- * caben, nunca antes); la navegación, el suyo. Los hijos del autor no se mueven: el componente
- * agrega el bloque del título al final y `order` lo sube.
+ * caben, nunca antes); los enlaces, las cifras y la navegación, uno cada uno. Los hijos del autor
+ * no se mueven: el componente agrega el bloque del título, los enlaces y las cifras al final y
+ * `order` los ubica.
  */
 
 nx-page-header {
@@ -16,7 +17,7 @@ nx-page-header {
   reading-flow: flex-visual;
 }
 /* La ruta: el hijo del autor sin `slot`. */
-nx-page-header > :not([slot], .nx-page-header__head) {
+nx-page-header > :not([slot], .nx-page-header__head, .nx-page-header__links, .nx-page-header__kpis) {
   order: 0;
   flex: 1 0 100%;
   min-inline-size: 0;
@@ -44,8 +45,113 @@ nx-page-header > [slot="actions"] {
   line-height: 1.45;
   text-wrap: pretty;
 }
-nx-page-header > [slot="nav"] {
+/* Los enlaces (`links`): páginas relacionadas o archivos, en un renglón que se parte. */
+nx-page-header > .nx-page-header__links {
   order: 3;
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-inline-size: 0;
+}
+.nx-page-header__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 32px;
+  max-inline-size: 100%;
+  padding: 4px 10px;
+  border-radius: var(--nx-radius-md);
+  color: var(--nx-muted-foreground);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color var(--nx-motion-fast), color var(--nx-motion-fast);
+
+  & > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &:hover {
+    background: var(--nx-hover);
+    color: var(--nx-foreground);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 1px;
+  }
+}
+.nx-page-header__link-icon {
+  display: inline-flex;
+  flex: none;
+
+  & svg {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+}
+/* Las cifras (`kpis`): valor arriba, etiqueta abajo; en lo angosto, de a dos por renglón. */
+nx-page-header > .nx-page-header__kpis {
+  order: 4;
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 4px 0 0;
+  min-inline-size: 0;
+}
+.nx-page-header__kpi {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  min-inline-size: 0;
+}
+.nx-page-header__kpi-value {
+  margin: 0;
+  color: var(--nx-foreground);
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.nx-page-header__kpi-label {
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+}
+/* El cambio no se parte a la mitad: si no cabe junto al valor, baja entero. */
+.nx-page-header__kpi-delta {
+  display: inline-block;
+  margin-inline-start: 6px;
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+
+  &[data-tone="success"] {
+    color: var(--nx-success);
+  }
+  &[data-tone="warning"] {
+    color: var(--nx-warning-ink);
+  }
+  &[data-tone="danger"] {
+    color: var(--nx-danger);
+  }
+  &[data-tone="info"] {
+    color: var(--nx-primary-ink);
+  }
+}
+@media (width < 480px) {
+  nx-page-header > .nx-page-header__kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+  }
+}
+nx-page-header > [slot="nav"] {
+  order: 5;
   flex: 1 0 100%;
   min-inline-size: 0;
   margin-block-start: 4px;

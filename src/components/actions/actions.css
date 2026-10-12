@@ -1,0 +1,45 @@
+/*
+ * <nx-actions>: las acciones de un registro, una debajo de otra; cada botón (<nx-button>) con su
+ * línea de qué hace debajo.
+ */
+@import "../button/button.css";
+
+nx-actions {
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+}
+.nx-actions__list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-actions__list[hidden] {
+  display: none;
+}
+.nx-actions__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-inline-size: 0;
+}
+/* El botón no se estira a lo ancho, pero una etiqueta larga envuelve en vez de salirse. */
+.nx-actions__item > nx-button {
+  max-inline-size: 100%;
+}
+.nx-actions__desc {
+  margin: 0;
+  max-inline-size: 60ch;
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.nx-actions__desc[hidden] {
+  display: none;
+}

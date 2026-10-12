@@ -20,6 +20,8 @@ export interface DialogLabels {
   keep: string;
   /** `aria-label` de las migas de los paneles apilados. */
   stack: string;
+  /** Lo que anuncia el esqueleto de `loading` al lector de pantalla. */
+  loading: string;
 }
 
 /** Una acción del menú «Más» de la cabecera: las poco usadas y las destructivas. */

@@ -1880,6 +1880,15 @@ nx-grid .nx-grid__chev {
   color: var(--nx-text-tertiary);
   text-align: center;
 }
+/* Lo que dijo el servidor al rechazar las filas: debajo del aviso, en el color del texto. */
+.nx-grid__why {
+  display: block;
+  max-inline-size: 60ch;
+  margin: 6px auto 0;
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 .nx-grid__relax {
   display: flex;
   flex-wrap: wrap;

@@ -62,6 +62,7 @@ const entries = {
   "phases": "src/components/phases/phases.css",
   "alerts": "src/components/alerts/alerts.css",
   "insights": "src/components/insights/insights.css",
+  "actions": "src/components/actions/actions.css",
   "cards": "src/components/cards/cards.css",
   "handoff": "src/components/handoff/handoff.css",
   "award": "src/components/award/award.css",

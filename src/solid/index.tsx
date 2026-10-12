@@ -3,7 +3,7 @@
  * `<Select>`, `<AIAnswer>`, `<DocCapture>`, `<Grid>`, `<Dialog>`, `<Agent>`, `<Command>`, `<Explain>`,
  * `<Inbox>`, `<Survey>`, `<NumberInput>`, `<Kanban>`, `<History>`, `<DateRange>`,
  * `<PasteFill>`, `<Presence>`, `<WhatIf>`, `<Trend>`, `<Scan>`, `<Sync>`, `<Import>`,
- * `<Keytips>`, `<Guard>`, `<Handoff>`, `<Award>`, `<Account>`, `<Launcher>`, `<Timeline>`, `<Intent>`, `<Tracker>`, `<Stats>`, `<Board>`, `<BoardPanel>`, `<Bars>`, `<Heatmap>`, `<Parts>`, `<Phases>`, `<Alerts>`, `<Insights>`, `<Cards>`, `<Print>`, `<Badge>`, `<Notice>`, `<PageHeader>`, `<Fields>`, `<Field>`, `<Form>`, `<Tabs>`, `<Breadcrumb>`, `<Signature>`, `<Planner>`, `<Review>`, `<Voice>`, `<Thread>`, `<Checklist>`, `<Recurrence>`, `<Jobs>`), y `nxToast` / `nxConfirm` / `nxSync`.
+ * `<Keytips>`, `<Guard>`, `<Handoff>`, `<Award>`, `<Account>`, `<Launcher>`, `<Timeline>`, `<Intent>`, `<Tracker>`, `<Stats>`, `<Board>`, `<BoardPanel>`, `<Bars>`, `<Heatmap>`, `<Parts>`, `<Phases>`, `<Alerts>`, `<Insights>`, `<Actions>`, `<Cards>`, `<Print>`, `<Badge>`, `<Notice>`, `<PageHeader>`, `<Fields>`, `<Field>`, `<Form>`, `<Tabs>`, `<Breadcrumb>`, `<Signature>`, `<Planner>`, `<Review>`, `<Voice>`, `<Thread>`, `<Checklist>`, `<Recurrence>`, `<Jobs>`), y `nxToast` / `nxConfirm` / `nxSync`.
  *
  * Cada componente vive en su archivo y se puede importar solo (`nx32-elements/solid/grid`): así la app
  * carga únicamente lo que usa. Este índice los reexporta todos.
@@ -63,6 +63,7 @@ export * from "./parts";
 export * from "./phases";
 export * from "./alerts";
 export * from "./insights";
+export * from "./actions";
 export * from "./cards";
 export * from "./org";
 export * from "./print";

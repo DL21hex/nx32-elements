@@ -40,7 +40,8 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
 | `<nx-org>` + núcleo (ESM) | ≈ 13,2 KB |
 | `<nx-breadcrumb>` + núcleo (ESM); el menú de hermanos, ≈ 1,8 KB, se carga al abrir el primero | ≈ 5,3 KB |
-| `<nx-page-header>` + núcleo (ESM) | ≈ 1,6 KB |
+| `<nx-page-header>` + núcleo (ESM), con enlaces y cifras | ≈ 2,7 KB |
+| `<nx-actions>` + botón + núcleo (ESM) | ≈ 7,3 KB |
 | `<nx-print>` + núcleo (ESM) | ≈ 8,6 KB |
 | `<nx-signature>` + núcleo (ESM); el PNG, la ubicación y el celular se cargan aparte | ≈ 7,3 KB |
 | `<nx-planner>` + núcleo (ESM); el aviso se carga aparte | ≈ 14,2 KB |
@@ -324,8 +325,14 @@ dirección que no es segura (`javascript:`, `data:`…) no se pinta, y deshabili
 enlace pierde su `href`: no lo sigue ni un Ctrl/⌘+clic. Con `href` no aplican `type`, `name`,
 `value` ni `stream`.
 
+**Un botón que descarga** es un enlace con `download` (y, si el router de la app intercepta los
+enlaces, `new-tab`, para que la descarga sea una navegación del navegador y no de la app):
+`download="incapacidades.xlsx"` le pone nombre al archivo (vacío, el que mande el servidor).
+Mientras la app lo prepara, `busy` lo deja ocupado y sin `href`.
+
 ```html
 <nx-button label="Ver empleados" icon="users" variant="primary" href="/empleados"></nx-button>
+<nx-button label="Exportar" icon="download" href="/reportes/incapacidades.xlsx" download="incapacidades.xlsx" new-tab></nx-button>
 ```
 
 ## `<nx-select>`
@@ -585,6 +592,37 @@ Una tabla de datos que se explora sola:
   desplazarse o cuando llega bien otro bloque, y siempre con `refresh()`; si es el primero, la
   tabla lo dice con «Reintentar». Se guardan hasta 50 bloques: los más lejanos a la vista se sueltan. Cambiar la
   consulta o sacar la tabla del DOM corta lo que estaba en camino.
+- **Un rechazo no se repite, y se explica** (0.17.0). Solo se vuelve a pedir solo lo que puede pasar
+  solo: la red, un 5xx o un 429. Un 4xx (sin permiso, un filtro que el servidor no acepta) se dice
+  una vez y espera a «Reintentar» o `refresh()`, ni siquiera al desplazarse. `nx-grid-error` trae
+  `{offset, limit, error, status, message, body, attempt, retrying}`: `status` (0 sin respuesta),
+  `message` (el `error` o el `message` del JSON del servidor, o `error` si no dijo nada), `body` (el
+  JSON, o el texto), `attempt` (1 el primero: para avisar una sola vez por fallo) y `retrying` (si la
+  tabla lo pedirá otra vez). Sin filas, el aviso pone lo que dijo el servidor debajo de «No se
+  pudieron cargar las filas».
+- **Una fila que cambió afuera no obliga a pedir la tabla entera** (0.17.0). `grid.patchRow(fila)`
+  reemplaza la que tiene su `id` (según `row-key`), o la agrega si no estaba, y `grid.removeRow(id)`
+  la quita. Con las filas en el navegador (`rows`, o `client-max` / `client-only` ya en el cliente)
+  se recalcula todo: la búsqueda, los filtros, los conteos de las facetas y de los atajos, el orden,
+  los grupos, los totales, la selección (una fila quitada sale de ella, con `nx-grid-selection`) y
+  `shownIds`. Responden si lo que se ve quedó exacto: `false` quiere decir «pide otra vez»
+  (`refresh()`). Con la consulta en el servidor, `patchRow` cambia la fila cargada en su lugar y
+  responde `true` solo si no cambió ningún valor del que dependen el orden, los filtros, las
+  facetas, los atajos, los totales o las barras (con una búsqueda o la matriz, siempre `false`; una
+  fila no cargada, también); `removeRow` responde `false` (el total y las páginas cambian). Un atajo
+  que es enlace con conteo del servidor también hace `false`: ese conteo solo lo sabe el servidor.
+  Las marcas de edición y el historial para deshacer de esa fila se olvidan: lo que llega es lo
+  guardado.
+
+```js
+// La ficha guardó: el servidor devolvió la fila como la devuelve `source`.
+if (respuesta.fila && !grid.patchRow(respuesta.fila)) grid.refresh();
+if (respuesta.quitada != null && !grid.removeRow(respuesta.quitada)) grid.refresh();
+grid.addEventListener("nx-grid-error", (e) => {
+  if (e.detail.status === 401) return irAlLogin();
+  if (e.detail.attempt === 1) nxToast({ message: e.detail.message, tone: "danger" });
+});
+```
 - **O que la tabla elija.** Con `source` y `client-max="20000"`, la primera página dice el total:
   si pasa del tope, sigue en el servidor sin pedir nada más; si cabe, trae la consulta completa una
   vez (`{offset: 0, limit: 20001, sort: null, filters: []}`) y sigue en el cliente, con conteos
@@ -594,6 +632,12 @@ Una tabla de datos que se explora sola:
   completa) también sirve: si la primera página trae filtros, búsqueda u orden (los recordados al
   volver a la página) y el origen la rechaza, la tabla prueba la consulta completa antes de dar el
   error y, si cabe, filtra aquí.
+- **Un origen que solo sirve el conjunto entero: `client-only`** (0.17.0). Dicho de antemano, la
+  tabla no prueba nada: la primera petición va sin filtros, búsqueda ni orden
+  (`{offset: 0, limit: client-max + 1, sort: null, filters: []}`; sin `client-max`, hasta 20.000
+  filas) y los filtros, los recordados también, se aplican aquí. Filtrar mientras llega no lo vuelve
+  a pedir; `refresh()` lo pide otra vez entero. Si llegan más filas que el tope, se toman las del
+  tope y se avisa por consola. Sin `client-only`, `client-max` sigue como antes.
 - **Barra horizontal también arriba.** Una tabla ancha lleva su barra de desplazamiento horizontal
   también encima de las columnas: la propia queda al pie de su caja y había que bajar hasta allá
   para moverla. Viene encendida; `top-scrollbar="false"` (`topScrollbar={false}` en Solid y en BDUI)
@@ -797,10 +841,10 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
-| Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 
@@ -851,7 +895,7 @@ if (await nxConfirm({ heading: "Anular OC-2291", impact: "/compras/oc/2291/impac
 
 | | |
 |---|---|
-| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty`, `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` · `nx-dialog-close` (cancelable), `nx-open-change` · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
+| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty`, `loading` (un esqueleto mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` · `nx-dialog-close` (cancelable), `nx-open-change` · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
 | `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo) |
 | `nxConfirm()` | `{heading, message?, impact?, body?, confirmLabel?, tone?, hold?, failOpen?}` → `true` / `false`. Con `impact` como URL (mismo origen o `allowOrigins`) falla cerrado: si hay un error de red o del servidor, un evento `error` o el stream termina sin `done`, no se puede confirmar; `failOpen: true` deja confirmar igual, con el aviso a la vista |
 | `<nx-button hold>` | Mantener pulsado (ms, 1000 por defecto) para activarlo; con teclado, mantener Enter o Espacio |
@@ -2329,7 +2373,7 @@ hijas directas del elemento.
 | En el documento | `slot="header"`, `slot="footer"`, `{page}`, `{pages}`, `data-print-page`, `data-print-keep`, `data-print-keep-with-next`, `data-print-break`, `data-print-sum` (`number` para cantidades), `data-currency`, `data-value` |
 | Funciones | `paginatePrint(blocks, {pageHeight, minRows?})`, `parsePrintSize()`, `parsePrintMargin()`, `fillPageText()`, `PRINT_SIZES`, `PRINT_LABELS` |
 
-## La ficha lateral: `<nx-tabs>`, `<nx-fields>`, `<nx-notice>` y `<nx-badge>`
+## La ficha lateral: `<nx-tabs>`, `<nx-fields>`, `<nx-notice>`, `<nx-badge>` y `<nx-actions>`
 
 **El registro que se abre desde una tabla**, en un panel lateral (`<nx-dialog mode="panel">`), con
 seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, abajo decide.
@@ -2359,6 +2403,32 @@ seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, 
 - **`<nx-notice>`**: `info`, `success`, `warning` o `danger` (este se anuncia), con `action` (botón,
   `nx-notice-action`) o `action-href` (enlace).
 - **`<nx-badge>`**: el estado en una píldora; el texto lo dice, el color lo refuerza.
+- **`<nx-actions>`: la pestaña «Acciones».** Lo que se puede hacer con el registro, una debajo de
+  otra: cada una es un `<nx-button>` y, debajo, una línea que dice qué hace (se lee antes de pulsar,
+  también en el táctil). Un botón emite `nx-actions-action` `{id, item}`; un enlace (`href`) navega,
+  abre otra pestaña (`newTab`) o descarga (`download`, con nombre si es un texto) y no emite nada.
+  `danger` la pinta en rojo. Con `busy="<id>"` esa acción muestra que espera y las demás se apagan
+  hasta que termine (`aria-busy` en el elemento); los nodos se conservan por `id`, así el foco sigue
+  en el botón que se pulsó.
+- **Mientras llega el registro: `<nx-dialog loading>`.** En lugar del contenido (que se esconde sin
+  moverse), un esqueleto con la forma de una ficha: el resumen, las pestañas y unos campos. Es un
+  `role="status"` que anuncia `labels.loading` («Cargando…») y el diálogo lleva `aria-busy`. La
+  cabecera sigue (cerrar, pasar de registro); sin `heading`, el título también es un esqueleto. Con
+  menos movimiento, quieto; en alto contraste, en `GrayText`.
+
+```js
+acciones.items = [
+  { id: "codigo", label: "Generar código para cambiar la contraseña", icon: "key", description: "Sirve una vez, durante 15 minutos." },
+  { id: "certificado", label: "Certificado laboral", href: "/certificados/482.pdf", newTab: true },
+  { id: "desactivar", label: "Desactivar la cuenta", danger: true, description: "Deja de entrar desde ya; su historial se conserva." },
+];
+acciones.addEventListener("nx-actions-action", async (e) => {
+  acciones.busy = e.detail.id;
+  try { await api.ejecutar(e.detail.id); } finally { acciones.busy = null; }
+});
+ficha.loading = true;                      // al abrir o al pasar al siguiente
+ficha.loading = !(await api.registro(id)); // llegó: fuera el esqueleto
+```
 
 ```html
 <nx-dialog mode="panel" heading="Laura Gómez Restrepo" description="Analista de nómina · EMP-0482"
@@ -2392,6 +2462,8 @@ guardar.onclick = async () => {
 | `<nx-tabs>` | hijos con `data-tab`, `data-value`, `data-count`, `data-errors`, `data-disabled`, o `tabs` (`[{value, label, count?, errors?, disabled?}]`) · `value`, `sticky`, `label`, `labels` · `nx-tabs-change` `{value, previous}` (cancelable) |
 | `<nx-notice>` | `tone` (`info`, `success`, `warning`, `danger`), `text`, `action`, `action-href` · `nx-notice-action` `{action}` |
 | `<nx-badge>` | `tone` (`neutral`, `success`, `info`, `warning`, `danger`), `label` (si no va como contenido) |
+| `<nx-actions>` | `items` (`[{id, label, description?, icon?, danger?, disabled?, href?, newTab?, download?}]`), `busy` (el `id` que corre), `labels` (`group`) · `nx-actions-action` `{id, item}` (solo los botones) · BDUI `Actions` |
+| `<nx-dialog loading>` | el esqueleto en lugar del contenido, `aria-busy`, `labels.loading` |
 | Tokens nuevos | `--nx-warning`, `--nx-warning-ink` (texto e íconos), `--nx-warning-soft` |
 
 ## Formularios: `<nx-form>` y `<nx-field>`
@@ -2551,13 +2623,23 @@ tabla que es el contenido pinta sus atajos sin título propio (`<nx-grid segment
   mismos del título de una tabla: no pueden divergir. `--nx-page-heading-size` (22 px).
 - Los hijos no se mueven (la hidratación de Solid sigue intacta): el componente agrega al final el
   bloque del título y `order` lo sube; `reading-flow` hace que Tab y el lector sigan lo que se ve.
+- **Los enlaces** (`links`, 0.17.0): `[{label, href, icon?, newTab?, download?}]`, páginas
+  relacionadas o archivos, en su renglón bajo el título. Son `<a>` de verdad (el router de la app
+  los intercepta como a cualquiera); `newTab` abre en otra pestaña con `rel="noopener noreferrer"`,
+  `download` descarga (un texto es el nombre). Una dirección insegura no se pinta.
+- **Las cifras** (`kpis`, 0.17.0): `[{id?, label, value, delta?, tone?, hint?}]`, unas pocas que
+  orientan («Abiertas 128 +12 esta semana»), debajo de los enlaces; un tablero va en `<nx-stats>`.
+  Un `<dl>` con el valor arriba y la etiqueta abajo; un número sale con el locale; `tone`
+  (`neutral`, `info`, `success`, `warning`, `danger`) colorea solo el cambio, que nunca se parte. En
+  el celular van de a dos. Las dos listas aceptan JSON en el atributo.
+- El orden en pantalla: la ruta; el título y las acciones; los enlaces; las cifras; la navegación.
 - El velo del acento es del contenedor de la página (`data-nx-page`), no de la cabecera.
 
 | | |
 |---|---|
-| Propiedades | `heading`, `headingIcon` (`heading-icon`, un nombre del registro; si no está, no se pinta), `subheading` |
+| Propiedades | `heading`, `headingIcon` (`heading-icon`, un nombre del registro; si no está, no se pinta), `subheading`, `kpis`, `links`, `labels` (`kpis`, `links`: los nombres de los grupos para el lector), `locale` |
 | Hijos | la ruta (sin `slot`), `slot="actions"`, `slot="nav"` |
-| Eventos | ninguno: las acciones y la ruta traen los suyos |
+| Eventos | ninguno: las acciones, los enlaces y la ruta traen los suyos |
 
 ## `<nx-breadcrumb>`
 

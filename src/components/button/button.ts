@@ -208,7 +208,8 @@ export class NxButton extends Base {
   set newTab(v: boolean) {
     this.#bool("new-tab", v);
   }
-  /** Con `href`: descarga lo que hay en la dirección en vez de navegar a ella. */
+  /** Con `href`: descarga lo que hay en la dirección en vez de navegar a ella. El valor del atributo
+   *  (`download="planilla.xlsx"`) es el nombre del archivo; vacío, el que mande el servidor. */
   get download(): boolean {
     return boolAttr(this, "download");
   }
@@ -497,7 +498,10 @@ export class NxButton extends Base {
         btn.removeAttribute("target");
         btn.removeAttribute("rel");
       }
-      btn.toggleAttribute("download", this.download);
+      // `download="planilla.xlsx"`: con ese nombre; vacío, el que mande el servidor.
+      const name = this.getAttribute("download");
+      if (this.download) btn.setAttribute("download", name && name !== "true" ? name : "");
+      else btn.removeAttribute("download");
     } else {
       btn.type = this.type as "button" | "submit" | "reset";
       for (const a of ["name", "value"]) {

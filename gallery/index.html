@@ -3306,7 +3306,7 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
           <h2>La ficha de un empleado</h2>
           <div class="dw-open">
             <nx-button id="dw-open" label="Abrir la ficha de Laura" variant="primary" log-mode="none"></nx-button>
-            <span class="dw-tip">Prueba «Renovar» en el aviso, «Editar» en una sección de Datos, las flechas de la cabecera (o <kbd>J</kbd> y <kbd>K</kbd>) y el menú «Más».</span>
+            <span class="dw-tip">Prueba «Renovar» en el aviso, «Editar» en una sección de Datos, la pestaña «Acciones», las flechas de la cabecera (o <kbd>J</kbd> y <kbd>K</kbd>: la ficha muestra su esqueleto, <code>loading</code>, mientras «llega» el siguiente) y el menú «Más».</span>
           </div>
           <p class="stage__loglabel">Eventos</p>
           <ol class="stage__log btn-events" id="dw-log"></ol>
@@ -3336,6 +3336,9 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
               </section>
               <section data-tab="Historial" data-value="hist" class="dw-panel">
                 <ol class="dw-tl" id="dw-hist"></ol>
+              </section>
+              <section data-tab="Acciones" data-value="acciones" class="dw-panel">
+                <nx-actions id="dw-actions"></nx-actions>
               </section>
             </nx-tabs>
             <div slot="footer" class="dw-foot">
@@ -3406,6 +3409,21 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
               <nx-button id="dw-p-save" label="Guardar" variant="primary" log-mode="none"></nx-button>
             </div>
           </div>
+          <h3>Acciones <code class="tag">&lt;nx-actions&gt;</code></h3>
+          <p>
+            Lo que se puede hacer con el registro, una debajo de otra: cada botón es un <code>&lt;nx-button&gt;</code> y debajo dice
+            qué hace. Un enlace (<code>href</code>) navega o descarga; un botón emite <code>nx-actions-action</code>. Con
+            <code>busy="id"</code> esa acción espera y las demás se apagan.
+          </p>
+          <nx-actions class="dw-pieces" id="dw-p-actions"></nx-actions>
+          <h3>Mientras llega el registro <code class="tag">loading</code></h3>
+          <div class="dw-row">
+            <nx-button id="dw-loading-open" label="Abrir una ficha que tarda" log-mode="none"></nx-button>
+          </div>
+          <nx-dialog id="dw-loading" mode="panel" description="Ficha de ejemplo">
+            <nx-fields id="dw-loading-fields" variant="summary" locale="es-CO"></nx-fields>
+            <p class="dw-panel">Llegó el registro: el esqueleto se fue y el contenido apareció en su lugar.</p>
+          </nx-dialog>
           <h3>Pestañas</h3>
           <nx-tabs class="dw-pieces" label="Ejemplo de pestañas">
             <section data-tab="Detalle"><p>Las pestañas separan temas de una ficha. La lista la agrega el componente; los paneles son tus nodos y no se mueven.</p></section>
@@ -4585,6 +4603,17 @@ import { PasteFill } from "nx32-elements/solid/paste-fill";
             </nx-page-header>
           </div>
 
+          <h2>Con enlaces, cifras y una descarga</h2>
+          <div class="grid-page-frame" data-nx-page style="block-size: auto">
+            <nx-page-header id="ph-kpis" heading="Incapacidades" heading-icon="clipboard-list" locale="es-CO">
+              <nx-breadcrumb><a href="#/page-header" data-icon="house">Inicio</a><a href="#/page-header">Talento Humano</a><span>Incapacidades</span></nx-breadcrumb>
+              <div slot="actions">
+                <nx-button label="Exportar esta página" icon="upload" href="./" download="incapacidades.html" new-tab></nx-button>
+                <nx-button label="Registrar incapacidad" icon="file-text" variant="primary"></nx-button>
+              </div>
+            </nx-page-header>
+          </div>
+
           <h2>Cómo funciona</h2>
           <div class="table-wrap">
             <table>
@@ -4595,6 +4624,9 @@ import { PasteFill } from "nx32-elements/solid/paste-fill";
                 <tr><td>Acciones</td><td>El hijo con <code>slot="actions"</code> (agrupa tus botones): a la derecha del título y, si no caben, debajo de él, nunca antes.</td></tr>
                 <tr><td>Navegación</td><td>El hijo con <code>slot="nav"</code>: pestañas que llevan a páginas hermanas. Los filtros de una tabla no van aquí: son sus atajos.</td></tr>
                 <tr><td>Subtítulo</td><td><code>subheading</code>, una línea bajo el título si dice algo que el título no dice.</td></tr>
+                <tr><td>Enlaces</td><td><code>links</code>: <code>{label, href, icon?, newTab?, download?}</code>, páginas relacionadas o archivos, debajo del título. Son <code>&lt;a&gt;</code> de verdad.</td></tr>
+                <tr><td>Cifras</td><td><code>kpis</code>: <code>{label, value, delta?, tone?, hint?}</code>, unas pocas cifras que orientan (un tablero va en <code>&lt;nx-stats&gt;</code>). El valor arriba, la etiqueta abajo y el cambio coloreado por <code>tone</code>; en el celular, de a dos.</td></tr>
+                <tr><td>Descarga</td><td>Una acción que baja un archivo es <code>&lt;nx-button href download new-tab&gt;</code>: un <code>&lt;a download&gt;</code> de verdad (<code>download="nombre.xlsx"</code> le pone nombre), en otra pestaña, y sin <code>href</code> mientras está ocupado o apagado.</td></tr>
               </tbody>
             </table>
           </div>

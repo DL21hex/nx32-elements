@@ -63,7 +63,7 @@ import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequen
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { MatrixConfig, MatrixHost, MatrixUI, MatrixView } from "./grid-matrix";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -282,6 +282,38 @@ function asksSomething(q: { sort: GridSort | null; filters: GridFilter[]; search
   return q.filters.length > 0 || !!q.sort || !!q.search?.trim();
 }
 
+/** Una respuesta del servidor que no fue 2xx: su estado y lo que dijo (el JSON leído o el texto). El
+ *  `message` del `Error` sigue siendo «HTTP 500», como antes de la 0.17.0 (`nx-grid-error.error`). */
+class SourceError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super(`HTTP ${status}`);
+  }
+}
+
+/** Con `client-only` y sin `client-max`: cuántas filas se traen como mucho (el resto no entra). */
+const CLIENT_ONLY_MAX = 20_000;
+
+/** Lo que el servidor explica de su rechazo: el `error` o el `message` de su JSON (una línea, sin
+ *  pasar de 300 caracteres: se pinta en el aviso de la tabla). */
+function serverMessage(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const b = body as Record<string, unknown>;
+  const m = [b.error, b.message].find((x): x is string => typeof x === "string" && !!x.trim());
+  return m ? m.trim().replace(/\s+/g, " ").slice(0, 300) : "";
+}
+
+/** El fallo de un bloque, para `nx-grid-error`: estado (0 sin respuesta), lo que dijo el servidor y
+ *  si vale la pena repetirlo solo: la red, un 5xx o un 429 pueden pasar; un 4xx, no. */
+function failureOf(error: unknown): { status: number; body: unknown; error: string; message: string; transient: boolean } {
+  const line = String((error as Error)?.message ?? error);
+  const status = error instanceof SourceError ? error.status : 0;
+  const body = error instanceof SourceError ? error.body : null;
+  return { status, body, error: line, message: serverMessage(body) || line, transient: status === 0 || status === 429 || status >= 500 };
+}
+
 /** Una columna que llega de afuera (BDUI: JSON). Sin `key` y `label` de texto no sirve; lo demás que
  *  no tenga la forma correcta se arregla o se quita: unas `options` que no son lista lanzaban al
  *  ordenar, y un `width` de texto se sumaba como texto («0200140px»). Una columna correcta queda
@@ -357,6 +389,16 @@ const dotEl = (d: ReturnType<typeof dotOf>): HTMLElement[] =>
 /** La copia de una fila que guarda la tabla: sin prototipo, para que una columna «constructor» o
  *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. */
 const own = (r: GridRow): GridRow => Object.assign(Object.create(null) as GridRow, r);
+/** El mismo valor de una celda (un número, un texto, o una lista u objeto con lo mismo adentro). */
+function sameValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}
 
 /** «HH:MM» → minutos desde la medianoche. */
 const minOf = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
@@ -453,7 +495,7 @@ export class NxGrid extends Base {
    *  acento: el del módulo («users» en Empleados). Sin `heading`, o con un nombre que no está
    *  registrado, no se pinta. */
   declare headingIcon: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group"];
+  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "client-only", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -570,11 +612,13 @@ export class NxGrid extends Base {
   #tryAc?: AbortController;
   #resume = false;
   /** Bloques que fallaron: cuántas veces y desde cuándo se pueden volver a pedir (1 s, 2 s, 4 s… hasta
-   *  30 s). `#loadError`: falló el primero y no hay filas que mostrar. */
-  #fails = new Map<number, { n: number; at: number }>();
+   *  30 s). `hard`: un 4xx, que no se repite solo (ni al desplazarse: ver `#revive`). `#loadError`:
+   *  falló el primero y no hay filas que mostrar; `#loadWhy`, lo que dijo el servidor (si dijo algo). */
+  #fails = new Map<number, { n: number; at: number; hard?: boolean }>();
   #retry?: ReturnType<typeof setTimeout>;
   #retryAt = 0;
   #loadError = false;
+  #loadWhy = "";
   /** La consulta que se pidió la última vez (ver `#refilter`). */
   #asked = "";
   /** Los agregados de la última página pintados: un bloque que trae los mismos no repinta la barra. */
@@ -788,6 +832,17 @@ export class NxGrid extends Base {
   }
   set clientMax(v: number | null) {
     this.#attr("client-max", v ? String(v) : null);
+  }
+  /** Con `source`: el origen solo sabe responder el conjunto entero (no filtra, ni busca, ni ordena).
+   *  La primera petición va sin nada de eso (`{offset: 0, limit: client-max + 1, sort: null,
+   *  filters: []}`; sin `client-max`, hasta 20.000 filas) y los filtros, los recordados también, se
+   *  aplican aquí. Nunca se le manda un filtro: sin esto, la tabla probaba primero la página filtrada
+   *  y el origen la rechazaba (una ida y vuelta de más en cada regreso con filtros). */
+  get clientOnly(): boolean {
+    return boolAttr(this, "client-only");
+  }
+  set clientOnly(v: boolean) {
+    this.toggleAttribute("client-only", !!v);
   }
   /** Dónde se filtra ahora: `client` (las filas están en el navegador) o `server`. */
   get mode(): "client" | "server" {
@@ -1038,6 +1093,108 @@ export class NxGrid extends Base {
     this.#dataChanged();
   }
 
+  /**
+   * Una fila cambió fuera de la tabla (se guardó su ficha, una acción la movió de estado): se
+   * reemplaza la que tiene su `id` (según `row-key`) o, si no estaba, se agrega al final (con un
+   * orden, va donde le toca). Así la ficha que guarda no obliga a volver a pedir toda la tabla.
+   *
+   * Con las filas aquí (sin `source`, o ya en el cliente con `client-max` o `client-only`) se
+   * recalcula todo lo que depende de ellas: la búsqueda, los filtros, los conteos de las facetas y de
+   * los atajos, el orden, los grupos, los totales, la selección y `shownIds`. Con la consulta en el
+   * servidor solo se cambia la fila si está cargada, en su lugar.
+   *
+   * Responde si lo que se ve quedó exacto. `false` quiere decir «pide otra vez» (`refresh()`): la
+   * fila no está cargada en el servidor, o cambió un valor del que dependen el orden, un filtro, una
+   * faceta, un atajo o un total que calcula el servidor (o hay una búsqueda, o se ve la matriz), o un
+   * atajo que es enlace tiene un conteo del servidor. La tabla no deja conteos viejos callada: los
+   * marca así. Una fila sin `id` no se toca y responde `false`. Las marcas de edición y el historial
+   * para deshacer de esa fila se olvidan: lo que llega es lo guardado.
+   */
+  patchRow(row: GridRow): boolean {
+    if (!row || typeof row !== "object") return false;
+    const key = this.rowKey;
+    const v = Object.hasOwn(row, key) ? row[key] : undefined;
+    if (v === null || v === undefined || v === "") return false;
+    const id = String(v);
+    const next = own(row);
+    const old = this.#byId.get(id);
+    if (this.#server) {
+      const block = old && [...this.#blocks.values()].find((b): b is GridRow[] => Array.isArray(b) && b.includes(old));
+      if (!old || !block) return false;
+      block[block.indexOf(old)] = next;
+      this.#adopt(id, next);
+      this.#footDirty = true;
+      this.#paintRows(true);
+      this.#paintFoot();
+      return this.#keepsAggregates(old, next);
+    }
+    const i = old ? this.#all.indexOf(old) : -1;
+    if (i >= 0) this.#all[i] = next;
+    else this.#all.push(next);
+    this.#adopt(id, next);
+    this.#dataChanged();
+    return this.#exactHere();
+  }
+
+  /**
+   * La fila de ese `id` ya no es de esta tabla (otra persona la tomó, una decisión la sacó de lo que
+   * se ve): se quita y se recalcula todo, como en `patchRow()`; si estaba seleccionada, sale de la
+   * selección (con `nx-grid-selection`). Con la consulta en el servidor no se quita nada (el total y
+   * las páginas cambian) y responde `false`: «pide otra vez». Un `id` que no está responde como si
+   * se hubiera quitado.
+   */
+  removeRow(id: string | number): boolean {
+    if (id === null || id === undefined || this.#server) return false;
+    const key = String(id);
+    const old = this.#byId.get(key);
+    if (!old) return this.#exactHere();
+    const i = this.#all.indexOf(old);
+    if (i >= 0) this.#all.splice(i, 1);
+    this.#byId.delete(key);
+    this.#forgetMarks(key);
+    const picked = this.#picked.delete(key);
+    this.#dataChanged();
+    if (picked) this.#paintPicked(true);
+    return this.#exactHere();
+  }
+
+  /** La fila nueva toma el lugar de la vieja en el índice. */
+  #adopt(id: string, row: GridRow): void {
+    this.#ids.set(row, id);
+    this.#byId.set(id, row);
+    this.#deriveStates([row]);
+    this.#forgetMarks(id);
+  }
+
+  /** Lo que la tabla recordaba de la fila `id` por haberla editado aquí (marcas, guardados, historial
+   *  para deshacer): lo que llega de afuera es lo guardado, y deshacer pisaría ese valor. */
+  #forgetMarks(id: string): void {
+    const pre = `${id}\u0000`;
+    for (const set of [this.#edited, this.#saved]) for (const k of set) if (k.startsWith(pre)) set.delete(k);
+    for (const map of [this.#orig, this.#saveFailed]) for (const k of map.keys()) if (k.startsWith(pre)) map.delete(k);
+    const drop = (stack: GridChange[][]) => stack.map((g) => g.filter((c) => c.id !== id)).filter((g) => g.length > 0);
+    this.#undo = drop(this.#undo);
+    this.#redo = drop(this.#redo);
+  }
+
+  /** En el cliente todo se recalcula aquí, salvo los conteos de los atajos que son enlaces: esos solo
+   *  los sabe el servidor. */
+  #exactHere(): boolean {
+    return !this.#presets.some((p) => p.href && this.#serverN.has(p.id));
+  }
+
+  /** En el servidor: ¿la fila nueva deja igual todo lo que el servidor calculó? Solo si no cambió
+   *  ningún valor del que dependen el orden, los filtros, las facetas, los atajos, los totales o las
+   *  barras (con una búsqueda, cualquier columna puede sacarla; con la matriz, cualquier cruce). */
+  #keepsAggregates(old: GridRow, next: GridRow): boolean {
+    if (this.#search.trim() || this.layout === "matrix" || !this.#exactHere()) return false;
+    const keys = new Set<string>([...this.#filters.map((f) => f.key), ...this.#facetList.map((f) => f.key), ...Object.keys(this.#totals), ...this.#hist.keys()]);
+    if (this.#sort) keys.add(this.#sort.key);
+    for (const p of this.#presets) for (const f of p.filters ?? []) keys.add(f.key);
+    for (const k of keys) if (!sameValue(old[k], next[k])) return false;
+    return true;
+  }
+
   /** Descarga lo que se ve como .xlsx (el generador se carga solo en este momento) y resuelve con
    *  cuántas filas llevó. En la tabla, las filas filtradas y ordenadas: en modo servidor las pide por
    *  bloques, y si el servidor falla, la promesa se rechaza. En la matriz, la matriz tal como se ve
@@ -1214,7 +1371,7 @@ export class NxGrid extends Base {
       return;
     }
     if (!this.#built || old === value || this.#quiet) return;
-    if (name === "source" || name === "client-max") {
+    if (name === "source" || name === "client-max" || name === "client-only") {
       this.#settle();
       // Lo que seguía en camino de la consulta anterior ya no sirve: un bloque que llegara después
       // indexaría filas del servidor en el modo cliente y cambiaría el total.
@@ -1327,8 +1484,11 @@ export class NxGrid extends Base {
     if (!this.#built) return;
     // En el servidor, la misma consulta no se vuelve a pedir: una app (BDUI) que reasigna los mismos
     // filtros u orden en cada repintado guardaba lo escrito a medias y repetía la petición.
+    // `client-only`: la consulta no viaja; si el conjunto entero ya va en camino, al llegar se filtra
+    // con lo que haya entonces (pedirlo otra vez no traería nada distinto).
     if (this.#server) {
-      if (JSON.stringify(this.#query()) !== this.#asked) this.#reload();
+      if (this.clientOnly && this.#blocks.get(0) === "loading") this.#paintAll();
+      else if (JSON.stringify(this.#query()) !== this.#asked) this.#reload();
     } else this.#recompute(stage);
     this.#clampSel();
     if (this.#live && !this.#server) this.#live.textContent = this.#rowsText();
@@ -1474,7 +1634,21 @@ export class NxGrid extends Base {
       body: JSON.stringify({ offset, limit, ...q, ...extra }),
       signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // Lo que explica el rechazo viaja con el error (`nx-grid-error`): el JSON, o el texto si no lo es.
+      let body: unknown = null;
+      try {
+        const text = await res.text();
+        try {
+          body = JSON.parse(text);
+        } catch {
+          body = text || null;
+        }
+      } catch {
+        /* sin cuerpo legible */
+      }
+      throw new SourceError(res.status, body);
+    }
     const data = (await res.json()) as GridPage;
     return data && Array.isArray(data.rows) ? data : null;
   }
@@ -1487,6 +1661,7 @@ export class NxGrid extends Base {
     this.#blocks.set(block, "loading");
     const gen = this.#gen;
     const signal = (this.#ac ??= new AbortController()).signal;
+    if (this.clientOnly) return this.#loadWhole(gen, signal);
     const q = this.#query();
     const offset = block * BLOCK;
     let page: GridPage | null = null;
@@ -1575,6 +1750,41 @@ export class NxGrid extends Base {
     this.#paintPicked(false);
   }
 
+  /** `client-only`: el conjunto entero, sin filtros, búsqueda ni orden (el origen no sabe de eso), y
+   *  la tabla sigue en el cliente con los filtros que haya al llegar. Hasta `client-max` filas (sin
+   *  él, `CLIENT_ONLY_MAX`); si llegan más, se toman esas y se avisa por consola: el origen debería
+   *  servir el modo servidor. Si falla, como un primer bloque: `nx-grid-error`, el aviso con
+   *  «Reintentar» y los reintentos de siempre. */
+  async #loadWhole(gen: number, signal: AbortSignal): Promise<void> {
+    const max = this.clientMax || CLIENT_ONLY_MAX;
+    const src = this.getAttribute("source");
+    let page: GridPage | null = null;
+    let error: unknown = null;
+    try {
+      page = await this.#request(0, max + 1, { sort: null, filters: [] }, signal);
+    } catch (err) {
+      error = err;
+    }
+    if (gen !== this.#gen || src !== this.getAttribute("source")) return;
+    if (!page || error) {
+      this.#blocks.delete(0);
+      if (signal.aborted) return;
+      return this.#failed(0, error ?? new Error("la respuesta no trae rows"));
+    }
+    let rows = page.rows.filter((r) => r && typeof r === "object");
+    if (rows.length > max) {
+      console.warn(`[nx-grid] client-only: el origen mandó más de ${max} filas; se muestran las primeras ${max}`);
+      rows = rows.slice(0, max);
+    }
+    this.#drop();
+    clearTimeout(this.#wait);
+    this.#wait = undefined;
+    // Los conteos de los atajos que son enlaces solo los sabe el servidor.
+    if (page.presets && typeof page.presets === "object") this.#serverN = new Map(Object.entries(page.presets).filter((e): e is [string, number] => typeof e[1] === "number"));
+    this.#local = this.#decided = true;
+    this.rows = rows;
+  }
+
   /** Se descarta lo del servidor: lo que seguía en camino (y su reintento) y los bloques guardados. */
   #drop(): void {
     this.#gen++;
@@ -1594,12 +1804,27 @@ export class NxGrid extends Base {
    *  al desplazarse o cuando otro bloque llega (`#revive`), «Reintentar» o `refresh()`. */
   #failed(block: number, error: unknown): void {
     const n = (this.#fails.get(block)?.n ?? 0) + 1;
-    const again = n < TRIES && !!this.#url("source");
+    const why = failureOf(error);
+    // Un 4xx no se arregla solo: pedirlo otra vez cada pocos segundos solo repite el rechazo.
+    const again = why.transient && n < TRIES && !!this.#url("source");
     const at = again ? Date.now() + Math.min(30_000, 1000 * 2 ** (n - 1)) : Infinity;
-    this.#fails.set(block, { n, at });
+    this.#fails.set(block, { n, at, ...(why.transient ? {} : { hard: true }) });
     if (again) this.#retryLater(at);
-    if (block === 0) this.#loadError = true;
-    this.#emit("nx-grid-error", { offset: block * BLOCK, limit: BLOCK, error: String((error as Error)?.message ?? error) });
+    if (block === 0) {
+      this.#loadError = true;
+      this.#loadWhy = serverMessage(why.body);
+    }
+    const whole = this.clientOnly && block === 0;
+    this.#emit("nx-grid-error", {
+      offset: block * BLOCK,
+      limit: whole ? (this.clientMax || CLIENT_ONLY_MAX) + 1 : BLOCK,
+      error: why.error,
+      status: why.status,
+      message: why.message,
+      body: why.body,
+      attempt: n,
+      retrying: again,
+    } satisfies GridErrorDetail);
     this.#paintChrome();
   }
 
@@ -1608,7 +1833,7 @@ export class NxGrid extends Base {
    *  quedaba en esqueleto para siempre, sin «Reintentar» (ese solo está en el aviso sin filas). */
   #revive(): void {
     if (!this.#fails.size || !this.#url("source")) return;
-    for (const [b, f] of this.#fails) if (f.at === Infinity) this.#fails.delete(b);
+    for (const [b, f] of this.#fails) if (f.at === Infinity && !f.hard) this.#fails.delete(b);
   }
 
   /** Vuelve a pintar (y así a pedir los bloques que faltan) en `at`, si no hay ya un intento antes. */
@@ -2289,7 +2514,14 @@ export class NxGrid extends Base {
     // Sin filas, las líneas cruzarían el aviso: solo con filas.
     this.#fill!.hidden = !this.#count();
     this.#empty!.classList.toggle("is-loading", loading);
-    if (failed) this.#emptyCell!.replaceChildren(L.loadError, h("span", { class: "nx-grid__relax" }, h("button", { type: "button", class: "nx-grid__btn", "data-retry": "" }, L.retry)));
+    // Lo que dijo el servidor (el `error` o el `message` de su JSON), si dijo algo: «no tienes
+    // permiso» o «el filtro no es válido» se arreglan distinto que una caída.
+    if (failed)
+      this.#emptyCell!.replaceChildren(
+        L.loadError,
+        ...(this.#loadWhy ? [h("span", { class: "nx-grid__why" }, this.#loadWhy)] : []),
+        h("span", { class: "nx-grid__relax" }, h("button", { type: "button", class: "nx-grid__btn", "data-retry": "" }, L.retry)),
+      );
     // Sin datos (nada filtrado) no es «ninguna coincide»: su propio texto y nada que aflojar.
     else if (!loading && !this.#filters.length && !this.#q.trim()) this.#emptyCell!.replaceChildren(L.noRows);
     else this.#emptyCell!.replaceChildren(loading ? L.loading : L.empty, ...(this.#empty!.hidden || loading ? [] : this.#relax()));

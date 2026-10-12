@@ -1,0 +1,1274 @@
+<title>Reportes de Talento Humano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Reportes de Talento Humano: dos capas en la misma página.
+   1. El repositorio (como el hub de Qlik o una app de Power BI): todos los tableros de HCM por sección,
+      cada uno con una sola señal viva, favoritos, recientes y búsqueda. Nada de miniaturas.
+   2. El Resumen (como un dashboard de Power BI): una tarjeta más del repositorio que abre la vista que
+      cruza procesos: pulso por tablero, cinta del proceso, áreas × frentes, para actuar y lectura cruzada.
+   Al abrir un tablero desde el Resumen, llega con los mismos filtros. */
+:root {
+  color-scheme: light dark;
+  --h: 215;
+  --canvas: light-dark(oklch(0.975 0.003 250), oklch(0.16 0.004 250));
+  --card: light-dark(oklch(1 0 0), oklch(0.205 0.005 250));
+  --pop: light-dark(oklch(1 0 0), oklch(0.25 0.006 250));
+  --line-soft: light-dark(oklch(0.93 0.004 250), oklch(1 0 0 / 0.07));
+  --line: light-dark(oklch(0.89 0.005 250), oklch(1 0 0 / 0.11));
+  --fg: light-dark(oklch(0.2 0.008 250), oklch(0.955 0.003 250));
+  --fg-2: light-dark(oklch(0.42 0.01 250), oklch(0.78 0.006 250));
+  --fg-3: light-dark(oklch(0.52 0.01 250), oklch(0.66 0.007 250));
+  --fg-4: light-dark(oklch(0.68 0.008 250), oklch(0.5 0.007 250));
+  --accent: light-dark(oklch(0.52 0.12 var(--h)), oklch(0.74 0.09 var(--h)));
+  --accent-ink: light-dark(oklch(0.46 0.12 var(--h)), oklch(0.8 0.085 var(--h)));
+  --accent-soft: light-dark(oklch(0.52 0.12 var(--h) / 0.09), oklch(0.74 0.09 var(--h) / 0.15));
+  --accent-line: light-dark(oklch(0.52 0.12 var(--h) / 0.4), oklch(0.74 0.09 var(--h) / 0.45));
+  --on-accent: light-dark(oklch(1 0 0), oklch(0.18 0.02 var(--h)));
+  --hover: light-dark(oklch(0.2 0.01 250 / 0.045), oklch(1 0 0 / 0.055));
+  --ring: light-dark(oklch(0.52 0.12 var(--h) / 0.6), oklch(0.74 0.09 var(--h) / 0.7));
+  --shadow-1: 0 1px 2px light-dark(oklch(0.25 0.02 250 / 0.05), transparent), inset 0 1px 0 light-dark(transparent, oklch(1 0 0 / 0.035));
+  --shadow-2: 0 1px 2px light-dark(oklch(0.25 0.02 250 / 0.05), transparent),
+    0 14px 30px -14px light-dark(oklch(0.25 0.02 250 / 0.22), oklch(0 0 0 / 0.6)), inset 0 1px 0 light-dark(transparent, oklch(1 0 0 / 0.05));
+  --shadow-pop: 0 1px 2px light-dark(oklch(0.2 0.02 250 / 0.08), oklch(0 0 0 / 0.3)),
+    0 12px 32px -6px light-dark(oklch(0.2 0.02 250 / 0.2), oklch(0 0 0 / 0.6));
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Datos: un color por carril de la cinta (el color sigue al proceso, no a la posición). */
+  --s1: light-dark(#2a78d6, #3987e5);
+  --s2: light-dark(#eb6834, #d95926);
+  --s3: light-dark(#1baf7a, #199e70);
+  --s4: light-dark(#eda100, #c98500);
+  --s5: light-dark(#e87ba4, #d55181);
+  --viz: var(--s1);
+  --ref: light-dark(#898781, #9a9993);
+  --grid: light-dark(#e6e5df, #2c2c2a);
+  --axis: light-dark(#c3c2b7, #45443f);
+  /* Estados: siempre con ícono o texto, nunca solo color. */
+  --crit: #d03b3b;
+  --serious: #ec835a;
+  --warn: #fab219;
+  --good: #0ca30c;
+  --info: light-dark(#2a78d6, #3987e5);
+  --bad-ink: light-dark(#b42727, #ff8f87);
+  --good-ink: light-dark(#006300, #3ccb3c);
+  --warn-ink: light-dark(#8a5a00, #f5c451);
+
+  --r: 10px;
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+/* El tema se decide en <body>: el visor de artefactos maneja la raíz. */
+body { color-scheme: light dark; }
+:root[data-theme="dark"] body { color-scheme: dark; }
+:root[data-theme="light"] body { color-scheme: light; }
+:root body[data-scheme="dark"] { color-scheme: dark; }
+:root body[data-scheme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--canvas); color: var(--fg);
+  font: 14px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+h1, h2, h3, p { margin: 0; }
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.num, td, .kpi .v, .sig .v, .mini b { font-variant-numeric: tabular-nums; }
+code { font-family: var(--mono); font-size: 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: clamp(16px, 2.6vw, 32px); padding-block: 22px 64px; }
+
+/* ------------------------------------------------------------ cabecera */
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.crumb { display: flex; gap: 6px; align-items: center; color: var(--fg-3); font-size: 13px; flex-wrap: wrap; }
+.crumb span { color: var(--fg-4); }
+.crumb button { border: 0; background: none; padding: 0; color: var(--accent-ink); font-size: inherit; text-decoration: underline; text-underline-offset: 3px; }
+h1 { font-size: 26px; font-weight: 650; letter-spacing: -0.015em; margin-top: 2px; text-wrap: balance; }
+.meta { color: var(--fg-3); font-size: 13px; margin-top: 2px; }
+.meta b { color: var(--fg-2); font-weight: 500; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--fg-2); font-size: 13px; white-space: nowrap;
+}
+.btn:hover { color: var(--fg); background: color-mix(in oklab, var(--card), var(--fg) 4%); }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+.btn.ico { width: 34px; padding: 0; justify-content: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 550; }
+.btn.primary:hover { background: color-mix(in oklab, var(--accent), var(--fg) 12%); color: var(--on-accent); }
+
+/* ============================================================ capa 1: el repositorio */
+.find { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; margin-bottom: 18px; }
+.search { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--fg-3); flex: 0 1 340px; min-width: 0; }
+.search:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search input { border: 0; outline: 0; background: none; flex: 1; min-width: 0; color: var(--fg); }
+.search kbd { font: 500 11px var(--mono); color: var(--fg-4); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+.recent { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--fg-3); font-size: 12.5px; min-width: 0; }
+.recent button {
+  display: inline-flex; gap: 6px; align-items: baseline; height: 28px; padding: 0 11px; border-radius: 999px;
+  border: 1px solid var(--line-soft); background: var(--card); color: var(--fg-2); font-size: 12.5px;
+}
+.recent button:hover { border-color: var(--line); color: var(--fg); }
+.recent small { color: var(--fg-4); font-size: 11.5px; }
+.count { color: var(--fg-3); font-size: 12.5px; margin-left: auto; }
+
+/* La tarjeta del Resumen: la puerta a la capa 2. Es una tarjeta del repositorio, solo que más ancha. */
+.feat {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr) auto; gap: 18px 28px; align-items: center;
+  padding: 20px 22px; margin-bottom: 30px; border-radius: 14px; border: 1px solid var(--accent-line);
+  background: color-mix(in oklab, var(--card), var(--accent) 5%); box-shadow: var(--shadow-1);
+  transition: box-shadow 0.2s var(--ease), translate 0.2s var(--ease), opacity 0.2s;
+}
+@media (hover: hover) { .feat:hover { box-shadow: var(--shadow-2); translate: 0 -2px; } }
+.feat .eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+.feat h2 { font-size: 19px; font-weight: 650; letter-spacing: -0.01em; margin-top: 4px; }
+.feat p.d { color: var(--fg-2); font-size: 13px; margin-top: 4px; max-width: 46ch; }
+.mini { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.mini div { display: grid; gap: 1px; padding: 2px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.mini span { font-size: 12px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini b { font-size: 21px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.2; }
+.mini small { font-size: 12px; color: var(--fg-3); }
+.mini small.bad { color: var(--bad-ink); } .mini small.warn { color: var(--warn-ink); }
+.feat .go::after { content: ""; position: absolute; inset: 0; border-radius: 14px; }
+@media (max-width: 1100px) { .feat { grid-template-columns: minmax(0, 1fr); } .feat .go { justify-self: start; } }
+@media (max-width: 640px) { .mini { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; } }
+
+.secs { display: grid; gap: 30px; }
+.sec { display: grid; gap: 14px; min-width: 0; transition: opacity 0.2s; }
+.sec-h { display: flex; align-items: center; gap: 12px; }
+.sec-h .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--a-dot); }
+.sec-h h2 { color: var(--fg-2); font-size: 12px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; }
+.sec-h .rule { flex: 1 1 0; max-width: 180px; height: 1px; background: linear-gradient(to right, var(--line), transparent); }
+.sec-h small { color: var(--fg-4); font-size: 12px; }
+.sec.dim { opacity: 0.4; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.cards > li { display: flex; min-width: 0; }
+
+[data-accent] {
+  --ah: 245;
+  --a-soft: light-dark(oklch(0.958 0.04 var(--ah)), oklch(0.72 0.14 var(--ah) / 0.15));
+  --a-ink: light-dark(oklch(0.4 0.145 var(--ah)), oklch(0.86 0.13 var(--ah)));
+  --a-dot: light-dark(oklch(0.58 0.15 var(--ah)), oklch(0.76 0.14 var(--ah)));
+}
+[data-accent="green"] { --ah: 155; }
+[data-accent="amber"] { --ah: 75; }
+[data-accent="purple"] { --ah: 300; }
+[data-accent="teal"] { --ah: 190; }
+
+.card {
+  position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  background: var(--card); border: 1px solid var(--line-soft); border-radius: 12px; box-shadow: var(--shadow-1);
+  transition: border-color 0.2s, box-shadow 0.2s var(--ease), translate 0.2s var(--ease), opacity 0.2s;
+}
+@media (hover: hover) { .card:hover { border-color: var(--line); box-shadow: var(--shadow-2); translate: 0 -3px; } }
+.card.dim { opacity: 0.35; }
+.card.first { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-1); }
+.card .top { display: flex; align-items: center; gap: 8px; }
+.chip-i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: var(--a-soft); color: var(--a-ink); flex: none; }
+.chip-i .i { width: 19px; height: 19px; stroke-width: 1.5; }
+.official {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 1px 5px; border-radius: 999px; font-size: 11px; font-weight: 550;
+  color: var(--good-ink); background: color-mix(in oklab, var(--good) 12%, transparent);
+}
+.official .i { width: 12px; height: 12px; stroke-width: 2.2; }
+.star {
+  position: relative; z-index: 2; margin-left: auto; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
+  border: 0; background: none; color: var(--fg-4);
+}
+.star:hover { background: var(--hover); color: var(--fg-2); }
+.star[aria-pressed="true"] { color: light-dark(#c98500, #fab219); }
+.star[aria-pressed="true"] .i { fill: currentColor; }
+.card .open { all: unset; cursor: pointer; display: grid; gap: 2px; min-width: 0; }
+.card .open::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.card .open:focus-visible::after { outline: 2px solid var(--ring); outline-offset: 2px; }
+.card .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.card .desc { color: var(--fg-3); font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card mark { background: var(--accent-soft); color: inherit; border-radius: 3px; }
+.sig { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 2px 10px; margin-top: auto; }
+.sig .v { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+.sig .v small { font-size: 12.5px; font-weight: 500; color: var(--fg-2); letter-spacing: 0; margin-left: 4px; }
+.sig .trend { width: 76px; height: 28px; }
+.sig .trend svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.sig .note { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-2); }
+.sig .note i { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-4); flex: none; }
+.sig .note[data-tone="danger"] i { background: var(--crit); } .sig .note[data-tone="danger"] { color: var(--bad-ink); }
+.sig .note[data-tone="warning"] i { background: var(--warn); }
+.sig .note[data-tone="info"] i { background: var(--info); }
+.sig .note[data-tone="success"] i { background: var(--good); }
+.sig .meter { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--hover); overflow: hidden; }
+.sig .meter b { display: block; height: 100%; background: var(--a-dot); border-radius: 0 3px 3px 0; }
+.card .foot { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--fg-4); border-top: 1px solid var(--line-soft); padding-top: 9px; }
+.empty-find { color: var(--fg-3); font-size: 13.5px; padding: 8px 0 0; }
+
+/* ============================================================ capa 2: el Resumen */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap;
+  margin: 0 calc(-1 * clamp(16px, 2.6vw, 32px)) 14px; padding: 10px clamp(16px, 2.6vw, 32px);
+  background: color-mix(in oklab, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line-soft);
+}
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--hover); border: 1px solid var(--line-soft); position: relative; }
+.seg button { border: 0; background: none; height: 28px; padding: 0 11px; border-radius: 6px; color: var(--fg-2); font-size: 13px; white-space: nowrap; }
+.seg button:hover { color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); font-weight: 550; box-shadow: 0 1px 2px light-dark(oklch(0.2 0.02 250 / 0.12), oklch(0 0 0 / 0.4)); }
+.field { display: inline-flex; align-items: center; gap: 8px; color: var(--fg-3); font-size: 13px; position: relative; }
+.field select {
+  height: 34px; padding: 0 30px 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+  color: var(--fg); appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px; background-size: 5px 5px; background-repeat: no-repeat;
+}
+.chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 10px; border-radius: 999px;
+  border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent-ink); font-size: 12.5px;
+}
+.chip small { color: var(--fg-3); font-size: 12px; }
+.chip .x { width: 14px; height: 14px; }
+.chip.ro { padding-right: 10px; cursor: default; }
+.chip-clear { border: 0; background: none; color: var(--fg-3); font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; padding: 0 4px; }
+.chip-hint { color: var(--fg-4); font-size: 12.5px; }
+
+.board { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+.s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s7 { grid-column: span 7; } .s5 { grid-column: span 5; } .s4 { grid-column: span 4; }
+@media (max-width: 1180px) { .s8, .s7, .s5, .s4 { grid-column: span 12; } }
+.panel {
+  position: relative; min-width: 0; display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 18px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+}
+.ph { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.panel h2 { font-size: 14px; font-weight: 600; letter-spacing: -0.005em; }
+.sub { color: var(--fg-3); font-size: 12.5px; margin-top: 1px; }
+.note { color: var(--fg-3); font-size: 12px; }
+.lnk { color: var(--accent-ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
+
+/* Pulso: una cifra por tablero; tocarla abre ese tablero con los filtros puestos. */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; position: relative; }
+@media (max-width: 1280px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi {
+  min-width: 0; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 4px; text-align: left;
+  padding: 14px 16px 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  transition: border-color 0.2s, box-shadow 0.2s var(--ease);
+}
+.kpi:hover { border-color: var(--accent-line); box-shadow: var(--shadow-2); }
+.kpi h3 { font-size: 12.5px; font-weight: 500; color: var(--fg-2); }
+.kpi .v { font-size: 25px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+.kpi .v small { font-size: 13px; font-weight: 500; color: var(--fg-3); margin-left: 3px; letter-spacing: 0; }
+.delta { font-size: 12px; color: var(--fg-3); display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.delta b { font-weight: 600; }
+.delta .bad { color: var(--bad-ink); } .delta .good { color: var(--good-ink); } .delta .flat { color: var(--fg-2); }
+.spark { position: relative; height: 30px; margin-top: 6px; }
+.spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.spark .end { position: absolute; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--viz); box-shadow: 0 0 0 2px var(--card); transform: translateY(-50%); }
+.kpi .foot { display: flex; justify-content: space-between; gap: 6px; font-size: 11.5px; color: var(--fg-3); border-top: 1px solid var(--line-soft); padding-top: 7px; margin-top: 4px; }
+.kpi .foot b { color: var(--accent-ink); font-weight: 550; white-space: nowrap; }
+
+/* Cinta del proceso: carriles con su propia escala sobre los mismos meses. */
+.layers { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.lg {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px 4px 7px; border: 1px solid var(--line-soft); border-radius: 7px;
+  background: none; font-size: 12.5px; color: var(--fg-2);
+}
+.lg:hover { background: var(--hover); }
+.lg .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.lg[aria-pressed="false"] { color: var(--fg-4); border-style: dashed; }
+.lg[aria-pressed="false"] .sw { opacity: 0.3; }
+.lanes { position: relative; min-height: 120px; }
+.lanes svg { display: block; width: 100%; overflow: visible; }
+.lanes text { fill: var(--fg-3); font-size: 11px; font-family: var(--font); }
+.lanes .lt { fill: var(--fg-2); font-size: 12px; font-weight: 550; }
+.lanes .lv { fill: var(--fg); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lanes .mk { fill: var(--fg-2); font-size: 11px; font-weight: 550; }
+.lanes .hit { fill: transparent; cursor: pointer; }
+.lanes .hit:hover { fill: var(--hover); }
+.lanes .hit.nf { cursor: default; }
+
+/* Áreas × frentes: cada columna frente a su propia meta. */
+.mx-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+table.mx { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 13px; min-width: 620px; }
+.mx thead th { font-weight: 500; color: var(--fg-3); font-size: 11.5px; padding: 0 0 2px; vertical-align: bottom; }
+.mx thead th button { width: 100%; border: 0; background: none; color: inherit; font-size: inherit; display: grid; gap: 1px; justify-items: center; padding: 4px 4px; border-radius: 6px; line-height: 1.25; }
+.mx thead th button:hover { background: var(--hover); color: var(--fg); }
+.mx thead th button small { color: var(--fg-4); font-size: 11px; }
+.mx thead th[aria-sort] button { color: var(--fg); font-weight: 600; }
+.mx th.rh { text-align: left; font-weight: 400; padding: 0; }
+.mx .rl { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 0; border: 0; background: none; padding: 3px 8px 3px 2px; border-radius: 5px; font-size: 13px; color: var(--fg-2); text-align: left; white-space: nowrap; }
+.mx .rl:hover { background: var(--hover); color: var(--fg); }
+.mx .rl small { color: var(--fg-4); font-size: 11px; }
+.mx td { padding: 0; }
+.mx .c { width: 100%; min-height: 36px; border: 0; border-radius: 5px; display: grid; place-items: center; font-size: 12.5px; padding: 0 4px; }
+.mx .c:hover { outline: 2px solid var(--fg); outline-offset: -1px; }
+.mx .l0 { background: color-mix(in oklab, var(--card), var(--fg) 3.5%); color: var(--fg-2); }
+.mx .l1 { background: color-mix(in oklab, var(--warn) 24%, var(--card)); color: var(--warn-ink); font-weight: 600; }
+.mx .l2 { background: color-mix(in oklab, var(--crit) 20%, var(--card)); color: var(--bad-ink); font-weight: 650; }
+.mx .off { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-left: 8px; white-space: nowrap; font-size: 12.5px; color: var(--fg-2); }
+.mx .off b { font-weight: 650; color: var(--fg); }
+.dots { display: inline-flex; gap: 3px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--crit); }
+.mx tr.dim .c, .mx tr.dim .rl, .mx tr.dim .off { opacity: 0.32; }
+.mx tr.on .rl { color: var(--fg); font-weight: 600; }
+.mx tfoot th, .mx tfoot td { padding-top: 6px; }
+.mx tfoot .rl { color: var(--fg); font-weight: 600; cursor: default; }
+.mx tfoot .rl:hover { background: none; }
+.mx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--fg-3); }
+.mx-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.mx-legend i { width: 14px; height: 10px; border-radius: 3px; }
+
+/* Para actuar y lectura cruzada */
+.al { list-style: none; margin: 0; padding: 0; display: grid; }
+.al li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 3px 10px; padding: 11px 0; border-top: 1px solid var(--line-soft); }
+.al li:first-child { border-top: 0; padding-top: 0; }
+.sev { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; grid-row: span 4; }
+.sev .i { width: 15px; height: 15px; stroke-width: 2; }
+.sev.crit { background: color-mix(in oklab, var(--crit) 14%, transparent); color: var(--crit); }
+.sev.serious { background: color-mix(in oklab, var(--serious) 18%, transparent); color: light-dark(#b2552e, var(--serious)); }
+.sev.warn { background: color-mix(in oklab, var(--warn) 20%, transparent); color: var(--warn-ink); }
+.sev.info { background: var(--accent-soft); color: var(--accent-ink); }
+.al .t { font-size: 13px; font-weight: 600; }
+.al .due { font-size: 12px; color: var(--fg-3); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.al .due b { font-weight: 600; color: var(--fg-2); }
+.al .due b.late { color: var(--bad-ink); }
+.al p { font-size: 12.5px; color: var(--fg-2); }
+.al .acts { display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
+.src { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.src span { font-size: 11px; color: var(--fg-2); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; line-height: 18px; white-space: nowrap; }
+.more { justify-self: start; }
+.ins { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 28px; }
+@media (max-width: 900px) { .ins { grid-template-columns: minmax(0, 1fr); } }
+.ins li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px 10px; padding: 12px 0; border-top: 1px solid var(--line-soft); align-content: start; }
+.ins .mk { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--hover); color: var(--fg-2); }
+.ins .mk.bad { color: var(--bad-ink); } .ins .mk.good { color: var(--good-ink); }
+.ins .mk .i { width: 14px; height: 14px; }
+.ins p { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; }
+.ins p b { color: var(--fg); font-weight: 600; }
+.ins .acts { grid-column: 2; display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: center; }
+.privacy { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 8px; color: var(--fg-2); font-size: 13px; }
+.privacy .i { margin-top: 2px; color: var(--fg-3); }
+
+/* ============================================================ un tablero abierto (solo cómo llega) */
+.arrive { display: grid; gap: 12px; padding: 18px 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 14px; }
+.arrive .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.arrive code { display: block; padding: 8px 10px; border-radius: 7px; background: var(--hover); color: var(--fg); overflow-x: auto; white-space: nowrap; }
+.sk { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+.sk div { height: 120px; border-radius: var(--r); border: 1px dashed var(--line); background: repeating-linear-gradient(135deg, transparent 0 8px, var(--hover) 8px 9px); }
+.sk .k { grid-column: span 3; height: 96px; } .sk .w { grid-column: span 8; height: 260px; } .sk .n { grid-column: span 4; height: 260px; } .sk .f { grid-column: span 12; height: 180px; }
+@media (max-width: 760px) { .sk .k { grid-column: span 6; } .sk .w, .sk .n { grid-column: span 12; } }
+
+/* ------------------------------------------------------------ tooltip */
+#tip {
+  position: fixed; z-index: 60; pointer-events: none; min-width: 170px; max-width: 290px; padding: 9px 11px;
+  background: var(--pop); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-pop);
+  font-size: 12.5px; line-height: 1.4;
+}
+#tip .tt { font-weight: 600; margin-bottom: 4px; }
+#tip .tr { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+#tip .tr i { width: 8px; height: 8px; border-radius: 2px; }
+#tip .tr span { color: var(--fg-2); }
+#tip .tr b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+#tip .tf { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line-soft); color: var(--fg-3); }
+
+/* ------------------------------------------------------------ piezas */
+.pieces-panel { margin-bottom: 18px; padding: 16px 18px; border: 1.5px dashed var(--accent-line); border-radius: var(--r); background: var(--accent-soft); }
+.pieces-panel h2 { font-size: 14px; font-weight: 600; }
+.pieces-panel .sub { margin-bottom: 12px; }
+.plist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px 22px; }
+.plist li { display: grid; gap: 2px; font-size: 12.5px; color: var(--fg-2); }
+.plist code { color: var(--fg); font-weight: 500; }
+.kind { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; font-size: 10.5px; font-family: var(--font); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; vertical-align: 1px; }
+.kind.nuevo { background: var(--accent); color: var(--on-accent); }
+.kind.ampliar { background: var(--warn); color: #3a2600; }
+.kind.existe { background: var(--line); color: var(--fg-2); }
+.kind.backend { background: var(--fg-2); color: var(--card); }
+body.pieces [data-piece] { outline: 1.5px dashed var(--accent-line); outline-offset: 3px; position: relative; }
+body.pieces [data-piece]::before {
+  content: "<" attr(data-piece) ">  " attr(data-kind); position: absolute; z-index: 5; top: -11px; right: 12px;
+  padding: 1px 7px; border-radius: 5px; font: 500 11px/18px var(--mono); white-space: nowrap;
+  background: var(--accent); color: var(--on-accent);
+}
+body.pieces [data-kind="existe"]::before { background: var(--fg-2); color: var(--card); }
+body.pieces [data-kind="ampliar"]::before { background: var(--warn); color: #3a2600; }
+body.pieces .bar[data-piece] { position: sticky; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .feat, .kpi, .sec { transition: none; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-blocks" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M11.5 2.9a.6.6 0 0 1 1 0l2.6 5.3 5.8.8a.6.6 0 0 1 .3 1l-4.2 4.1 1 5.8a.6.6 0 0 1-.8.6L12 17.8l-5.2 2.7a.6.6 0 0 1-.8-.6l1-5.8-4.2-4.1a.6.6 0 0 1 .3-1l5.8-.8z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-octa" viewBox="0 0 24 24"><path d="M8 2h8l6 6v8l-6 6H8l-6-6V8z"/><path d="M12 8v5M12 16.5v.01"/></symbol>
+  <symbol id="i-tri" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17v.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8v.01"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-trend-up" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
+  <!-- íconos de los tableros -->
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.13a4 4 0 0 1 0 7.75M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></symbol>
+  <symbol id="i-user-minus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></symbol>
+  <symbol id="i-file-sign" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 18c1.5-2 2.5-2 3 0s1.5 2 3 0 2-1 3 0"/></symbol>
+  <symbol id="i-steth" viewBox="0 0 24 24"><path d="M11 2v2M5 2v2m0-1H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></symbol>
+  <symbol id="i-hard-hat" viewBox="0 0 24 24"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5M4 15v-3a8 8 0 0 1 6-7.7M14 4.3A8 8 0 0 1 20 12v3"/></symbol>
+  <symbol id="i-door" viewBox="0 0 24 24"><path d="M13 4h3a2 2 0 0 1 2 2v14M2 20h3M13 20h9M10 12v.01"/><path d="M13 4.56v16.16a.5.5 0 0 1-.62.49L5 19.5V5.1a2 2 0 0 1 1.5-1.94l5-1.25A1.2 1.2 0 0 1 13 4.56z"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/></symbol>
+  <symbol id="i-palm" viewBox="0 0 24 24"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4m3-.86A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"/><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35"/><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-piggy" viewBox="0 0 24 24"><path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1zm5-7h.01M2 8v1a2 2 0 0 0 2 2h1"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.2a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.9a2 2 0 0 0 1.66 0zM22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <nav class="crumb" id="crumb" aria-label="Ruta"></nav>
+      <h1 id="title"></h1>
+      <p class="meta" id="meta"></p>
+    </div>
+    <div class="tools">
+      <button class="btn" id="b-pieces" type="button" aria-pressed="false"><svg class="i"><use href="#i-blocks"/></svg>Piezas</button>
+      <button class="btn ico" id="b-theme" type="button" aria-label="Ver en oscuro" title="Ver en oscuro"><svg class="i"><use href="#i-moon"/></svg></button>
+    </div>
+  </header>
+
+  <section class="pieces-panel" id="pieces" hidden>
+    <h2>Piezas</h2>
+    <p class="sub" id="pieces-sub"></p>
+    <ul class="plist" id="pieces-list"></ul>
+  </section>
+
+  <!-- ======================================================== capa 1: el repositorio -->
+  <main id="v-repo">
+    <div class="find">
+      <label class="search"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar un tablero</span>
+        <input id="q" type="search" placeholder="Buscar un tablero" autocomplete="off"><kbd>/</kbd></label>
+      <div class="recent" id="recent"></div>
+      <span class="count" id="count"></span>
+    </div>
+
+    <article class="feat" id="feat" data-piece='nx-launcher featured' data-kind="ampliar"></article>
+
+    <div class="secs" id="secs" data-piece="nx-launcher" data-kind="existe"></div>
+    <p class="empty-find" id="empty-find" hidden></p>
+  </main>
+
+  <!-- ======================================================== capa 2: el Resumen -->
+  <main id="v-sum" hidden>
+    <div class="bar" id="bar" data-piece="nx-board" data-kind="ampliar">
+      <div class="seg" id="f-period" role="group" aria-label="Periodo">
+        <button type="button" data-period="12m" aria-pressed="true">Últimos 12 meses</button>
+        <button type="button" data-period="ytd" aria-pressed="false">Año 2026</button>
+        <button type="button" data-period="q" aria-pressed="false">Trimestre</button>
+      </div>
+      <label class="field">Sede
+        <select id="f-sede"><option value="">Todas</option><option>Funza</option><option>Bogotá</option><option>Barranquilla</option></select>
+      </label>
+      <div class="chips" id="chips" aria-live="polite"></div>
+    </div>
+
+    <div class="board">
+      <section class="kpis s12" id="kpis" aria-label="Pulso de cada tablero" data-piece="nx-stats" data-kind="existe"></section>
+
+      <section class="panel s12" data-piece='nx-trend layout="lanes"' data-kind="ampliar">
+        <div class="ph">
+          <div><h2>Cinta del proceso</h2><p class="sub">Cada carril con su propia escala, sobre los mismos meses. Tocar un mes filtra el resto.</p></div>
+          <div class="layers" id="layers" role="group" aria-label="Carriles"></div>
+        </div>
+        <div class="lanes" id="lanes"></div>
+      </section>
+
+      <section class="panel s7" data-piece='nx-heatmap scale="goal"' data-kind="ampliar">
+        <div class="ph">
+          <div><h2>Áreas × frentes</h2><p class="sub" id="mx-sub">Cada columna frente a su propia meta. Tocar un área filtra todo.</p></div>
+        </div>
+        <div class="mx-wrap"><table class="mx" id="mx"></table></div>
+        <div class="mx-legend">
+          <span><i style="background:color-mix(in oklab, var(--card), var(--fg) 3.5%); border:1px solid var(--line)"></i>Dentro de la meta</span>
+          <span><i style="background:color-mix(in oklab, var(--warn) 24%, var(--card))"></i>Hasta 25 % por encima</span>
+          <span><i style="background:color-mix(in oklab, var(--crit) 20%, var(--card))"></i>Más de 25 % por encima</span>
+        </div>
+      </section>
+
+      <section class="panel s5" data-piece="nx-alerts sources" data-kind="ampliar">
+        <div><h2>Para actuar</h2><p class="sub">De todos los tableros, por fecha límite</p></div>
+        <ol class="al" id="alerts"></ol>
+      </section>
+
+      <section class="panel s12" data-piece="nx-insights" data-kind="existe">
+        <div><h2>Lectura cruzada</h2><p class="sub">Solo lo que conecta dos o más tableros. Lo de un solo proceso está en su tablero.</p></div>
+        <ol class="ins" id="insights"></ol>
+        <div class="privacy"><svg class="i"><use href="#i-lock"/></svg><span>En esta vista no hay nombres ni diagnósticos: solo conteos. El detalle está en cada tablero, con sus permisos.</span></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ======================================================== un tablero abierto -->
+  <main id="v-board" hidden>
+    <section class="arrive" data-piece="nx-board" data-kind="ampliar">
+      <div><h2 style="font-size:15px;font-weight:600">Así llega este tablero</h2><p class="sub" id="arr-from"></p></div>
+      <div class="row" id="arr-chips"></div>
+      <code id="arr-url"></code>
+      <p class="note" id="arr-note"></p>
+    </section>
+    <div class="sk" aria-hidden="true"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="w"></div><div class="n"></div><div class="f"></div></div>
+  </main>
+</div>
+
+<div id="tip" role="tooltip" hidden></div>
+
+<script>
+(() => {
+  "use strict";
+  // ================================================================ utilidades
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const NF = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+  const NF1 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const NF2 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fInt = (n) => NF.format(Math.round(n));
+  const fPct = (x, d = 1) => new Intl.NumberFormat("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d }).format(x * 100) + " %";
+  const fMoney = (v) => {
+    const a = Math.abs(v);
+    if (a >= 1e9) return "$ " + NF1.format(v / 1e9) + " mil M";
+    if (a >= 1e6) return "$ " + NF.format(v / 1e6) + " M";
+    return "$ " + NF.format(v);
+  };
+  const sum = (a) => a.reduce((s, x) => s + x, 0);
+  const range = (a, b) => { const o = []; for (let i = a; i <= b; i++) o.push(i); return o; };
+  const plural = (n, one, many) => (n === 1 ? one : many);
+  const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  let seed = 20261012;
+  function rnd() {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  function poisson(l) { const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= rnd(); } while (p > L); return k - 1; }
+
+  // ================================================================ calendario
+  // 0 = oct 2024 … 23 = sep 2026 (el corte) · 24–26 = oct–dic 2026 (lo que ya está programado).
+  const DAY = 864e5;
+  const dn = (y, m, d) => Date.UTC(y, m - 1, d) / DAY;
+  const MSHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const MLONG = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const MONTHS = [];
+  for (let i = 0; i < 27; i++) {
+    const y = 2024 + Math.floor((9 + i) / 12), m = ((9 + i) % 12) + 1;
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    MONTHS.push({ i, y, m, days, short: MSHORT[m - 1], long: MLONG[m - 1] + " de " + y, future: i > 23 });
+  }
+  const LAST = 23, TODAY = dn(2026, 9, 30);
+  const fDate = (d) => { const t = new Date(d * DAY); return t.getUTCDate() + " " + MSHORT[t.getUTCMonth()] + (t.getUTCFullYear() !== 2026 ? " " + t.getUTCFullYear() : ""); };
+
+  // ================================================================ áreas y sedes
+  // abs: ausentismo base · rot: retiros al mes · fijo: parte con contrato a término fijo · he: horas extra
+  // por persona al mes · heK: cuánto suben las horas extra con el ausentismo · vac: parte con 2+ periodos
+  // de vacaciones sin disfrutar · vol: parte de retiros voluntarios · volInc / baseInc: retirados
+  // voluntarios / planta con 3+ incapacidades en 6 meses · vacF: días de incapacidad de quien acumula
+  // vacaciones frente al resto.
+  const AREAS = [
+    { id: "prod", name: "Producción", abs: 0.021, rot: 0.014, fijo: 0.35, he: 10.5, heK: 0.9, vac: 0.06, sal: 2.1e6, vol: 0.5, volInc: 0.34, baseInc: 0.09, vacF: 1.7 },
+    { id: "emp", name: "Empacadoras", abs: 0.034, rot: 0.026, fijo: 0.55, he: 10.8, heK: 1.1, vac: 0.045, sal: 1.8e6, vol: 0.45, volInc: 0.42, baseInc: 0.11, vacF: 1.9 },
+    { id: "log", name: "Logística", abs: 0.022, rot: 0.029, fijo: 0.45, he: 9, heK: 0.6, vac: 0.05, sal: 2.2e6, vol: 0.55, volInc: 0.3, baseInc: 0.08, vacF: 1.6 },
+    { id: "man", name: "Mantenimiento", abs: 0.018, rot: 0.008, fijo: 0.15, he: 14, heK: 0.3, vac: 0.17, sal: 3.2e6, vol: 0.5, volInc: 0.15, baseInc: 0.04, vacF: 1.8 },
+    { id: "cal", name: "Calidad", abs: 0.014, rot: 0.009, fijo: 0.2, he: 3, heK: 0.2, vac: 0.04, sal: 2.9e6, vol: 0.5, volInc: 0.15, baseInc: 0.04, vacF: 1.4 },
+    { id: "ven", name: "Ventas", abs: 0.011, rot: 0.022, fijo: 0.3, he: 0.5, heK: 0, vac: 0.12, sal: 3.4e6, vol: 0.6, volInc: 0.15, baseInc: 0.04, vacF: 1.5 },
+    { id: "adm", name: "Administración", abs: 0.01, rot: 0.007, fijo: 0.1, he: 1.5, heK: 0.1, vac: 0.14, sal: 4.6e6, vol: 0.5, volInc: 0.15, baseInc: 0.04, vacF: 1.6 },
+  ];
+  const AREA = Object.fromEntries(AREAS.map((a) => [a.id, a]));
+  // Lo puntual que hoy pide atención (para «Para actuar»): por unidad, así sigue a los filtros.
+  const UNITS = [
+    { area: "prod", sede: "Funza", hc0: 420, conInc: 1, liq: 0, d180: 1, heOver: 7 },
+    { area: "emp", sede: "Funza", hc0: 310, conInc: 3, liq: 1, d180: 0, heOver: 9 },
+    { area: "log", sede: "Barranquilla", hc0: 180, conInc: 0, liq: 2, d180: 0, heOver: 3 },
+    { area: "man", sede: "Funza", hc0: 70, conInc: 0, liq: 0, d180: 0, heOver: 6 },
+    { area: "cal", sede: "Funza", hc0: 45, conInc: 0, liq: 0, d180: 0, heOver: 0 },
+    { area: "ven", sede: "Bogotá", hc0: 80, conInc: 0, liq: 0, d180: 0, heOver: 0 },
+    { area: "ven", sede: "Barranquilla", hc0: 40, conInc: 0, liq: 0, d180: 0, heOver: 0 },
+    { area: "adm", sede: "Bogotá", hc0: 95, conInc: 0, liq: 0, d180: 1, heOver: 0 },
+  ];
+  // Temporadas de lluvia: más ausentismo en abril-mayo y octubre-noviembre. Más retiros en enero.
+  const SEASON = { 1: 0.95, 2: 1, 3: 1.05, 4: 1.2, 5: 1.25, 6: 1, 7: 0.95, 8: 0.95, 9: 1, 10: 1.2, 11: 1.25, 12: 0.85 };
+  const ROTS = { 1: 1.45, 12: 1.15 };
+
+  // ================================================================ datos mensuales por unidad
+  for (const u of UNITS) {
+    const a = AREA[u.area];
+    for (const k of ["hc", "inc", "he", "ing", "ret", "retVol", "retVolInc", "retFin", "venc", "vac", "ces"]) u[k] = new Array(27).fill(0);
+    let hc = Math.round(u.hc0 * 0.972);
+    for (let m = 0; m <= LAST; m++) {
+      const M = MONTHS[m];
+      let ret = poisson(hc * a.rot * (ROTS[M.m] ?? 1));
+      const need = Math.round((u.hc0 - hc) / (LAST + 1 - m));
+      let ing = Math.max(0, ret + need + (m < LAST ? Math.round((rnd() - 0.5) * 3) : 0));
+      if (m === LAST) { const diff = u.hc0 - hc; if (ret + diff >= 0) ing = ret + diff; else { ing = 0; ret = -diff; } }
+      const avg = hc + (ing - ret) / 2;
+      hc += ing - ret;
+      u.hc[m] = hc; u.ing[m] = ing; u.ret[m] = ret;
+      for (let k = 0; k < ret; k++) {
+        const x = rnd();
+        if (x < a.vol) { u.retVol[m]++; if (rnd() < a.volInc) u.retVolInc[m]++; }
+        else if (x < a.vol + a.fijo * 0.8) u.retFin[m]++;
+      }
+      const f = SEASON[M.m] * (u.area === "emp" && m >= 15 ? 1.3 : 1) * (1 + (rnd() - 0.5) * 0.24);
+      u.inc[m] = Math.round(avg * 30 * a.abs * f);
+      u.he[m] = Math.round(hc * a.he * (1 + a.heK * (f - 1)) * (1 + (rnd() - 0.5) * 0.26));
+      u.vac[m] = Math.round(hc * a.vac * (0.88 + 0.2 * (m / LAST)));
+      u.ces[m] = hc * a.sal * (M.m / 12);
+    }
+    for (let m = 0; m < 27; m++) u.venc[m] = poisson((m > LAST ? u.hc0 : u.hc[m]) * a.fijo / 12);
+    for (let m = LAST + 1; m < 27; m++) u.hc[m] = u.hc0;
+  }
+
+  // ================================================================ estado del Resumen
+  const PERIODS = {
+    "12m": { months: range(12, 23), label: "oct 25 – sep 26", url: "12m" },
+    ytd: { months: range(15, 23), label: "ene – sep 26", url: "2026" },
+    q: { months: range(21, 23), label: "jul – sep 26", url: "trimestre" },
+  };
+  const S = { view: "repo", board: null, from: "repo", period: "12m", sede: "", area: new Set(), mes: new Set(), lanes: new Set(["planta", "mov", "inc", "he", "venc"]), sort: "off", alertsAll: false };
+  const FAV = new Set(["incapacidades", "contratos"]);
+
+  const scope = (ignoreArea) => UNITS.filter((u) => (!S.sede || u.sede === S.sede) && (ignoreArea || !S.area.size || S.area.has(u.area)));
+  const periodMonths = () => PERIODS[S.period].months;
+  function curMonths(ignoreMes) { const p = periodMonths(); return !ignoreMes && S.mes.size ? p.filter((m) => S.mes.has(m)) : p; }
+  function cmpMonths(ms) { const span = ms[ms.length - 1] - ms[0] + 1; return ms.map((m) => m - span).filter((m) => m >= 0); }
+  const sumUM = (us, ms, k) => { let s = 0; for (const u of us) for (const m of ms) s += u[k][m]; return s; };
+  const at = (us, m, k) => sum(us.map((u) => u[k][m]));
+  // Las medidas que comparten todos los tableros (una sola definición: la misma planta promedio).
+  const MEAS = {
+    aus: (us, ms) => sumUM(us, ms, "inc") / (sumUM(us, ms, "hc") * 30 || 1),
+    rot: (us, ms) => sumUM(us, ms, "ret") / (sumUM(us, ms, "hc") || 1),
+    venc: (us) => sum(us.map((u) => u.venc[24] + u.venc[25] + u.venc[26])) / (at(us, LAST, "hc") || 1),
+    vac: (us, ms) => at(us, ms[ms.length - 1], "vac") / (at(us, ms[ms.length - 1], "hc") || 1),
+    he: (us, ms) => sumUM(us, ms, "he") / (sumUM(us, ms, "hc") || 1),
+  };
+  const FRONTS = [
+    { id: "aus", label: "Ausentismo", goal: 0.02, goalLabel: "meta 2 %", fmt: (v) => fPct(v, 1), board: "incapacidades", short: "ausentismo" },
+    { id: "rot", label: "Rotación", goal: 0.015, goalLabel: "meta 1,5 % al mes", fmt: (v) => fPct(v, 1), board: "retiros", short: "rotación" },
+    { id: "venc", label: "Vencen en 90 días", goal: 0.12, goalLabel: "tope 12 % de la planta", fmt: (v) => fPct(v, 1), board: "contratos", short: "contratos por vencer" },
+    { id: "vac", label: "Vacaciones acumuladas", goal: 0.05, goalLabel: "tope 5 % de la planta", fmt: (v) => fPct(v, 1), board: "vacaciones", short: "vacaciones acumuladas" },
+    { id: "he", label: "Horas extra", goal: 10, goalLabel: "tope 10 h por persona", fmt: (v) => NF1.format(v) + " h", board: "horas", short: "horas extra" },
+  ];
+  const level = (v, goal) => (v <= goal ? 0 : v <= goal * 1.25 ? 1 : 2);
+
+  // ================================================================ los tableros de HCM (el repositorio)
+  const ALL = UNITS, P12 = range(12, 23);
+  const series = (fn, ms = P12) => ms.map(fn);
+  const hcNow = at(ALL, LAST, "hc");
+  const costM = (m) => sum(ALL.map((u) => u.hc[m] * AREA[u.area].sal * 1.52));
+  const audPrev = MEAS.aus(ALL, range(0, 11));
+  const SECTIONS = [
+    { id: "planta", label: "Planta y movimiento", accent: "blue" },
+    { id: "salud", label: "Ausentismo y salud", accent: "green" },
+    { id: "tiempo", label: "Tiempo y nómina", accent: "purple" },
+    { id: "prest", label: "Prestaciones", accent: "amber" },
+    { id: "des", label: "Desarrollo", accent: "teal" },
+  ];
+  const BOARDS = [
+    { id: "planta", sec: "planta", icon: "users", label: "Planta de personal", desc: "Quiénes están, dónde y con qué contrato.", owner: "Talento humano", official: true, kw: "headcount trabajadores empleados",
+      signal: { value: fInt(hcNow), label: "trabajadores", note: `${hcNow - at(ALL, 22, "hc") >= 0 ? "+" : ""}${fInt(hcNow - at(ALL, 22, "hc"))} en septiembre`, trend: series((m) => at(ALL, m, "hc")) } },
+    { id: "ingresos", sec: "planta", icon: "user-plus", label: "Ingresos", desc: "Contrataciones por área, cargo y fuente.", owner: "Selección", kw: "contratacion seleccion vacantes",
+      signal: { value: fInt(at(ALL, LAST, "ing")), label: "en septiembre", note: "Tiempo para cubrir: 18 días", trend: series((m) => at(ALL, m, "ing")) } },
+    { id: "retiros", sec: "planta", icon: "user-minus", label: "Retiros y rotación", desc: "Quién se va, por qué y a los cuántos meses.", owner: "Talento humano", official: true, kw: "rotacion renuncias desvinculacion liquidaciones",
+      signal: { value: fPct(MEAS.rot(ALL, P12)), label: "rotación al mes", note: `meta 1,5 % · ${fInt(sumUM(ALL, P12, "retVol"))} voluntarios en 12 meses`, tone: MEAS.rot(ALL, P12) > 0.015 ? "danger" : "success", trend: series((m) => MEAS.rot(ALL, [m])) } },
+    { id: "contratos", sec: "planta", icon: "file-sign", label: "Contratos", desc: "Vencimientos, renovaciones y preavisos.", owner: "Talento humano", kw: "termino fijo vencimientos preaviso renovacion",
+      signal: { value: fInt(at(ALL, 24, "venc")), label: "vencen en 30 días", note: `${fInt(Math.round(at(ALL, 24, "venc") * 0.6))} sin decisión de renovar`, tone: "warning", trend: series((m) => at(ALL, m, "venc"), range(15, 26)) } },
+    { id: "incapacidades", sec: "salud", icon: "steth", label: "Incapacidades", desc: "Ausentismo, diagnósticos y recobros a EPS y ARL.", owner: "Seguridad y salud", official: true, kw: "ausentismo eps arl recobro diagnosticos",
+      signal: { value: fPct(MEAS.aus(ALL, P12)), label: "ausentismo", note: `meta 2 % · ▲ ${NF1.format((MEAS.aus(ALL, P12) - audPrev) * 100)} pp en un año`, tone: "danger", trend: series((m) => MEAS.aus(ALL, [m])) } },
+    { id: "sst", sec: "salud", icon: "hard-hat", label: "Accidentalidad", desc: "Indicadores de la Resolución 0312 para el SG-SST.", owner: "Seguridad y salud", official: true, kw: "sg-sst accidentes frecuencia severidad 0312",
+      signal: { value: "1,9", label: "accidentes por 100 trabajadores", note: "Severidad: 14 días por 100", trend: [2.4, 2.1, 2.6, 2.2, 1.9, 2.3, 2, 1.8, 2.1, 1.7, 2, 1.9] } },
+    { id: "permisos", sec: "salud", icon: "door", label: "Permisos y licencias", desc: "Horas de permiso por tipo y por área.", owner: "Talento humano", kw: "licencias calamidad luto",
+      signal: { value: "412 h", label: "en septiembre", note: "La mitad, citas médicas", trend: [380, 402, 455, 398, 410, 470, 430, 395, 388, 420, 405, 412] } },
+    { id: "horas", sec: "tiempo", icon: "timer", label: "Horas extra", desc: "Horas extra y recargos frente al tope legal.", owner: "Nómina", kw: "recargos nocturnos dominicales jornada ley 2101",
+      signal: { value: NF1.format(MEAS.he(ALL, P12)) + " h", label: "por persona al mes", note: `${sum(UNITS.map((u) => u.heOver))} pasaron de 12 h en una semana`, tone: "warning", trend: series((m) => MEAS.he(ALL, [m])) } },
+    { id: "vacaciones", sec: "tiempo", icon: "palm", label: "Vacaciones", desc: "Saldos, periodos acumulados y programación.", owner: "Nómina", kw: "periodos acumulados descanso",
+      signal: { value: fInt(at(ALL, LAST, "vac")), label: "con 2 o más periodos", note: `${fPct(MEAS.vac(ALL, [LAST]))} de la planta · tope 5 %`, tone: "warning", trend: series((m) => at(ALL, m, "vac")) } },
+    { id: "nomina", sec: "tiempo", icon: "bank", label: "Costo de nómina", desc: "Devengos, aportes y provisiones por centro de costo.", owner: "Nómina", official: true, kw: "costo salarios aportes parafiscales",
+      signal: { value: fMoney(costM(LAST)), label: "en septiembre", note: `▲ ${fPct(costM(LAST) / costM(11) - 1)} frente a sep 2025`, trend: series(costM) } },
+    { id: "cesantias", sec: "prest", icon: "piggy", label: "Cesantías", desc: "Causación, intereses y retiros parciales.", owner: "Nómina", official: true, kw: "fondo consignacion intereses",
+      signal: { value: fMoney(at(ALL, LAST, "ces")), label: "causadas en 2026", note: "Consignar antes del 14 feb", tone: "info", trend: series((m) => at(ALL, m, "ces")) } },
+    { id: "primas", sec: "prest", icon: "gift", label: "Primas", desc: "Prima de servicios de junio y de diciembre.", owner: "Nómina", kw: "prima servicios",
+      signal: { value: fMoney(sum(UNITS.map((u) => u.hc0 * AREA[u.area].sal / 2))), label: "prima de diciembre", note: "Pagar antes del 20 dic", tone: "info" } },
+    { id: "capacitacion", sec: "des", icon: "cap", label: "Capacitación", desc: "Horas, cobertura y cursos obligatorios.", owner: "Desarrollo", kw: "formacion cursos alturas",
+      signal: { value: "72 %", label: "con su plan al día", meter: 72, note: "Curso de alturas: 14 vencidos", tone: "warning" } },
+    { id: "desempeno", sec: "des", icon: "target", label: "Evaluación de desempeño", desc: "Avance del ciclo 2026 y resultados.", owner: "Desarrollo", kw: "evaluacion objetivos competencias",
+      signal: { value: "68 %", label: "evaluaciones completas", meter: 68, note: "El ciclo cierra el 31 oct" } },
+  ];
+  const BOARD = Object.fromEntries(BOARDS.map((b) => [b.id, b]));
+  BOARD.resumen = { id: "resumen", label: "Resumen de Talento Humano" };
+  const RECENT = [["incapacidades", "hace 2 h"], ["contratos", "ayer"], ["horas", "lunes"]];
+
+  // ================================================================ tooltip
+  const TIPS = [];
+  const tip = (html) => { TIPS.push(html); return `data-tip="${TIPS.length - 1}"`; };
+  const tipRows = (title, rows, foot) => `<div class="tt">${title}</div>` +
+    rows.map(([c, l, v]) => `<div class="tr">${c ? `<i style="background:${c}"></i>` : "<span></span>"}<span>${l}</span><b>${v}</b></div>`).join("") +
+    (foot ? `<div class="tf">${foot}</div>` : "");
+  const tipEl = $("#tip");
+  function placeTip(x, y) {
+    const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    tipEl.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8)) + "px";
+    tipEl.style.top = (y + 14 + h > window.innerHeight ? y - h - 10 : y + 14) + "px";
+  }
+  document.addEventListener("pointerover", (e) => {
+    const t = e.target instanceof Element && e.target.closest("[data-tip]");
+    if (!t) return;
+    tipEl.innerHTML = TIPS[+t.dataset.tip] ?? "";
+    tipEl.hidden = false; placeTip(e.clientX, e.clientY);
+  });
+  document.addEventListener("pointermove", (e) => { if (!tipEl.hidden) placeTip(e.clientX, e.clientY); });
+  document.addEventListener("pointerout", (e) => {
+    const t = e.target instanceof Element && e.target.closest("[data-tip]");
+    if (t && !(e.relatedTarget instanceof Node && t.contains(e.relatedTarget))) tipEl.hidden = true;
+  });
+  document.addEventListener("focusin", (e) => {
+    const t = e.target instanceof Element && e.target.closest("[data-tip]");
+    if (!t) { tipEl.hidden = true; return; }
+    tipEl.innerHTML = TIPS[+t.dataset.tip] ?? ""; tipEl.hidden = false;
+    const b = t.getBoundingClientRect(); placeTip(b.left, b.bottom);
+  });
+
+  // ================================================================ minigráficas
+  function trendSvg(vals) {
+    if (!vals || vals.length < 2) return "";
+    const n = vals.length, max = Math.max(...vals), min = Math.min(...vals);
+    const lo = min - (max - min) * 0.2, span = max - lo || 1;
+    const y = (v) => 26 - ((v - lo) / span) * 22 - 2;
+    const x = (i) => (i / (n - 1)) * 100;
+    const line = "M" + vals.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join("L");
+    return `<svg viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d="${line}L100,28L0,28Z" fill="var(--a-dot)" opacity="0.12"/><path d="${line}" fill="none" stroke="var(--a-dot)" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+  }
+  function spark(vals, goal) {
+    const n = vals.length;
+    if (n < 2) return `<div class="spark"></div>`;
+    const max = Math.max(...vals, goal ?? -Infinity), min = Math.min(...vals, goal ?? Infinity);
+    const lo = Math.max(0, min - (max - min) * 0.25);
+    const y = (v) => 30 - ((v - lo) / (max - lo || 1)) * 26 - 2;
+    const x = (i) => (i / (n - 1)) * 100;
+    const line = "M" + vals.map((v, i) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`).join("L");
+    const endTop = (y(vals[n - 1]) / 30) * 100;
+    return `<div class="spark"><svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${line}L100,30L0,30Z" fill="var(--viz)" opacity="0.1"/><path d="${line}" fill="none" stroke="var(--viz)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${goal != null ? `<line x1="0" x2="100" y1="${y(goal).toFixed(2)}" y2="${y(goal).toFixed(2)}" stroke="var(--ref)" stroke-width="1.25" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>` : ""}</svg>
+      <span class="end" style="top:${endTop}%"></span></div>`;
+  }
+
+  // ================================================================ capa 1: repositorio
+  let query = "";
+  function hl(text) {
+    if (!query) return esc(text);
+    const i = norm(text).indexOf(norm(query));
+    return i < 0 ? esc(text) : esc(text.slice(0, i)) + "<mark>" + esc(text.slice(i, i + query.length)) + "</mark>" + esc(text.slice(i + query.length));
+  }
+  const matches = (b) => !query || norm(`${b.label} ${b.desc} ${b.kw} ${b.owner}`).includes(norm(query));
+  function cardHtml(b, accent) {
+    const s = b.signal, fav = FAV.has(b.id);
+    return `<li><article class="card${matches(b) ? "" : " dim"}" data-accent="${accent}" data-card="${b.id}">
+      <div class="top"><span class="chip-i"><svg class="i"><use href="#i-${b.icon}"/></svg></span>
+        ${b.official ? `<span class="official" ${tip(`<div class="tt">Oficial</div>Lo revisó ${esc(b.owner)}: es la cifra que se reporta.`)}><svg class="i"><use href="#i-check"/></svg>Oficial</span>` : ""}
+        <button class="star" type="button" data-star="${b.id}" aria-pressed="${fav}" aria-label="${fav ? "Quitar de favoritos" : "Agregar a favoritos"}" title="${fav ? "Quitar de favoritos" : "Agregar a favoritos"}"><svg class="i"><use href="#i-star"/></svg></button></div>
+      <button class="open" type="button" data-open="${b.id}"><span class="name">${hl(b.label)}</span><span class="desc">${hl(b.desc)}</span></button>
+      <div class="sig"><span class="v">${esc(s.value)}<small>${esc(s.label)}</small></span><span class="trend">${trendSvg(s.trend)}</span>
+        ${s.meter != null ? `<span class="meter"><b style="width:${s.meter}%"></b></span>` : ""}
+        ${s.note ? `<span class="note" data-tone="${s.tone || "neutral"}"><i></i>${esc(s.note)}</span>` : ""}</div>
+      <div class="foot"><span>${esc(b.owner)}</span><span>Corte 30 sep</span></div>
+    </article></li>`;
+  }
+  function renderRepo() {
+    TIPS.length = 0;
+    const secs = [];
+    const favs = BOARDS.filter((b) => FAV.has(b.id));
+    if (favs.length) secs.push({ label: "Favoritos", accent: "neutral", items: favs.map((b) => [b, SECTIONS.find((s) => s.id === b.sec).accent]), fav: true });
+    for (const s of SECTIONS) secs.push({ label: s.label, accent: s.accent, items: BOARDS.filter((b) => b.sec === s.id).map((b) => [b, s.accent]) });
+    $("#secs").innerHTML = secs.map((s) => {
+      const hits = s.items.filter(([b]) => matches(b)).length;
+      return `<section class="sec${query && !hits ? " dim" : ""}" data-accent="${s.accent}">
+        <div class="sec-h"><span class="dot"></span><h2>${esc(s.label)}</h2><span class="rule"></span>${s.fav ? `<small>Los marcas con la estrella</small>` : ""}</div>
+        <ul class="cards">${s.items.map(([b, a]) => cardHtml(b, a)).join("")}</ul></section>`;
+    }).join("");
+    // La primera que coincide se marca: Enter la abre.
+    const first = query ? BOARDS.find(matches) : null;
+    if (first) $(`[data-card="${first.id}"]`)?.classList.add("first");
+    const n = BOARDS.filter(matches).length;
+    $("#count").textContent = query ? `${n} de ${BOARDS.length} tableros` : `${BOARDS.length} tableros`;
+    $("#empty-find").hidden = !!n || !query;
+    $("#empty-find").textContent = `Ningún tablero tiene «${query}». Prueba con el nombre de un proceso: incapacidades, contratos, cesantías…`;
+    $("#feat").style.opacity = query && !"resumen de talento humano todos cruce vista de conjunto".includes(norm(query)) ? "0.4" : "";
+    $("#recent").innerHTML = `<span>Recientes</span>` + RECENT.map(([id, when]) => `<button type="button" data-open="${id}">${esc(BOARD[id].label)} <small>${when}</small></button>`).join("");
+    renderFeat();
+  }
+  function renderFeat() {
+    const us = ALL, ms = P12, pm = range(0, 11);
+    const aus = MEAS.aus(us, ms), rot = MEAS.rot(us, ms);
+    const worst = areaFronts(us, ms).sort((a, b) => b.off - a.off)[0];
+    $("#feat").innerHTML = `
+      <div><p class="eyebrow">Vista de conjunto · todos los tableros</p><h2>Resumen de Talento Humano</h2>
+        <p class="d">Lo que cruza procesos: áreas fuera de meta en varios frentes, lo que vence en todos los tableros y la cinta del año.</p></div>
+      <div class="mini">
+        <div><span>Ausentismo</span><b>${fPct(aus)}</b><small class="${aus > 0.02 ? "bad" : ""}">▲ ${NF1.format((aus - MEAS.aus(us, pm)) * 100)} pp · meta 2 %</small></div>
+        <div><span>Rotación al mes</span><b>${fPct(rot)}</b><small class="${rot > 0.015 ? "bad" : ""}">meta 1,5 %</small></div>
+        <div><span>Para actuar</span><b>${buildAlerts(us).filter((a) => a.sev === "crit").length}</b><small class="bad">urgentes · ${buildAlerts(us).length} en total</small></div>
+        <div><span>Área más expuesta</span><b>${esc(AREA[worst.id].name)}</b><small class="warn">fuera de meta en ${worst.off} de 5</small></div>
+      </div>
+      <button class="btn primary go" type="button" data-open="resumen">Abrir el resumen<svg class="i"><use href="#i-arrow"/></svg></button>`;
+  }
+
+  // ================================================================ capa 2: Resumen
+  function delta(cur, prev, { pp = false, polarity = "up-bad", fmt } = {}) {
+    if (prev == null || (!pp && !prev)) return `<p class="delta"><span class="flat">Sin dato para comparar</span></p>`;
+    const ch = pp ? cur - prev : (cur - prev) / prev;
+    const flat = Math.abs(ch) < (pp ? 0.0005 : 0.005);
+    const cls = flat || polarity === "neutral" ? "flat" : (ch > 0) === (polarity === "up-bad") ? "bad" : "good";
+    const arrow = flat ? "=" : ch > 0 ? "▲" : "▼";
+    const txt = fmt ? fmt(Math.abs(cur - prev)) : pp ? NF1.format(Math.abs(ch) * 100) + " pp" : fPct(Math.abs(ch), 0);
+    return `<p class="delta"><b class="${cls}">${arrow} ${txt}</b><span>${flat ? "igual que" : "frente a"} ${cmpLabel()}</span></p>`;
+  }
+  function cmpLabel() {
+    const ms = curMonths();
+    if (S.mes.size) return ms.length === 1 ? MONTHS[ms[0] - 1].short + " " + MONTHS[ms[0] - 1].y : "el periodo anterior";
+    return { "12m": "los 12 anteriores", ytd: "ene – sep 25", q: "abr – jun 26" }[S.period];
+  }
+  function renderKpis() {
+    const us = scope(), ms = curMonths(), cm = cmpMonths(ms), pm = periodMonths();
+    const lastM = ms[ms.length - 1];
+    const one = (m) => [m];
+    const venc30 = at(us, 24, "venc");
+    const vac = at(us, lastM, "vac"), hcL = at(us, lastM, "hc") || 1;
+    const items = [
+      { board: "incapacidades", label: "Ausentismo", v: fPct(MEAS.aus(us, ms)), d: delta(MEAS.aus(us, ms), cm.length ? MEAS.aus(us, cm) : null, { pp: true }),
+        sp: spark(pm.map((m) => MEAS.aus(us, one(m))), 0.02), foot: "meta 2 %" },
+      { board: "retiros", label: "Rotación al mes", v: fPct(MEAS.rot(us, ms)), d: delta(MEAS.rot(us, ms), cm.length ? MEAS.rot(us, cm) : null, { pp: true }),
+        sp: spark(pm.map((m) => MEAS.rot(us, one(m))), 0.015), foot: `${fInt(sumUM(us, ms, "ret"))} retiros · ${fInt(sumUM(us, ms, "retVol"))} voluntarios` },
+      { board: "contratos", label: "Vencen en 30 días", v: fInt(venc30) + `<small>contratos</small>`, d: `<p class="delta"><b class="${venc30 ? "bad" : "flat"}">${fInt(Math.round(venc30 * 0.6))}</b><span>sin decisión de renovar</span></p>`,
+        sp: spark(range(pm[0], 26).map((m) => at(us, m, "venc"))), foot: "a término fijo" },
+      { board: "vacaciones", label: "Vacaciones acumuladas", v: fInt(vac) + `<small>personas</small>`, d: delta(vac / hcL, cm.length ? MEAS.vac(us, cm) : null, { pp: true }),
+        sp: spark(pm.map((m) => at(us, m, "vac") / (at(us, m, "hc") || 1)), 0.05), foot: `${fPct(vac / hcL)} de la planta · tope 5 %` },
+      { board: "horas", label: "Horas extra", v: NF1.format(MEAS.he(us, ms)) + `<small>h por persona</small>`, d: delta(MEAS.he(us, ms), cm.length ? MEAS.he(us, cm) : null),
+        sp: spark(pm.map((m) => MEAS.he(us, one(m))), 10), foot: "tope 10 h al mes" },
+      { board: "cesantias", label: "Cesantías causadas", v: fMoney(at(us, lastM, "ces")), d: delta(at(us, lastM, "ces"), lastM >= 12 ? at(us, lastM - 12, "ces") : null, { polarity: "neutral" }).replace("frente a " + cmpLabel(), "frente al mismo mes de " + (MONTHS[lastM].y - 1)),
+        sp: spark(pm.map((m) => at(us, m, "ces"))), foot: "consignar antes del 14 feb" },
+    ];
+    $("#kpis").innerHTML = items.map((k) => `<button type="button" class="kpi" data-open="${k.board}" data-from="sum">
+      <h3>${k.label}</h3><p class="v">${k.v}</p>${k.d}${k.sp}
+      <p class="foot"><span>${k.foot}</span><b>${esc(BOARD[k.board].label)} →</b></p></button>`).join("");
+  }
+
+  // Cinta del proceso
+  const LANES = [
+    { id: "planta", label: "Planta", color: "var(--fg-2)" },
+    { id: "mov", label: "Ingresos y retiros", color: "var(--s3)" },
+    { id: "inc", label: "Días de incapacidad", color: "var(--s1)" },
+    { id: "he", label: "Horas extra", color: "var(--s5)" },
+    { id: "venc", label: "Contratos que vencen", color: "var(--s4)" },
+  ];
+  // Fechas que marcan el año de Talento Humano.
+  const MARKS = [
+    { m: 16, day: 14, label: "Cesantías", text: "31 ene: intereses al trabajador · 14 feb: consignación al fondo" },
+    { m: 20, day: 30, label: "Prima", text: "30 jun: prima de servicios del primer semestre" },
+    { m: 21, day: 15, label: "42 h", text: "15 jul: la jornada máxima baja a 42 horas a la semana (Ley 2101 de 2021)" },
+    { m: 26, day: 20, label: "Prima", text: "20 dic: prima de servicios del segundo semestre" },
+    { m: 9, day: 15, label: "44 h", text: "15 jul 2025: la jornada máxima baja a 44 horas a la semana (Ley 2101 de 2021)" },
+    { m: 4, day: 14, label: "Cesantías", text: "14 feb 2025: consignación de cesantías al fondo" },
+  ];
+  function renderLayers() {
+    $("#layers").innerHTML = LANES.map((l) => `<button type="button" class="lg" data-lane="${l.id}" aria-pressed="${S.lanes.has(l.id)}"><span class="sw" style="background:${l.color}"></span>${l.label}</button>`).join("");
+  }
+  function renderLanes() {
+    const box = $("#lanes");
+    const W = Math.max(320, box.clientWidth || 1000);
+    const us = scope(), pm = periodMonths(), months = [...pm, 24, 25, 26];
+    const n = months.length, padL = 4, padR = 64, band = (W - padL - padR) / n;
+    const cx = (k) => padL + band * k + band / 2;
+    const shown = LANES.filter((l) => S.lanes.has(l.id));
+    const markH = 22, titleH = 18, plotH = 46, gapH = 14, axisH = 30;
+    const H = markH + shown.length * (titleH + plotH + gapH) + axisH;
+    const bw = Math.max(3, Math.min(26, band * 0.56));
+    const sel = (m) => !S.mes.size || S.mes.has(m);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Cinta del proceso por mes">
+      <defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="var(--s4)" opacity="0.25"/><line x1="0" y1="0" x2="0" y2="5" stroke="var(--s4)" stroke-width="2"/></pattern></defs>`;
+    // fondo de los meses elegidos y de lo que viene
+    const futX = padL + band * pm.length;
+    svg += `<rect x="${futX}" y="${markH - 4}" width="${band * 3}" height="${H - markH - axisH + 4}" fill="var(--hover)"/>`;
+    months.forEach((m, k) => { if (S.mes.has(m)) svg += `<rect x="${padL + band * k}" y="${markH - 4}" width="${band}" height="${H - markH - axisH + 4}" fill="var(--accent-soft)"/>`; });
+    svg += `<line x1="${futX}" x2="${futX}" y1="${markH - 4}" y2="${H - axisH}" stroke="var(--fg-3)" stroke-dasharray="2 3"/>`;
+    svg += `<text x="${futX + 4}" y="${H - axisH + 26}" style="font-size:10.5px">Programado</text>`;
+    // fechas marcadas
+    let lastEnd = -Infinity;
+    for (const mk of MARKS.slice().sort((a, b) => a.m - b.m)) {
+      const k = months.indexOf(mk.m);
+      if (k < 0) continue;
+      const x = padL + band * k + (mk.day / MONTHS[mk.m].days) * band;
+      svg += `<line x1="${x}" x2="${x}" y1="${markH - 2}" y2="${H - axisH}" stroke="var(--ref)" stroke-width="1" stroke-dasharray="1 3"/>`;
+      const w = mk.label.length * 6.4 + 8;
+      if (x - w / 2 > lastEnd + 4 && x + w / 2 < W) {
+        svg += `<g ${tip(`<div class="tt">${esc(mk.label)}</div>${esc(mk.text)}`)}><rect x="${x - w / 2}" y="0" width="${w}" height="16" rx="4" fill="var(--card)" stroke="var(--line)"/><text class="mk" x="${x}" y="11.5" text-anchor="middle">${esc(mk.label)}</text></g>`;
+        lastEnd = x + w / 2;
+      }
+    }
+    // carriles
+    const tips = months.map(() => []);
+    let y0 = markH;
+    for (const l of shown) {
+      const top = y0 + titleH, base = top + plotH;
+      let last = "";
+      if (l.id === "planta") {
+        const vals = pm.map((m) => at(us, m, "hc"));
+        const max = Math.max(...vals), min = Math.min(...vals), lo = min - Math.max(2, (max - min) * 0.3), span = max - lo || 1;
+        const yy = (v) => base - ((v - lo) / span) * (plotH - 4);
+        const pts = vals.map((v, k) => `${cx(k).toFixed(1)},${yy(v).toFixed(1)}`);
+        svg += `<path d="M${pts.join("L")}L${cx(vals.length - 1)},${base}L${cx(0)},${base}Z" fill="var(--fg-2)" opacity="0.07"/>`;
+        svg += `<path d="M${pts.join("L")}" fill="none" stroke="var(--fg-2)" stroke-width="2" stroke-linejoin="round"/>`;
+        pm.forEach((m, k) => { if (S.mes.has(m)) svg += `<circle cx="${cx(k)}" cy="${yy(vals[k])}" r="3.5" fill="var(--fg-2)"/>`; });
+        months.forEach((m, k) => { if (m <= LAST) tips[k].push(["var(--fg-2)", "Planta al cierre", fInt(at(us, m, "hc"))]); });
+        last = fInt(vals[vals.length - 1]);
+      } else if (l.id === "mov") {
+        const ing = pm.map((m) => at(us, m, "ing")), ret = pm.map((m) => at(us, m, "ret"));
+        const max = Math.max(1, ...ing, ...ret), mid = top + plotH / 2, hh = plotH / 2 - 2;
+        svg += `<line x1="${padL}" x2="${futX}" y1="${mid}" y2="${mid}" stroke="var(--axis)"/>`;
+        pm.forEach((m, k) => {
+          const op = sel(m) ? 1 : 0.35;
+          const hi = (ing[k] / max) * hh, hr = (ret[k] / max) * hh;
+          svg += `<rect x="${cx(k) - bw / 2}" y="${mid - hi}" width="${bw}" height="${Math.max(hi, 0.5)}" rx="1.5" fill="var(--s3)" opacity="${op}"/>`;
+          svg += `<rect x="${cx(k) - bw / 2}" y="${mid}" width="${bw}" height="${Math.max(hr, 0.5)}" rx="1.5" fill="var(--s2)" opacity="${op}"/>`;
+          tips[k].push(["var(--s3)", "Ingresos", fInt(ing[k])], ["var(--s2)", "Retiros", `${fInt(ret[k])} · ${fInt(at(us, m, "retVol"))} vol.`]);
+        });
+        last = `+${fInt(ing[ing.length - 1])} −${fInt(ret[ret.length - 1])}`;
+      } else {
+        const key = l.id, isV = key === "venc";
+        const ms = isV ? months : pm;
+        const vals = ms.map((m) => at(us, m, key));
+        const max = Math.max(1, ...vals);
+        svg += `<line x1="${padL}" x2="${isV ? W - padR : futX}" y1="${base}" y2="${base}" stroke="var(--axis)"/>`;
+        ms.forEach((m, k) => {
+          const h = (vals[k] / max) * (plotH - 4);
+          const fut = m > LAST;
+          svg += `<rect x="${cx(k) - bw / 2}" y="${base - h}" width="${bw}" height="${Math.max(h, 0.5)}" rx="1.5" fill="${fut ? "url(#hatch)" : l.color}" ${fut ? `stroke="var(--s4)" stroke-width="1"` : ""} opacity="${sel(m) || fut ? 1 : 0.35}"/>`;
+          const lab = key === "inc" ? "Días de incapacidad" : key === "he" ? "Horas extra" : fut ? "Contratos por vencer" : "Contratos que vencieron";
+          const val = key === "inc" ? `${fInt(vals[k])} · ${fPct(MEAS.aus(us, [m]))}` : key === "he" ? `${fInt(vals[k])} h` : fInt(vals[k]);
+          tips[k].push([l.color, lab, val]);
+        });
+        last = key === "inc" ? fPct(MEAS.aus(us, [pm[pm.length - 1]])) : key === "he" ? NF1.format(MEAS.he(us, [pm[pm.length - 1]])) + " h/p" : fInt(at(us, 24, "venc")) + " oct";
+      }
+      svg += `<text class="lt" x="${padL}" y="${y0 + 12}">${l.label}</text>`;
+      svg += `<text class="lv" x="${W}" y="${top + plotH / 2 + 4}" text-anchor="end">${last}</text>`;
+      y0 += titleH + plotH + gapH;
+    }
+    // eje de meses
+    const every = band < 30 ? 2 : 1;
+    months.forEach((m, k) => {
+      const M = MONTHS[m];
+      if (k % every === 0) svg += `<text x="${cx(k)}" y="${H - axisH + 13}" text-anchor="middle" style="${S.mes.has(m) ? "fill:var(--fg);font-weight:600" : ""}">${M.short}</text>`;
+      if (M.m === 1 || k === 0) svg += `<text x="${cx(k)}" y="${H - axisH + 26}" text-anchor="middle" style="font-size:10.5px;fill:var(--fg-4)">${M.y}</text>`;
+    });
+    // columnas que se tocan: todos los carriles de un mes a la vez
+    months.forEach((m, k) => {
+      const fut = m > LAST;
+      const t = tipRows(MONTHS[m].long[0].toUpperCase() + MONTHS[m].long.slice(1), tips[k], fut ? "Programado: lo que ya se sabe que viene" : (S.mes.has(m) ? "Clic para quitar este mes" : "Clic para filtrar por este mes"));
+      svg += `<rect class="hit${fut ? " nf" : ""}" x="${padL + band * k}" y="${markH - 4}" width="${band}" height="${H - markH - axisH + 4}" ${fut ? "" : `data-f="mes:${m}" role="button" tabindex="-1"`} ${tip(t)}/>`;
+    });
+    svg += `</svg>`;
+    box.innerHTML = shown.length ? svg : `<p class="note" style="padding:20px 0">Prende al menos un carril.</p>`;
+  }
+
+  // Áreas × frentes
+  function areaFronts(us, ms) {
+    const ids = [...new Set(us.map((u) => u.area))];
+    return ids.map((id) => {
+      const uu = us.filter((u) => u.area === id);
+      const vals = Object.fromEntries(FRONTS.map((f) => [f.id, MEAS[f.id](uu, ms)]));
+      const off = FRONTS.filter((f) => vals[f.id] > f.goal).length;
+      return { id, uu, vals, off, hc: at(uu, LAST, "hc") };
+    });
+  }
+  function renderMatrix() {
+    const ms = curMonths(), rows = areaFronts(scope(true), ms);
+    const k = S.sort;
+    rows.sort((a, b) => k === "off" ? b.off - a.off || b.vals.aus - a.vals.aus : k === "name" ? AREA[a.id].name.localeCompare(AREA[b.id].name) : b.vals[k] - a.vals[k]);
+    const cell = (f, v, rowLabel, rowId) => {
+      const lv = level(v, f.goal);
+      const ex = v > f.goal ? (f.id === "he" ? NF1.format(v - f.goal) + " h" : NF1.format((v - f.goal) * 100) + " pp") + " por encima" : "dentro de la meta";
+      const t = `<div class="tt">${esc(rowLabel)} · ${f.label}</div>${f.fmt(v)} · ${f.goalLabel}<div class="tf">${ex}${rowId ? " · clic para filtrar" : ""}</div>`;
+      return `<td><button type="button" class="c l${lv}" ${rowId ? `data-f="area:${rowId}"` : ""} ${tip(t)} aria-label="${esc(rowLabel)}, ${f.label}: ${f.fmt(v)}, ${ex}">${f.fmt(v)}</button></td>`;
+    };
+    const dots = (off) => `<span class="dots" aria-hidden="true">${FRONTS.map((_, i) => `<i class="${i < off ? "on" : ""}"></i>`).join("")}</span>`;
+    const th = (id, label, small) => `<th${S.sort === id ? ` aria-sort="descending"` : ""}><button type="button" data-sort="${id}">${label}${small ? `<small>${small}</small>` : ""}</button></th>`;
+    const all = scope(true), tot = Object.fromEntries(FRONTS.map((f) => [f.id, MEAS[f.id](all, ms)]));
+    const totOff = FRONTS.filter((f) => tot[f.id] > f.goal).length;
+    $("#mx").innerHTML = `<thead><tr>${th("name", "Área")}${FRONTS.map((f) => th(f.id, f.label, f.goalLabel)).join("")}${th("off", "Fuera de meta")}</tr></thead>
+      <tbody>${rows.map((r) => {
+        const on = S.area.has(r.id), dim = S.area.size && !on;
+        return `<tr class="${on ? "on" : ""}${dim ? " dim" : ""}"><th class="rh" scope="row"><button type="button" class="rl" data-f="area:${r.id}" aria-pressed="${on}">${esc(AREA[r.id].name)}<small>${fInt(r.hc)} personas</small></button></th>
+          ${FRONTS.map((f) => cell(f, r.vals[f.id], AREA[r.id].name, r.id)).join("")}
+          <td class="off"><b>${r.off}</b> de 5 ${dots(r.off)}</td></tr>`;
+      }).join("")}</tbody>
+      <tfoot><tr><th class="rh" scope="row"><span class="rl">${S.sede ? "Sede " + esc(S.sede) : "Toda la planta"}<small>${fInt(at(all, LAST, "hc"))} personas</small></span></th>
+        ${FRONTS.map((f) => cell(f, tot[f.id], S.sede ? "Sede " + S.sede : "Toda la planta", null)).join("")}
+        <td class="off"><b>${totOff}</b> de 5 ${dots(totOff)}</td></tr></tfoot>`;
+    $("#mx-sub").textContent = `Cada columna frente a su propia meta · ${S.mes.size ? "meses elegidos" : PERIODS[S.period].label}. Tocar un área filtra todo.`;
+  }
+
+  // Para actuar: de todos los tableros, por fecha límite
+  function buildAlerts(us) {
+    const s = (k) => sum(us.map((u) => u[k]));
+    const venc = at(us, 24, "venc"), sinDec = Math.round(venc * 0.6), vac = at(us, LAST, "vac");
+    const A = [];
+    const n1 = s("conInc");
+    if (n1) A.push({ sev: "crit", title: `${n1} ${plural(n1, "contrato vence", "contratos vencen")} con incapacidad abierta`, text: "Estabilidad laboral reforzada: no se termina el contrato sin autorización del Ministerio del Trabajo.", due: dn(2026, 10, 18), dueLabel: "el primero vence", boards: ["contratos", "incapacidades"] });
+    const n2 = s("liq");
+    if (n2) A.push({ sev: "crit", title: `${n2} ${plural(n2, "liquidación", "liquidaciones")} de retiro sin pagar`, text: "Cada día de atraso cuesta un día de salario (art. 65 del Código Sustantivo del Trabajo).", due: dn(2026, 9, 26), dueLabel: "venció", boards: ["retiros", "cesantias"] });
+    if (sinDec) A.push({ sev: "serious", title: `${sinDec} ${plural(sinDec, "contrato a término fijo vence", "contratos a término fijo vencen")} en octubre sin decisión`, text: "Si no se avisa con 30 días, el contrato se renueva por el mismo término.", due: dn(2026, 10, 1), dueLabel: "avisar antes del", boards: ["contratos"] });
+    const n4 = s("d180");
+    if (n4) A.push({ sev: "serious", title: `${n4} ${plural(n4, "incapacidad llega", "incapacidades llegan")} al día 180`, text: "Pedir el concepto de rehabilitación: desde el día 181 paga el fondo de pensiones.", due: dn(2026, 10, 14), dueLabel: "la primera, el", boards: ["incapacidades"] });
+    const n5 = s("heOver");
+    if (n5) A.push({ sev: "warn", title: `${n5} ${plural(n5, "persona pasó", "personas pasaron")} de 12 horas extra en una semana`, text: "El tope es de 2 horas al día y 12 a la semana.", due: null, dueLabel: "en septiembre", boards: ["horas"] });
+    if (vac) A.push({ sev: "warn", title: `${fInt(vac)} ${plural(vac, "persona tiene", "personas tienen")} 2 o más periodos de vacaciones sin disfrutar`, text: "Programarlas antes del cierre del año baja el pasivo y evita que prescriban.", due: dn(2026, 12, 15), dueLabel: "programar antes del", boards: ["vacaciones"] });
+    A.push({ sev: "info", title: `Cesantías de 2026: ${fMoney(at(us, LAST, "ces") * 12 / 9)} por consignar`, text: "Intereses al trabajador antes del 31 de enero y consignación al fondo antes del 14 de febrero.", due: dn(2027, 1, 31), dueLabel: "intereses antes del", boards: ["cesantias"] });
+    return A.sort((a, b) => (a.due ?? Infinity) - (b.due ?? Infinity));
+  }
+  const SEV_ICON = { crit: "i-octa", serious: "i-tri", warn: "i-clock", info: "i-info" };
+  function renderAlerts() {
+    const A = buildAlerts(scope());
+    const shown = S.alertsAll ? A : A.slice(0, 5);
+    const dueTxt = (a) => {
+      if (a.due == null) return `<b>${a.dueLabel[0].toUpperCase() + a.dueLabel.slice(1)}</b>`;
+      const d = a.due - TODAY;
+      const when = d < 0 ? `hace ${-d} ${plural(-d, "día", "días")}` : d === 0 ? "hoy" : d === 1 ? "mañana" : d <= 31 ? `en ${d} días` : "";
+      return `<b class="${d < 0 ? "late" : ""}">${a.dueLabel[0].toUpperCase() + a.dueLabel.slice(1)} ${fDate(a.due)}</b>${when ? `<span>${when}</span>` : ""}`;
+    };
+    $("#alerts").innerHTML = shown.map((a) => `<li><span class="sev ${a.sev}"><svg class="i"><use href="#${SEV_ICON[a.sev]}"/></svg></span>
+      <p class="t">${esc(a.title)}</p><p class="due">${dueTxt(a)}</p><p>${esc(a.text)}</p>
+      <div class="acts"><span class="src">${a.boards.map((b) => `<span>${esc(BOARD[b].label)}</span>`).join("")}</span><button type="button" class="lnk" data-open="${a.boards[0]}" data-from="sum">Abrir en ${esc(BOARD[a.boards[0]].label)}</button></div></li>`).join("")
+      + (A.length > 5 ? `<li style="border-top:0;padding:4px 0 0"><span></span><button type="button" class="lnk more" data-more>${S.alertsAll ? "Ver menos" : `Ver ${A.length - 5} más`}</button></li>` : "");
+  }
+
+  // Lectura cruzada
+  function pearson(a, b) {
+    const n = a.length, ma = sum(a) / n, mb = sum(b) / n;
+    let sab = 0, sa = 0, sb = 0;
+    for (let i = 0; i < n; i++) { sab += (a[i] - ma) * (b[i] - mb); sa += (a[i] - ma) ** 2; sb += (b[i] - mb) ** 2; }
+    return sa && sb ? sab / Math.sqrt(sa * sb) : 0;
+  }
+  function renderInsights() {
+    const us = scope(), ms = curMonths(), out = [];
+    const tags = (ids) => `<span class="src">${ids.map((b) => `<span>${esc(BOARD[b].label)}</span>`).join("")}</span>`;
+    const act = (id) => `<button type="button" class="lnk" data-open="${id}" data-from="sum">Ver en ${esc(BOARD[id].label)}</button>`;
+    // 1. El área que está mal en varios frentes a la vez.
+    const fr = areaFronts(us, ms).sort((a, b) => b.off - a.off || b.vals.aus - a.vals.aus);
+    const w = fr[0];
+    if (w && w.off >= 2) {
+      const which = FRONTS.filter((f) => w.vals[f.id] > f.goal).map((f) => f.short);
+      const list = which.length > 1 ? which.slice(0, -1).join(", ") + " y " + which[which.length - 1] : which[0];
+      out.push({ tone: "bad", icon: "i-layers", html: `<b>${esc(AREA[w.id].name)}</b> está fuera de meta en <b>${w.off} de 5</b> frentes: ${list}. Es un problema del área, no de un proceso.`, ids: FRONTS.filter((f) => w.vals[f.id] > f.goal).map((f) => f.board), go: "incapacidades" });
+    } else if (w) out.push({ tone: "good", icon: "i-check", html: `Ningún área está fuera de meta en más de un frente${S.mes.size ? " en los meses elegidos" : ""}.`, ids: ["incapacidades", "retiros"], go: "incapacidades" });
+    // 2. Las horas extra que cubren el ausentismo.
+    const pm = periodMonths().length >= 6 ? periodMonths() : P12;
+    const corr = fr.map((r) => ({ id: r.id, r: pearson(pm.map((m) => MEAS.aus(r.uu, [m])), pm.map((m) => MEAS.he(r.uu, [m]))) })).filter((c) => AREA[c.id].he >= 5).sort((a, b) => b.r - a.r)[0];
+    if (corr && corr.r > 0.55) {
+      const uu = us.filter((u) => u.area === corr.id);
+      const hiM = pm.slice().sort((a, b) => MEAS.aus(uu, [b]) - MEAS.aus(uu, [a])).slice(0, 3), loM = pm.filter((m) => !hiM.includes(m));
+      const up = MEAS.he(uu, hiM) / MEAS.he(uu, loM) - 1;
+      out.push({ tone: "bad", icon: "i-trend-up", html: `En <b>${esc(AREA[corr.id].name)}</b>, las horas extra suben y bajan con el ausentismo (r = <b>${NF2.format(corr.r)}</b> mes a mes). En sus 3 meses de más ausentismo hubo <b>${fPct(up, 0)} más</b> horas extra por persona: las ausencias se cubren con horas extra.`, ids: ["horas", "incapacidades"], go: "horas" });
+    }
+    // 3. Los retiros voluntarios que venían precedidos de incapacidades.
+    const vol = sumUM(us, ms, "retVol"), volInc = sumUM(us, ms, "retVolInc");
+    const hcs = us.map((u) => u.hc[LAST]), base = sum(us.map((u, i) => hcs[i] * AREA[u.area].baseInc)) / (sum(hcs) || 1);
+    if (vol >= 4) out.push({ tone: volInc / vol > base * 1.5 ? "bad" : "", icon: "i-info", html: `El <b>${fPct(volInc / vol, 0)}</b> de los ${fInt(vol)} retiros voluntarios tuvo 3 o más incapacidades en los 6 meses anteriores. En la planta, eso le pasa al <b>${fPct(base, 0)}</b>.`, ids: ["retiros", "incapacidades"], go: "retiros" });
+    // 4. Vacaciones acumuladas y ausentismo.
+    const vacs = us.map((u) => u.vac[LAST]), vf = sum(us.map((u, i) => vacs[i] * AREA[u.area].vacF)) / (sum(vacs) || 1);
+    if (sum(vacs)) out.push({ tone: "bad", icon: "i-info", html: `Quienes tienen 2 o más periodos de vacaciones sin disfrutar suman <b>${NF1.format(vf)} veces</b> más días de incapacidad por persona que el resto. Programar sus vacaciones también es prevención.`, ids: ["vacaciones", "incapacidades"], go: "vacaciones" });
+    $("#insights").innerHTML = out.map((x) => `<li><span class="mk ${x.tone}"><svg class="i"><use href="#${x.icon}"/></svg></span><p>${x.html}</p>
+      <div class="acts">${tags(x.ids)}${act(x.go)}</div></li>`).join("");
+  }
+
+  function renderChips() {
+    const c = [];
+    for (const a of S.area) c.push(`<button type="button" class="chip" data-unf="area:${a}"><small>Área</small>${esc(AREA[a].name)}<svg class="i x"><use href="#i-x"/></svg></button>`);
+    for (const m of [...S.mes].sort((a, b) => a - b)) c.push(`<button type="button" class="chip" data-unf="mes:${m}"><small>Mes</small>${MONTHS[m].short} ${MONTHS[m].y}<svg class="i x"><use href="#i-x"/></svg></button>`);
+    $("#chips").innerHTML = c.length ? c.join("") + (c.length > 1 ? `<button type="button" class="chip-clear" data-clear>Quitar filtros</button>` : "") : `<span class="chip-hint">Toca un área o un mes para filtrar. Los filtros viajan al tablero que abras.</span>`;
+  }
+  function renderSum() {
+    TIPS.length = 0;
+    renderChips(); renderKpis(); renderLayers(); renderLanes(); renderMatrix(); renderAlerts(); renderInsights();
+  }
+
+  // ================================================================ un tablero abierto: llega con los filtros
+  function renderBoard() {
+    const b = BOARD[S.board];
+    const carry = S.from === "sum";
+    const chips = [`<span class="chip ro"><small>Periodo</small>${carry ? (S.mes.size ? [...S.mes].sort((x, y) => x - y).map((m) => MONTHS[m].short + " " + MONTHS[m].y).join(", ") : PERIODS[S.period].label) : PERIODS["12m"].label}</span>`];
+    if (carry && S.sede) chips.push(`<span class="chip ro"><small>Sede</small>${esc(S.sede)}</span>`);
+    if (carry) for (const a of S.area) chips.push(`<span class="chip ro"><small>Área</small>${esc(AREA[a].name)}</span>`);
+    const q = [`periodo=${carry && S.mes.size ? [...S.mes].sort((x, y) => x - y).map((m) => MONTHS[m].y + "-" + String(MONTHS[m].m).padStart(2, "0")).join(",") : carry ? PERIODS[S.period].url : "12m"}`];
+    if (carry && S.sede) q.push("sede=" + encodeURIComponent(norm(S.sede)));
+    if (carry && S.area.size) q.push("area=" + [...S.area].join(","));
+    $("#arr-from").textContent = carry ? "Lo abriste desde el Resumen: llega con los mismos filtros, porque todos los tableros de HCM usan los mismos nombres de periodo, sede y área." : "Lo abriste desde el repositorio: llega sin filtros, con el periodo por defecto.";
+    $("#arr-chips").innerHTML = chips.join("");
+    $("#arr-url").textContent = `/hcm/reportes/${b.id}?${q.join("&")}`;
+    $("#arr-note").innerHTML = b.id === "incapacidades"
+      ? "Este tablero ya tiene maqueta: <code>maquetas/nx-board-incapacidades.html</code>. Abajo, el lugar de sus paneles."
+      : "En la maqueta solo se muestra cómo llega; abajo, el lugar de sus paneles.";
+  }
+
+  // ================================================================ piezas
+  const PIECES = {
+    repo: { sub: "Capa 1: el repositorio. Casi todo ya está en <nx-launcher>; lo nuevo es pequeño.", items: [
+      ["nx-launcher", "existe", "Secciones con su color (<code>section</code>, <code>accent</code>), una señal viva por tarjeta (<code>signal</code>: valor, nota con tono, <code>trend</code>, <code>meter</code>) y escribir para buscar."],
+      ["nx-launcher", "ampliar", "Por tarjeta: <code>favorite</code> (la estrella y la sección «Favoritos» arriba), <code>owner</code> y <code>asOf</code> al pie, y la marca «Oficial». Para la página: una línea de <code>recent</code>."],
+      ["nx-launcher featured", "ampliar", "La destacada ya existe; le faltan cuatro cifras cortas (<code>stats</code>) en vez de la barra de avance."],
+      ["GET /hcm/reportes/:id/resumen", "backend", "Cada tablero expone su señal (valor, nota, tono, tendencia) ya calculada y en caché. El repositorio pide solo eso: nunca abre los tableros."],
+    ] },
+    sum: { sub: "Capa 2: el Resumen. Es un <nx-board> con piezas que ya existen; tres se amplían.", items: [
+      ["nx-board", "ampliar", "<code>hrefFor(url)</code>: el enlace a otro tablero lleva los filtros puestos. Todos los tableros de HCM usan los mismos ids de dimensión (<code>periodo</code>, <code>sede</code>, <code>area</code>)."],
+      ["nx-stats", "existe", "El pulso: <code>delta</code>, <code>goal</code>, <code>trend</code> y <code>href</code> por cifra."],
+      ['nx-trend layout="lanes"', "ampliar", "Carriles con su propia escala sobre el mismo eje de meses, capas que se prenden, fechas marcadas (<code>marks</code>) y los meses programados."],
+      ['nx-heatmap scale="goal"', "ampliar", "Cada columna frente a su propia meta (dentro, hasta 25 % por encima, más) y una columna «fuera de meta» con puntos."],
+      ["nx-alerts", "ampliar", "<code>sources</code>: de qué tableros viene cada alerta, y orden por fecha límite en vez de por gravedad."],
+      ["nx-insights", "existe", "La lectura cruzada, con su acción hacia el tablero."],
+    ] },
+    board: { sub: "Un tablero abierto desde el repositorio o desde el Resumen.", items: [
+      ["nx-board", "ampliar", "Lee los filtros de la dirección al cargar (<code>?periodo=…&sede=…&area=…</code>) y los escribe al cambiar, para que un enlace muestre lo mismo a quien lo abra."],
+    ] },
+  };
+  function renderPieces() {
+    const p = PIECES[S.view];
+    $("#pieces-sub").textContent = p.sub;
+    $("#pieces-list").innerHTML = p.items.map(([n, k, t]) => `<li><span><code>${n.startsWith("GET") ? esc(n) : "&lt;" + esc(n) + "&gt;"}</code><span class="kind ${k}">${k}</span></span><span>${t}</span></li>`).join("");
+  }
+
+  // ================================================================ vistas
+  function show(view, board, from) {
+    S.view = view; S.board = board ?? null; if (from) S.from = from;
+    $("#v-repo").hidden = view !== "repo"; $("#v-sum").hidden = view !== "sum"; $("#v-board").hidden = view !== "board";
+    const back = `Talento humano <span>›</span> <button type="button" data-view="repo">Reportes</button>`;
+    if (view === "repo") {
+      $("#crumb").innerHTML = "Talento humano";
+      $("#title").textContent = "Reportes";
+      $("#meta").innerHTML = `Datos de ejemplo · corte <b>30 sep 2026</b> · <b>${fInt(hcNow)}</b> trabajadores`;
+      renderRepo();
+    } else if (view === "sum") {
+      $("#crumb").innerHTML = back;
+      $("#title").textContent = "Resumen de Talento Humano";
+      $("#meta").innerHTML = `Todos los tableros de HCM · corte <b>30 sep 2026</b> · solo conteos, sin nombres`;
+      renderSum();
+    } else {
+      const b = BOARD[board];
+      $("#crumb").innerHTML = back + (S.from === "sum" ? ` <span>›</span> <button type="button" data-view="sum">Resumen</button>` : "");
+      $("#title").textContent = b.label;
+      $("#meta").innerHTML = `${esc(b.owner)} · corte <b>30 sep 2026</b>`;
+      renderBoard();
+    }
+    renderPieces();
+    tipEl.hidden = true;
+    try { history.replaceState(null, "", view === "repo" ? location.pathname + location.search : "#" + (view === "sum" ? "resumen" : board)); } catch {}
+    window.scrollTo(0, 0);
+  }
+  function open(id, from) { if (id === "resumen") show("sum", null, "repo"); else show("board", id, from); }
+
+  // ================================================================ interacción
+  function applyF(spec, add) {
+    const [d, v0] = spec.split(":"); const v = d === "mes" ? +v0 : v0;
+    const set = S[d];
+    if (add) set.has(v) ? set.delete(v) : set.add(v);
+    else if (set.size === 1 && set.has(v)) set.clear();
+    else { set.clear(); set.add(v); }
+    renderSum();
+  }
+  document.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const st = t.closest("[data-star]");
+    if (st) { const id = st.dataset.star; FAV.has(id) ? FAV.delete(id) : FAV.add(id); renderRepo(); $(`[data-card="${id}"] [data-star]`)?.focus(); return; }
+    const o = t.closest("[data-open]");
+    if (o) { open(o.dataset.open, o.dataset.from || "repo"); return; }
+    const vw = t.closest("[data-view]");
+    if (vw) { show(vw.dataset.view); return; }
+    const f = t.closest("[data-f]");
+    if (f) { applyF(f.dataset.f, e.ctrlKey || e.metaKey || e.shiftKey); return; }
+    const u = t.closest("[data-unf]");
+    if (u) { const [d, v] = u.dataset.unf.split(":"); S[d].delete(d === "mes" ? +v : v); renderSum(); return; }
+    if (t.closest("[data-clear]")) { S.area.clear(); S.mes.clear(); renderSum(); return; }
+    const ln = t.closest("[data-lane]");
+    if (ln) { const id = ln.dataset.lane; S.lanes.has(id) ? S.lanes.delete(id) : S.lanes.add(id); TIPS.length = 0; renderSum(); return; }
+    const so = t.closest("[data-sort]");
+    if (so) { S.sort = so.dataset.sort; TIPS.length = 0; renderSum(); return; }
+    if (t.closest("[data-more]")) { S.alertsAll = !S.alertsAll; renderSum(); return; }
+  });
+  $("#f-period").addEventListener("click", (e) => {
+    const b = e.target instanceof Element && e.target.closest("[data-period]");
+    if (!b) return;
+    for (const x of $("#f-period").querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
+    S.period = b.dataset.period; S.mes.clear(); renderSum();
+  });
+  $("#f-sede").addEventListener("change", (e) => {
+    S.sede = e.target.value;
+    // Un área que no está en la sede elegida dejaría todo en cero: se quita.
+    for (const a of [...S.area]) if (!scope(true).some((u) => u.area === a)) S.area.delete(a);
+    renderSum();
+  });
+  const q = $("#q");
+  q.addEventListener("input", () => { query = q.value.trim(); renderRepo(); });
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { const f = BOARDS.find(matches); if (query && f) open(f.id, "repo"); }
+    if (e.key === "Escape") { q.value = ""; query = ""; renderRepo(); }
+  });
+  // «/» lleva a la búsqueda, como en la mayoría de catálogos.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && S.view === "repo" && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)) { e.preventDefault(); q.focus(); }
+  });
+
+  $("#b-pieces").addEventListener("click", (e) => {
+    const on = !document.body.classList.contains("pieces");
+    document.body.classList.toggle("pieces", on);
+    e.currentTarget.setAttribute("aria-pressed", String(on));
+    $("#pieces").hidden = !on;
+  });
+  const themeBtn = $("#b-theme"), mq = matchMedia("(prefers-color-scheme: dark)"), root = document.documentElement;
+  const isDark = () => { const s = document.body.dataset.scheme || root.dataset.theme; return s ? s === "dark" : mq.matches; };
+  function paintThemeBtn() {
+    const d = isDark();
+    themeBtn.querySelector("use").setAttribute("href", d ? "#i-sun" : "#i-moon");
+    const l = d ? "Ver en claro" : "Ver en oscuro";
+    themeBtn.setAttribute("aria-label", l); themeBtn.title = l;
+  }
+  try { const sc = localStorage.getItem("nx-scheme"); if (sc === "light" || sc === "dark") document.body.dataset.scheme = sc; } catch {}
+  themeBtn.addEventListener("click", () => {
+    const next = isDark() ? "light" : "dark";
+    document.body.dataset.scheme = next;
+    try { localStorage.setItem("nx-scheme", next); } catch {}
+    paintThemeBtn();
+  });
+  mq.addEventListener?.("change", paintThemeBtn);
+  new MutationObserver(paintThemeBtn).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  paintThemeBtn();
+
+  let rw = 0;
+  if (window.ResizeObserver) new ResizeObserver(() => { if (S.view !== "sum") return; cancelAnimationFrame(rw); rw = requestAnimationFrame(() => { TIPS.length = 0; renderSum(); }); }).observe($("#lanes"));
+
+  const h = (location.hash || "").slice(1);
+  if (h === "resumen") show("sum", null, "repo");
+  else if (BOARD[h]) show("board", h, "repo");
+  else show("repo");
+  window.__reportes = { S, UNITS, BOARDS, show, open, applyF, buildAlerts, areaFronts, MEAS };
+})();
+</script>

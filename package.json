@@ -240,6 +240,11 @@
       "import": "./dist/insights.js",
       "default": "./dist/insights.js"
     },
+    "./actions": {
+      "types": "./dist/types/components/actions/index.d.ts",
+      "import": "./dist/actions.js",
+      "default": "./dist/actions.js"
+    },
     "./print": {
       "types": "./dist/types/components/print/index.d.ts",
       "import": "./dist/print.js",

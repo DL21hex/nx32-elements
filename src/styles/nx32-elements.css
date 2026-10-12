@@ -51,6 +51,7 @@
 @import "../components/phases/phases.css";
 @import "../components/alerts/alerts.css";
 @import "../components/insights/insights.css";
+@import "../components/actions/actions.css";
 @import "../components/cards/cards.css";
 @import "../components/print/print.css";
 @import "../components/signature/signature.css";

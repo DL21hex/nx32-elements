@@ -57,6 +57,7 @@ export * from "./components/parts/index";
 export * from "./components/phases/index";
 export * from "./components/alerts/index";
 export * from "./components/insights/index";
+export * from "./components/actions/index";
 export * from "./components/cards/index";
 export * from "./components/handoff/index";
 export * from "./components/award/index";

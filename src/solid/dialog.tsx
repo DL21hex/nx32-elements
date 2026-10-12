@@ -16,6 +16,8 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
   mode?: DialogMode;
   size?: DialogSize;
   persistent?: boolean;
+  /** El registro todavía no llega: un esqueleto en lugar del contenido (y `aria-busy`). */
+  loading?: boolean;
   /** Entrada de historial al abrir («atrás» cierra). `""` = la URL actual. */
   url?: string;
   /** Cambios sin guardar: al cerrar pide confirmación. Se marca solo al escribir; `false` al guardar. */
@@ -39,7 +41,7 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
 }
 
 export function Dialog(props: DialogProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["open", "heading", "description", "mode", "size", "persistent", "url", "dirty", "labels", "badge", "badgeTone", "avatar", "nav", "actions", "onNav", "onAction", "onOpenChange", "onClose", "children"]);
+  const [local, rest] = splitProps(props, ["open", "heading", "description", "mode", "size", "persistent", "loading", "url", "dirty", "labels", "badge", "badgeTone", "avatar", "nav", "actions", "onNav", "onAction", "onOpenChange", "onClose", "children"]);
   let el: NxDialog | undefined;
   createEffect(() => {
     const want = !!local.open;
@@ -59,6 +61,7 @@ export function Dialog(props: DialogProps): JSX.Element {
       attr:size={local.size}
       attr:url={local.url}
       bool:persistent={!!local.persistent}
+      bool:loading={!!local.loading}
       prop:dirty={local.dirty}
       prop:labels={local.labels}
       attr:badge={local.badge}

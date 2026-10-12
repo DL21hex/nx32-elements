@@ -32,6 +32,7 @@ export const DIALOG_LABELS: DialogLabels = {
   discard: "Descartar",
   keep: "Seguir editando",
   stack: "Niveles abiertos",
+  loading: "Cargando…",
 };
 
 const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
@@ -175,7 +176,7 @@ function morph(from: Element | null, to: Element | null, update: () => void): vo
 }
 
 export class NxDialog extends Base {
-  static observedAttributes = ["heading", "description", "labels", "open", "mode", "badge", "badge-tone", "avatar", "nav", "actions"];
+  static observedAttributes = ["heading", "description", "labels", "open", "mode", "badge", "badge-tone", "avatar", "nav", "actions", "loading"];
 
   #uid = `nx-dialog${++uid}`;
   #labels: DialogLabels = DIALOG_LABELS;
@@ -208,6 +209,8 @@ export class NxDialog extends Base {
   #desc?: HTMLParagraphElement;
   #closeBtn?: HTMLButtonElement;
   #guard?: HTMLDivElement;
+  /** El esqueleto de `loading` (se arma la primera vez que hace falta). */
+  #skeleton?: HTMLDivElement;
   #actions: DialogAction[] = [];
   /** La cabecera de ficha (avatar, estado, pasar de registro, «Más»): un chunk aparte. */
   #extras?: Promise<DialogHead>;
@@ -297,6 +300,16 @@ export class NxDialog extends Base {
   }
   set nav(v: string | null | undefined) {
     this.#attr("nav", v);
+  }
+  /** El registro todavía no llega (se abrió la ficha, se pasó al siguiente): en lugar del contenido
+   *  del autor, un esqueleto con la forma de una ficha (resumen, pestañas, campos) que anuncia
+   *  `labels.loading`; el diálogo lleva `aria-busy`. La cabecera sigue (cerrar, pasar de registro):
+   *  sin `heading`, el título también es un esqueleto. Se quita en cuanto llega el registro. */
+  get loading(): boolean {
+    return boolAttr(this, "loading");
+  }
+  set loading(v: boolean) {
+    this.toggleAttribute("loading", !!v);
   }
   /** El menú «Más» de la cabecera. El atributo acepta el mismo arreglo como JSON. */
   get actions(): DialogAction[] {
@@ -572,6 +585,7 @@ export class NxDialog extends Base {
       new MutationObserver(() => {
         if (this.#head!.parentNode !== this) this.append(this.#head!);
         if (this.#guard!.parentNode !== this) this.append(this.#guard!);
+        if (this.loading && this.#skeleton && this.#skeleton.parentNode !== this) this.append(this.#skeleton);
       }).observe(this, { childList: true });
 
     this.#closeBtn.addEventListener("click", () => this.close(undefined, "button"));
@@ -729,6 +743,33 @@ export class NxDialog extends Base {
     this.dispatchEvent(new CustomEvent("nx-open-change", { detail: { open: false, value, reason }, bubbles: true, composed: true }));
   }
 
+  /** `loading`: el esqueleto con la forma de una ficha va en lugar del contenido del autor (el CSS
+   *  lo esconde, sin moverlo: la hidratación sigue intacta) y anuncia `labels.loading`. */
+  #paintLoading(): void {
+    const on = this.loading;
+    this.#head!.toggleAttribute("data-skeleton", on && !this.heading);
+    if (!on) {
+      if (this.#skeleton?.parentNode) {
+        this.#skeleton.remove();
+        this.removeAttribute("aria-busy");
+      }
+      return;
+    }
+    const bar = (cls: string) => h("span", { class: `nx-dialog__skel${cls ? ` ${cls}` : ""}` });
+    const pair = () => h("span", null, bar("is-label"), bar("is-value"));
+    this.#skeleton ??= h(
+      "div",
+      { class: "nx-dialog__loading", role: "status" },
+      h("span", { class: "nx-sr-only" }),
+      h("div", { class: "nx-dialog__skel-sum", "aria-hidden": "true" }, pair(), pair(), pair()),
+      h("div", { class: "nx-dialog__skel-tabs", "aria-hidden": "true" }, bar(""), bar(""), bar("")),
+      h("div", { class: "nx-dialog__skel-rows", "aria-hidden": "true" }, pair(), pair(), pair(), pair(), pair()),
+    );
+    this.#skeleton.firstElementChild!.textContent = this.#labels.loading;
+    if (this.#skeleton.parentNode !== this) this.append(this.#skeleton);
+    this.setAttribute("aria-busy", "true");
+  }
+
   #paint(): void {
     if (!this.#built) return;
     const L = this.#labels;
@@ -759,6 +800,7 @@ export class NxDialog extends Base {
       );
     }
     this.#crumbs!.setAttribute("aria-label", L.stack);
+    this.#paintLoading();
     const [msg, keep, discard] = this.#guard!.children;
     msg.textContent = L.unsaved;
     keep.textContent = L.keep;

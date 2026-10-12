@@ -13,7 +13,7 @@
 import { Base, upgrade } from "../../core/define";
 import { emit, h, safeHref, setAttr } from "../../core/dom";
 import { mergeLabels } from "../../core/labels";
-import { nxFormat, resolveLocale } from "../../core/locale";
+import { formatZeroSafe, nxFormat, resolveLocale } from "../../core/locale";
 import { sparkPaths } from "../../core/spark";
 import type { StatItem, StatsLabels, StatsSelectDetail } from "./types";
 
@@ -32,13 +32,13 @@ function svg(tag: string, attrs: Record<string, string | number>): SVGElement {
 
 /** El valor escrito con el locale: un número con su formato; un texto, tal cual. */
 export function statValue(item: StatItem, locale: string): string {
-  if (!finite(item.value)) return String(item.value ?? "");
-  const v = item.value + 0; // -0 → 0: nada de «-0 %»
+  const v = item.value;
+  if (!finite(v)) return String(v ?? "");
   const f = nxFormat(locale);
   if (item.format === "money") return f.money(v, { currency: item.currency });
   if (item.format === "percent") {
     try {
-      return new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(v);
+      return formatZeroSafe(new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }), v);
     } catch {
       return `${f.number(v * 100)} %`;
     }
@@ -164,7 +164,8 @@ export class NxStats extends Base {
     const d = it.delta;
     if (!d || !finite(d.value)) return null;
     const L = this.#labels;
-    const flat = Math.abs(d.value) < (d.format === "number" ? 1e-9 : 0.0005);
+    // Plano si se escribe como cero: «▼ 0» no dice nada (un número lleva 2 decimales; un %, 1).
+    const flat = Math.abs(d.value) < (d.format === "number" ? 0.005 : 0.0005);
     const dir = flat ? "same" : d.value > 0 ? "up" : "down";
     const pol = d.polarity === "up-good" || d.polarity === "neutral" ? d.polarity : "up-bad";
     const tone = flat || pol === "neutral" ? "is-flat" : (dir === "up") === (pol === "up-bad") ? "is-bad" : "is-good";

@@ -16,7 +16,7 @@ import { markAttrs } from "../../core/chart";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
 import { extent } from "../../core/time";
-import { change, cleanAnomalies, cleanSeries, explainContext, flagsOf, niceTicks, pctText, periodLabel, periodsOf, summarize, trendStep, whyQuestion } from "./logic";
+import { change, cleanAnomalies, cleanSeries, explainContext, flagsOf, niceTicks, pctSign, pctText, pctValue, periodLabel, periodsOf, summarize, trendStep, whyQuestion } from "./logic";
 import type { TrendAnomaly, TrendFlag, TrendFormat, TrendKind, TrendLabels, TrendSeries } from "./types";
 
 export const TREND_LABELS: TrendLabels = {
@@ -311,7 +311,7 @@ export class NxTrend extends Base {
   #fmt(x: TrendSeries, v: number, short = false): string {
     const f = nxFormat(resolveLocale(this));
     const format = x.format ?? this.format;
-    if (format === "percent") return pctText(v, f.locale, false);
+    if (format === "percent") return pctValue(v, f.locale);
     if (format === "money") return f.money(v, { currency: x.currency ?? this.currency }, short);
     return short ? f.compact(v) : f.number(v);
   }
@@ -517,7 +517,7 @@ export class NxTrend extends Base {
     const lo = ticks[0];
     const hi = ticks[ticks.length - 1];
     const ref = vis[0];
-    const tickText = (v: number) => ((ref.format ?? this.format) === "percent" ? pctText(v, loc, false) : nxFormat(loc).compact(v));
+    const tickText = (v: number) => ((ref.format ?? this.format) === "percent" ? pctValue(v, loc) : nxFormat(loc).compact(v));
     const month = !/-\d{2}-/.test(P[0]);
     const years = month && new Set(P.map((x) => x.slice(0, 4))).size > 1;
     const ends = W >= 520 && lines.length > 0 && lines.length <= 4;
@@ -798,7 +798,7 @@ export class NxTrend extends Base {
         { class: "nx-trend-why__head" },
         h("p", { class: "nx-trend-why__label", "data-slot": this.#slot(q) }, this.#mark(q, si), `${q.label} · ${ctx.point.label}`),
         h("p", { class: "nx-trend-why__value" }, this.#fmt(q, p.y)),
-        d !== null && ctx.previous ? h("p", { class: "nx-trend-why__delta" }, `${d > 0 ? "▲" : d < 0 ? "▼" : "="} ${pctText(d, loc, false)} ${L.versus.replace("{period}", periodLabel(ctx.previous.x, loc, "long"))}`, flag ? h("span", null, flag.label ?? L.anomaly) : "") : null,
+        d !== null && ctx.previous ? h("p", { class: "nx-trend-why__delta" }, `${["▼", "=", "▲"][pctSign(d) + 1]} ${pctText(d, loc, false)} ${L.versus.replace("{period}", periodLabel(ctx.previous.x, loc, "long"))}`, flag ? h("span", null, flag.label ?? L.anomaly) : "") : null,
         h("button", { type: "button", class: "nx-trend-why__close", "aria-label": L.close, title: L.close }, s("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, s("path", { d: "M18 6 6 18M6 6l12 12" }))),
       ),
     );

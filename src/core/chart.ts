@@ -13,7 +13,7 @@
  *   única forma de leer el dato.
  */
 import { h } from "./dom";
-import { nxFormat } from "./locale";
+import { formatZeroSafe, nxFormat } from "./locale";
 
 export type ChartFormat = "number" | "money" | "percent";
 
@@ -27,16 +27,17 @@ export interface ChartValueOptions {
   decimals?: number | null;
 }
 
-/** Un valor escrito con el locale. Un porcentaje llega como fracción (0,25 → «25 %»). */
+/**
+ * Un valor escrito con el locale. Un porcentaje llega como fracción (0,25 → «25 %»). Nunca «-0»: ni
+ * -0 ni un negativo que se redondea a cero llevan signo (`formatZeroSafe`).
+ */
 export function chartValue(v: number, o: ChartValueOptions): string {
   if (!Number.isFinite(v)) return "";
-  // -0 (una suma vacía en Rust, `-0.0` en el JSON) se escribiría «-0»: + 0 lo vuelve 0.
-  v += 0;
   const f = nxFormat(o.locale);
   const d = typeof o.decimals === "number" && o.decimals >= 0 ? Math.min(6, Math.floor(o.decimals)) : null;
   if (o.format === "percent") {
     try {
-      return new Intl.NumberFormat(f.locale, { style: "percent", minimumFractionDigits: d ?? 0, maximumFractionDigits: d ?? 1 }).format(v);
+      return formatZeroSafe(new Intl.NumberFormat(f.locale, { style: "percent", minimumFractionDigits: d ?? 0, maximumFractionDigits: d ?? 1 }), v);
     } catch {
       return `${f.number(v * 100)} %`;
     }
@@ -45,7 +46,7 @@ export function chartValue(v: number, o: ChartValueOptions): string {
   if (o.short) return f.compact(v);
   if (d !== null) {
     try {
-      return new Intl.NumberFormat(f.locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+      return formatZeroSafe(new Intl.NumberFormat(f.locale, { minimumFractionDigits: d, maximumFractionDigits: d }), v);
     } catch {
       return f.number(v);
     }

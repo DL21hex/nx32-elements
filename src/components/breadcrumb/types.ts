@@ -14,6 +14,10 @@ export interface BreadcrumbItem {
   /** `true`: su separador se abre sin `children` (los hijos se piden al abrir). `false`: no se abre
    *  aunque haya `children-endpoint`. */
   expandable?: boolean;
+  /** Solo dice dónde está (un grupo del menú que no es una página, como el módulo): se ve igual que
+   *  los demás nombres pero no se pulsa, su separador no se abre, nunca es la página actual (puede ir
+   *  solo, como etiqueta sobre el título) y «‹ Padre» y `Alt+↑` lo saltan. Pensado para el primero. */
+  static?: boolean;
 }
 
 /** Por dónde se llegó: un nombre de la ruta, el menú de un separador o del «…», «‹ Padre» o `Alt+↑`. */

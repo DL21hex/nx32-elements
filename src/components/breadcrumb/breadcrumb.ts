@@ -12,6 +12,8 @@
  *   traen buscador (sin tildes).
  * - **Colapso:** si no cabe, los niveles del medio pasan a un «…» que se abre como menú; el primero
  *   y los dos últimos se quedan. Por debajo de 480 px queda solo «‹ Padre».
+ * - **Niveles quietos:** `static: true` es un nivel que solo dice dónde está (el módulo): texto, sin
+ *   enlace ni menú. Puede ir solo: «Talento Humano» sobre el título, con el mismo aspecto que la ruta.
  * - **Navegar:** `nx-breadcrumb-navigate` es cancelable (routers SPA); si nadie lo cancela, manda el
  *   `href`. `Alt+↑` sube un nivel (en la ruta visible de más abajo de la página).
  */
@@ -117,7 +119,7 @@ export class NxBreadcrumb extends Base {
   connectedCallback(): void {
     upgrade(this);
     if (!this.#nav) this.#build();
-    this.#mo?.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["href", "data-icon", "data-id", "data-expandable"] });
+    this.#mo?.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["href", "data-icon", "data-id", "data-expandable", "data-static"] });
     this.#ro?.observe(this);
     document.addEventListener("keydown", this.#onKey);
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => this.#paint(), { once: true });
@@ -203,7 +205,7 @@ export class NxBreadcrumb extends Base {
       if (el === this.#nav || el === this.#menu || /^(TEMPLATE|SCRIPT|STYLE)$/.test(el.tagName)) continue;
       const d = (el as HTMLElement).dataset;
       const expandable = d.expandable === "false" ? false : d.expandable === "true" ? true : undefined;
-      out.push({ label: el.textContent?.trim() ?? "", id: d.id, href: el.getAttribute("href") ?? undefined, icon: d.icon, expandable });
+      out.push({ label: el.textContent?.trim() ?? "", id: d.id, href: el.getAttribute("href") ?? undefined, icon: d.icon, expandable, static: d.static === "true" || d.static === "" });
     }
     return cleanItems(out);
   }
@@ -226,7 +228,9 @@ export class NxBreadcrumb extends Base {
       const ico = it.icon && hasIcon(it.icon) ? icon(it.icon) : null;
       const text = h("span", { class: "nx-breadcrumb__text" }, it.label);
       const href = safeHref(it.href);
-      const name = last
+      const name = it.static
+        ? h("span", { class: "nx-breadcrumb__static" }, ico, text)
+        : last
         ? h("span", { class: "nx-breadcrumb__current", "aria-current": "page" }, ico, text)
         : href
           ? h("a", { class: "nx-breadcrumb__link", href, "data-i": i, "data-k": `l${i}` }, ico, text)
@@ -239,13 +243,14 @@ export class NxBreadcrumb extends Base {
     this.#list.replaceChildren(...lis);
     this.#keys = keys;
 
-    // «‹ Padre», para lo angosto (el CSS lo muestra solo ahí).
-    const parent = path[n - 2];
+    // «‹ Padre», para lo angosto (el CSS lo muestra solo ahí). Un nivel quieto no es a dónde volver.
+    const up = this.#up();
+    const parent = path[up];
     this.#back?.remove();
     this.#back = null;
     if (parent) {
       const href = safeHref(parent.href);
-      const attrs = { class: "nx-breadcrumb__back", "data-i": n - 2, "data-k": "b", "aria-label": L.back.replace("{label}", parent.label) };
+      const attrs = { class: "nx-breadcrumb__back", "data-i": up, "data-k": "b", "aria-label": L.back.replace("{label}", parent.label) };
       const content = [glyph(LEFT), h("span", { class: "nx-breadcrumb__text" }, parent.label)];
       this.#back = href ? h("a", { ...attrs, href }, ...content) : h("button", { ...attrs, type: "button" }, ...content);
       this.#nav!.append(this.#back);
@@ -254,10 +259,17 @@ export class NxBreadcrumb extends Base {
     if (focusKey) this.#nav!.querySelector<HTMLElement>(`[data-k="${focusKey}"]`)?.focus();
   }
 
+  /** El nivel al que se vuelve: el de arriba más cercano que no es quieto (`-1` si no hay). */
+  #up(): number {
+    const p = this.#path;
+    for (let i = p.length - 2; i >= 0; i--) if (!p[i].static) return i;
+    return -1;
+  }
+
   #sep(it: BreadcrumbItem, i: number): HTMLElement {
     const kids = it.children;
     const next = this.#path[i + 1];
-    const can = it.expandable !== false && (kids ? kids.length > 1 || (kids.length === 1 && (!next || itemKey(kids[0]) !== itemKey(next))) : it.expandable === true || !!this.childrenEndpoint);
+    const can = !it.static && it.expandable !== false && (kids ? kids.length > 1 || (kids.length === 1 && (!next || itemKey(kids[0]) !== itemKey(next))) : it.expandable === true || !!this.childrenEndpoint);
     if (!can) return h("span", { class: "nx-breadcrumb__sep", "aria-hidden": "true" }, glyph("chevron"));
     const b = h("button", { type: "button", class: "nx-breadcrumb__sep", "data-sep": i, "data-k": `s${i}`, "aria-haspopup": "menu", "aria-expanded": "false" }, glyph("chevron"));
     b.setAttribute("aria-label", this.#labels.siblings.replace("{label}", it.label));
@@ -270,7 +282,8 @@ export class NxBreadcrumb extends Base {
     if (!list) return;
     const w = this.clientWidth;
     this.#width = w;
-    const compact = w > 0 && w < COMPACT && this.#path.length > 1;
+    // Sin a dónde volver (solo hay niveles quietos arriba), la ruta se queda entera.
+    const compact = w > 0 && w < COMPACT && !!this.#back;
     this.#nav!.toggleAttribute("data-compact", compact);
     const lis = [...list.children] as HTMLElement[];
     const more = lis.find((li) => li.classList.contains("is-more"));
@@ -412,13 +425,13 @@ export class NxBreadcrumb extends Base {
   #onKey = (e: KeyboardEvent): void => {
     if (!e.altKey || e.key !== "ArrowUp" || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
     if ((e.target as Element | null)?.closest?.(EDITABLE)) return;
-    const n = this.#path.length;
-    if (n < 2) return;
+    const up = this.#up();
+    if (up < 0) return;
     const shown = [...document.querySelectorAll("nx-breadcrumb")].filter(visible);
     if (shown[shown.length - 1] !== this) return;
     e.preventDefault();
-    const parent = this.#path[n - 2];
+    const parent = this.#path[up];
     const href = safeHref(parent.href);
-    if (this.#go(parent, n - 2, "key") && href) location.assign(href);
+    if (this.#go(parent, up, "key") && href) location.assign(href);
   };
 }

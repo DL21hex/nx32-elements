@@ -310,6 +310,54 @@ describe("<nx-breadcrumb>", () => {
     expect(texts(b)).toEqual(["Raíz", "Hoja"]);
   });
 
+  it("un nivel quieto es texto: no se pulsa, su separador no se abre y puede ir solo sin ser la página actual", async () => {
+    const solo = await withItems([{ label: "Talento Humano", static: true }]);
+    const tag = solo.querySelector(".nx-breadcrumb__static")!;
+    expect(tag.tagName).toBe("SPAN");
+    expect(tag.textContent).toBe("Talento Humano");
+    expect(solo.querySelector("[aria-current], [data-i], .nx-breadcrumb__back")).toBeNull();
+
+    const b = await withItems([
+      { label: "Talento Humano", static: true, expandable: true },
+      { label: "Empleados", href: "/hcm/empleados" },
+      { label: "Pepito Pérez" },
+    ]);
+    expect(b.querySelector('.nx-breadcrumb__item:first-child > .nx-breadcrumb__static')).not.toBeNull();
+    expect(b.querySelector('[data-sep="0"]')).toBeNull();
+    expect(b.querySelector("[aria-current]")!.textContent).toBe("Pepito Pérez");
+    const spy = vi.fn((e: Event) => e.preventDefault());
+    b.addEventListener("nx-breadcrumb-navigate", spy);
+    (b.querySelector(".nx-breadcrumb__static") as HTMLElement).click();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("«‹ Padre» y Alt+↑ saltan los niveles quietos; sin a dónde volver, la ruta angosta se queda entera", async () => {
+    const cw = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(400);
+    try {
+      const b = await withItems([{ label: "Talento Humano", static: true }, { label: "Empleados" }]);
+      expect(b.querySelector(".nx-breadcrumb__back")).toBeNull();
+      expect(b.querySelector("nav")!.hasAttribute("data-compact")).toBe(false);
+      const spy = vi.fn((e: Event) => e.preventDefault());
+      b.addEventListener("nx-breadcrumb-navigate", spy);
+      key(document.body, "ArrowUp", { altKey: true });
+      expect(spy).not.toHaveBeenCalled();
+
+      b.items = [{ label: "Talento Humano", static: true }, { label: "Empleados", href: "/hcm/empleados" }, { label: "Pepito Pérez" }];
+      await tick();
+      expect(b.querySelector(".nx-breadcrumb__back")!.getAttribute("href")).toBe("/hcm/empleados");
+      key(document.body, "ArrowUp", { altKey: true });
+      expect((spy.mock.calls[0][0] as CustomEvent).detail).toMatchObject({ level: 1, via: "key" });
+    } finally {
+      cw.mockRestore();
+    }
+  });
+
+  it("data-static marca un nivel quieto desde los hijos del autor", async () => {
+    const b = await mount(`<nx-breadcrumb><span data-static>Talento Humano</span><a href="/hcm/empleados">Empleados</a><span>Pepito Pérez</span></nx-breadcrumb>`);
+    expect(b.querySelector(".nx-breadcrumb__static")!.textContent).toBe("Talento Humano");
+    expect(texts(b)).toEqual(["Empleados", "Pepito Pérez"]);
+  });
+
   it("labels cambia los textos", async () => {
     const b = await withItems(PATH);
     b.labels = { siblings: "More in {label}", label: "Path" };

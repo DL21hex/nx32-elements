@@ -12,6 +12,19 @@ primero), `logic.ts` (limpieza de `items`, clave de un nivel y cuántos niveles 
 hijos en `test/solid-children.test.tsx`). En el navegador: `e2e/breadcrumb.spec.ts`. Galería:
 página «Ruta navegable» (`gallery/demo-breadcrumb.ts`). Maqueta: `maquetas/nx-breadcrumb.html`.
 
+## El módulo: un nivel quieto
+
+Un grupo del menú que no es una página (el módulo, «Talento Humano») va con `static: true`
+(`data-static` en los hijos). Se ve igual que los demás nombres, pero es texto: no se pulsa, su
+separador no se abre, nunca es la página actual y «‹ Padre» y `Alt+↑` lo saltan. «Inicio» no va
+delante: es otro destino del menú, no el padre del módulo.
+
+- **Pantalla del menú** (Empleados): la ruta es solo el módulo, encima del título:
+  `[{label: "Talento Humano", static: true}]`. La pantalla no se repite, ya es el título.
+- **Más adentro** (la ficha de una persona): `[{label: "Talento Humano", static: true},
+  {label: "Empleados", href: "/hcm/empleados"}, {label: "Pepito Pérez"}]`. Mismo lugar y mismo
+  aspecto; solo se suman niveles.
+
 ## Los hermanos
 
 - En el payload: `children` en cada nivel (solo se usa un nivel hacia abajo).

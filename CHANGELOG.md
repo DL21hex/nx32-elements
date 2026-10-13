@@ -61,6 +61,9 @@
   reintentar. Solid: `timeout`, `onBatch`. **Cambia (0.x):** el cuerpo trae `lines` (un backend que
   rechaza claves desconocidas tiene que aceptarla) y `nx-import-error` de red lleva `status` si hubo
   respuesta.
+- **`<nx-page-header>`: una cifra nunca dice «-0».** Los `kpis` numéricos usaban
+  `Intl.NumberFormat` directo: un `-0` (una suma vacía en el servidor) o un negativo que se redondea
+  a cero (-0,001 con dos decimales) salía «-0». Ahora pasan por `formatZeroSafe`, como las gráficas.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

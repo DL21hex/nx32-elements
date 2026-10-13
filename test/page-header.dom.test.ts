@@ -95,6 +95,17 @@ describe("<nx-page-header>", () => {
     expect(el.querySelector(".nx-page-header__kpis")).toBeNull();
   });
 
+  it("kpis: una cifra en -0 o que se redondea a cero no lleva signo; un negativo que se ve, sí", () => {
+    const el = mount('<nx-page-header heading="Saldos" locale="es-CO"></nx-page-header>');
+    el.kpis = [
+      { label: "Cero negativo", value: -0 },
+      { label: "Casi cero", value: -0.001 },
+      { label: "Negativo", value: -3.5 },
+    ];
+    const dd = [...el.querySelectorAll(".nx-page-header__kpi dd")].map((d) => d.textContent);
+    expect(dd).toEqual(["0", "0", "-3,5"]);
+  });
+
   it("links: <a> de verdad con ícono, otra pestaña y descarga; una dirección insegura no sale", () => {
     const el = mount('<nx-page-header heading="Incapacidades"></nx-page-header>');
     el.setAttribute(

@@ -291,7 +291,7 @@ declare module "solid-js" {
       detect: string | undefined;
       kind: TrendKind | HandoffKind | undefined;
       debounce: string | undefined;
-      /** `<nx-select source timeout>`, `<nx-import timeout>`: plazo de cada petición, en ms. */
+      /** `<nx-grid timeout>`, `<nx-select source timeout>`, `<nx-import timeout>`: plazo de cada petición, en ms. */
       timeout: string | undefined;
       idle: string | undefined;
       channel: string | undefined;
@@ -316,8 +316,6 @@ declare module "solid-js" {
       "row-key": string | undefined;
       accents: string | undefined;
       "client-max": string | undefined;
-      /** `<nx-grid timeout>`: el plazo de cada petición a `source`, en ms. */
-      timeout: string | undefined;
       "views-storage": string | undefined;
       filename: string | undefined;
       height: string | undefined;

@@ -3,10 +3,10 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/grid/index";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
+import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView, GridViewLabels } from "../components/grid/types";
 import type { GridFilterDetail } from "./jsx";
 
-export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
+export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView, GridViewLabels };
 
 export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" | "onError"> {
   columns: GridColumn[];
@@ -16,6 +16,10 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   source?: string;
   /** Con `source`: si la consulta completa tiene hasta este tanto de filas, se trae una vez y se filtra en el cliente. */
   clientMax?: number;
+  /** Con `source`: el plazo de cada petición en ms (30.000 por defecto); vencido, cuenta como la red caída. */
+  timeout?: number;
+  /** El nombre de la tabla para el lector de pantalla (`aria-label`); sin él, `heading`. */
+  label?: string;
   /** Con `source`: el origen solo sirve el conjunto entero. Se pide una vez sin filtros, búsqueda
    *  ni orden (hasta `clientMax` filas, o 20.000) y todo se filtra aquí. */
   clientOnly?: boolean;
@@ -87,13 +91,15 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   onAction?: (e: CustomEvent<GridActionDetail>) => void;
   /** Con `source`: un bloque no llegó (la tabla lo vuelve a pedir más tarde). */
   onError?: (e: CustomEvent<GridErrorDetail>) => void;
+  /** `clientOnly`: el origen mandó más filas de las que caben y la tabla se quedó con las primeras. */
+  onTruncated?: (e: CustomEvent<GridTruncatedDetail>) => void;
   /** Cómo terminó una exportación. */
   onExport?: (e: CustomEvent<GridExportDetail>) => void;
   children?: JSX.Element;
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "clientOnly", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "noGroup", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "clientOnly", "timeout", "label", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "noGroup", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onTruncated", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -119,6 +125,8 @@ export function Grid(props: GridProps): JSX.Element {
       attr:source={local.source}
       attr:client-max={local.clientMax ? String(local.clientMax) : undefined}
       bool:client-only={!!local.clientOnly}
+      attr:timeout={local.timeout ? String(local.timeout) : undefined}
+      attr:label={local.label || undefined}
       attr:group-by={local.groupBy}
       attr:height={local.height === undefined ? undefined : String(local.height)}
       attr:heading={local.heading || undefined}
@@ -137,6 +145,7 @@ export function Grid(props: GridProps): JSX.Element {
       on:nx-grid-open={own((e) => local.onOpen?.(e))}
       on:nx-grid-action={own((e) => local.onAction?.(e))}
       on:nx-grid-error={own((e) => local.onError?.(e))}
+      on:nx-grid-truncated={own((e) => local.onTruncated?.(e))}
       on:nx-grid-export={own((e) => local.onExport?.(e))}
       prop:selected={local.selected}
       bool:selectable={!!local.selectable}

@@ -595,6 +595,13 @@ a.nx-grid__preset {
     font-weight: 600;
   }
 }
+/* `client-only` con más filas que el tope: cuántas se ven de cuántas hay, en su renglón bajo el
+   conteo, con el color de un aviso (es un límite, no un dato). */
+.nx-grid__truncated {
+  flex-basis: 100%;
+  color: var(--nx-warning-ink);
+  font-size: 12px;
+}
 .nx-grid__chip {
   display: inline-flex;
   align-items: center;

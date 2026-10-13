@@ -64,7 +64,7 @@ import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequen
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { MatrixConfig, MatrixHost, MatrixUI, MatrixView } from "./grid-matrix";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -1112,7 +1112,7 @@ export class NxGrid extends Base {
     if (this.#sort?.key === key) this.#sort = null;
     this.#act = this.#anchor = { r: this.#act.r, c: Math.min(this.#act.c, this.#columns.length - 1) };
     this.#dataChanged(true, !query);
-    this.#emit("nx-grid-columns", { columns: this.#cols });
+    this.#emitColumns();
   }
 
   /** Vuelve a pedir los datos (con `source`). Con `client-max`, vuelve a mirar si caben en el cliente. */
@@ -2121,12 +2121,31 @@ export class NxGrid extends Base {
     this.#paintAll();
   }
 
-  /** El ancho de una columna (null: el original). `paint`: al soltar, no en cada paso del arrastre. */
+  /** El ancho de una columna (null: el original). `paint`: al soltar, no en cada paso del arrastre;
+   *  solo entonces se avisa (`nx-grid-columns`): el arrastre lo avisa al soltar. */
   #setWidth(key: string, w: number | null, paint = true): void {
+    const before = paint ? this.#layoutKey() : "";
     if (w === null) this.#widths.delete(key);
     else this.#widths.set(key, clampW(w));
     this.#applyWidths();
-    if (paint) this.#paintChrome();
+    if (!paint) return;
+    this.#paintChrome();
+    this.#columnsChanged(before);
+  }
+
+  /** Las columnas ocultas y los anchos, para saber si algo que hizo la persona los cambió. */
+  #layoutKey(): string {
+    return JSON.stringify([[...this.#hidden].sort(), [...this.#widths].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))]);
+  }
+
+  /** La persona cambió la disposición de las columnas (desde `before`, de `#layoutKey`): se avisa,
+   *  para que la app la guarde en el momento (no al salir, que en el celular no siempre llega). */
+  #columnsChanged(before: string): void {
+    if (this.#layoutKey() !== before) this.#emitColumns();
+  }
+
+  #emitColumns(): void {
+    this.#emit("nx-grid-columns", { columns: this.#cols, hidden: [...this.#hidden], widths: Object.fromEntries(this.#widths) } satisfies GridColumnsDetail);
   }
 
   #widthOf(c: GridColumn): number {
@@ -2185,19 +2204,27 @@ export class NxGrid extends Base {
         return self.#activeView;
       },
       apply: (id) => {
+        const before = this.#layoutKey();
         const v = id && this.views.find((x) => x.id === id);
         this.#applyView(v || {}, v ? v.id : null);
+        this.#columnsChanged(before);
       },
       save: (list, active) => {
         this.views = list;
         this.#activeView = active;
         this.#paintChrome();
       },
-      setHidden: (key, hidden) => this.#setHidden(key, hidden),
+      setHidden: (key, hidden) => {
+        const before = this.#layoutKey();
+        this.#setHidden(key, hidden);
+        this.#columnsChanged(before);
+      },
       resetColumns: () => {
+        const before = this.#layoutKey();
         this.#hidden = this.#defaultHidden();
         this.#widths.clear();
         this.#setHidden("", false);
+        this.#columnsChanged(before);
       },
       chipText: (f) => this.#chipText(f),
       get storage() {
@@ -2366,13 +2393,16 @@ export class NxGrid extends Base {
       const x0 = e.clientX;
       const w0 = hd.parentElement!.getBoundingClientRect().width;
       const dir = getComputedStyle(this).direction === "rtl" ? -1 : 1;
+      const before = this.#layoutKey();
       hd.setPointerCapture?.(e.pointerId);
       const move = (ev: PointerEvent) => this.#setWidth(col.key, w0 + (ev.clientX - x0) * dir, false);
+      // Un solo aviso por arrastre, al soltar (no uno por píxel).
       const up = () => {
         hd.removeEventListener("pointermove", move);
         hd.removeEventListener("pointerup", up);
         hd.removeEventListener("pointercancel", up);
         this.#paintChrome();
+        this.#columnsChanged(before);
       };
       hd.addEventListener("pointermove", move);
       hd.addEventListener("pointerup", up);

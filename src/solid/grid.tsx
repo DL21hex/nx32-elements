@@ -3,10 +3,10 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/grid/index";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
+import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels } from "../components/grid/types";
 import type { GridFilterDetail } from "./jsx";
 
-export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
+export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridView, GridViewLabels };
 
 export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" | "onError"> {
   columns: GridColumn[];
@@ -75,7 +75,10 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   onViews?: (e: CustomEvent<{ views: GridSavedView[] }>) => void;
   /** Cancelable: con `preventDefault()` la edición no se aplica. */
   onChange?: (e: CustomEvent<{ changes: GridChange[]; source: GridChangeSource }>) => void;
-  onColumns?: (e: CustomEvent<{ columns: GridColumn[] }>) => void;
+  /** La persona escondió o mostró una columna, cambió un ancho (al soltar) o eligió una vista que
+   *  los cambia; también `removeColumn()`. `{columns, hidden, widths}`: `hidden` y `widths` son los
+   *  de `view`, para guardar la disposición en el momento. No sale por lo que asigna la app. */
+  onColumns?: (e: CustomEvent<GridColumnsDetail>) => void;
   onSelection?: (e: CustomEvent<{ ids: string[]; count: number }>) => void;
   /** Clic en una columna `link` o Enter en una fila: el detalle (p. ej. un `<Dialog mode="panel">`).
    *  Una fila con enlace (columna `href` con dirección) lo sigue y no emite. */

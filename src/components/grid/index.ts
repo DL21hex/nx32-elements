@@ -14,6 +14,7 @@ export type {
   GridChange,
   GridChangeSource,
   GridColumn,
+  GridColumnsDetail,
   GridColumnType,
   GridDateRel,
   GridErrorDetail,
@@ -45,7 +46,7 @@ declare global {
   interface HTMLElementEventMap {
     "nx-grid-filter": CustomEvent<{ filters: import("./types").GridFilter[]; sort: import("./types").GridSort | null; groupBy: string; search: string; count: number }>;
     "nx-grid-change": CustomEvent<{ changes: import("./types").GridChange[]; source: import("./types").GridChangeSource }>;
-    "nx-grid-columns": CustomEvent<{ columns: import("./types").GridColumn[] }>;
+    "nx-grid-columns": CustomEvent<import("./types").GridColumnsDetail>;
     "nx-grid-selection": CustomEvent<{ ids: string[]; count: number }>;
     "nx-grid-views": CustomEvent<{ views: import("./types").GridSavedView[] }>;
     "nx-grid-open": CustomEvent<{ id: string; row: import("./types").GridRow; key: string; origin: HTMLElement | null }>;

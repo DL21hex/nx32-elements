@@ -568,7 +568,13 @@ Una tabla de datos que se explora sola:
   persona la muestra desde «Columnas», y «Volver a las columnas de la tabla» (o la tabla original
   de las vistas) la vuelve a esconder. Reasignar `columns` no esconde otra vez lo que la persona
   mostró; una vista guardada recuerda lo que eligió. El borde de cada cabecera cambia su ancho: arrastrar,
-  Ctrl+←/→ con el foco en la cabecera, y doble clic o Supr para el original.
+  Ctrl+←/→ con el foco en la cabecera, y doble clic o Supr para el original. Cada cambio de la
+  persona sale en `nx-grid-columns` (`{columns, hidden, widths}`, los `hidden` y `widths` de
+  `view`): esconder o mostrar, volver a las columnas de la tabla, un ancho (el arrastre, una vez al
+  soltar) o una vista elegida en «Vistas» que los cambia. Así la app guarda la disposición en el
+  momento, sin esperar a salir de la página (`pagehide` en el celular no siempre llega). Lo que
+  asigna la app (`columns`, `view`, `applyView()`) y la vista predeterminada al abrir no lo emiten;
+  `removeColumn()` sí, como antes.
 - **Vistas guardadas.** Con `views-storage="compras:ana"`, «Vistas» guarda el estado de la tabla
   con un nombre en `localStorage` (filtros, orden, agrupación, columnas ocultas y anchos) y lo
   aplica con un clic. Si después se cambia algo, el botón dice «modificada» y el menú ofrece
@@ -866,7 +872,7 @@ lee lo que trae la fila, no `Object`.
 | Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns` (`{columns, hidden, widths}`: la persona cambió las columnas visibles o un ancho, o `removeColumn()`), `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 

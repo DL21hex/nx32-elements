@@ -46,6 +46,22 @@
   Ese `total` es el de la consulta sin filtros: «Todos» (los segmentos) lo muestra, cuando antes iba
   sin número hasta quitar los filtros. Una fuente que sigue mandando las `client-max + 1` filas
   funciona igual que antes.
+- **`<nx-grid>`: `nx-grid-columns` avisa cuando la persona cambia las columnas.** La app no tenía
+  cómo enterarse de que alguien escondió o mostró una columna o cambió un ancho (solo
+  `removeColumn()` emitía `nx-grid-columns`): leía `view` al desmontar o en `pagehide`, que en el
+  celular no siempre llega, y la disposición elegida se perdía. Ahora `nx-grid-columns` sale cada vez
+  que la persona cambia las columnas visibles o un ancho, y solo si algo cambió: «Columnas»
+  (esconder, mostrar, «Volver a las columnas de la tabla»), el borde de la cabecera (un arrastre
+  avisa una vez, al soltar, no en cada píxel; Ctrl+←/→, Supr y doble clic, uno por cambio) o una
+  vista elegida en «Vistas» que los cambia. El detalle suma a `columns` las ocultas y los anchos,
+  los mismos de `view`: `{columns, hidden, widths}` (`GridColumnsDetail`). No sale por lo que asigna
+  la app (`columns`, `view`, `applyView()`) ni por la vista predeterminada al abrir: la app ya lo
+  sabe, y un recuerdo guardado al oírlo se pisaría con el arranque. `removeColumn()` lo sigue
+  emitiendo, ahora con `hidden` y `widths`. Solid: `onColumns`, con el detalle nuevo. Se reutilizó
+  `nx-grid-columns` (el nombre que ya dice «las columnas») en vez de otro, que habría quedado al
+  lado de `nx-grid-layout` (Tabla | Matriz). **Cambia (0.x):** `nx-grid-columns` ya no quiere decir
+  solo «se quitó una columna»: quien lo escuchaba para eso lo recibe también al esconder, mostrar o
+  cambiar un ancho (que `columns` sea más corta lo distingue).
 
 ## 0.18.0 — 2026-10-12
 

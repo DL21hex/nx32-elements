@@ -64,6 +64,9 @@
 - **`<nx-page-header>`: una cifra nunca dice «-0».** Los `kpis` numéricos usaban
   `Intl.NumberFormat` directo: un `-0` (una suma vacía en el servidor) o un negativo que se redondea
   a cero (-0,001 con dos decimales) salía «-0». Ahora pasan por `formatZeroSafe`, como las gráficas.
+- **`<nx-history>`: acepta el tono `info`.** Los estados (`options[].tone`) admitían `neutral`,
+  `success`, `warning` y `danger`; un `info` (el de `<nx-badge>` y `<nx-notice>`) caía en neutro.
+  Ahora se acepta y se pinta como en `<nx-badge>`.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

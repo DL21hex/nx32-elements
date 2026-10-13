@@ -650,6 +650,7 @@ export class NxSelect extends Base {
         if (e.key === "Enter") this.#enterPending = true;
         return;
       }
+      if (step === null) return;
       if (step === "select") this.#pick(this.#matches[this.#highlighted]?.option);
       else this.#highlight(step, true);
     });

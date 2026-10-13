@@ -568,12 +568,25 @@ Una tabla de datos que se explora sola:
   persona la muestra desde «Columnas», y «Volver a las columnas de la tabla» (o la tabla original
   de las vistas) la vuelve a esconder. Reasignar `columns` no esconde otra vez lo que la persona
   mostró; una vista guardada recuerda lo que eligió. El borde de cada cabecera cambia su ancho: arrastrar,
-  Ctrl+←/→ con el foco en la cabecera, y doble clic o Supr para el original.
+  Ctrl+←/→ con el foco en la cabecera, y doble clic o Supr para el original. Cada cambio de la
+  persona sale en `nx-grid-columns` (`{columns, hidden, widths}`, los `hidden` y `widths` de
+  `view`): esconder o mostrar, volver a las columnas de la tabla, un ancho (el arrastre, una vez al
+  soltar) o una vista elegida en «Vistas» que los cambia. Así la app guarda la disposición en el
+  momento, sin esperar a salir de la página (`pagehide` en el celular no siempre llega). Lo que
+  asigna la app (`columns`, `view`, `applyView()`) y la vista predeterminada al abrir no lo emiten;
+  `removeColumn()` sí, como antes.
 - **Vistas guardadas.** Con `views-storage="compras:ana"`, «Vistas» guarda el estado de la tabla
   con un nombre en `localStorage` (filtros, orden, agrupación, columnas ocultas y anchos) y lo
   aplica con un clic. Si después se cambia algo, el botón dice «modificada» y el menú ofrece
   guardar los cambios o guardarla como nueva; también renombrar, borrar y volver a la tabla
-  original. Una puede abrir la tabla. Los tramos de fechas relativos siguen siendo ciertos otro
+  original. Una puede abrir la tabla («abrir con esta vista»): se aplica cuando la tabla, ya en la
+  página, tiene sus columnas, encima de los `filters` y el `sort` de arranque que asigna la app. Si
+  la tabla se conecta sin columnas (la del HTML del servidor, que recibe sus propiedades al
+  hidratar), espera a las primeras y se aplica al final de esa tarea: encima de lo asignado en ella
+  o antes, y la primera petición de filas ya sale con la vista. `activeView` la nombra desde que se
+  aplicó; `applyView(id)` en esa tarea la reemplaza. Lo que la app quiera poner encima (la URL, lo
+  recordado) va después: en otra tarea, o en un microtask encolado tras asignar las propiedades
+  (sale en la misma petición). Los tramos de fechas relativos siguen siendo ciertos otro
   día, lo de columnas que ya no existen se quita (y se dice) y otra pestaña que guarda se ve al
   instante. Guardar, renombrar o borrar cambia solo esa vista sobre lo guardado en ese momento: no
   pisa lo que guardó otra pestaña u otra tabla con la misma clave. `grid.view` lee o aplica ese
@@ -636,7 +649,12 @@ grid.addEventListener("nx-grid-error", (e) => {
 - **O que la tabla elija.** Con `source` y `client-max="20000"`, la primera página dice el total:
   si pasa del tope, sigue en el servidor sin pedir nada más; si cabe, trae la consulta completa una
   vez (`{offset: 0, limit: 20001, sort: null, filters: []}`) y sigue en el cliente, con conteos
-  exactos, filtros al instante y agrupación. `grid.mode` dice dónde quedó. Las filas traídas son
+  exactos, filtros al instante y agrupación. `grid.mode` dice dónde quedó. Si la primera página
+  iba filtrada (una bandeja que abre en «Activo»), su total no es el del conjunto, y el conjunto
+  puede no caber: la fuente contesta la consulta completa con las filas o, si ya sabe que son más
+  que el tope, solo con su número, `{rows: [], total: N}`, sin leerlas. Con un `total` mayor que el
+  tope, más filas que el tope o menos filas que su `total`, la tabla sigue en el servidor (y ese
+  `total` es el número de «Todos»). Las filas traídas son
   una foto: `refresh()` las vuelve a pedir (y vuelve a mirar el total). Es opcional: sin
   `client-max` nada cambia. Un origen sin modo servidor (que solo sabe responder la consulta
   completa) también sirve: si la primera página trae filtros, búsqueda u orden (los recordados al
@@ -854,7 +872,7 @@ lee lo que trae la fila, no `Object`.
 | Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns`, `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns` (`{columns, hidden, widths}`: la persona cambió las columnas visibles o un ancho, o `removeColumn()`), `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 
@@ -2390,7 +2408,10 @@ seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, 
 
 1. **Cabecera** (la del diálogo): quién es (`avatar`), su estado (`badge`), pasar al registro
    anterior o siguiente sin cerrar (`nav`, también con J y K) y el menú «Más» (`actions`: lo poco
-   usado y lo destructivo, separado al final). Se carga aparte, solo si se usa.
+   usado y lo destructivo, separado al final). Se carga aparte, solo si se usa. Pasar de registro
+   con cambios sin guardar pide la misma confirmación que cerrar: «Seguir editando» se queda y
+   «Descartar» pasa; al pasar, `dirty` vuelve a `false` (lo que se protegía era del registro que se
+   deja). `nx-dialog-nav` es cancelable: con `preventDefault()` no se pasa.
 2. **Resumen**: `<nx-fields variant="summary">`, tres o cuatro datos clave, solo lectura.
 3. **Aviso**: `<nx-notice>`, uno solo y solo si hay algo que hacer, con su acción adentro.
 4. **Pestañas**: `<nx-tabs sticky>`, temas y no pasos, pegadas bajo la cabecera al desplazarse.
@@ -2468,7 +2489,7 @@ guardar.onclick = async () => {
 
 | | |
 |---|---|
-| `<nx-dialog>` (ficha) | `avatar`, `badge`, `badge-tone`, `nav` (`"prev next"`, `"next"`, `"prev"`, `""`), `actions` (`[{id, label, danger?, disabled?, icon?}]`) · `nx-dialog-nav` `{dir}`, `nx-dialog-action` `{id}` · pone `--nx-sticky-top` (alto de su cabecera) |
+| `<nx-dialog>` (ficha) | `avatar`, `badge`, `badge-tone`, `nav` (`"prev next"`, `"next"`, `"prev"`, `""`), `actions` (`[{id, label, danger?, disabled?, icon?}]`) · `requestNav(dir)` → si pasó · `nx-dialog-nav` `{dir}` (cancelable; con cambios sin guardar, después de «Descartar»), `nx-dialog-action` `{id}` · pone `--nx-sticky-top` (alto de su cabecera) |
 | `<nx-fields>` | `items` (`[{key?, label, value, wide?, format?, currency?, href?, copy?, mono?, readonly?, input?}]`; `format`: `text`, `number`, `money`, `date`; `input`: `{type?, options?, required?, placeholder?, hint?, rows?}`), `variant` (`grid` / `summary`), `columns` (1–4), `heading`, `action`, `editing`, `errors`, `locale`, `currency`, `labels` · `values`, `validate()`, `focusField(key)`, `reset()` · `nx-fields-action` `{action}` |
 | `<nx-tabs>` | hijos con `data-tab`, `data-value`, `data-count`, `data-errors`, `data-disabled`, o `tabs` (`[{value, label, count?, errors?, disabled?}]`) · `value`, `sticky`, `label`, `labels` · `nx-tabs-change` `{value, previous}` (cancelable) |
 | `<nx-notice>` | `tone` (`info`, `success`, `warning`, `danger`), `text`, `action`, `action-href` · `nx-notice-action` `{action}` |

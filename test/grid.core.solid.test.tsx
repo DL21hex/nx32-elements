@@ -41,6 +41,16 @@ describe("<Grid>", () => {
     expect(onAction.mock.calls[0][0].detail).toMatchObject({ action: "edit", id: "2" });
   });
 
+  it("onColumns recibe el ancho que cambió la persona, con {columns, hidden, widths}; lo que asigna la app no", () => {
+    const root = document.body.appendChild(document.createElement("div"));
+    const onColumns = vi.fn();
+    render(() => <Grid columns={COLS} rows={ROWS} view={{ widths: { oc: 300 } }} onColumns={onColumns} />, root);
+    expect(onColumns).not.toHaveBeenCalled();
+    root.querySelector<HTMLElement>(".nx-grid__resize")!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(onColumns).toHaveBeenCalledOnce();
+    expect(onColumns.mock.calls[0][0].detail).toEqual({ columns: COLS, hidden: [], widths: { oc: 316 } });
+  });
+
   it("rowKey: los id salen de esa columna", () => {
     const root = document.body.appendChild(document.createElement("div"));
     const onSelection = vi.fn();

@@ -116,3 +116,109 @@ describe("<nx-dialog> como ficha", () => {
     expect(d.open).toBe(false);
   });
 });
+
+// Una ficha con un formulario editado: «siguiente» cargaba otro registro y lo escrito se perdía
+// sin aviso; y como `dirty` solo se reiniciaba al abrir, cerrar la ficha siguiente (sin tocarla)
+// preguntaba «¿Descartar?».
+describe("pasar de registro con cambios sin guardar", () => {
+  const edit = (d: NxDialog) => {
+    const input = $<HTMLInputElement>(d, "#campo");
+    input.value = "algo";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(d.dirty).toBe(true);
+  };
+  const guard = (d: NxDialog) => $(d, ".nx-dialog__guard");
+  async function open(): Promise<{ d: NxDialog; dirs: string[] }> {
+    const d = mount('nav="prev next"');
+    void d.show();
+    await ready(d);
+    const dirs: string[] = [];
+    d.addEventListener("nx-dialog-nav", (e) => dirs.push(e.detail.dir));
+    return { d, dirs };
+  }
+
+  it("sin cambios pasa directo, con un nx-dialog-nav cancelable", async () => {
+    const { d, dirs } = await open();
+    let cancelable: boolean | undefined;
+    d.addEventListener("nx-dialog-nav", (e) => (cancelable = e.cancelable));
+    $<HTMLButtonElement>(d, '[data-tool="next"]').click();
+    expect(dirs).toEqual(["next"]);
+    expect(cancelable).toBe(true);
+    expect(guard(d).hidden).toBe(true);
+    expect(d.requestNav("prev")).toBe(true);
+    expect(dirs).toEqual(["next", "prev"]);
+  });
+
+  it("con cambios pide la misma confirmación que al cerrar; «Seguir editando» no pasa", async () => {
+    const { d, dirs } = await open();
+    edit(d);
+    $<HTMLButtonElement>(d, '[data-tool="next"]').click();
+    expect(dirs).toEqual([]);
+    expect(guard(d).hidden).toBe(false);
+    expect(guard(d).textContent).toContain("Tienes cambios sin guardar");
+    expect(document.activeElement).toBe($(d, "[data-guard='keep']"));
+    $<HTMLButtonElement>(d, "[data-guard='keep']").click();
+    expect(guard(d).hidden).toBe(true);
+    expect(dirs).toEqual([]);
+    expect(d.dirty).toBe(true);
+    expect(d.open).toBe(true);
+    // Escape con el aviso a la vista también es seguir editando.
+    expect(d.requestNav("prev")).toBe(false);
+    key(document.activeElement!, "Escape");
+    expect(guard(d).hidden).toBe(true);
+    expect(dirs).toEqual([]);
+    expect(d.open).toBe(true);
+  });
+
+  it("con cambios, «Descartar» pasa y deja dirty en false: cerrar la ficha siguiente no pregunta", async () => {
+    const { d, dirs } = await open();
+    const reasons: string[] = [];
+    d.addEventListener("nx-dialog-close", (e) => reasons.push(e.detail.reason));
+    edit(d);
+    // J / K pasan por la misma guarda.
+    d.focus();
+    key(d, "j");
+    expect(dirs).toEqual([]);
+    expect(guard(d).hidden).toBe(false);
+    $<HTMLButtonElement>(d, "[data-guard='discard']").click();
+    expect(dirs).toEqual(["next"]);
+    expect(d.dirty).toBe(false);
+    expect(guard(d).hidden).toBe(true);
+    // Sigue abierto (se pasó de registro, no se cerró) y el foco vuelve al botón de pasar.
+    expect(d.open).toBe(true);
+    expect(reasons).toEqual([]);
+    expect(document.activeElement).toBe($(d, '[data-tool="next"]'));
+    $<HTMLButtonElement>(d, ".nx-dialog__x").click();
+    expect(guard(d).hidden).toBe(true);
+    expect(d.open).toBe(false);
+    expect(reasons).toEqual(["button"]);
+  });
+
+  it("preventDefault() en nx-dialog-nav no pasa, y lo escrito sigue protegido", async () => {
+    const { d, dirs } = await open();
+    d.addEventListener("nx-dialog-nav", (e) => e.preventDefault());
+    // Sin cambios: el evento sale, pero no pasa.
+    expect(d.requestNav("next")).toBe(false);
+    expect(dirs).toEqual(["next"]);
+    // Con cambios y «Descartar»: la app no lo deja pasar, así que `dirty` no cambia.
+    edit(d);
+    $<HTMLButtonElement>(d, '[data-tool="prev"]').click();
+    $<HTMLButtonElement>(d, "[data-guard='discard']").click();
+    expect(dirs).toEqual(["next", "prev"]);
+    expect(d.dirty).toBe(true);
+    $<HTMLButtonElement>(d, ".nx-dialog__x").click();
+    expect(guard(d).hidden).toBe(false);
+    expect(d.open).toBe(true);
+  });
+
+  it("una guarda de cierre y una de pasar no se mezclan: la última pedida es la que decide", async () => {
+    const { d, dirs } = await open();
+    edit(d);
+    $<HTMLButtonElement>(d, ".nx-dialog__x").click();
+    expect(guard(d).hidden).toBe(false);
+    $<HTMLButtonElement>(d, '[data-tool="next"]').click();
+    $<HTMLButtonElement>(d, "[data-guard='discard']").click();
+    expect(dirs).toEqual(["next"]);
+    expect(d.open).toBe(true);
+  });
+});

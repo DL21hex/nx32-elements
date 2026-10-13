@@ -1,5 +1,68 @@
 # Registro de cambios
 
+## 0.19.0 — 2026-10-13
+
+- **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un
+  formulario editado, «siguiente» (o J / K) cargaba otro registro y lo escrito se perdía sin aviso;
+  y como `dirty` solo volvía a `false` al abrir, cerrar después la ficha siguiente, sin haberla
+  tocado, preguntaba «¿Descartar?». Ahora, con `dirty`, pasar de registro pide la misma
+  confirmación que cerrar (el mismo aviso, con `labels.unsaved`, `keep` y `discard`): «Seguir
+  editando» (o Escape) se queda donde está y «Descartar» pasa, con el foco de vuelta en el botón de
+  pasar. Al pasar, el diálogo pone `dirty = false`: lo que protegía era del registro que se deja.
+  `nx-dialog-nav` es cancelable: con `preventDefault()` no se pasa, y `dirty` no cambia (lo escrito
+  sigue ahí). `requestNav("prev" | "next")` hace lo mismo que los botones y devuelve si pasó.
+  **Cambia (0.x):** con cambios sin guardar, `nx-dialog-nav` ya no sale al pulsar: sale después de
+  «Descartar». Una app que guarda sola antes de pasar de registro pone `dirty = false` al guardar,
+  como ya lo hacía para cerrar sin el aviso.
+- **`<nx-grid>`: la vista predeterminada gana también cuando la tabla se conecta antes de recibir
+  sus propiedades.** La prioridad del arranque es: lo que la app pone encima (la URL, lo recordado)
+  › la vista marcada «abrir con esta vista» (`views-storage`) › los filtros y el orden de arranque
+  que asigna la app. Una tabla que llega en el HTML del servidor solo con sus atributos (`source`,
+  `views-storage`, `client-max`…) se conecta al cargar la librería, antes de que la hidratación le
+  asigne `columns`, `filters` y `sort` (en cada carga completa: un enlace, un marcador, recargar).
+  La vista se aplicaba al conectarse, los filtros y el orden de arranque la pisaban enseguida y
+  `activeView` seguía nombrándola: la tabla abría sin la vista de la persona y el menú decía que
+  estaba puesta. En una navegación dentro de la app (las propiedades llegan antes de conectar) sí
+  ganaba. Ahora, sin columnas, la vista espera a las primeras (sin ellas no se sabe qué claves
+  valen) y se aplica al final de esa tarea, encima de los `filters` y `sort` asignados en ella o
+  antes, sin importar el orden; la primera petición de filas ya sale con la vista (una sola, sin
+  cancelaciones). `activeView` es `null` hasta que se aplica. `applyView(id)` en esa misma tarea
+  reemplaza a la predeterminada. Con las propiedades antes de conectar nada cambia; sin `source`,
+  lo mismo (sin petición). **Cambia (0.x):** en una tabla que se conecta sin columnas, la vista
+  predeterminada (y `activeView`) ya no está en la misma tarea en que llegan las columnas, sino al
+  final de ella. Quien repone algo encima (la URL, lo recordado) y miraba `activeView` en esa tarea
+  lo hace después: en otra tarea o en un microtask encolado tras asignar las propiedades, y sale en
+  la misma petición. Una prueba que miraba la vista en el acto la encuentra tras un
+  `await Promise.resolve()`.
+- **`<nx-grid source client-max>`: la descarga completa que no cabe se contesta con un número.**
+  Cuando la primera página dice `total <= client-max`, la tabla pide el conjunto entero sin filtros
+  (`{offset: 0, limit: client-max + 1, sort: null, filters: []}`) para seguir en el navegador. Pero
+  ese `total` era el de la consulta filtrada (una bandeja que abre en «Activo»): si sin filtros
+  pasaban del tope, la fuente leía y mandaba `client-max + 1` filas que la tabla tiraba. Ahora es
+  parte del protocolo de `source` (README y `GridPage`): a la petición completa la fuente puede
+  contestar solo `{rows: [], total: N}`, sin leer las filas; con un `total` numérico mayor que
+  `client-max` la tabla entiende que no cabe y sigue en el servidor aunque `rows` venga corta o
+  vacía (ya lo hacía porque llegaban menos filas que `total`; ahora es la regla escrita y probada).
+  Ese `total` es el de la consulta sin filtros: «Todos» (los segmentos) lo muestra, cuando antes iba
+  sin número hasta quitar los filtros. Una fuente que sigue mandando las `client-max + 1` filas
+  funciona igual que antes.
+- **`<nx-grid>`: `nx-grid-columns` avisa cuando la persona cambia las columnas.** La app no tenía
+  cómo enterarse de que alguien escondió o mostró una columna o cambió un ancho (solo
+  `removeColumn()` emitía `nx-grid-columns`): leía `view` al desmontar o en `pagehide`, que en el
+  celular no siempre llega, y la disposición elegida se perdía. Ahora `nx-grid-columns` sale cada vez
+  que la persona cambia las columnas visibles o un ancho, y solo si algo cambió: «Columnas»
+  (esconder, mostrar, «Volver a las columnas de la tabla»), el borde de la cabecera (un arrastre
+  avisa una vez, al soltar, no en cada píxel; Ctrl+←/→, Supr y doble clic, uno por cambio) o una
+  vista elegida en «Vistas» que los cambia. El detalle suma a `columns` las ocultas y los anchos,
+  los mismos de `view`: `{columns, hidden, widths}` (`GridColumnsDetail`). No sale por lo que asigna
+  la app (`columns`, `view`, `applyView()`) ni por la vista predeterminada al abrir: la app ya lo
+  sabe, y un recuerdo guardado al oírlo se pisaría con el arranque. `removeColumn()` lo sigue
+  emitiendo, ahora con `hidden` y `widths`. Solid: `onColumns`, con el detalle nuevo. Se reutilizó
+  `nx-grid-columns` (el nombre que ya dice «las columnas») en vez de otro, que habría quedado al
+  lado de `nx-grid-layout` (Tabla | Matriz). **Cambia (0.x):** `nx-grid-columns` ya no quiere decir
+  solo «se quitó una columna»: quien lo escuchaba para eso lo recibe también al esconder, mostrar o
+  cambiar un ancho (que `columns` sea más corta lo distingue).
+
 ## 0.18.0 — 2026-10-12
 
 - **Una sola espera para toda la librería, sin esqueletos.** Seis componentes tenían su propio

@@ -739,7 +739,7 @@ function mountGridDemo(root: HTMLElement) {
   };
   grid.addEventListener("nx-grid-filter", (e) => add(`nx-grid-filter → ${e.detail.count} filas · ${JSON.stringify(e.detail.filters)}${e.detail.sort ? ` · orden ${e.detail.sort.key} ${e.detail.sort.dir}` : ""}${e.detail.groupBy ? ` · grupo ${e.detail.groupBy}` : ""}`));
   grid.addEventListener("nx-grid-change", (e) => add(`nx-grid-change → ${e.detail.changes.map((c) => `${c.id}.${c.key} = ${JSON.stringify(c.value)}`).join(", ")}`));
-  grid.addEventListener("nx-grid-columns", (e) => add(`nx-grid-columns → ${e.detail.columns.map((c) => c.key).join(", ")}`));
+  grid.addEventListener("nx-grid-columns", (e) => add(`nx-grid-columns → ${e.detail.columns.length} columnas · ocultas: ${e.detail.hidden.join(", ") || "ninguna"} · anchos: ${JSON.stringify(e.detail.widths)}`));
 
   // Enlace por fila, columna escondida de arranque y acciones de fila.
   const links = root.querySelector<NxGrid>("#grid-links")!;

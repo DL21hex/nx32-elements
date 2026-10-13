@@ -12,7 +12,7 @@ import type { AiActionDetail, AiDoneDetail, AiEvent, AiFeedbackDetail, AiLabels 
 import type { NxDocCapture } from "../components/capture/doc-capture";
 import type { CaptureEvent, CaptureLabels, CaptureSchemaItem, CaptureSubmitDetail, CaptureValues } from "../components/capture/types";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridView } from "../components/grid/types";
+import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridView } from "../components/grid/types";
 import type { NxDialog } from "../components/dialog/dialog";
 import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 import type { NxBadge } from "../components/badge/badge";
@@ -543,7 +543,7 @@ declare module "solid-js" {
       "nx-doc-capture-submit": CustomEvent<CaptureSubmitDetail>;
       "nx-grid-filter": CustomEvent<GridFilterDetail>;
       "nx-grid-change": CustomEvent<{ changes: GridChange[]; source: GridChangeSource }>;
-      "nx-grid-columns": CustomEvent<{ columns: GridColumn[] }>;
+      "nx-grid-columns": CustomEvent<GridColumnsDetail>;
       "nx-dialog-close": CustomEvent<DialogCloseDetail>;
       "nx-dialog-nav": CustomEvent<DialogNavDetail>;
       "nx-dialog-action": CustomEvent<DialogActionDetail>;

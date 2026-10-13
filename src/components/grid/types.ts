@@ -335,6 +335,21 @@ export interface GridMatrix {
   value?: string;
 }
 
+/**
+ * `nx-grid-columns`: cambió la disposición de las columnas. `columns`, todas las de la tabla;
+ * `hidden` y `widths`, las ocultas (por `key`) y los anchos que eligió la persona (px, por `key`),
+ * los mismos de `view`. Sale cuando la persona esconde o muestra una columna («Columnas», «Volver a
+ * las columnas de la tabla»), cambia un ancho (un arrastre, una vez al soltar; Ctrl+←/→, doble clic
+ * o Supr) o elige en «Vistas» una que los cambia, y con `removeColumn()`. No sale por lo que asigna
+ * la app (`columns`, `view`, `applyView()`) ni por la vista predeterminada al abrir: la app ya lo
+ * sabe, y un recuerdo guardado al oír eso se pisaría con el arranque.
+ */
+export interface GridColumnsDetail {
+  columns: GridColumn[];
+  hidden: string[];
+  widths: Record<string, number>;
+}
+
 /** `nx-grid-layout`: la persona pasó entre la tabla y la matriz, o cambió la matriz. */
 export interface GridLayoutDetail {
   layout: GridLayout;
@@ -358,6 +373,16 @@ export interface GridMatrixCell {
 }
 
 /** Lo que responde `source`: un bloque de filas y, opcionalmente, los agregados con los filtros aplicados. */
+/**
+ * La respuesta de `source` a `{offset, limit, sort, filters, search?}`. `total`: cuántas filas
+ * tiene la consulta entera (no solo esta página).
+ *
+ * Con `client-max`, si la primera página dice que puede caber, la tabla pide una vez la consulta
+ * completa: `{offset: 0, limit: client-max + 1, sort: null, filters: []}`. La fuente contesta las
+ * filas (hasta `client-max + 1`) o, si ya sabe que son más que el tope, solo el número:
+ * `{rows: [], total: N}`, sin leerlas. La tabla sigue en el servidor si `total` pasa del tope, si
+ * llegan más filas que el tope o si llegan menos que `total`; si no, sigue en el navegador con esas.
+ */
 export interface GridPage {
   rows: GridRow[];
   total: number;

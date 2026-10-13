@@ -300,3 +300,125 @@ describe("sin columnas no se pide nada", () => {
     expect(s.bare()).toBe(0);
   });
 });
+
+// Prioridad del arranque: lo que la app pone encima (la URL, lo recordado) › la vista
+// predeterminada guardada › los filtros y el orden de arranque que asigna la app. La tabla del HTML
+// del servidor se conecta antes de recibir sus propiedades (cada carga completa: un enlace, un
+// marcador, recargar); la vista se aplicaba al conectarse, la pisaban los filtros de arranque y
+// `activeView` seguía nombrándola.
+describe("la vista predeterminada gana a los filtros de arranque", () => {
+  const KEY = "nx-coalesce-default";
+  const VIEW_SORT = { key: "oc", dir: 1 as const };
+  const START = [{ key: "prov", op: "in" as const, values: ["Empaques"] }];
+  const save = () => localStorage.setItem(KEY, JSON.stringify({ v: 1, views: [{ id: "a", name: "Aceros", filters: FILTERS, sort: VIEW_SORT, hidden: ["estado"], default: true }] }));
+  afterEach(() => localStorage.removeItem(KEY));
+  /** La vista quedó aplicada de verdad: `activeView`, la consulta, las columnas y una sola petición. */
+  function applied(el: NxGrid, s: ReturnType<typeof server>): void {
+    expect(el.activeView).toBe("a");
+    expect(el.filters).toEqual(FILTERS);
+    expect(el.sort).toEqual(VIEW_SORT);
+    expect(el.view.hidden).toEqual(["estado"]);
+    expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: VIEW_SORT, filters: FILTERS }]);
+    expect(s.aborted).toEqual([]);
+    expect(s.bare()).toBe(0);
+    expect(el.count).toBe(125);
+  }
+
+  it("propiedades antes de conectar (una navegación en la app): la vista, en el acto", async () => {
+    save();
+    const s = server();
+    const el = document.createElement("nx-grid") as NxGrid;
+    el.setAttribute("source", "/datos");
+    el.setAttribute("views-storage", KEY);
+    el.columns = COLS;
+    el.filters = START;
+    el.sort = SORT;
+    document.body.append(el);
+    expect(el.activeView).toBe("a");
+    await sleep(30);
+    applied(el, s);
+  });
+
+  it("conectada sin nada y las propiedades en la misma tarea (las columnas primero): la vista, al final de la tarea", async () => {
+    save();
+    const s = server();
+    const el = ssr(`source="/datos" views-storage="${KEY}"`);
+    el.columns = COLS;
+    el.filters = START;
+    el.sort = SORT;
+    // Todavía no se aplicó: `activeView` no la nombra.
+    expect(el.activeView).toBeNull();
+    expect(el.filters).toEqual(START);
+    await sleep(30);
+    applied(el, s);
+  });
+
+  it("también con los filtros y el orden antes que las columnas", async () => {
+    save();
+    const s = server();
+    const el = ssr(`source="/datos" views-storage="${KEY}"`);
+    el.filters = START;
+    el.sort = SORT;
+    el.columns = COLS;
+    await sleep(30);
+    applied(el, s);
+  });
+
+  it("conectada sin nada y las propiedades en una tarea posterior: igual", async () => {
+    save();
+    const s = server();
+    const el = ssr(`source="/datos" views-storage="${KEY}"`);
+    await sleep(20);
+    expect(s.fetch).not.toHaveBeenCalled();
+    expect(el.activeView).toBeNull();
+    el.columns = COLS;
+    el.filters = START;
+    el.sort = SORT;
+    await sleep(30);
+    applied(el, s);
+  });
+
+  it("lo que la app pone encima después (un microtask encolado tras las propiedades) gana, en la misma petición", async () => {
+    save();
+    const s = server();
+    const el = ssr(`source="/datos" views-storage="${KEY}"`);
+    const URL_FILTERS = [{ key: "prov", op: "in" as const, values: ["Empaques"] }];
+    el.columns = COLS;
+    el.filters = START;
+    // Como un adaptador que repone la URL o lo recordado sobre la vista predeterminada.
+    queueMicrotask(() => {
+      expect(el.activeView).toBe("a");
+      el.filters = URL_FILTERS;
+    });
+    await sleep(30);
+    expect(el.activeView).toBe("a");
+    expect(el.filters).toEqual(URL_FILTERS);
+    expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: VIEW_SORT, filters: URL_FILTERS }]);
+    expect(s.aborted).toEqual([]);
+  });
+
+  it("applyView(id) en la misma tarea reemplaza a la predeterminada", async () => {
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, views: [{ id: "a", name: "Aceros", filters: FILTERS, default: true }, { id: "b", name: "Empaques", filters: START }] }));
+    const s = server();
+    const el = ssr(`source="/datos" views-storage="${KEY}"`);
+    el.columns = COLS;
+    expect(el.applyView("b")).toBe(true);
+    await sleep(30);
+    expect(el.activeView).toBe("b");
+    expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: null, filters: START }]);
+  });
+
+  it("sin source, con las filas en el cliente, igual", async () => {
+    save();
+    const el = ssr(`views-storage="${KEY}"`);
+    el.columns = COLS;
+    el.rows = Array.from({ length: 10 }, (_, i) => ({ id: `r${i}`, oc: `OC-${i}`, prov: i % 2 ? "Aceros" : "Empaques", estado: "pend", monto: i }));
+    el.filters = START;
+    el.sort = SORT;
+    await Promise.resolve();
+    expect(el.activeView).toBe("a");
+    expect(el.filters).toEqual(FILTERS);
+    expect(el.sort).toEqual(VIEW_SORT);
+    expect(el.count).toBe(5);
+  });
+});

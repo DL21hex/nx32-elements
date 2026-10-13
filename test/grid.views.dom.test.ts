@@ -237,6 +237,9 @@ describe("<nx-grid>: vistas guardadas", () => {
       }),
     );
     const el = mount(`views-storage="${KEY}"`);
+    // Conectada sin columnas, la vista predeterminada se aplica al final de la tarea en que llegan.
+    expect(el.activeView).toBeNull();
+    await Promise.resolve();
     expect(el.views.map((v) => [v.id, !!v.default])).toEqual([
       ["a", true],
       ["b", false],
@@ -338,5 +341,114 @@ describe("<nx-grid>: el menú de vistas guarda sobre la lista de ahora", () => {
     top = 300;
     window.dispatchEvent(new Event("resize"));
     expect(pop.style.getPropertyValue("--_top")).toBe("142px");
+  });
+});
+
+// La app no tenía cómo enterarse de que la persona escondió o mostró una columna o cambió un ancho
+// (solo `removeColumn` avisaba): leía `view` al desmontar o en `pagehide`, que en el celular no
+// siempre llega, y la disposición se perdía.
+describe("<nx-grid>: nx-grid-columns avisa cuando la persona cambia las columnas", () => {
+  type Got = { columns: string[]; hidden: string[]; widths: Record<string, number> };
+  const listen = (el: NxGrid): Got[] => {
+    const got: Got[] = [];
+    el.addEventListener("nx-grid-columns", (e) => got.push({ columns: e.detail.columns.map((c) => c.key), hidden: [...e.detail.hidden].sort(), widths: e.detail.widths }));
+    return got;
+  };
+  const ALL = ["oc", "prov", "estado", "monto"];
+  const handle = (el: NxGrid) => el.querySelectorAll<HTMLElement>(".nx-grid__resize")[0];
+
+  it("esconder, mostrar y volver a las columnas de la tabla: un aviso por cambio, con {columns, hidden, widths}", async () => {
+    const el = mount();
+    const got = listen(el);
+    colsBtn(el).click();
+    const cpop = await until(() => pops(el)[1]?.querySelector("input[data-col]") && pops(el)[1]);
+    const box = (k: string) => cpop.querySelector<HTMLInputElement>(`input[data-col="${k}"]`)!;
+    box("prov").click();
+    expect(got).toEqual([{ columns: ALL, hidden: ["prov"], widths: {} }]);
+    box("estado").click();
+    box("prov").click();
+    expect(got.map((g) => g.hidden)).toEqual([["prov"], ["estado", "prov"], ["estado"]]);
+    // Lo que asigna la app no avisa; «Volver a las columnas de la tabla», sí (una vez).
+    el.view = { ...el.view, widths: { monto: 300 } };
+    expect(got).toHaveLength(3);
+    cpop.querySelector<HTMLButtonElement>(".nx-grid__clear")!.click();
+    expect(got.at(-1)).toEqual({ columns: ALL, hidden: [], widths: {} });
+    expect(got).toHaveLength(4);
+    // Sin nada que devolver, no hay cambio que avisar.
+    cpop.querySelector<HTMLButtonElement>(".nx-grid__clear")!.click();
+    expect(got).toHaveLength(4);
+  });
+
+  it("un arrastre de ancho avisa una vez, al soltar; flechas, Supr y doble clic, uno por cambio", () => {
+    const el = mount();
+    const got = listen(el);
+    const h = handle(el);
+    h.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0, clientX: 100, pointerId: 1 }));
+    for (const x of [130, 170, 240]) h.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: x, pointerId: 1 }));
+    expect(got).toEqual([]);
+    h.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: 240, pointerId: 1 }));
+    expect(got).toHaveLength(1);
+    expect(Object.keys(got[0].widths)).toEqual(["oc"]);
+    expect(got[0].widths).toEqual(el.view.widths);
+    // Apretar y soltar sin mover no cambia nada.
+    handle(el).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0, clientX: 100, pointerId: 2 }));
+    handle(el).dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientX: 100, pointerId: 2 }));
+    expect(got).toHaveLength(1);
+    handle(el).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(got).toHaveLength(2);
+    handle(el).dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
+    expect(got.at(-1)!.widths).toEqual({});
+    // Doble clic sobre un ancho que ya es el original: nada que avisar.
+    handle(el).dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    expect(got).toHaveLength(3);
+    handle(el).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    handle(el).dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    expect(got).toHaveLength(5);
+    expect(got.at(-1)!.widths).toEqual({});
+  });
+
+  it("elegir en «Vistas» una que cambia las columnas avisa; una que las deja igual, no", async () => {
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        v: 1,
+        views: [
+          { id: "a", name: "Sin pedido", filters: [], hidden: ["oc"], widths: { prov: 240 } },
+          { id: "b", name: "Aceros", filters: [{ key: "prov", op: "in", values: ["Aceros"] }], hidden: ["oc"], widths: { prov: 240 } },
+        ],
+      }),
+    );
+    const el = mount(`views-storage="${KEY}"`);
+    const got = listen(el);
+    viewsBtn(el).click();
+    await until(() => pops(el)[0] && menuItems(el).length);
+    menuItems(el).find((b) => b.textContent === "Sin pedido")!.click();
+    expect(got).toEqual([{ columns: ALL, hidden: ["oc"], widths: { prov: 240 } }]);
+    viewsBtn(el).click();
+    menuItems(el).find((b) => b.textContent === "Aceros")!.click();
+    expect(el.activeView).toBe("b");
+    expect(got).toHaveLength(1);
+    viewsBtn(el).click();
+    itemText(el, "Volver a la tabla original").click();
+    expect(got.at(-1)).toEqual({ columns: ALL, hidden: [], widths: {} });
+    expect(got).toHaveLength(2);
+  });
+
+  it("lo que asigna la app no avisa (columns, view, applyView, la vista predeterminada al abrir); removeColumn sí", async () => {
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, views: [{ id: "a", name: "Sin pedido", filters: [], hidden: ["oc"], widths: { prov: 240 }, default: true }] }));
+    document.body.innerHTML = `<nx-grid views-storage="${KEY}"></nx-grid>`;
+    const el = document.querySelector("nx-grid")!;
+    const got = listen(el);
+    el.columns = [...COLS, { key: "extra", label: "Extra", hidden: true }];
+    el.rows = ROWS;
+    await Promise.resolve();
+    expect(el.activeView).toBe("a");
+    expect(el.view.hidden).toEqual(["oc"]);
+    el.view = { ...el.view, hidden: [], widths: { monto: 200 } };
+    el.applyView("a");
+    el.columns = COLS;
+    expect(got).toEqual([]);
+    el.removeColumn("monto");
+    expect(got).toEqual([{ columns: ["oc", "prov", "estado"], hidden: ["oc"], widths: { prov: 240 } }]);
   });
 });

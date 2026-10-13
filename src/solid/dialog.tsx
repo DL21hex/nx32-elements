@@ -16,7 +16,7 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
   mode?: DialogMode;
   size?: DialogSize;
   persistent?: boolean;
-  /** El registro todavía no llega: un esqueleto en lugar del contenido (y `aria-busy`). */
+  /** El registro todavía no llega: la espera común en lugar del contenido (y `aria-busy`). */
   loading?: boolean;
   /** Entrada de historial al abrir («atrás» cierra). `""` = la URL actual. */
   url?: string;

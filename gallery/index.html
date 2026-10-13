@@ -3306,7 +3306,7 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
           <h2>La ficha de un empleado</h2>
           <div class="dw-open">
             <nx-button id="dw-open" label="Abrir la ficha de Laura" variant="primary" log-mode="none"></nx-button>
-            <span class="dw-tip">Prueba «Renovar» en el aviso, «Editar» en una sección de Datos, la pestaña «Acciones», las flechas de la cabecera (o <kbd>J</kbd> y <kbd>K</kbd>: la ficha muestra su esqueleto, <code>loading</code>, mientras «llega» el siguiente) y el menú «Más».</span>
+            <span class="dw-tip">Prueba «Renovar» en el aviso, «Editar» en una sección de Datos, la pestaña «Acciones», las flechas de la cabecera (o <kbd>J</kbd> y <kbd>K</kbd>: la ficha muestra la espera, <code>loading</code>, mientras «llega» el siguiente) y el menú «Más».</span>
           </div>
           <p class="stage__loglabel">Eventos</p>
           <ol class="stage__log btn-events" id="dw-log"></ol>
@@ -3422,7 +3422,7 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
           </div>
           <nx-dialog id="dw-loading" mode="panel" description="Ficha de ejemplo">
             <nx-fields id="dw-loading-fields" variant="summary" locale="es-CO"></nx-fields>
-            <p class="dw-panel">Llegó el registro: el esqueleto se fue y el contenido apareció en su lugar.</p>
+            <p class="dw-panel">Llegó el registro: la espera se fue y el contenido apareció en su lugar.</p>
           </nx-dialog>
           <h3>Pestañas</h3>
           <nx-tabs class="dw-pieces" label="Ejemplo de pestañas">

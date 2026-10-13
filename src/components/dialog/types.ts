@@ -20,7 +20,7 @@ export interface DialogLabels {
   keep: string;
   /** `aria-label` de las migas de los paneles apilados. */
   stack: string;
-  /** Lo que anuncia el esqueleto de `loading` al lector de pantalla. */
+  /** La frase de la espera de `loading` (se ve y se anuncia). */
   loading: string;
 }
 

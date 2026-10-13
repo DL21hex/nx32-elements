@@ -100,6 +100,16 @@ que todo funcione, después se optimiza (`NX_SIZE_STRICT=1 npm run size` vuelve 
    API, foco, portapapeles, teclado, View Transitions, «atrás» del navegador) se prueban en
    Chromium, Firefox y WebKit con Playwright, en local antes de cada envío, y cada componente pasa axe (WCAG 2.1 AA) sin
    problemas graves. El contraste de los tokens se verifica en todas las paletas.
+8. **Esperar sin fingir.** Mientras llegan los datos, ningún componente dibuja barras grises con la
+   forma del contenido. Lo que ya se conoce (la cabecera, los encabezados, el título de la columna)
+   queda en su sitio y el resto lo llena una sola espera común (`.nx-wait`): una línea que corre bajo
+   la cabecera, una trama de puntos que respira en el color de la marca y, si hay, una frase con
+   brillo («Cargando empleados…»). Aparece a los 250 ms, así una respuesta rápida no dibuja nada, y
+   donde esconde el contenido (`<nx-dialog loading>`) se queda al menos medio segundo si llegó a
+   verse. Es la misma en el diálogo, la primera carga de `<nx-grid>`, las columnas vacías de
+   `<nx-kanban busy>`, `<nx-history>`, `<nx-trend busy>` y la respuesta de `<nx-ai-answer>`. Casi
+   todo es opacidad y posición (no repinta); con menos movimiento queda la trama quieta y la línea
+   lenta. Se ajusta con `--nx-wait-height`, `--nx-wait-bg`, `--nx-wait-dot` y `--nx-wait-glow`.
 
 ## Paletas
 
@@ -895,7 +905,7 @@ if (await nxConfirm({ heading: "Anular OC-2291", impact: "/compras/oc/2291/impac
 
 | | |
 |---|---|
-| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty`, `loading` (un esqueleto mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` · `nx-dialog-close` (cancelable), `nx-open-change` · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
+| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty`, `loading` (la espera común mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` · `nx-dialog-close` (cancelable), `nx-open-change` · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
 | `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo) |
 | `nxConfirm()` | `{heading, message?, impact?, body?, confirmLabel?, tone?, hold?, failOpen?}` → `true` / `false`. Con `impact` como URL (mismo origen o `allowOrigins`) falla cerrado: si hay un error de red o del servidor, un evento `error` o el stream termina sin `done`, no se puede confirmar; `failOpen: true` deja confirmar igual, con el aviso a la vista |
 | `<nx-button hold>` | Mantener pulsado (ms, 1000 por defecto) para activarlo; con teclado, mantener Enter o Espacio |
@@ -2411,10 +2421,11 @@ seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, 
   hasta que termine (`aria-busy` en el elemento); los nodos se conservan por `id`, así el foco sigue
   en el botón que se pulsó.
 - **Mientras llega el registro: `<nx-dialog loading>`.** En lugar del contenido (que se esconde sin
-  moverse), un esqueleto con la forma de una ficha: el resumen, las pestañas y unos campos. Es un
-  `role="status"` que anuncia `labels.loading` («Cargando…») y el diálogo lleva `aria-busy`. La
-  cabecera sigue (cerrar, pasar de registro); sin `heading`, el título también es un esqueleto. Con
-  menos movimiento, quieto; en alto contraste, en `GrayText`.
+  moverse), la espera común (ver el principio 8): la línea justo bajo la cabecera, la trama de puntos
+  y la frase `labels.loading` («Cargando…»), que es un `role="status"`; el diálogo lleva
+  `aria-busy`. La cabecera sigue (cerrar, pasar de registro). Aparece a los 250 ms; si llegó a
+  verse, se queda al menos medio segundo y el contenido entra con un fundido corto. Con menos
+  movimiento, la trama quieta; en alto contraste, en `GrayText` y `Highlight`.
 
 ```js
 acciones.items = [
@@ -2427,7 +2438,7 @@ acciones.addEventListener("nx-actions-action", async (e) => {
   try { await api.ejecutar(e.detail.id); } finally { acciones.busy = null; }
 });
 ficha.loading = true;                      // al abrir o al pasar al siguiente
-ficha.loading = !(await api.registro(id)); // llegó: fuera el esqueleto
+ficha.loading = !(await api.registro(id)); // llegó: fuera la espera
 ```
 
 ```html
@@ -2463,7 +2474,7 @@ guardar.onclick = async () => {
 | `<nx-notice>` | `tone` (`info`, `success`, `warning`, `danger`), `text`, `action`, `action-href` · `nx-notice-action` `{action}` |
 | `<nx-badge>` | `tone` (`neutral`, `success`, `info`, `warning`, `danger`), `label` (si no va como contenido) |
 | `<nx-actions>` | `items` (`[{id, label, description?, icon?, danger?, disabled?, href?, newTab?, download?}]`), `busy` (el `id` que corre), `labels` (`group`) · `nx-actions-action` `{id, item}` (solo los botones) · BDUI `Actions` |
-| `<nx-dialog loading>` | el esqueleto en lugar del contenido, `aria-busy`, `labels.loading` |
+| `<nx-dialog loading>` | la espera común en lugar del contenido, `aria-busy`, `labels.loading` |
 | Tokens nuevos | `--nx-warning`, `--nx-warning-ink` (texto e íconos), `--nx-warning-soft` |
 
 ## Formularios: `<nx-form>` y `<nx-field>`

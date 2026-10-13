@@ -15,6 +15,7 @@ import { mergeLabels } from "../../core/labels";
 import { resolveLocale } from "../../core/locale";
 import { glyph } from "../../core/icons";
 import { lineData, readLines } from "../../core/stream";
+import { waitEl } from "../../core/wait";
 import { isExternal, parseAiEvent, parseBlocks, plainText, sameOriginHref, type Block, type Inline } from "./logic";
 import type { AiEvent, AiLabels, AiStep, AiTone } from "./types";
 
@@ -77,7 +78,7 @@ export class NxAiAnswer extends Base {
   #summaryEl?: HTMLButtonElement;
   #traceEl?: HTMLOListElement;
   #stepEls = new Map<string, HTMLLIElement>();
-  #skeletonEl?: HTMLDivElement;
+  #waitEl?: HTMLDivElement;
   #answerEl?: HTMLDivElement;
   #errorEl?: HTMLParagraphElement;
   #stoppedEl?: HTMLParagraphElement;
@@ -361,7 +362,11 @@ export class NxAiAnswer extends Base {
     this.#suggest = h("div", { class: "nx-ai__suggest" });
     this.#summaryEl = h("button", { type: "button", class: "nx-ai__summary", "data-toggle-trace": "", hidden: true });
     this.#traceEl = h("ol", { class: "nx-ai__trace", hidden: true });
-    this.#skeletonEl = h("div", { class: "nx-ai__skeleton", "aria-hidden": "true", hidden: true }, h("span", null), h("span", null), h("span", null));
+    // Hasta el primer texto, la espera común sin frase: los pasos en vivo ya cuentan qué hace.
+    this.#waitEl = waitEl();
+    this.#waitEl.classList.add("nx-ai__wait");
+    this.#waitEl.setAttribute("aria-hidden", "true");
+    this.#waitEl.hidden = true;
     this.#answerEl = h("div", { class: "nx-ai__answer", hidden: true });
     this.#errorEl = h("p", { class: "nx-ai__error", role: "alert", hidden: true });
     this.#stoppedEl = h("p", { class: "nx-ai__stopped", hidden: true });
@@ -372,7 +377,7 @@ export class NxAiAnswer extends Base {
       { class: "nx-ai__body", hidden: true },
       this.#summaryEl,
       this.#traceEl,
-      this.#skeletonEl,
+      this.#waitEl,
       this.#answerEl,
       this.#errorEl,
       this.#stoppedEl,
@@ -486,8 +491,8 @@ export class NxAiAnswer extends Base {
       );
     }
 
-    // La respuesta: esqueleto hasta que llega el primer texto; después, el texto con cursor.
-    this.#skeletonEl!.hidden = !(busy && !this.#text);
+    // La respuesta: la espera hasta que llega el primer texto; después, el texto con cursor.
+    this.#waitEl!.hidden = !(busy && !this.#text);
     this.#answerEl!.hidden = !this.#text;
     this.#answerEl!.setAttribute("aria-busy", String(busy));
     if (this.#text) this.#paintAnswer(busy);

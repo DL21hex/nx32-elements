@@ -75,6 +75,8 @@ export interface TrendLabels {
   chartView: string;
   period: string;
   empty: string;
+  /** La frase de la espera mientras `busy`. */
+  loading: string;
   /** «¿Por qué {dir} {label} en {period}?» */
   why: string;
   /** Sin punto anterior para comparar: «¿Qué explica {label} en {period}?» */

@@ -1795,28 +1795,29 @@ nx-grid .nx-grid__sort-icon {
     --_fg: var(--nx-danger);
   }
 }
-/* El primer bloque del servidor todavía no llega. */
-.nx-grid__empty.is-loading::before {
-  content: "";
-  display: inline-block;
-  inline-size: 12px;
-  block-size: 12px;
-  margin-inline-end: 8px;
-  border: 2px solid var(--nx-border-strong);
-  border-block-start-color: var(--nx-primary);
-  border-radius: 50%;
-  vertical-align: -2px;
-  animation: nx-grid-spin 0.8s linear infinite;
+/* El primer bloque del servidor todavía no llega: la espera común (tokens.css) ocupa todo lo que
+   queda bajo la cabecera, con su línea justo debajo de ella (`--_headh`, medido al pintar). */
+.nx-grid__empty.is-loading {
+  inset-block: var(--_headh, 40px) 0;
+  display: flex;
+  padding: 0;
+
+  & > [role="gridcell"] {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  & .nx-wait {
+    flex: 1;
+    --nx-wait-height: 0;
+  }
 }
-/* Una fila del servidor que todavía no llega. */
-.is-loading .nx-grid__cell::before {
-  content: "";
-  display: inline-block;
-  inline-size: 55%;
-  block-size: 10px;
-  border-radius: 5px;
-  background: var(--nx-border-subtle);
-  vertical-align: middle;
+/* Una fila del servidor que todavía no llega (al desplazarse rápido): la trama quieta de la espera,
+   sin barras que imiten texto. Es un fondo de la fila: no anima ni repinta. */
+.nx-grid__row.is-loading {
+  background-image: radial-gradient(circle, light-dark(color-mix(in oklch, var(--nx-foreground) 8.5%, transparent), color-mix(in oklch, var(--nx-foreground) 11%, transparent)) 1.2px, transparent 1.7px);
+  background-position: 7px 9px;
+  background-size: 14px 14px;
 }
 
 /* Grupos: subtotales bajo sus columnas y una barra para comparar grupos. La banda del grupo llega

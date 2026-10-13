@@ -248,7 +248,8 @@ describe("<nx-history>", () => {
     document.body.innerHTML = `<nx-history source="/h/oc?x=1" locale="es-CO"></nx-history>`;
     const el = document.querySelector("nx-history")!;
     el.fields = FIELDS;
-    expect(el.querySelector(".nx-history__skel")!.getAttribute("role")).toBe("status");
+    expect(el.querySelector(".nx-history__foot > .nx-wait")!.getAttribute("role")).toBe("status");
+    expect(el.querySelector(".nx-history__foot > .nx-wait")!.textContent).toBe("Cargando historial…");
     expect(el.querySelector(".nx-history__feed")!.getAttribute("aria-busy")).toBe("true");
     await sleep(0);
     await sleep(0);

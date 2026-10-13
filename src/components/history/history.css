@@ -476,13 +476,13 @@ nx-history .nx-glyph {
   color: var(--nx-primary-ink);
   text-decoration: underline;
 }
-.nx-history__skel i {
-  display: block;
-  block-size: 54px;
-  margin: 12px 0 12px 44px;
-  border-radius: var(--nx-radius-lg);
-  background: linear-gradient(90deg, var(--nx-hover) 30%, var(--nx-border-subtle) 50%, var(--nx-hover) 70%) 0 0 / 300% 100%;
-  animation: nx-history-shimmer 1.4s linear infinite;
+/* Cargando: la espera común (tokens.css); pidiendo más, más baja. */
+.nx-history__foot > .nx-wait {
+  --nx-wait-height: 200px;
+
+  &.is-more {
+    --nx-wait-height: 96px;
+  }
 }
 
 /* ---------------------------------------------------------------- viaje en el tiempo */
@@ -688,12 +688,6 @@ nx-history .nx-glyph {
     translate: 0 -6px;
   }
 }
-@keyframes nx-history-shimmer {
-  to {
-    background-position: -100% 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   nx-history * {
     animation-duration: 0s !important;

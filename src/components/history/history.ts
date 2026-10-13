@@ -22,6 +22,7 @@ import { glyph, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
 import { clampDelay } from "../../core/time";
+import { waitEl, waitText } from "../../core/wait";
 import { nxToast } from "../toast/toast";
 import "../toast/index";
 import { atDate, canRevert, changedKeys, cleanEvents, cleanFields, cleanRecord, dayLabel, filterEvents, groupByDay, isLongText, mergeEvents, relTime, revertChange, revertedKeys, same, stampText, stateAt, tally, valueText, wordDiff, type DiffPart, type HistoryFilter } from "./logic";
@@ -122,6 +123,8 @@ export class NxHistory extends Base {
   #main?: HTMLElement;
   #feed?: HTMLOListElement;
   #foot?: HTMLElement;
+  /** La espera común del pie (la misma de una vez a otra: rearmarla reiniciaría su aparición). */
+  #wait?: HTMLDivElement;
   #panel?: HTMLElement;
   #range?: HTMLInputElement;
 
@@ -565,11 +568,17 @@ export class NxHistory extends Base {
     const empty = foot.dataset.empty;
     this.#feed!.setAttribute("aria-busy", String(this.#loading));
     this.#io?.disconnect();
+    if (this.#loading) {
+      this.#wait ??= waitEl(L.loading);
+      waitText(this.#wait, L.loading);
+      // Pidiendo más (ya hay eventos arriba): más baja.
+      this.#wait.classList.toggle("is-more", !this.#feed!.hidden);
+      if (foot.firstChild !== this.#wait || foot.childNodes.length !== 1) foot.replaceChildren(this.#wait);
+      return;
+    }
     let more: HTMLElement | null = null;
     foot.replaceChildren(
-      this.#loading
-        ? h("div", { class: "nx-history__skel", role: "status" }, h("span", { class: "nx-history__vh" }, L.loading), ...[0, 1, 2].map(() => h("i", { "aria-hidden": "true" })))
-        : this.#failed
+      this.#failed
           ? h("p", { class: "nx-history__msg", role: "alert" }, L.error, " ", h("button", { type: "button", class: "nx-history__link", "data-act": "retry" }, L.retry))
           : empty
             ? h("p", { class: "nx-history__msg" }, empty === "filter" ? L.noMatch : L.empty, " ", empty === "filter" ? h("button", { type: "button", class: "nx-history__link", "data-act": "clear" }, L.clear) : null)

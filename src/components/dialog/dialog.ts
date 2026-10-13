@@ -18,6 +18,7 @@ import { Base, boolAttr, upgrade } from "../../core/define";
 import { h, safeHref } from "../../core/dom";
 import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
+import { WAIT_DELAY, waitEl, waitLeft, waitText } from "../../core/wait";
 import { FOCUSABLE, focusFrom, hasStops, stepTab, tabOrder, tabThrough } from "../../core/order";
 import type { BadgeTone } from "../badge/types";
 import type { DialogHead } from "./dialog-head";
@@ -209,8 +210,11 @@ export class NxDialog extends Base {
   #desc?: HTMLParagraphElement;
   #closeBtn?: HTMLButtonElement;
   #guard?: HTMLDivElement;
-  /** El esqueleto de `loading` (se arma la primera vez que hace falta). */
-  #skeleton?: HTMLDivElement;
+  /** La espera de `loading` (se arma la primera vez que hace falta), desde cuándo y, si el registro
+   *  llegó antes de que se viera lo mínimo, el reloj que la quita. */
+  #wait?: HTMLDivElement;
+  #waitSince = 0;
+  #waitTimer?: ReturnType<typeof setTimeout>;
   #actions: DialogAction[] = [];
   /** La cabecera de ficha (avatar, estado, pasar de registro, «Más»): un chunk aparte. */
   #extras?: Promise<DialogHead>;
@@ -302,9 +306,9 @@ export class NxDialog extends Base {
     this.#attr("nav", v);
   }
   /** El registro todavía no llega (se abrió la ficha, se pasó al siguiente): en lugar del contenido
-   *  del autor, un esqueleto con la forma de una ficha (resumen, pestañas, campos) que anuncia
-   *  `labels.loading`; el diálogo lleva `aria-busy`. La cabecera sigue (cerrar, pasar de registro):
-   *  sin `heading`, el título también es un esqueleto. Se quita en cuanto llega el registro. */
+   *  del autor, la espera común (una línea bajo la cabecera, una trama de puntos que respira y
+   *  `labels.loading`); el diálogo lleva `aria-busy`. La cabecera sigue (cerrar, pasar de registro).
+   *  Aparece a los 250 ms; si llegó a verse, se queda al menos medio segundo. */
   get loading(): boolean {
     return boolAttr(this, "loading");
   }
@@ -585,7 +589,7 @@ export class NxDialog extends Base {
       new MutationObserver(() => {
         if (this.#head!.parentNode !== this) this.append(this.#head!);
         if (this.#guard!.parentNode !== this) this.append(this.#guard!);
-        if (this.loading && this.#skeleton && this.#skeleton.parentNode !== this) this.append(this.#skeleton);
+        if (this.hasAttribute("data-nx-wait") && this.#wait && this.#wait.parentNode !== this) this.append(this.#wait);
       }).observe(this, { childList: true });
 
     this.#closeBtn.addEventListener("click", () => this.close(undefined, "button"));
@@ -743,31 +747,39 @@ export class NxDialog extends Base {
     this.dispatchEvent(new CustomEvent("nx-open-change", { detail: { open: false, value, reason }, bubbles: true, composed: true }));
   }
 
-  /** `loading`: el esqueleto con la forma de una ficha va en lugar del contenido del autor (el CSS
-   *  lo esconde, sin moverlo: la hidratación sigue intacta) y anuncia `labels.loading`. */
+  /** `loading`: en lugar del contenido del autor (el CSS lo esconde, sin moverlo: la hidratación
+   *  sigue intacta) va la espera común —la línea bajo la cabecera, la trama de puntos y
+   *  `labels.loading`—, que aparece a los 250 ms. Si llegó a verse, se queda al menos medio segundo
+   *  y el contenido entra con un fundido corto; si el registro llegó antes, ni se ve. */
   #paintLoading(): void {
-    const on = this.loading;
-    this.#head!.toggleAttribute("data-skeleton", on && !this.heading);
-    if (!on) {
-      if (this.#skeleton?.parentNode) {
-        this.#skeleton.remove();
-        this.removeAttribute("aria-busy");
-      }
+    if (this.loading) {
+      clearTimeout(this.#waitTimer);
+      this.#waitTimer = undefined;
+      if (!this.hasAttribute("data-nx-wait")) this.#waitSince = performance.now();
+      this.#wait ??= waitEl(this.#labels.loading);
+      this.#wait.classList.add("nx-dialog__loading");
+      waitText(this.#wait, this.#labels.loading);
+      if (this.#wait.parentNode !== this) this.append(this.#wait);
+      this.removeAttribute("data-nx-arrived");
+      this.setAttribute("data-nx-wait", "");
+      this.setAttribute("aria-busy", "true");
       return;
     }
-    const bar = (cls: string) => h("span", { class: `nx-dialog__skel${cls ? ` ${cls}` : ""}` });
-    const pair = () => h("span", null, bar("is-label"), bar("is-value"));
-    this.#skeleton ??= h(
-      "div",
-      { class: "nx-dialog__loading", role: "status" },
-      h("span", { class: "nx-sr-only" }),
-      h("div", { class: "nx-dialog__skel-sum", "aria-hidden": "true" }, pair(), pair(), pair()),
-      h("div", { class: "nx-dialog__skel-tabs", "aria-hidden": "true" }, bar(""), bar(""), bar("")),
-      h("div", { class: "nx-dialog__skel-rows", "aria-hidden": "true" }, pair(), pair(), pair(), pair(), pair()),
-    );
-    this.#skeleton.firstElementChild!.textContent = this.#labels.loading;
-    if (this.#skeleton.parentNode !== this) this.append(this.#skeleton);
-    this.setAttribute("aria-busy", "true");
+    if (!this.hasAttribute("data-nx-wait") || this.#waitTimer) return;
+    const left = waitLeft(this.#waitSince);
+    const seen = performance.now() - this.#waitSince > WAIT_DELAY;
+    const done = () => {
+      this.#waitTimer = undefined;
+      if (this.loading) return;
+      this.#wait?.remove();
+      this.removeAttribute("data-nx-wait");
+      this.removeAttribute("aria-busy");
+      if (!seen) return;
+      this.setAttribute("data-nx-arrived", "");
+      setTimeout(() => this.removeAttribute("data-nx-arrived"), 700);
+    };
+    if (left) this.#waitTimer = setTimeout(done, left);
+    else done();
   }
 
   #paint(): void {

@@ -266,6 +266,157 @@
   }
 }
 
+/* La espera común (`waitEl` de core/wait.ts), «Hilo + Puntos»: una línea que corre, una trama de
+   puntos que respira y, si hay, una frase con brillo. No imita la forma del contenido: lo que ya se
+   conoce queda en su sitio y esto llena el resto. Aparece a los 250 ms (una respuesta rápida no
+   dibuja nada) y casi todo es opacidad y posición, que no repintan; solo la frase se repinta.
+   Se ajusta con:
+     --nx-wait-height (160px): el alto mínimo
+     --nx-wait-bg (--nx-card): el fondo de la pastilla de la frase (el de la pieza)
+     --nx-wait-dot / --nx-wait-glow: la trama quieta y el color que respira */
+.nx-wait {
+  --_dot: var(--nx-wait-dot, light-dark(color-mix(in oklch, var(--nx-foreground) 8.5%, transparent), color-mix(in oklch, var(--nx-foreground) 11%, transparent)));
+  --_glow: var(--nx-wait-glow, light-dark(color-mix(in oklch, var(--nx-primary) 26%, transparent), color-mix(in oklch, var(--nx-primary) 60%, transparent)));
+  --_bg: var(--nx-wait-bg, var(--nx-card));
+  display: flex;
+  flex-direction: column;
+  min-block-size: var(--nx-wait-height, 160px);
+  animation: nx-wait-in 200ms ease-out var(--nx-wait-delay, 250ms) both;
+}
+.nx-wait[hidden] {
+  display: none;
+}
+@keyframes nx-wait-in {
+  from {
+    opacity: 0;
+  }
+}
+.nx-wait__thread {
+  position: relative;
+  flex: none;
+  block-size: 2px;
+  overflow: hidden;
+  background: var(--nx-primary-soft);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 40%;
+    background: linear-gradient(90deg, transparent, var(--nx-primary) 50%, transparent);
+    animation: nx-wait-thread 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+@keyframes nx-wait-thread {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 250% 0;
+  }
+}
+.nx-wait__dots {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+
+  /* La trama quieta y, encima, la misma trama en color que se enciende y se apaga. Las dos se
+     desvanecen hacia los bordes. */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-position: 7px 7px;
+    background-size: 14px 14px;
+    -webkit-mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+    mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+    pointer-events: none;
+  }
+  &::before {
+    background-image: radial-gradient(circle, var(--_dot) 1.2px, transparent 1.7px);
+  }
+  &::after {
+    background-image: radial-gradient(circle, var(--_glow) 1.5px, transparent 2px);
+    animation: nx-wait-breath 3s ease-in-out infinite;
+  }
+}
+@keyframes nx-wait-breath {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+/* La frase, sobre una pastilla del fondo de la pieza; el brillo es un fondo recortado al texto. */
+.nx-wait__say {
+  position: relative;
+  z-index: 1;
+  max-inline-size: 100%;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--_bg);
+  box-shadow: 0 0 0 6px var(--_bg);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+
+  & > span {
+    color: transparent;
+    background: linear-gradient(100deg, var(--nx-text-tertiary) 0 40%, var(--nx-foreground) 50%, var(--nx-text-tertiary) 60% 100%) 0 0 / 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: nx-wait-say 2.2s linear infinite;
+  }
+}
+@keyframes nx-wait-say {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Quietas la trama y la frase; la línea, más lenta: es la única señal de que algo corre. */
+  .nx-wait__dots::after,
+  .nx-wait__say > span {
+    animation: none;
+  }
+  .nx-wait__say > span {
+    color: var(--nx-muted-foreground);
+    background: none;
+  }
+  .nx-wait__thread::before {
+    animation-duration: 3s;
+  }
+}
+@media (forced-colors: active) {
+  .nx-wait {
+    forced-color-adjust: none;
+    --_dot: GrayText;
+    --_glow: Highlight;
+    --_bg: Canvas;
+  }
+  .nx-wait__thread {
+    background: Canvas;
+  }
+  .nx-wait__thread::before {
+    background: Highlight;
+  }
+  .nx-wait__say > span {
+    color: CanvasText;
+    background: none;
+  }
+}
+
 /* El tooltip de los gráficos (`ChartTip` de core/chart.ts): uno por componente, dentro de él. Va
    aquí y no en la hoja de cada gráfico: así no se repite. */
 .nx-chart-tip {

@@ -16,6 +16,7 @@ import { markAttrs } from "../../core/chart";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
 import { extent } from "../../core/time";
+import { waitEl, waitText } from "../../core/wait";
 import { change, cleanAnomalies, cleanSeries, explainContext, flagsOf, niceTicks, pctSign, pctText, pctValue, periodLabel, periodsOf, summarize, trendStep, whyQuestion } from "./logic";
 import type { TrendAnomaly, TrendFlag, TrendFormat, TrendKind, TrendLabels, TrendSeries } from "./types";
 
@@ -26,6 +27,7 @@ export const TREND_LABELS: TrendLabels = {
   chartView: "Ver como gráfico",
   period: "Periodo",
   empty: "Sin datos para mostrar",
+  loading: "Cargando…",
   why: "¿Por qué {dir} {label} en {period}?",
   whyFlat: "¿Qué explica {label} en {period}?",
   up: "sube",
@@ -101,6 +103,7 @@ export class NxTrend extends Base {
   #legend?: HTMLElement;
   #view?: HTMLButtonElement;
   #plot?: HTMLElement;
+  #wait?: HTMLDivElement;
   #svg?: SVGSVGElement;
   #layer?: HTMLElement;
   #tip?: HTMLElement;
@@ -324,7 +327,9 @@ export class NxTrend extends Base {
     this.#svg = s("svg", { class: "nx-trend__svg", role: "img" }) as SVGSVGElement;
     this.#layer = h("div", { class: "nx-trend__points", role: "group", "aria-describedby": `${this.#uid}-hint` });
     this.#tip = h("div", { class: "nx-trend__tip", "aria-hidden": "true", hidden: true });
-    this.#plot = h("div", { class: "nx-trend__plot" }, this.#svg, this.#layer, this.#tip);
+    this.#wait = waitEl(this.#labels.loading);
+    this.#wait.hidden = true;
+    this.#plot = h("div", { class: "nx-trend__plot" }, this.#svg, this.#layer, this.#tip, this.#wait);
     this.#sum = h("p", { class: "nx-trend__summary", "aria-hidden": "true" });
     this.#wrap = h("div", { class: "nx-trend__table", tabindex: "-1" });
     this.append(this.#bar, this.#plot, this.#sum, this.#wrap, h("p", { class: "nx-trend__sr", id: `${this.#uid}-hint` }));
@@ -393,6 +398,9 @@ export class NxTrend extends Base {
     this.#layer!.setAttribute("aria-label", name);
     this.#layer!.hidden = this.busy;
     this.#plot!.setAttribute("aria-busy", String(this.busy));
+    // Ocupado: la espera común sobre el área del gráfico (aparece a los 250 ms).
+    this.#wait!.hidden = !this.busy;
+    waitText(this.#wait!, L.loading);
     this.#plot!.style.blockSize = `${this.height}px`;
     this.lastElementChild!.textContent = L.hint;
     this.toggleAttribute("data-table", this.#table);

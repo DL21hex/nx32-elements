@@ -109,10 +109,11 @@ nx-trend {
   user-select: none;
   -webkit-user-select: none;
 }
-nx-trend[busy] .nx-trend__plot {
-  border-radius: var(--nx-radius-md);
-  background: linear-gradient(90deg, transparent 30%, var(--nx-hover) 50%, transparent 70%) 0 0 / 200% 100%, repeating-linear-gradient(transparent 0 47px, var(--nx-border-subtle) 47px 48px);
-  animation: nx-trend-shimmer 1.4s linear infinite;
+/* Ocupado: la espera común (tokens.css) ocupa el área del gráfico. */
+.nx-trend__plot > .nx-wait {
+  position: absolute;
+  inset: 0;
+  --nx-wait-height: 0;
 }
 .nx-trend__svg {
   display: block;
@@ -487,12 +488,6 @@ nx-trend[data-table] :is(.nx-trend__plot, .nx-trend__summary) {
     scale: 2.4;
   }
 }
-@keyframes nx-trend-shimmer {
-  to {
-    background-position: -200% 0, 0 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   nx-trend *,
   .nx-trend-why {

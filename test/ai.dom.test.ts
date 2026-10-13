@@ -34,18 +34,18 @@ describe("<nx-ai-answer>", () => {
     expect(el.querySelector(".nx-ai__step")).toBe(li);
   });
 
-  it("pasos en vivo, esqueleto hasta el primer texto, y streaming con cursor", async () => {
+  it("pasos en vivo, la espera hasta el primer texto, y streaming con cursor", async () => {
     const el = mount();
     el.begin("¿Por qué subió el costo?");
     el.push({ type: "step", id: "s1", label: "Consultando costos", status: "run" });
     await frame();
     expect(el.querySelector(".nx-ai__step--run")!.textContent).toContain("Consultando costos");
-    expect(el.querySelector<HTMLElement>(".nx-ai__skeleton")!.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>(".nx-ai__wait.nx-wait")!.hidden).toBe(false);
     el.push({ type: "step", id: "s1", status: "done", detail: "1.248 filas" });
     el.push({ type: "text", delta: "El costo subió **11,4 %**" });
     await frame();
     expect(el.state).toBe("streaming");
-    expect(el.querySelector<HTMLElement>(".nx-ai__skeleton")!.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>(".nx-ai__wait")!.hidden).toBe(true);
     expect(el.querySelector(".nx-ai__answer strong")!.textContent).toBe("11,4 %");
     expect(el.querySelector(".nx-ai__cursor")).not.toBeNull();
     expect(el.querySelector(".nx-ai__answer")!.getAttribute("aria-busy")).toBe("true");

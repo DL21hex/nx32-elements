@@ -447,18 +447,11 @@ nx-kanban[data-dragging] {
   font-size: 10px;
   font-weight: 650;
 }
-.nx-kanban__skel {
-  flex: none;
-  block-size: 78px;
-  border-radius: var(--nx-radius-md);
-  background: linear-gradient(90deg, var(--nx-card) 30%, var(--nx-background) 50%, var(--nx-card) 70%) 0 0 / 300% 100%;
-  opacity: 0.8;
-  animation: nx-kanban-shimmer 1.4s linear infinite;
-}
-@keyframes nx-kanban-shimmer {
-  to {
-    background-position: -150% 0;
-  }
+/* Ocupado y sin tarjetas: la espera común (tokens.css) llena la columna, sin frase (la anuncia
+   `aria-busy`; cuatro columnas con la misma frase serían ruido). */
+.nx-kanban__wait {
+  --nx-wait-height: 220px;
+  flex: 1 0 auto;
 }
 @keyframes nx-kanban-in {
   from {

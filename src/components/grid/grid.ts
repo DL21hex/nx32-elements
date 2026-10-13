@@ -27,6 +27,7 @@ import { glyph, hasIcon, icon, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import { extent } from "../../core/time";
+import { waitEl, waitText } from "../../core/wait";
 import {
   applyFilters,
   colType,
@@ -678,6 +679,9 @@ export class NxGrid extends Base {
    *  va como una fila con una celda (un botón suelto dentro de un `role="grid"` no es válido). */
   #empty?: HTMLDivElement;
   #emptyCell?: HTMLSpanElement;
+  /** La espera común de la primera carga (la misma de una vez a otra: rearmarla reiniciaría su
+   *  aparición a los 250 ms). */
+  #loadWait?: HTMLDivElement;
   #foot?: HTMLDivElement;
   #live?: HTMLSpanElement;
   #ths: HTMLElement[] = [];
@@ -1635,7 +1639,7 @@ export class NxGrid extends Base {
     // tabla y enseguida le asigna `filters`, `sort` y `search`, y cada asignación es una consulta
     // nueva. Pedido en el acto, cada una cortaba la anterior: tres peticiones por carga, dos
     // canceladas a los ~50 ms. Ahora todas las de la misma tarea son una sola, la última. El bloque
-    // queda «cargando» ya (el esqueleto se pinta sin esperar, y el scroll no lo pide otra vez); una
+    // queda «cargando» ya (la espera se pinta sin esperar, y el scroll no lo pide otra vez); una
     // consulta nueva antes del microtask lo reemplaza (`#gen`). Una app que asigna lo suyo un cuadro
     // después (dentro de un `Suspense`, tras un `await`) sigue costando una petición cortada: esperar
     // un cuadro más retrasaría la primera pintura de todas las demás.
@@ -1719,8 +1723,8 @@ export class NxGrid extends Base {
       page = await this.#request(offset, BLOCK, q, signal);
       raw = page?.rows ?? [];
       // El servidor puede tener un tope por página menor que el bloque: se pide lo que falta, desde
-      // donde quedó, hasta llenarlo o llegar al total (si no, el resto del bloque quedaba como
-      // esqueleto para siempre).
+      // donde quedó, hasta llenarlo o llegar al total (si no, el resto del bloque quedaba sin llegar
+      // para siempre).
       const total = Number(page?.total) || 0;
       while (page && raw.length && raw.length < BLOCK && offset + raw.length < total) {
         const more = await this.#request(offset + raw.length, BLOCK - raw.length, q, signal);
@@ -1878,7 +1882,7 @@ export class NxGrid extends Base {
 
   /** Los bloques que agotaron sus intentos empiezan otra tanda: cuando otro bloque llega bien (el
    *  servidor volvió) o cuando la persona se desplaza (los vuelve a mirar). Si no, uno del medio
-   *  quedaba en esqueleto para siempre, sin «Reintentar» (ese solo está en el aviso sin filas). */
+   *  quedaba sin llegar para siempre, sin «Reintentar» (ese solo está en el aviso sin filas). */
   #revive(): void {
     if (!this.#fails.size || !this.#url("source")) return;
     for (const [b, f] of this.#fails) if (f.at === Infinity && !f.hard) this.#fails.delete(b);
@@ -2550,7 +2554,7 @@ export class NxGrid extends Base {
     this.#ths.forEach((th, ci) => this.#paintTh(th, this.#columns[ci]));
     this.#clock();
     // Sin filas todavía porque el servidor no ha respondido: «Cargando…», no una tabla en blanco
-    // (parecía que no había datos). Con filas ya contadas, las que faltan se pintan como esqueleto.
+    // (parecía que no había datos). Con filas ya contadas, las que faltan se pintan con la trama quieta de la espera.
     const loading = this.#server && this.#blocks.get(0) === "loading" && !this.#count() && this.#columns.length > 0;
     // Si la primera página no llegó, se dice (no «Cargando…» para siempre) y se ofrece reintentar.
     const failed = !loading && this.#server && this.#loadError && !this.#count() && this.#columns.length > 0;
@@ -2572,7 +2576,14 @@ export class NxGrid extends Base {
       );
     // Sin datos (nada filtrado) no es «ninguna coincide»: su propio texto y nada que aflojar.
     else if (!loading && !this.#filters.length && !this.#q.trim()) this.#emptyCell!.replaceChildren(L.noRows);
-    else this.#emptyCell!.replaceChildren(loading ? L.loading : L.empty, ...(this.#empty!.hidden || loading ? [] : this.#relax()));
+    // Esperando la primera página: la espera común bajo la cabecera, con «Cargando…» (la celda la
+    // anuncia; por eso sin `role="status"` propio).
+    else if (loading) {
+      this.#loadWait ??= waitEl(L.loading, false);
+      waitText(this.#loadWait, L.loading);
+      if (this.#emptyCell!.firstChild !== this.#loadWait || this.#emptyCell!.childNodes.length !== 1) this.#emptyCell!.replaceChildren(this.#loadWait);
+      this.#empty!.style.setProperty("--_headh", `${this.#head!.offsetHeight}px`);
+    } else this.#emptyCell!.replaceChildren(L.empty, ...(this.#empty!.hidden ? [] : this.#relax()));
     this.#paintFacets();
     this.#paintHeading();
     this.#paintPresets();

@@ -841,6 +841,42 @@ export function parseServerErrors(body: unknown, offset: number, size: number): 
   return out;
 }
 
+/** El mensaje de un cuerpo de error (`{error}` o `{message}`, como texto), o `""`. */
+export function serverMessage(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const o = body as Record<string, unknown>;
+  for (const k of ["error", "message"]) {
+    const v = o[k];
+    if (typeof v === "string" && v.trim()) return v.trim().slice(0, 300);
+  }
+  return "";
+}
+
+/** Un fallo del envío que puede salir bien al reintentar: sin respuesta (red, plazo), un 5xx, un 408
+ *  o un 429. Un 4xx distinto (sin permiso, no existe, mal formado) no cambia por reintentar. */
+export const retryableStatus = (status: number): boolean => status === 0 || status >= 500 || status === 408 || status === 429;
+
+/**
+ * La identidad de un lote (`Idempotency-Key`): la sesión del archivo cargado más una huella de lo que
+ * lleva (filas y sus líneas). Reintentar ESE lote (un corte de red, el plazo) manda la misma clave, y
+ * el servidor no lo aplica dos veces; un lote distinto (otras filas, una celda corregida), otra.
+ */
+export function batchKey(session: string, rows: readonly unknown[], lines: readonly number[]): string {
+  const text = JSON.stringify([rows, lines]);
+  // cyrb53: 53 bits de huella, sin dependencias ni `crypto.subtle` (que es asíncrono).
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const hash = (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+  return `nx-import-${session}-${hash}`;
+}
+
 /** Un CSV para Excel: `;` o `,` según el locale, comillas donde hacen falta y BOM. Los textos que
  *  Excel tomaría como fórmula (`=`, `+`, `-`, `@` sin ser un número) van con un apóstrofo. */
 export function toCsv(rows: readonly (readonly ImportCell[])[], delimiter = ";"): string {

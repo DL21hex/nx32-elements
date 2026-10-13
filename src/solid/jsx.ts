@@ -63,7 +63,7 @@ import type { SyncChangeDetail, SyncField, SyncLabels, SyncOp } from "../compone
 import type { NxDateRange } from "../components/date-range/date-range";
 import type { DateRangeChangeDetail, DateRangeCompare, DateRangeLabels, DateRangePresetInput, DateRangeValue } from "../components/date-range/types";
 import type { NxImport } from "../components/import/import";
-import type { ImportColumnInput, ImportDoneDetail, ImportErrorDetail, ImportLabels, ImportMappedDetail, ImportParsedDetail, ImportState } from "../components/import/types";
+import type { ImportBatchDetail, ImportColumnInput, ImportDoneDetail, ImportErrorDetail, ImportLabels, ImportMappedDetail, ImportParsedDetail, ImportState } from "../components/import/types";
 import type { NxKeytips } from "../components/keytips/keytips";
 import type { KeytipAssignment, KeytipDetail, KeytipsLabels } from "../components/keytips/types";
 import type { NxGuard } from "../components/guard/guard";
@@ -291,7 +291,7 @@ declare module "solid-js" {
       detect: string | undefined;
       kind: TrendKind | HandoffKind | undefined;
       debounce: string | undefined;
-      /** `<nx-select source timeout>`: plazo de cada búsqueda, en ms. */
+      /** `<nx-select source timeout>`, `<nx-import timeout>`: plazo de cada petición, en ms. */
       timeout: string | undefined;
       idle: string | undefined;
       channel: string | undefined;
@@ -517,6 +517,7 @@ declare module "solid-js" {
       "nx-import-mapped": CustomEvent<ImportMappedDetail>;
       "nx-import-done": CustomEvent<ImportDoneDetail>;
       "nx-import-error": CustomEvent<ImportErrorDetail>;
+      "nx-import-batch": CustomEvent<ImportBatchDetail>;
       "nx-sync-done": CustomEvent<{ op: SyncOp; data: unknown }>;
       "nx-sync-change": CustomEvent<SyncChangeDetail>;
       "nx-sync-auth": CustomEvent<{ op: SyncOp }>;

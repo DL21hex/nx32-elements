@@ -494,7 +494,7 @@ describe("<nx-import>: envío al servidor", () => {
     el.addEventListener("nx-import-done", (e) => done(e.detail));
     btn(el, "next").click();
     await tick(10);
-    expect(bodies[3]).toEqual({ rows: [{ nit: "811002345-7", razon: "Dos" }], offset: 0 });
+    expect(bodies[3]).toEqual({ rows: [{ nit: "811002345-7", razon: "Dos" }], offset: 0, lines: [3] });
     expect(el.state).toBe("done");
     expect(title(el)).toBe("Importamos 4 filas");
     expect(done.mock.calls[0][0].skipped).toEqual([{ line: 5, reason: "Cliente bloqueado" }]);
@@ -567,11 +567,112 @@ describe("<nx-import>: envío al servidor", () => {
     await tick(5);
     expect(el.state).toBe("review");
     expect(status(el)).toBe("No se pudo enviar (HTTP 503). Se importaron 0; puedes reintentar el resto.");
-    expect(errors).toHaveBeenCalledWith({ code: "network", message: status(el) });
+    expect(errors).toHaveBeenCalledWith({ code: "network", message: status(el), status: 503 });
     vi.stubGlobal("fetch", vi.fn(async () => json({})));
     btn(el, "next").click();
     await tick(5);
     expect(el.state).toBe("done");
+  });
+
+  it("cada lote lleva su Idempotency-Key (la misma al reintentar ESE lote) y la línea de cada fila", async () => {
+    const sent: { key: string; body: { rows: unknown[]; offset: number; lines: number[] } }[] = [];
+    let fail = true;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        sent.push({ key: (init.headers as Record<string, string>)["Idempotency-Key"], body: JSON.parse(String(init.body)) });
+        // El segundo lote se cae la primera vez (un corte de red).
+        if (sent.length === 2 && fail) {
+          fail = false;
+          throw new TypeError("Failed to fetch");
+        }
+        return json({});
+      }),
+    );
+    const el = mount('endpoint="/api/clientes" batch="2"');
+    await toReview(el, ALL_OK);
+    btn(el, "next").click();
+    await tick(10);
+    expect(el.state).toBe("review");
+    expect(status(el)).toBe("No se pudo enviar (Failed to fetch). Se importaron 2; puedes reintentar el resto.");
+    expect(sent.map((s) => s.body.lines)).toEqual([[2, 3], [4, 5]]);
+    expect(sent[0].body.offset).toBe(0);
+    expect(sent[0].key).toMatch(/^nx-import-[0-9a-z]+-[0-9a-z]+$/);
+    expect(sent[1].key).not.toBe(sent[0].key);
+    btn(el, "next").click();
+    await tick(10);
+    expect(el.state).toBe("done");
+    // El reintento del lote caído lleva su misma clave; el lote nuevo, otra.
+    expect(sent.map((s) => s.body.lines)).toEqual([[2, 3], [4, 5], [4, 5], [6]]);
+    expect(sent[2].key).toBe(sent[1].key);
+    expect(sent[3].key).not.toBe(sent[1].key);
+    // Otro archivo (aunque traiga lo mismo) es otra sesión: otra clave.
+    await toReview(el, ALL_OK);
+    btn(el, "next").click();
+    await tick(10);
+    expect(sent[4].body.lines).toEqual([2, 3]);
+    expect(sent[4].key).not.toBe(sent[0].key);
+  });
+
+  it("un 4xx sin errores por fila muestra el mensaje del servidor y no ofrece reintentar", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json({ error: "No tienes permiso para importar clientes." }, 403)));
+    const el = mount('endpoint="/api/clientes"');
+    const errors = vi.fn();
+    el.addEventListener("nx-import-error", (e) => errors(e.detail));
+    await toReview(el, ALL_OK);
+    btn(el, "next").click();
+    await tick(5);
+    expect(el.state).toBe("review");
+    expect(status(el)).toBe("El servidor no aceptó el envío: No tienes permiso para importar clientes. Se importaron 0.");
+    expect(status(el)).not.toContain("reintentar");
+    expect(errors).toHaveBeenCalledWith({ code: "refused", message: status(el), status: 403 });
+  });
+
+  it("un 429 (o un 5xx con mensaje) sí deja reintentar, con el mensaje del cuerpo", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json({ message: "Demasiadas solicitudes" }, 429)));
+    const el = mount('endpoint="/api/clientes"');
+    await toReview(el, ALL_OK);
+    btn(el, "next").click();
+    await tick(5);
+    expect(status(el)).toBe("No se pudo enviar (Demasiadas solicitudes). Se importaron 0; puedes reintentar el resto.");
+  });
+
+  it("nx-import-batch tras cada lote respondido, también con filas rechazadas", async () => {
+    let n = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => (n++ === 1 ? json({ errors: [{ row: 2, message: "Ya existe" }] }, 422) : json({}))),
+    );
+    const el = mount('endpoint="/api/clientes" batch="2"');
+    const batches = vi.fn();
+    el.addEventListener("nx-import-batch", (e) => batches(e.detail));
+    await toReview(el, ALL_OK);
+    btn(el, "next").click();
+    await tick(10);
+    expect(batches.mock.calls.map((c) => c[0])).toEqual([
+      { accepted: 2, rejected: 0, offset: 0 },
+      { accepted: 1, rejected: 1, offset: 2 },
+      { accepted: 1, rejected: 0, offset: 4 },
+    ]);
+    expect(el.state).toBe("review");
+  });
+
+  it("un lote que no responde vence su plazo: se detiene y deja reintentar", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_, reject) => init.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError"))))),
+    );
+    const el = mount('endpoint="/api/clientes" timeout="30"');
+    expect(el.timeout).toBe(30);
+    const errors = vi.fn();
+    el.addEventListener("nx-import-error", (e) => errors(e.detail));
+    await toReview(el, ALL_OK);
+    btn(el, "next").click();
+    await tick(60);
+    expect(el.state).toBe("review");
+    expect(status(el)).toBe("No se pudo enviar (el servidor no respondió a tiempo). Se importaron 0; puedes reintentar el resto.");
+    expect(errors).toHaveBeenCalledWith({ code: "network", message: status(el) });
+    expect(mount().timeout).toBe(60_000);
   });
 
   it("un endpoint de otro origen no se usa (las filas no salen de la página)", async () => {

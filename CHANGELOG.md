@@ -47,6 +47,20 @@
   leer y, en `variant="summary"` (donde el valor se corta con «…»), junto a la etiqueta; siempre
   con `role="img"`, `aria-label` y `title` (`labels.readonly`, «No se edita aquí»). Al leer, el
   valor no cambia de color.
+- **`<nx-import>`: cada lote tiene identidad, un 4xx dice por qué y no invita a reintentar.**
+  (a) Cada lote va con la cabecera `Idempotency-Key`, estable entre reintentos de ESE lote (la
+  sesión del archivo cargado más una huella de sus filas y líneas) y distinta para otro lote u otro
+  archivo; y el cuerpo suma `lines` (la línea del archivo de cada fila) a `{rows, offset}`, que no
+  cambian. (b) Un no-2xx sin `errors` muestra el `error` (o `message`) del cuerpo en vez de «HTTP
+  403», y si es un 4xx distinto de 408/429 no ofrece reintentar: «El servidor no aceptó el envío:
+  {error}. Se importaron {n}.» (`labels.refused`) y `nx-import-error` `{code: "refused", message,
+  status}`; sin red, un 5xx, 408 o 429 siguen siendo `network` (ahora con `status`). (c)
+  `nx-import-batch` `{accepted, rejected, offset}` tras cada lote respondido: la app refresca
+  aunque queden filas rechazadas. (d) Plazo por lote, `timeout` (ms, por defecto 60 000): vencido,
+  el envío se detiene con «el servidor no respondió a tiempo» (`labels.timedOut`) y se puede
+  reintentar. Solid: `timeout`, `onBatch`. **Cambia (0.x):** el cuerpo trae `lines` (un backend que
+  rechaza claves desconocidas tiene que aceptarla) y `nx-import-error` de red lleva `status` si hubo
+  respuesta.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

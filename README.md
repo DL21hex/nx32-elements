@@ -1705,10 +1705,20 @@ de 3 · Columnas»), controles de formulario normales y botones Anterior / Sigui
   revisa de nuevo esa fila. O «Omitir las filas con errores». Nunca más de 200 filas pintadas.
 - **Importar.** Sin `endpoint`: `nx-import-done` con `{rows, skipped, mapping, fixed, headers}`
   (números como número, fechas ISO, opciones por su `value`). Con `endpoint` (del mismo origen, o
-  de uno de `allowOrigins()`): `POST {rows, offset}` en lotes de `batch`, con avance y
+  de uno de `allowOrigins()`): `POST {rows, offset, lines}` en lotes de `batch`, con avance y
   cancelable; la respuesta puede traer `{errors: [{row, field?, message}]}` (`row` = `offset` +
   índice en el lote) y esas filas vuelven a la revisión para corregirlas y reenviar solo esas. Al
   final, «Importamos 1.197 clientes» y un CSV (con BOM, para Excel) con lo que no entró y el motivo.
+  - **Cada lote tiene identidad**: `lines` trae la línea del archivo de cada fila (la que ve Excel)
+    y la cabecera `Idempotency-Key` es la misma al reintentar ESE lote (mismas filas, mismas
+    líneas, mismo archivo cargado) y otra para un lote distinto: el servidor que la respeta no
+    aplica dos veces un lote que llegó pero cuya respuesta se perdió.
+  - **Un fallo sin `errors`**: se muestra el `error` (o `message`) del cuerpo. Sin red, un plazo
+    vencido (`timeout`, 60 s por lote), un 5xx, 408 o 429: «puedes reintentar el resto» y
+    `nx-import-error` `{code: "network"}`. Cualquier otro 4xx (sin permiso, mal formado): no se
+    ofrece reintentar, `{code: "refused", status}`.
+  - `nx-import-batch` `{accepted, rejected, offset}` tras cada lote respondido: la app refresca lo
+    que muestra aunque queden filas por corregir.
 - 50.000 filas × 15 columnas se revisan por tramos, sin congelar la página.
 - **Plantilla (`template`).** La URL de un archivo de ejemplo: el primer paso ofrece «Descargar la
   plantilla» debajo de donde se suelta el archivo (un `<a download>` en otra pestaña), así quien
@@ -1729,9 +1739,9 @@ de 3 · Columnas»), controles de formulario normales y botones Anterior / Sigui
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns` (`{key, label, type?, required?, unique?, options?, aliases?, min?, max?, pattern?, hint?}`), `endpoint`, `template` (URL de la plantilla), `batch` (500), `accept`, `max-size` («20MB»), `memory`, `locale`, `labels` (plural con «uno\|varios»), `disabled` · `state`, `rows`, `mapping` (solo lectura) |
+| Propiedades / atributos | `columns` (`{key, label, type?, required?, unique?, options?, aliases?, min?, max?, pattern?, hint?}`), `endpoint`, `template` (URL de la plantilla), `batch` (500), `timeout` (ms por lote, 60 000), `accept`, `max-size` («20MB»), `memory`, `locale`, `labels` (plural con «uno\|varios»), `disabled` · `state`, `rows`, `mapping` (solo lectura) |
 | Métodos | `load(archivo \| texto)`, `reset()` |
-| Eventos | `nx-import-parsed` `{name, sheet?, sheets?, headers, headerRow, rows}`, `nx-import-mapped` `{mapping, fixed, remembered}`, `nx-import-done` `{rows, skipped, mapping, fixed, headers}`, `nx-import-error` `{code, message}` (`size`, `read`, `empty`, `network`) |
+| Eventos | `nx-import-parsed` `{name, sheet?, sheets?, headers, headerRow, rows}`, `nx-import-mapped` `{mapping, fixed, remembered}`, `nx-import-done` `{rows, skipped, mapping, fixed, headers}`, `nx-import-batch` `{accepted, rejected, offset}`, `nx-import-error` `{code, message, status?}` (`size`, `read`, `empty`, `network`, `refused`) |
 | Funciones | `parseCsv`, `decodeImportBytes`, `detectHeaderRow`, `autoMapColumns`, `validateImportRows`, `normalizeImportValue`, `parseImportNumber`, `parseImportDate`, `importRowsToCsv`…: la misma lógica sin DOM, para un backend en JavaScript |
 
 ## `<nx-keytips>`

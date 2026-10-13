@@ -7,7 +7,8 @@
 export type HistoryValue = string | number | boolean | null;
 
 export type HistoryFieldType = "text" | "number" | "money" | "date" | "status";
-export type HistoryTone = "neutral" | "success" | "warning" | "danger";
+/** Los mismos tonos que `<nx-badge>`. */
+export type HistoryTone = "neutral" | "success" | "info" | "warning" | "danger";
 
 /** Un campo del registro: cómo se llama y cómo se muestra su valor. */
 export interface HistoryField {

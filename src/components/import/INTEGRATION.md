@@ -270,7 +270,10 @@ auditar; marcar «Omitir las filas con errores», importar y auditar el paso fin
   no la línea física: una celda con salto de línea no corre la numeración.
 - **Protocolo de errores:** `row` se acepta absoluto (`offset` + índice) o relativo al lote (con
   `offset` ≥ tamaño del lote los rangos no se cruzan). Un 4xx con `errors` vale como respuesta; sin
-  `errors`, cualquier no-2xx es un fallo del envío (se detiene y deja reintentar el resto). Un
+  `errors`, un no-2xx es un fallo del envío que muestra el `error`/`message` del cuerpo y se
+  detiene: un 5xx, 408 o 429 (o sin red, o el plazo) deja reintentar el resto; otro 4xx no lo
+  ofrece (`code: "refused"`). Cada lote lleva `lines` y una `Idempotency-Key` estable entre
+  reintentos de ese lote (0.20.0). Un
   `field` que no está asociado (o es un valor fijo) marca la fila entera.
 - **Valor fijo:** se valida al pasar de columnas a revisión (una ciudad que no está en `options`,
   una fecha inválida). En la revisión no se muestra como columna.

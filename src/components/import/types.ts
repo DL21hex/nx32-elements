@@ -129,11 +129,27 @@ export interface ImportDoneDetail {
   headers: string[];
 }
 
-export type ImportErrorCode = "size" | "read" | "empty" | "network";
+/** `network`: el envío falló y se puede reintentar (sin red, el plazo, un 5xx, 408, 429). `refused`:
+ *  el servidor lo rechazó entero con un 4xx sin `errors` por fila (sin permiso, mal formado):
+ *  reintentar no cambia nada. */
+export type ImportErrorCode = "size" | "read" | "empty" | "network" | "refused";
 
 export interface ImportErrorDetail {
   code: ImportErrorCode;
   message: string;
+  /** El estado HTTP de la respuesta que lo causó (`network`/`refused`; sin respuesta, no viene). */
+  status?: number;
+}
+
+/** `nx-import-batch`: un lote respondido (con o sin filas rechazadas). La app refresca lo que muestra
+ *  aunque queden filas por corregir. */
+export interface ImportBatchDetail {
+  /** Filas del lote que entraron. */
+  accepted: number;
+  /** Filas del lote que el servidor rechazó (vuelven a la revisión). */
+  rejected: number;
+  /** La posición del lote en el envío (la misma `offset` del cuerpo). */
+  offset: number;
 }
 
 /** `file`, `columns`, `review` (los tres pasos), `sending` y `done`. */
@@ -230,6 +246,11 @@ export interface ImportLabels extends ImportMessages {
   cancelled: string;
   /** «No se pudo enviar ({error}). Se importaron {n}; puedes reintentar el resto.» */
   failed: string;
+  /** Un 4xx sin errores por fila: «El servidor no aceptó el envío: {error}. Se importaron {n}.»
+   *  Sin «reintentar»: el mismo envío daría lo mismo. */
+  refused: string;
+  /** El `{error}` de un lote que no respondió dentro de `timeout`. */
+  timedOut: string;
   /** «El servidor rechazó {n} filas: corrígelas y vuelve a enviarlas.» */
   rejected: string;
   /** «Importamos {n} filas» */

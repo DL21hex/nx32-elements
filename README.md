@@ -374,11 +374,21 @@ sel.options = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987", 
   (`value='["1","2"]'`).
 - Un `value` repetido en `options` se avisa por consola y se queda el primero.
 - `source`: mismo origen (o `allowOrigins`); lo que se escribe no sale hacia un tercero. Una
-  búsqueda nueva cancela la anterior.
+  búsqueda nueva cancela la anterior. Cada búsqueda tiene plazo (`timeout`, en ms; por defecto
+  30 000): vencido, se muestra el error. Los resultados llevan la consulta que los produjo: mientras
+  la consulta escrita no tiene respuesta, la lista anterior se ve atenuada pero no se resalta ni se
+  elige con el teclado, y un Enter pulsado en esa espera elige la primera opción de la respuesta
+  que llegue (si llega vacía, nada). El servidor decide qué casa (puede buscar en campos que el
+  cliente no ve, como la cédula): no se descarta ninguno de sus resultados. Al cerrar se olvidan.
+- **Con `source`, el valor elegido tiene que llegar con su registro.** El select no pide al
+  servidor un `value` suelto: si el valor inicial no viene en `options` (ni en `selection`), queda
+  pendiente y `value` es `""` hasta que aparezca en una búsqueda. Para pintar la selección inicial,
+  pasa los registros elegidos en `selection` (o en `options`):
+  `sel.selection = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987" }]`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `fields`, `options`, `source`, `value`, `selection`, `multiple`, `placeholder`, `label`, `name`, `required`, `disabled`, `clearable`, `avatar`, `limit`, `labels` |
+| Propiedades / atributos | `fields`, `options`, `source`, `value`, `selection`, `multiple`, `placeholder`, `label`, `name`, `required`, `disabled`, `clearable`, `avatar`, `limit`, `timeout`, `labels` |
 | Métodos | `show()`, `hide()`, `open`, `focus()`, `checkValidity()`, `reportValidity()`, `setCustomValidity(msg)`, `form`, `validity`, `validationMessage`, `willValidate` |
 | Eventos | `nx-select-change` `{value, options}` y un `change` nativo, al elegir, quitar o limpiar |
 
@@ -481,9 +491,13 @@ Una tabla de datos que se explora sola:
   en «contiene», «Desde» o «Hasta» también se aplica al cerrar o al pasar a otra columna. El chip lo
   vuelve a abrir. Con más de la mitad marcada se guarda como exclusión («Proveedor: sin Aceros»).
   `filter` en la columna lo fuerza o lo quita (`false`). El panel se carga aparte, la primera vez que hace falta.
-- **Buscar en la tabla.** La caja de la barra deja las filas que contienen lo escrito en alguna
-  columna visible, sin tildes ni mayúsculas: lo que se ve (la etiqueta de un estado, el monto con
-  formato) y, en números y fechas, también el valor sin formato. Busca un momento después de la
+- **Buscar en la tabla.** La caja de la barra busca por palabras: deja las filas en las que cada
+  palabra escrita (separadas por espacios, en cualquier orden) está en alguna columna visible, sin
+  tildes ni mayúsculas: «jose martinez» encuentra «JOSE LUIS MARTINEZ» (0.20.0; antes, la frase
+  entera). Mira lo que se ve (la etiqueta de un estado, el monto con
+  formato) y, en números y fechas, también el valor sin formato. Con `source` la búsqueda viaja como
+  `search`, y el servidor tiene que buscar con la misma regla (ver `GridPage`): si no, la tabla
+  encuentra una cosa con las filas aquí y otra en el servidor. Busca un momento después de la
   última tecla (o con Enter); la ✕ o Escape la borran. Se suma a los filtros sin ser uno: no deja
   chip ni va en las vistas, y si no queda ninguna fila la tabla propone quitarla. `grid.search` la
   lee o la asigna. El texto de cada fila se arma la primera vez que se busca (con 10.000 filas,
@@ -561,7 +575,8 @@ Una tabla de datos que se explora sola:
 - **Teclado.** La tabla es una sola parada de Tab (el patrón grid de la APG): flechas entre celdas,
   ↑ desde la primera fila sube a las cabeceras y ←/→ (Inicio, Fin) las recorren; ahí Enter ordena,
   Alt+↓ abre el filtro, Ctrl+←/→ cambia el ancho (Mayús, de a más), Supr lo devuelve y ↓ vuelve a
-  las celdas.
+  las celdas. El lector de pantalla la nombra con `label` (su `aria-label`) o, sin él, con su
+  `heading`: la tabla de una página cuyo título pone la cabecera (`segments`) lo trae en `label`.
 - **Agrupación con subtotales** por cualquier columna de categorías o por mes.
 - **Columnas a la medida.** «Columnas» muestra y esconde columnas (la última no se esconde, y el
   filtro de una columna oculta sigue puesto). Una columna con `hidden: true` empieza escondida: la
@@ -610,19 +625,24 @@ Una tabla de datos que se explora sola:
 - **Cliente o servidor.** Con `rows`, todo pasa en el navegador. Con `source`, se pide por bloques
   al desplazarse, y el backend devuelve los agregados. En el servidor, el filtro de una columna
   espera 250 ms tras el último cambio antes de pedir. Si un bloque no llega, sale `nx-grid-error` y
-  se vuelve a pedir más tarde (1 s, 2 s, 4 s… hasta 30 s), hasta cinco intentos: con el servidor
-  caído, la tabla no sigue pidiendo para siempre. Esos bloques vuelven a pedirse (otra tanda) al
+  se vuelve a pedir más tarde (hacia 1 s, 2 s, 4 s… hasta 30 s, con una variación al azar de hasta
+  la mitad hacia abajo: muchas pestañas que vieron caer al servidor no vuelven a la vez; con
+  `Retry-After`, lo que pidió el servidor, hasta 10 min), hasta cinco intentos: con el servidor
+  caído, la tabla no sigue pidiendo para siempre. Cada petición tiene plazo (`timeout`, en ms; 30 s
+  por defecto): vencido, se corta y cuenta como la red caída (`status: 0`, se repite sola). Antes de
+  la 0.20.0 un servidor que no contestaba dejaba «Cargando…» para siempre. Esos bloques vuelven a pedirse (otra tanda) al
   desplazarse o cuando llega bien otro bloque, y siempre con `refresh()`; si es el primero, la
   tabla lo dice con «Reintentar». Se guardan hasta 50 bloques: los más lejanos a la vista se sueltan. Cambiar la
   consulta o sacar la tabla del DOM corta lo que estaba en camino.
 - **Un rechazo no se repite, y se explica** (0.17.0). Solo se vuelve a pedir solo lo que puede pasar
-  solo: la red, un 5xx o un 429. Un 4xx (sin permiso, un filtro que el servidor no acepta) se dice
+  solo: la red, el plazo vencido, un 5xx, un 408 o un 429. Otro 4xx (sin permiso, un filtro que el servidor no acepta) se dice
   una vez y espera a «Reintentar» o `refresh()`, ni siquiera al desplazarse. `nx-grid-error` trae
   `{offset, limit, error, status, message, body, attempt, retrying}`: `status` (0 sin respuesta),
   `message` (el `error` o el `message` del JSON del servidor, o `error` si no dijo nada), `body` (el
   JSON, o el texto), `attempt` (1 el primero: para avisar una sola vez por fallo) y `retrying` (si la
   tabla lo pedirá otra vez). Sin filas, el aviso pone lo que dijo el servidor debajo de «No se
-  pudieron cargar las filas».
+  pudieron cargar las filas», y lo mismo se anuncia en la región viva (una vez por fallo: el aviso es
+  una celda de la tabla, que el lector de pantalla no lee solo).
 - **Una fila que cambió afuera no obliga a pedir la tabla entera** (0.17.0). `grid.patchRow(fila)`
   reemplaza la que tiene su `id` (según `row-key`), o la agrega si no estaba, y `grid.removeRow(id)`
   la quita. Con las filas en el navegador (`rows`, o `client-max` / `client-only` ya en el cliente)
@@ -635,7 +655,13 @@ Una tabla de datos que se explora sola:
   fila no cargada, también); `removeRow` responde `false` (el total y las páginas cambian). Un atajo
   que es enlace con conteo del servidor también hace `false`: ese conteo solo lo sabe el servidor.
   Las marcas de edición y el historial para deshacer de esa fila se olvidan: lo que llega es lo
-  guardado.
+  guardado. Mientras la tabla trae el conjunto entero (`client-max` decidiendo si cabe, o un
+  `refresh()` con las filas aquí) responden `false`: el cambio se ve ya y se vuelve a aplicar sobre
+  lo que llegue (pudo leerse antes), y `refresh()` corta esa descarga y pide una que ya lo trae. La
+  celda activa sigue a su fila (por su id) si el cambio la mueve de lugar. Con las filas aquí, un
+  cambio no rehace lo que no depende de esa fila (el texto de búsqueda de las demás, el orden si no
+  cambió su valor, los conteos de los atajos por diferencia): con 20.000 filas, unas tres veces
+  menos trabajo por `patchRow`.
 
 ```js
 // La ficha guardó: el servidor devolvió la fila como la devuelve `source`.
@@ -655,7 +681,11 @@ grid.addEventListener("nx-grid-error", (e) => {
   que el tope, solo con su número, `{rows: [], total: N}`, sin leerlas. Con un `total` mayor que el
   tope, más filas que el tope o menos filas que su `total`, la tabla sigue en el servidor (y ese
   `total` es el número de «Todos»). Las filas traídas son
-  una foto: `refresh()` las vuelve a pedir (y vuelve a mirar el total). Es opcional: sin
+  una foto: `refresh()` las vuelve a pedir (y vuelve a mirar el total) sin soltar las que se ven
+  (0.20.0): la tabla sigue en el cliente, con su desplazamiento y su celda activa, y `aria-busy`
+  mientras viene la nueva; al llegar la reemplaza (si ya no cabe, pasa al servidor con la consulta
+  de ahora; si falla, se quedan las de antes y sale `nx-grid-error` con `retrying: false`). Una
+  descarga cortada (`refresh()`, otro `source`) que llega tarde se tira: nunca pisa a la nueva. Es opcional: sin
   `client-max` nada cambia. Un origen sin modo servidor (que solo sabe responder la consulta
   completa) también sirve: si la primera página trae filtros, búsqueda u orden (los recordados al
   volver a la página) y el origen la rechaza, la tabla prueba la consulta completa antes de dar el
@@ -664,8 +694,13 @@ grid.addEventListener("nx-grid-error", (e) => {
   tabla no prueba nada: la primera petición va sin filtros, búsqueda ni orden
   (`{offset: 0, limit: client-max + 1, sort: null, filters: []}`; sin `client-max`, hasta 20.000
   filas) y los filtros, los recordados también, se aplican aquí. Filtrar mientras llega no lo vuelve
-  a pedir; `refresh()` lo pide otra vez entero. Si llegan más filas que el tope, se toman las del
-  tope y se avisa por consola. Sin `client-only`, `client-max` sigue como antes.
+  a pedir; `refresh()` lo pide otra vez entero (sin soltar lo que se ve, como arriba). Si llegan más
+  filas que el tope, se toman las del tope y la tabla lo dice (0.20.0; antes solo la consola, y el
+  recorte se presentaba como el total): un aviso bajo el conteo («Se muestran las primeras 20.000 de
+  25.300 filas: los filtros y la búsqueda solo miran estas», `labels.truncated`), el total real en
+  el conteo y en «Todos», la región viva y el evento `nx-grid-truncated` (`{shown, total}`; `total`
+  es el del origen, o las filas que llegaron si dice menos). Sin `client-only`, `client-max` sigue
+  como antes.
 - **Barra horizontal también arriba.** Una tabla ancha lleva su barra de desplazamiento horizontal
   también encima de las columnas: la propia queda al pie de su caja y había que bajar hasta allá
   para moverla. Viene encendida; `top-scrollbar="false"` (`topScrollbar={false}` en Solid y en BDUI)
@@ -718,8 +753,12 @@ grid.addEventListener("nx-grid-error", (e) => {
   hay filtro con qué contarlo. Va bien al final, después de los que filtran.
 - **Título (`heading`).** La tabla que es la página lleva su título en la primera fila, y los atajos
   pasan a ser un filtro segmentado debajo de él: «Todos» (`labels.presetsAll`) y uno por atajo, cada
-  uno con su conteo en una pastilla (gris, o del tono del atajo), excluyentes, como pestañas que no salen de la página. Pulsar el marcado (o
-  «Todos») lo quita. La línea corta (`hint`) sale al pasar el mouse. Los atajos que llevan a otra
+  uno con su conteo en una pastilla (gris, o del tono del atajo), excluyentes, como pestañas que no salen de la página. Pulsar el marcado lo
+  quita (vuelven los filtros de antes de tocarlo). Lo presionado dice la verdad de lo que se ve
+  (0.20.0): un atajo, si los filtros son los suyos; «Todos», solo sin ningún filtro (su número es el
+  del conjunto sin filtros). Con otros filtros (los de arranque de la app, uno puesto a mano) no hay
+  ninguno presionado, y pulsar «Todos» los quita todos. Una tabla que arranca filtrada («Activo») y
+  quiere ese filtro presionado lo declara como un atajo con los mismos filtros. La línea corta (`hint`) sale al pasar el mouse. Los atajos que llevan a otra
   página (`href`) van después, como enlaces con su número y ↗. Si no caben, se desplazan de lado.
   `heading-level` (`headingLevel`) es el nivel del título: 2 por defecto, 1 si es el de la página.
   La letra y el cuadro del ícono son `.nx-page-title` (tokens.css), los mismos de
@@ -869,10 +908,10 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `timeout` (ms; 30.000), `label` (el `aria-label` de la tabla; sin él, `heading`), `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
-| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns` (`{columns, hidden, widths}`: la persona cambió las columnas visibles o un ancho, o `removeColumn()`), `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-layout` (`{layout, matrix}`) |
+| Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns` (`{columns, hidden, widths}`: la persona cambió las columnas visibles o un ancho, o `removeColumn()`), `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-truncated` (`{shown, total}`: `client-only` recortó lo que mandó el origen), `nx-grid-layout` (`{layout, matrix}`) |
 
 ## `<nx-dialog>`, `nxToast()` y `nxConfirm()`
 
@@ -885,6 +924,12 @@ Cuatro formas de hacer lo que hoy se hace con un modal, cada una para su caso:
   Buscar o filtrar dentro de un `<nx-select>` o una `<nx-grid>` no cuenta como cambio (sus
   controles de consulta llevan `data-nx-ephemeral`, y el diálogo ignora lo que venga de ahí);
   elegir un valor (el `change` de `<nx-select>`) o editar una celda (`nx-grid-change`) sí.
+  Un `<nx-form>` de adentro lleva su propia cuenta (`dirty`: escribir y borrar no es un cambio) y
+  el diálogo la suma a la suya, también la de una pestaña oculta: guardar una pestaña (la app le
+  vuelve a asignar `values` y pone `dialog.dirty = false`) no deja sin aviso a otra con cambios. Al
+  abrirse, al «Descartar» y al pasar de registro, los formularios quedan limpios (`markClean()`).
+  Para negarse a cerrar mientras guarda, la app cancela `nx-dialog-beforeclose`, que sale antes del
+  aviso de cambios; `nx-dialog-close` sale después, cuando ya se va a cerrar.
 - **B · Paneles apilados.** `mode="panel"`: cada nivel se apila sobre el anterior (pedido →
   proveedor → factura), con migas para volver, y la página sigue a la vista. Con `url` (del mismo
   origen; si no, se ignora), «atrás» del navegador cierra el nivel de arriba. Al cerrarse quita su
@@ -923,8 +968,8 @@ if (await nxConfirm({ heading: "Anular OC-2291", impact: "/compras/oc/2291/impac
 
 | | |
 |---|---|
-| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty`, `loading` (la espera común mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` · `nx-dialog-close` (cancelable), `nx-open-change` · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
-| `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo) |
+| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty` (la marca propia O algún `<nx-form>` de adentro con `dirty`, también en una pestaña oculta; `dirty = false` solo quita la marca propia), `loading` (la espera común mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` → si cerró · `nx-dialog-beforeclose` `{reason, value}` (cancelable, en todo intento de cierre y ANTES del aviso de cambios: la app se niega ahí mientras guarda), `nx-dialog-close` `{reason, value}` (cancelable, cuando ya se va a cerrar), `nx-open-change` · mientras está arriba, el fondo queda `inert` (no los avisos ni la paleta) · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
+| `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo; por defecto 5 s, 7 s con `undo`, y un error, `tone: "danger"`, hasta cerrarlo con su ×). Cada aviso se anuncia una vez, en una región viva aparte de la lista (de alerta si es un error) |
 | `nxConfirm()` | `{heading, message?, impact?, body?, confirmLabel?, tone?, hold?, failOpen?}` → `true` / `false`. Con `impact` como URL (mismo origen o `allowOrigins`) falla cerrado: si hay un error de red o del servidor, un evento `error` o el stream termina sin `done`, no se puede confirmar; `failOpen: true` deja confirmar igual, con el aviso a la vista |
 | `<nx-button hold>` | Mantener pulsado (ms, 1000 por defecto) para activarlo; con teclado, mantener Enter o Espacio |
 
@@ -1689,10 +1734,20 @@ de 3 · Columnas»), controles de formulario normales y botones Anterior / Sigui
   revisa de nuevo esa fila. O «Omitir las filas con errores». Nunca más de 200 filas pintadas.
 - **Importar.** Sin `endpoint`: `nx-import-done` con `{rows, skipped, mapping, fixed, headers}`
   (números como número, fechas ISO, opciones por su `value`). Con `endpoint` (del mismo origen, o
-  de uno de `allowOrigins()`): `POST {rows, offset}` en lotes de `batch`, con avance y
+  de uno de `allowOrigins()`): `POST {rows, offset, lines}` en lotes de `batch`, con avance y
   cancelable; la respuesta puede traer `{errors: [{row, field?, message}]}` (`row` = `offset` +
   índice en el lote) y esas filas vuelven a la revisión para corregirlas y reenviar solo esas. Al
   final, «Importamos 1.197 clientes» y un CSV (con BOM, para Excel) con lo que no entró y el motivo.
+  - **Cada lote tiene identidad**: `lines` trae la línea del archivo de cada fila (la que ve Excel)
+    y la cabecera `Idempotency-Key` es la misma al reintentar ESE lote (mismas filas, mismas
+    líneas, mismo archivo cargado) y otra para un lote distinto: el servidor que la respeta no
+    aplica dos veces un lote que llegó pero cuya respuesta se perdió.
+  - **Un fallo sin `errors`**: se muestra el `error` (o `message`) del cuerpo. Sin red, un plazo
+    vencido (`timeout`, 60 s por lote), un 5xx, 408 o 429: «puedes reintentar el resto» y
+    `nx-import-error` `{code: "network"}`. Cualquier otro 4xx (sin permiso, mal formado): no se
+    ofrece reintentar, `{code: "refused", status}`.
+  - `nx-import-batch` `{accepted, rejected, offset}` tras cada lote respondido: la app refresca lo
+    que muestra aunque queden filas por corregir.
 - 50.000 filas × 15 columnas se revisan por tramos, sin congelar la página.
 - **Plantilla (`template`).** La URL de un archivo de ejemplo: el primer paso ofrece «Descargar la
   plantilla» debajo de donde se suelta el archivo (un `<a download>` en otra pestaña), así quien
@@ -1713,9 +1768,9 @@ de 3 · Columnas»), controles de formulario normales y botones Anterior / Sigui
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns` (`{key, label, type?, required?, unique?, options?, aliases?, min?, max?, pattern?, hint?}`), `endpoint`, `template` (URL de la plantilla), `batch` (500), `accept`, `max-size` («20MB»), `memory`, `locale`, `labels` (plural con «uno\|varios»), `disabled` · `state`, `rows`, `mapping` (solo lectura) |
+| Propiedades / atributos | `columns` (`{key, label, type?, required?, unique?, options?, aliases?, min?, max?, pattern?, hint?}`), `endpoint`, `template` (URL de la plantilla), `batch` (500), `timeout` (ms por lote, 60 000), `accept`, `max-size` («20MB»), `memory`, `locale`, `labels` (plural con «uno\|varios»), `disabled` · `state`, `rows`, `mapping` (solo lectura) |
 | Métodos | `load(archivo \| texto)`, `reset()` |
-| Eventos | `nx-import-parsed` `{name, sheet?, sheets?, headers, headerRow, rows}`, `nx-import-mapped` `{mapping, fixed, remembered}`, `nx-import-done` `{rows, skipped, mapping, fixed, headers}`, `nx-import-error` `{code, message}` (`size`, `read`, `empty`, `network`) |
+| Eventos | `nx-import-parsed` `{name, sheet?, sheets?, headers, headerRow, rows}`, `nx-import-mapped` `{mapping, fixed, remembered}`, `nx-import-done` `{rows, skipped, mapping, fixed, headers}`, `nx-import-batch` `{accepted, rejected, offset}`, `nx-import-error` `{code, message, status?}` (`size`, `read`, `empty`, `network`, `refused`) |
 | Funciones | `parseCsv`, `decodeImportBytes`, `detectHeaderRow`, `autoMapColumns`, `validateImportRows`, `normalizeImportValue`, `parseImportNumber`, `parseImportDate`, `importRowsToCsv`…: la misma lógica sin DOM, para un backend en JavaScript |
 
 ## `<nx-keytips>`
@@ -2424,7 +2479,8 @@ seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, 
   registro), `copy` (botón para copiar) y `mono`. Con `editing`, cada valor se vuelve un campo en su
   sitio (texto, correo, teléfono, número, monto, fecha, lista o área de texto) con `name`, así que
   sirve dentro de un `<form>` y marca los cambios sin guardar de `<nx-dialog>`; `readonly` sigue como
-  texto con candado. `values` devuelve lo escrito ya convertido, `validate()` revisa lo obligatorio y
+  texto con candado (el candado, «No se edita aquí», se ve también al leer y, en el resumen, junto a
+  la etiqueta). `values` devuelve lo escrito ya convertido, `validate()` revisa lo obligatorio y
   el formato y enfoca el primer error, y `errors` muestra los del servidor. Un número se edita sin
   redondear; lo escrito en los items con `key` no se pierde si la ficha se vuelve a pintar (los
   mismos `items` otra vez, otro `locale`), y `reset()` lo descarta (un formulario que se reabre).
@@ -2624,7 +2680,7 @@ el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices
 
 | | |
 |---|---|
-| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources` · `nx-form-change` `{key, value, values}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
+| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources`, `dirty` (lo que se ve difiere de lo último cargado con `values` o con un `fill()` sin origen; escribir y borrar vuelve a `false`), `markClean()` · `nx-form-change` `{key, value, values}`, `nx-form-dirty` `{dirty}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
 | Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes)}` |
 | `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |

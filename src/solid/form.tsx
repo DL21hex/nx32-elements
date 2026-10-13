@@ -5,6 +5,7 @@ import "../components/form/index";
 import type { NxForm } from "../components/form/form";
 import type {
   FormChangeDetail,
+  FormDirtyDetail,
   FormCondition,
   FormField,
   FormFieldType,
@@ -20,7 +21,7 @@ import type {
   FormVariant,
 } from "../components/form/types";
 
-export type { NxForm, FormChangeDetail, FormCondition, FormField, FormFieldType, FormFillDetail, FormLabels, FormMode, FormOption, FormRule, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant };
+export type { NxForm, FormChangeDetail, FormDirtyDetail, FormCondition, FormField, FormFieldType, FormFillDetail, FormLabels, FormMode, FormOption, FormRule, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant };
 
 export interface FormProps extends Omit<JSX.HTMLAttributes<NxForm>, "onChange" | "onSubmit" | "onCancel"> {
   sections?: FormSection[];
@@ -46,6 +47,8 @@ export interface FormProps extends Omit<JSX.HTMLAttributes<NxForm>, "onChange" |
   labels?: Partial<FormLabels>;
   onChange?: (e: CustomEvent<FormChangeDetail>) => void;
   onFill?: (e: CustomEvent<FormFillDetail>) => void;
+  /** `nx-form-dirty`: aparecieron o desaparecieron los cambios sin guardar (`ref.dirty`). */
+  onDirty?: (e: CustomEvent<FormDirtyDetail>) => void;
   onUndo?: (e: CustomEvent<{ keys: string[] }>) => void;
   onSubmit?: (e: CustomEvent<FormSubmitDetail>) => void;
   onCancel?: (e: CustomEvent<Record<string, never>>) => void;
@@ -74,6 +77,7 @@ export function Form(props: FormProps): JSX.Element {
     "labels",
     "onChange",
     "onFill",
+    "onDirty",
     "onUndo",
     "onSubmit",
     "onCancel",
@@ -101,6 +105,7 @@ export function Form(props: FormProps): JSX.Element {
       bool:no-footer={!!local.noFooter}
       on:nx-form-change={(e) => e.target === e.currentTarget && local.onChange?.(e)}
       on:nx-form-fill={(e) => e.target === e.currentTarget && local.onFill?.(e)}
+      on:nx-form-dirty={(e) => e.target === e.currentTarget && local.onDirty?.(e)}
       on:nx-form-undo={(e) => e.target === e.currentTarget && local.onUndo?.(e)}
       on:nx-form-submit={(e) => e.target === e.currentTarget && local.onSubmit?.(e)}
       on:nx-form-cancel={(e) => e.target === e.currentTarget && local.onCancel?.(e)}

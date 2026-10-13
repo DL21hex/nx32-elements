@@ -290,3 +290,36 @@ describe("<nx-fields> con datos mal formados (BDUI)", () => {
     expect(rows(f)).toHaveLength(0);
   });
 });
+
+// El candado de `readonly` solo se pintaba al editar: al leer la ficha (y en el resumen) no se
+// sabía qué no se cambia aquí hasta pulsar «Editar».
+describe("<nx-fields> readonly al leer", () => {
+  const lock = (row: HTMLElement) => row.querySelector<HTMLElement>(".nx-fields__lock");
+  it("lleva el candado con su nombre al leer, en el valor", () => {
+    const f = mount();
+    const l = lock(rows(f)[0])!;
+    expect(l).not.toBeNull();
+    expect(l.closest("dd")).not.toBeNull();
+    expect(l.getAttribute("role")).toBe("img");
+    expect(l.getAttribute("aria-label")).toBe("No se edita aquí");
+    expect(l.title).toBe("No se edita aquí");
+    // Solo en lo que es readonly, y el texto del valor sigue igual.
+    expect(rows(f).slice(1).every((r) => !lock(r))).toBe(true);
+    expect(rows(f)[0].querySelector("dd")!.textContent).toBe("CC 1.020.456.789");
+  });
+
+  it("en el resumen, junto a la etiqueta (el valor se corta con «…»)", () => {
+    const f = mount('variant="summary"');
+    const l = lock(rows(f)[0])!;
+    expect(l.closest("dt")).not.toBeNull();
+    expect(l.getAttribute("aria-label")).toBe("No se edita aquí");
+  });
+
+  it("al editar sigue como antes, y con labels propias cambia su nombre", () => {
+    const f = mount("editing");
+    expect(lock(rows(f)[0])!.getAttribute("aria-label")).toBe("No se edita aquí");
+    f.labels = { readonly: "Lo cambia Talento Humano" };
+    f.editing = false;
+    expect(lock(rows(f)[0])!.title).toBe("Lo cambia Talento Humano");
+  });
+});

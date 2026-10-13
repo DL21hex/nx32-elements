@@ -38,6 +38,15 @@ nx-toaster *::before {
   padding: 0;
   list-style: none;
 }
+/* Las regiones vivas: solo para el lector de pantalla. */
+.nx-toaster__say {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .nx-toast {
   display: flex;
   align-items: center;

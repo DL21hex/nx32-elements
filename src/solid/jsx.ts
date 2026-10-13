@@ -12,7 +12,7 @@ import type { AiActionDetail, AiDoneDetail, AiEvent, AiFeedbackDetail, AiLabels 
 import type { NxDocCapture } from "../components/capture/doc-capture";
 import type { CaptureEvent, CaptureLabels, CaptureSchemaItem, CaptureSubmitDetail, CaptureValues } from "../components/capture/types";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridView } from "../components/grid/types";
+import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView } from "../components/grid/types";
 import type { NxDialog } from "../components/dialog/dialog";
 import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 import type { NxBadge } from "../components/badge/badge";
@@ -21,7 +21,7 @@ import type { NoticeActionDetail } from "../components/notice/types";
 import type { NxField } from "../components/field/field";
 import type { FieldActionDetail, FieldLabels } from "../components/field/types";
 import type { NxForm } from "../components/form/form";
-import type { FormChangeDetail, FormField, FormFillDetail, FormLabels, FormMode, FormSection, FormSubmitDetail, FormValue, FormVariant } from "../components/form/types";
+import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormSection, FormSubmitDetail, FormValue, FormVariant } from "../components/form/types";
 import type { HistoryVariant } from "../components/history/types";
 import type { NxFields } from "../components/fields/fields";
 import type { FieldItem, FieldsActionDetail, FieldsLabels, FieldsVariant } from "../components/fields/types";
@@ -63,7 +63,7 @@ import type { SyncChangeDetail, SyncField, SyncLabels, SyncOp } from "../compone
 import type { NxDateRange } from "../components/date-range/date-range";
 import type { DateRangeChangeDetail, DateRangeCompare, DateRangeLabels, DateRangePresetInput, DateRangeValue } from "../components/date-range/types";
 import type { NxImport } from "../components/import/import";
-import type { ImportColumnInput, ImportDoneDetail, ImportErrorDetail, ImportLabels, ImportMappedDetail, ImportParsedDetail, ImportState } from "../components/import/types";
+import type { ImportBatchDetail, ImportColumnInput, ImportDoneDetail, ImportErrorDetail, ImportLabels, ImportMappedDetail, ImportParsedDetail, ImportState } from "../components/import/types";
 import type { NxKeytips } from "../components/keytips/keytips";
 import type { KeytipAssignment, KeytipDetail, KeytipsLabels } from "../components/keytips/types";
 import type { NxGuard } from "../components/guard/guard";
@@ -291,6 +291,8 @@ declare module "solid-js" {
       detect: string | undefined;
       kind: TrendKind | HandoffKind | undefined;
       debounce: string | undefined;
+      /** `<nx-grid timeout>`, `<nx-select source timeout>`, `<nx-import timeout>`: plazo de cada petición, en ms. */
+      timeout: string | undefined;
       idle: string | undefined;
       channel: string | undefined;
       active: string | undefined;
@@ -515,6 +517,7 @@ declare module "solid-js" {
       "nx-import-mapped": CustomEvent<ImportMappedDetail>;
       "nx-import-done": CustomEvent<ImportDoneDetail>;
       "nx-import-error": CustomEvent<ImportErrorDetail>;
+      "nx-import-batch": CustomEvent<ImportBatchDetail>;
       "nx-sync-done": CustomEvent<{ op: SyncOp; data: unknown }>;
       "nx-sync-change": CustomEvent<SyncChangeDetail>;
       "nx-sync-auth": CustomEvent<{ op: SyncOp }>;
@@ -545,6 +548,7 @@ declare module "solid-js" {
       "nx-grid-change": CustomEvent<{ changes: GridChange[]; source: GridChangeSource }>;
       "nx-grid-columns": CustomEvent<GridColumnsDetail>;
       "nx-dialog-close": CustomEvent<DialogCloseDetail>;
+      "nx-dialog-beforeclose": CustomEvent<DialogCloseDetail>;
       "nx-dialog-nav": CustomEvent<DialogNavDetail>;
       "nx-dialog-action": CustomEvent<DialogActionDetail>;
       "nx-notice-action": CustomEvent<NoticeActionDetail>;
@@ -560,6 +564,7 @@ declare module "solid-js" {
       "nx-grid-action": CustomEvent<GridActionDetail>;
       "nx-grid-views": CustomEvent<{ views: GridSavedView[] }>;
       "nx-grid-error": CustomEvent<GridErrorDetail>;
+      "nx-grid-truncated": CustomEvent<GridTruncatedDetail>;
       "nx-grid-export": CustomEvent<GridExportDetail>;
       "nx-grid-layout": CustomEvent<GridLayoutDetail>;
       "nx-command-select": CustomEvent<CommandSelectDetail>;
@@ -585,6 +590,7 @@ declare module "solid-js" {
       "nx-field-action": CustomEvent<FieldActionDetail>;
       "nx-form-change": CustomEvent<FormChangeDetail>;
       "nx-form-fill": CustomEvent<FormFillDetail>;
+      "nx-form-dirty": CustomEvent<FormDirtyDetail>;
       "nx-form-undo": CustomEvent<{ keys: string[] }>;
       "nx-form-submit": CustomEvent<FormSubmitDetail>;
       "nx-form-cancel": CustomEvent<Record<string, never>>;

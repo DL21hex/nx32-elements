@@ -45,6 +45,9 @@ export interface DialogNavDetail {
   dir: "prev" | "next";
 }
 
+/** `nx-dialog-beforeclose` y `nx-dialog-close`, los dos cancelables. `beforeclose` sale primero, en
+ *  todo intento de cierre y antes del aviso de cambios sin guardar (no otra vez tras «Descartar»):
+ *  la app se niega ahí mientras guarda. `close` sale cuando ya se va a cerrar (tras el aviso). */
 export interface DialogCloseDetail {
   reason: CloseReason;
   value: string | undefined;

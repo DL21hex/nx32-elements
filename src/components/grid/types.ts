@@ -174,6 +174,9 @@ export interface GridLabels {
   loading: string;
   loadError: string;
   retry: string;
+  /** El origen mandó más filas de las que caben (`client-only`): «Se muestran las primeras
+   *  {shown} de {total} filas…». */
+  truncated: string;
   presets: string;
   /** El segmento sin atajo, junto al título («Todos»). */
   presetsAll: string;
@@ -377,6 +380,13 @@ export interface GridMatrixCell {
  * La respuesta de `source` a `{offset, limit, sort, filters, search?}`. `total`: cuántas filas
  * tiene la consulta entera (no solo esta página).
  *
+ * `search` se busca POR PALABRAS, la misma regla de la tabla con las filas en el navegador: se
+ * separa por espacios y quedan las filas en las que cada palabra (todas, en cualquier orden) está
+ * dentro del texto de alguna columna visible, sin mayúsculas y sin tildes (o con ellas, si la tabla
+ * lleva `accents="exact"`). «jose martinez» encuentra «JOSE LUIS MARTINEZ». Un servidor que busca
+ * la frase entera encuentra menos que la tabla con `client-max`, y la persona ve resultados distintos
+ * según dónde se filtró.
+ *
  * Con `client-max`, si la primera página dice que puede caber, la tabla pide una vez la consulta
  * completa: `{offset: 0, limit: client-max + 1, sort: null, filters: []}`. La fuente contesta las
  * filas (hasta `client-max + 1`) o, si ya sabe que son más que el tope, solo el número:
@@ -398,16 +408,18 @@ export interface GridPage {
 
 /**
  * `nx-grid-error`: un bloque del servidor no llegó. Se vuelve a pedir más tarde, con más espera cada
- * vez, solo si el fallo puede pasar solo (la red, un 5xx o un 429); un 4xx no se repite: lo arregla
- * la persona o la app (`retrying: false`). Sale una vez por intento: para avisar una sola vez por
- * fallo, la app mira `attempt === 1`.
+ * vez (y una variación al azar; con `Retry-After`, lo que pidió el servidor), solo si el fallo puede
+ * pasar solo (la red, el plazo `timeout` vencido, un 5xx, un 408 o un 429); otro 4xx no se repite:
+ * lo arregla la persona o la app (`retrying: false`). Sale una vez por intento: para avisar una sola
+ * vez por fallo, la app mira `attempt === 1`. También sale si falla `refresh()` con las filas en el
+ * navegador: entonces las filas de antes se quedan, y no se repite (`retrying: false`).
  */
 export interface GridErrorDetail {
   offset: number;
   limit: number;
   /** El fallo en una línea (`HTTP 500`, o el mensaje de la red), como antes de la 0.17.0. */
   error: string;
-  /** El estado HTTP; 0 si no hubo respuesta (la red, una respuesta que no se pudo leer). */
+  /** El estado HTTP; 0 si no hubo respuesta (la red, el plazo vencido, una respuesta que no se pudo leer). */
   status: number;
   /** Lo que dice el servidor (el `error` o el `message` de su JSON) o, si no dice nada, `error`. */
   message: string;
@@ -417,6 +429,17 @@ export interface GridErrorDetail {
   attempt: number;
   /** Si la tabla lo volverá a pedir sola. */
   retrying: boolean;
+}
+
+/**
+ * `nx-grid-truncated`: el origen mandó más filas de las que caben en el navegador (`client-only`,
+ * hasta `client-max` o 20.000) y la tabla se quedó con las primeras. `shown`: las que tiene;
+ * `total`: las del origen (su `total`, o las filas que llegaron si no lo dice o dice menos). La
+ * tabla lo dice también con un aviso y en su conteo («20.000 de 25.300 filas»).
+ */
+export interface GridTruncatedDetail {
+  shown: number;
+  total: number;
 }
 
 /** `nx-grid-action`: la persona pulsó el botón de una acción de fila (las que son enlace no emiten). */

@@ -42,6 +42,11 @@ describe("cleanEvents / cleanFields / cleanRecord", () => {
     expect(f[1].options).toEqual([{ value: "1", label: "1", tone: undefined }]);
   });
 
+  it("acepta los tonos de <nx-badge>, también info; uno desconocido no", () => {
+    const f = cleanFields([{ key: "s", label: "S", type: "status", options: [{ value: "a", tone: "info" }, { value: "b", tone: "success" }, { value: "c", tone: "rojo" }] }]);
+    expect(f[0].options!.map((o) => o.tone)).toEqual(["info", "success", undefined]);
+  });
+
   it("el registro solo guarda valores simples", () => {
     expect(cleanRecord({ a: 1, b: "x", c: { d: 1 }, e: [1], f: true, g: NaN })).toEqual({ a: 1, b: "x", c: null, e: null, f: true, g: null });
     expect(cleanRecord("x")).toEqual({});

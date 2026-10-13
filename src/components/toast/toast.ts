@@ -7,8 +7,13 @@
  *   if ((await nxToast({ message: "3 pedidos anulados", undo: true })) === "undo") mostrar(filas);
  *   else await anular(filas); // "timeout", "dismiss" o la página se cerró
  *
- * Viven en `<nx-toaster>`, una región `aria-live` en la capa superior (por encima de los diálogos),
- * que se crea sola. Pasar el mouse o el foco por encima pausa el tiempo.
+ * Viven en `<nx-toaster>`, en la capa superior (por encima de los diálogos), que se crea sola. Pasar
+ * el mouse o el foco por encima pausa el tiempo. Un aviso de error (`tone: "danger"`) no se va solo:
+ * se queda hasta cerrarlo (salvo un `duration` explícito).
+ *
+ * Cada aviso se anuncia UNA vez: la lista que se ve no es una región viva (volver a subirla sobre
+ * un diálogo, `raise()`, la ocultaba y mostraba, y un lector podía repetirla); el texto va aparte, a
+ * una región cortés (o a una de alerta, si es un error) que se vacía sola.
  */
 import { Base } from "../../core/define";
 import { h } from "../../core/dom";
@@ -34,6 +39,9 @@ const ICONS: Record<string, string> = {
 };
 const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
 
+/** Cuánto se queda el texto en la región viva (ms): lo justo para que el lector lo tome. */
+const SAY_MS = 4000;
+
 type Live = { el: HTMLLIElement; opts: ToastOptions; resolve: (r: ToastResult) => void; left: number; since: number; timer: number; done: boolean };
 
 let labels: ToastLabels = TOAST_LABELS;
@@ -46,6 +54,9 @@ export function setToastLabels(v: Partial<ToastLabels>): void {
 
 export class NxToaster extends Base {
   #list?: HTMLOListElement;
+  /** Las regiones vivas, fuera de la lista: cortés para los avisos, alerta para los errores. */
+  #polite?: HTMLSpanElement;
+  #urgent?: HTMLSpanElement;
   #live: Live[] = [];
   #paused = false;
 
@@ -54,8 +65,10 @@ export class NxToaster extends Base {
     if (!this.hasAttribute("popover")) this.setAttribute("popover", "manual");
     this.setAttribute("role", "region");
     this.setAttribute("aria-label", labels.region);
-    this.#list = h("ol", { class: "nx-toaster__list", "aria-live": "polite" });
-    this.append(this.#list);
+    this.#list = h("ol", { class: "nx-toaster__list" });
+    this.#polite = h("span", { class: "nx-toaster__say", role: "status", "aria-live": "polite" });
+    this.#urgent = h("span", { class: "nx-toaster__say", role: "alert", "aria-live": "assertive" });
+    this.append(this.#list, this.#polite, this.#urgent);
     const pause = (on: boolean) => {
       if (on === this.#paused) return;
       this.#paused = on;
@@ -75,13 +88,15 @@ export class NxToaster extends Base {
     // clave heredada como «constructor»); un tiempo inválido o enorme se acota a lo que acepta
     // `setTimeout` (0 = hasta cerrarlo).
     const tone: ToastTone = TONES.has(opts.tone as ToastTone) ? (opts.tone as ToastTone) : "neutral";
-    const duration = clampDelay(opts.duration, opts.undo ? 7000 : 5000);
+    // Un error no se va solo: quien lo lee puede necesitar más de 5 s (o estar mirando a otro lado).
+    // Con «Deshacer» sí corre el tiempo (es el que confirma la acción).
+    const duration = clampDelay(opts.duration, opts.undo ? 7000 : tone === "danger" ? 0 : 5000);
     const lead = opts.undo ? ICONS.undo : Object.hasOwn(ICONS, tone) ? ICONS[tone] : undefined;
     // El tiempo que queda, como un anillo que se vacía (lo anima CSS; se pausa con el toaster).
     const ring = duration ? h("span", { class: "nx-toast__ring", "aria-hidden": "true" }) : null;
     const el = h(
       "li",
-      { class: "nx-toast", "data-tone": tone, role: tone === "danger" ? "alert" : "status" },
+      { class: "nx-toast", "data-tone": tone },
       lead ? glyph(lead, "nx-toast__icon") : null,
       h("span", { class: "nx-toast__msg" }, opts.message),
       opts.undo ? h("button", { type: "button", class: "nx-toast__btn", "data-r": "undo" }, L.undo) : null,
@@ -101,6 +116,7 @@ export class NxToaster extends Base {
       this.#live.push(t);
       this.#list!.append(el);
       this.raise();
+      this.#say(opts.message, tone === "danger");
       if (duration && !this.#paused) this.#run(t);
     });
   }
@@ -120,13 +136,19 @@ export class NxToaster extends Base {
       t.el.classList.add("is-out");
       setTimeout(() => {
         t.el.remove();
-        if (!this.#live.length) this.hidePopover?.();
+        if (!this.#live.length) {
+          this.hidePopover?.();
+          // Oculto, nada queda por decir: al volver a mostrarse no se repite.
+          this.#polite?.replaceChildren();
+          this.#urgent?.replaceChildren();
+        }
       }, 220);
     };
     // «Deshecho» se queda un instante: la persona ve que funcionó.
     if (r === "undo") {
       t.el.classList.add("is-undone");
       t.el.querySelector(".nx-toast__msg")!.textContent = labels.undone;
+      this.#say(labels.undone, false);
       t.el.querySelectorAll(".nx-toast__btn, .nx-toast__ring").forEach((b) => b.remove());
       setTimeout(out, 1100);
     } else out();
@@ -142,6 +164,18 @@ export class NxToaster extends Base {
     if (!this.#live.length) return;
     this.hidePopover?.();
     this.showPopover?.();
+  }
+
+  /** Anuncia `text` una vez: un renglón nuevo en la región viva (con la región ya a la vista), que se
+   *  quita solo. */
+  #say(text: string, urgent: boolean): void {
+    const region = urgent ? this.#urgent : this.#polite;
+    if (!region || !text) return;
+    setTimeout(() => {
+      const line = h("span", null, text);
+      region.append(line);
+      setTimeout(() => line.remove(), SAY_MS);
+    }, 60);
   }
 
   #run(t: Live): void {

@@ -137,6 +137,12 @@ nx-fields [hidden] {
 .nx-fields__f.is-ro .nx-fields__v {
   color: var(--nx-text-tertiary);
 }
+/* En el resumen, el candado va junto a la etiqueta. */
+.nx-fields__l .nx-fields__lock {
+  display: inline-block;
+  margin-inline-start: 4px;
+  vertical-align: -2px;
+}
 nx-fields :is(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--nx-ring);
   outline-offset: 2px;

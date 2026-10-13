@@ -416,7 +416,7 @@ test("ficha lateral: cabecera de ficha, aviso, pestañas, campos en edición y e
   await audit(page, ["#dw-panel"]);
 });
 
-test("ficha lateral: la pestaña «Acciones» (con una corriendo) y el esqueleto mientras llega el registro", async ({ page }) => {
+test("ficha lateral: la pestaña «Acciones» (con una corriendo) y la espera mientras llega el registro", async ({ page }) => {
   await open(page, "#/drawer");
   await page.locator("#dw-open .nx-button__btn").click();
   const panel = page.locator("#dw-panel");

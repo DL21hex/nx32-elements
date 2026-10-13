@@ -16,6 +16,7 @@ import { glyph, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale } from "../../core/locale";
 import { clampDelay } from "../../core/time";
+import { waitEl } from "../../core/wait";
 import { nxToast } from "../toast/toast";
 import "../toast/index";
 import { boardStep, cleanCards, cleanColumns, columnCards, columnTotals, fill, isLate, matchesCard, moveCard, positionOf, wipState } from "./logic";
@@ -103,6 +104,8 @@ export class NxKanban extends Base {
   #built = false;
   #els = new Map<string, HTMLLIElement>();
   #cols = new Map<string, Parts>();
+  /** La espera de cada columna vacía mientras `busy`. */
+  #waits = new Map<string, HTMLLIElement>();
   #bar?: HTMLElement;
   #board?: HTMLElement;
   #filter?: HTMLInputElement;
@@ -344,7 +347,13 @@ export class NxKanban extends Base {
       for (const col of this.#columns) {
         const p = this.#cols.get(col.id)!;
         const want: HTMLLIElement[] = columnCards(this.#cards, col.id).map((c) => this.#els.get(c.id)!);
-        if (this.busy && !want.length) want.push(...[0, 1, 2].map(() => h("li", { class: "nx-kanban__skel", "aria-hidden": "true" })));
+        // Ocupado y sin tarjetas: la espera común, la misma de una vez a otra (rearmarla reiniciaría su
+        // aparición a los 250 ms y parpadearía).
+        if (this.busy && !want.length) {
+          let w = this.#waits.get(col.id);
+          if (!w) this.#waits.set(col.id, (w = h("li", { class: "nx-kanban__wait", "aria-hidden": "true" }, waitEl())));
+          want.push(w);
+        }
         const have = [...p.list.children];
         if (want.length !== have.length || want.some((el, i) => el !== have[i])) p.list.replaceChildren(...want);
       }

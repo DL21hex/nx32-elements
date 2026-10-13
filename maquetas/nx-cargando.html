@@ -1,0 +1,978 @@
+<title>Carga de nx32-elements</title>
+<style>
+/* Una barra de mando arriba (estilo + velocidad) y tres piezas reales de la librería debajo:
+   la ficha del diálogo, una tabla y una columna de tarjetas, que cargan a la vez. */
+:root,
+body[data-tema="claro"] {
+  color-scheme: light;
+  --bg: oklch(0.985 0.002 260);
+  --surface: oklch(1 0 0);
+  --fg: oklch(0.2 0.008 260);
+  --muted: oklch(0.44 0.01 260);
+  --faint: oklch(0.56 0.01 260);
+  --line: oklch(0.925 0.004 260);
+  --line-strong: oklch(0.885 0.005 260);
+  --hover: oklch(0.2 0.01 260 / 0.05);
+  --primary: oklch(0.54 0.19 262);
+  --primary-ink: oklch(0.47 0.19 262);
+  --primary-soft: oklch(0.54 0.19 262 / 0.1);
+  --sk: oklch(0.94 0.008 262);
+  --sk-hi: oklch(0.985 0.004 262);
+  /* Puntos: en claro, más suaves que en oscuro (el fondo blanco los hace pesar más). */
+  --dot: oklch(0.2 0.01 260 / 0.085);
+  --dot-hi: oklch(0.54 0.19 262 / 0.26);
+  --ok: oklch(0.52 0.13 155);
+  --ok-soft: oklch(0.52 0.13 155 / 0.12);
+  --info: oklch(0.52 0.14 240);
+  --info-soft: oklch(0.52 0.14 240 / 0.12);
+  --warn: oklch(0.55 0.13 65);
+  --warn-soft: oklch(0.7 0.14 75 / 0.16);
+  --shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.06), 0 4px 16px oklch(0.2 0.01 260 / 0.05);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r-md: 7px;
+  --r-lg: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(0.165 0.012 262);
+    --surface: oklch(0.225 0.012 262);
+    --fg: oklch(0.955 0.003 260);
+    --muted: oklch(0.76 0.006 260);
+    --faint: oklch(0.64 0.007 260);
+    --line: oklch(1 0 0 / 0.07);
+    --line-strong: oklch(1 0 0 / 0.11);
+    --hover: oklch(1 0 0 / 0.06);
+    --primary: oklch(0.72 0.14 262);
+    --primary-ink: oklch(0.77 0.13 262);
+    --primary-soft: oklch(0.72 0.14 262 / 0.15);
+    --sk: oklch(0.28 0.014 262);
+    --sk-hi: oklch(0.345 0.016 262);
+    --dot: oklch(1 0 0 / 0.11);
+    --dot-hi: oklch(0.72 0.14 262 / 0.6);
+    --ok: oklch(0.74 0.13 155);
+    --ok-soft: oklch(0.74 0.13 155 / 0.14);
+    --info: oklch(0.74 0.12 240);
+    --info-soft: oklch(0.74 0.12 240 / 0.14);
+    --warn: oklch(0.8 0.13 75);
+    --warn-soft: oklch(0.8 0.13 75 / 0.14);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 6px 20px oklch(0 0 0 / 0.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"],
+body[data-tema="oscuro"] {
+  --bg: oklch(0.165 0.012 262);
+  --surface: oklch(0.225 0.012 262);
+  --fg: oklch(0.955 0.003 260);
+  --muted: oklch(0.76 0.006 260);
+  --faint: oklch(0.64 0.007 260);
+  --line: oklch(1 0 0 / 0.07);
+  --line-strong: oklch(1 0 0 / 0.11);
+  --hover: oklch(1 0 0 / 0.06);
+  --primary: oklch(0.72 0.14 262);
+  --primary-ink: oklch(0.77 0.13 262);
+  --primary-soft: oklch(0.72 0.14 262 / 0.15);
+  --sk: oklch(0.28 0.014 262);
+  --sk-hi: oklch(0.345 0.016 262);
+  --dot: oklch(1 0 0 / 0.11);
+  --dot-hi: oklch(0.72 0.14 262 / 0.6);
+  --ok: oklch(0.74 0.13 155);
+  --ok-soft: oklch(0.74 0.13 155 / 0.14);
+  --info: oklch(0.74 0.12 240);
+  --info-soft: oklch(0.74 0.12 240 / 0.14);
+  --warn: oklch(0.8 0.13 75);
+  --warn-soft: oklch(0.8 0.13 75 / 0.14);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 6px 20px oklch(0 0 0 / 0.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+  display: grid;
+  gap: 20px;
+}
+h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lede {
+  margin: 4px 0 0;
+  max-width: 68ch;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* ---------------------------------------------------------------- mando */
+.bar-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ctl > .lbl {
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--hover);
+}
+.seg button {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: 600;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.12);
+}
+.seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn {
+  margin-inline-start: auto;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+.btn:hover { background: var(--hover); }
+
+.about {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px 28px;
+  padding: 2px 4px;
+}
+.about h2 { margin: 0 0 4px; font-size: 15px; font-weight: 650; }
+.about p { margin: 0; color: var(--muted); text-wrap: pretty; max-width: 66ch; }
+.about ul { margin: 0; padding-inline-start: 18px; color: var(--muted); display: grid; gap: 4px; }
+.about li::marker { color: var(--faint); }
+.pulso-txt { margin: 0 0 8px !important; color: var(--fg) !important; font-weight: 550; }
+.about .common { font-size: 13px; }
+.about .common strong { color: var(--fg); font-weight: 600; }
+
+/* ---------------------------------------------------------------- escenario */
+.stagewrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  gap: 20px;
+  align-items: start;
+}
+.demo.tabla { grid-column: 1 / -1; }
+.demo { display: grid; gap: 8px; min-width: 0; }
+.demo > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.demo > header h3 {
+  margin: 0;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.st {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.sheet {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.stage { display: grid; }
+.stage > * { grid-area: 1 / 1; min-width: 0; }
+
+/* Estados: pending (nada aún), loading (la espera se ve), ready (llegó). */
+.demo[data-state="pending"] .ph,
+.demo[data-state="pending"] .real,
+.demo[data-state="loading"] .real { visibility: hidden; }
+.demo[data-state="ready"] .ph {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 220ms ease-out, visibility 0s 220ms;
+}
+.demo[data-state="loading"] .ph { animation: ph-in 180ms ease-out both; }
+@keyframes ph-in { from { opacity: 0; } }
+[data-style="actual"] .demo[data-state="loading"] .ph { animation: none; }
+
+/* ---------------------------------------------------------------- piezas reales */
+/* Ficha */
+.ficha .ph, .ficha .real { padding: 18px 20px 20px; display: grid; gap: 20px; align-content: start; }
+.f-head { display: flex; align-items: center; gap: 12px; }
+.av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+.f-id { display: grid; min-width: 0; flex: 1; }
+.f-name { font-size: 17px; font-weight: 650; line-height: 1.3; letter-spacing: -0.005em; }
+.f-sub { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.chip::before { content: ""; inline-size: 6px; block-size: 6px; border-radius: 50%; background: currentColor; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.info { background: var(--info-soft); color: var(--info); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+dl { margin: 0; }
+dd { margin: 0; }
+.f-sum { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px 20px; }
+.pair { display: grid; gap: 2px; min-width: 0; }
+.k { color: var(--faint); font-size: 12px; line-height: 1.4; }
+.v { font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.f-tabs { display: flex; gap: 20px; border-block-end: 1px solid var(--line); }
+.f-tabs > span { padding-block-end: 9px; color: var(--muted); font-size: 13.5px; line-height: 1.4; font-weight: 550; }
+.f-tabs > span.on { color: var(--fg); box-shadow: inset 0 -2px var(--primary); }
+.f-rows { display: grid; gap: 14px; }
+
+/* Tabla */
+.tbl-scroll { overflow-x: auto; }
+table { inline-size: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: start; padding: 0 14px; block-size: 40px; white-space: nowrap; border-block-end: 1px solid var(--line); }
+th { block-size: 38px; color: var(--muted); font-size: 12.5px; font-weight: 600; background: var(--bg); }
+td { font-size: 13.5px; line-height: 1.45; }
+tbody tr:last-child td { border-block-end: 0; }
+.who { display: flex; align-items: center; gap: 9px; font-weight: 550; }
+.who .av { inline-size: 26px; block-size: 26px; font-size: 10.5px; }
+td.muted { color: var(--muted); }
+
+/* Tarjetas */
+.col-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; font-weight: 650; font-size: 13.5px; }
+.count { padding: 0 7px; border-radius: 999px; background: var(--hover); color: var(--muted); font-size: 12px; font-weight: 600; }
+.cards { display: grid; gap: 10px; padding: 0 12px 14px; }
+.card {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.card .t { font-weight: 600; font-size: 13.5px; line-height: 1.4; }
+.card .d { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.card .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tag { font-size: 11.5px; font-weight: 600; color: var(--primary-ink); line-height: 1.4; }
+
+/* ---------------------------------------------------------------- barras (Actual) */
+.bar { display: block; inline-size: var(--w, 70%); }
+.bar.in { display: inline-block; vertical-align: middle; }
+.sk-av { flex: none; inline-size: 40px; block-size: 40px; border-radius: 50%; }
+.who .sk-av { inline-size: 26px; block-size: 26px; }
+
+/* Actual: lo que trae 0.17.0 (diálogo); la tabla, las barras quietas del grid; las tarjetas, el bloque de kanban. */
+[data-style="actual"] .bar,
+[data-style="actual"] .sk-av {
+  block-size: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--line) 0 35%, color-mix(in oklch, var(--line) 45%, var(--surface)) 50%, var(--line) 65% 100%);
+  background-size: 300% 100%;
+  animation: old-shimmer 1.6s linear infinite;
+}
+[data-style="actual"] .sk-av { block-size: 40px; border-radius: 50%; }
+[data-style="actual"] .bar.big { block-size: 14px; margin-block-start: 8px; }
+[data-style="actual"] .ficha .ph .pair { gap: 0; }
+[data-style="actual"] .ficha .ph .f-head .f-id { gap: 8px; }
+[data-style="actual"] .tabla .bar { inline-size: 55%; animation: none; background: var(--line); }
+[data-style="actual"] .tabla .who .sk-av { display: none; }
+[data-style="actual"] .tabla th .bar { display: none; }
+[data-style="actual"] .old-card {
+  block-size: 78px;
+  border-radius: var(--r-md);
+  background: linear-gradient(90deg, var(--surface) 30%, var(--bg) 50%, var(--surface) 70%) 0 0 / 300% 100%;
+  border: 1px solid var(--line);
+  animation: old-shimmer2 1.4s linear infinite;
+}
+@keyframes old-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes old-shimmer2 { to { background-position: -150% 0; } }
+
+/* ---------------------------------------------------------------- Hilo */
+.thread {
+  position: relative;
+  block-size: 2px;
+  overflow: hidden;
+  background: var(--primary-soft);
+}
+.thread::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 40%;
+  background: linear-gradient(90deg, transparent, var(--primary) 50%, transparent);
+  animation: thread 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes thread { from { translate: -100% 0; } to { translate: 250% 0; } }
+.say {
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: transparent;
+  background: linear-gradient(100deg, var(--faint) 0 40%, var(--fg) 50%, var(--faint) 60% 100%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: say 2.2s linear infinite;
+}
+@keyframes say { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+.ficha .ph.hilo { padding: 0; gap: 0; }
+.hilo .h-top { display: flex; align-items: center; gap: 12px; padding: 18px 20px 16px; }
+.hilo .h-top .f-name { color: var(--faint); }
+.hilo .h-body { padding: 18px 20px; display: grid; gap: 18px; }
+.hilo .h-body .f-tabs > span { color: var(--faint); }
+.hilo tr.rule td { block-size: 40px; }
+.hilo .col-pad { padding: 14px; }
+
+/* ---------------------------------------------------------------- marco común (sin bloques) */
+/* Lo que ya se sabe (cabecera, encabezados, título de la columna) y un cuerpo que llena el alto. */
+.ph.frame { display: flex; flex-direction: column; padding: 0; gap: 0; }
+.frame .h-top { display: flex; align-items: center; gap: 12px; padding: 18px 20px 16px; border-block-end: 1px solid var(--line); }
+.frame .h-top .f-name { color: var(--faint); }
+.frame .col-head { border-block-end: 1px solid var(--line); }
+.frame thead th { border-block-end: 1px solid var(--line); }
+.fbody {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  text-align: center;
+}
+.fbody.top { place-content: start; justify-items: start; text-align: start; }
+.msg { color: var(--muted); font-size: 13.5px; }
+
+/* Avance: una barra en el borde de arriba que avanza rápido y luego despacio, y termina al llegar. */
+.sheet { position: relative; }
+.topline {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  block-size: 2px;
+  background: var(--primary);
+  transform-origin: 0 50%;
+  scale: 0 1;
+  opacity: 0;
+  pointer-events: none;
+}
+[data-style="avance"] .demo[data-state="loading"] .topline {
+  opacity: 1;
+  animation: grow 7s cubic-bezier(0.05, 0.75, 0.2, 1) forwards;
+}
+[data-style="avance"] .demo[data-state="ready"] .topline.went {
+  animation: finish 520ms ease-out forwards;
+}
+@keyframes grow {
+  0% { scale: 0 1; }
+  6% { scale: 0.3 1; }
+  100% { scale: 0.92 1; }
+}
+@keyframes finish {
+  from { scale: var(--from, 0.6) 1; opacity: 1; }
+  45% { scale: 1 1; opacity: 1; }
+  to { scale: 1 1; opacity: 0; }
+}
+
+/* Borde vivo: una luz recorre el contorno de la pieza. */
+@property --ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+[data-style="borde"] .demo[data-state="loading"] .sheet {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    conic-gradient(from var(--ang), var(--line) 0 62%, var(--primary) 82%, var(--primary-soft) 88%, var(--line) 96%) border-box;
+  animation: orbit 2.4s linear infinite;
+}
+@keyframes orbit { to { --ang: 360deg; } }
+
+/* Trazo: el ícono de la pieza se dibuja, se sostiene y se borra. */
+.ico { inline-size: 34px; block-size: 34px; color: var(--primary); }
+.ico * {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 2.6s cubic-bezier(0.6, 0, 0.3, 1) infinite;
+  animation-delay: calc(var(--d, 0) * 120ms);
+}
+@keyframes draw {
+  0% { stroke-dashoffset: 1; }
+  40%, 62% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -1; }
+}
+
+/* Puntos: una trama de puntos quietos y una ola de color que la cruza. */
+.dots {
+  position: relative;
+  flex: 1;
+  min-block-size: 140px;
+  display: grid;
+  place-items: center;
+}
+.dots::before,
+.dots::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: 14px 14px;
+  background-position: 7px 7px;
+  -webkit-mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+  mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+}
+.dots::before { background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.7px); }
+.dots::after {
+  background-image: radial-gradient(circle, var(--dot-hi) 1.5px, transparent 2px);
+  -webkit-mask: linear-gradient(105deg, transparent 38%, #000 50%, transparent 62%) 0 0 / 300% 100%;
+  mask: linear-gradient(105deg, transparent 38%, #000 50%, transparent 62%) 0 0 / 300% 100%;
+  animation: tide 2.6s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+@keyframes tide {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
+}
+/* Variaciones del pulso (data-pulso en .page). «ola» es la de arriba. */
+@property --r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+[data-pulso="onda"] .dots::after {
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent calc(var(--r) - 40px), #000 var(--r), transparent calc(var(--r) + 40px));
+  mask: radial-gradient(circle at 50% 50%, transparent calc(var(--r) - 40px), #000 var(--r), transparent calc(var(--r) + 40px));
+  animation: ripple 2.8s cubic-bezier(0.25, 0, 0.35, 1) infinite;
+}
+@keyframes ripple {
+  from { --r: 0px; opacity: 1; }
+  70% { opacity: 0.85; }
+  to { --r: 460px; opacity: 0; }
+}
+[data-pulso="respiro"] .dots::after {
+  -webkit-mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+  mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+  animation: breath 3s ease-in-out infinite;
+}
+@keyframes breath {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+[data-pulso="escaner"] .dots::after {
+  -webkit-mask: linear-gradient(180deg, transparent 40%, #000 50%, transparent 60%) 0 0 / 100% 300%;
+  mask: linear-gradient(180deg, transparent 40%, #000 50%, transparent 60%) 0 0 / 100% 300%;
+  animation: scan 2.4s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+@keyframes scan {
+  from { -webkit-mask-position: 0 100%; mask-position: 0 100%; }
+  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
+}
+/* Centelleo: puntos sueltos al azar, dibujados en un lienzo sobre la misma trama. */
+.dots canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  display: none;
+  color: var(--dot-hi);
+}
+[data-pulso="centelleo"] .dots::after { display: none; }
+[data-pulso="centelleo"] .dots canvas { display: block; }
+@media (prefers-reduced-motion: reduce) {
+  .dots::after { animation: none !important; opacity: 0; }
+  [data-pulso="centelleo"] .dots canvas { display: none; }
+}
+
+/* Hilo + Puntos: el marco y la línea de Hilo; en el cuerpo, la trama que respira. */
+[data-style="mezcla"] .dots::after {
+  display: block;
+  -webkit-mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+  mask: radial-gradient(ellipse 70% 70% at 50% 50%, #000 30%, transparent 100%);
+  animation: breath 3s ease-in-out infinite;
+}
+[data-style="mezcla"] .dots canvas { display: none; }
+/* La frase va sobre una pastilla del color de la hoja: el brillo es un fondo recortado al texto. */
+.dots .pill {
+  position: relative;
+  z-index: 1;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 0 0 6px var(--surface);
+}
+
+.dots .msg {
+  position: relative;
+  z-index: 1;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 0 0 6px var(--surface);
+}
+
+/* ---------------------------------------------------------------- llegada */
+.page:not([data-style="actual"]) .demo[data-state="ready"] .real .in-i {
+  animation: rise 380ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+@keyframes rise { from { opacity: 0; translate: 0 5px; } }
+[data-style="actual"] .demo[data-state="ready"] .ph { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar, .sk-av, .old-card, .say, .dots::after { animation: none !important; }
+  .thread::before { animation-duration: 3s; }
+  .ico * { animation: none; stroke-dashoffset: 0; }
+  [data-style="borde"] .demo[data-state="loading"] .sheet { animation: none; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--primary) border-box; }
+  .demo[data-state="ready"] .real .in-i { animation-name: fade !important; translate: none; }
+  @keyframes fade { from { opacity: 0; } }
+}
+@media (max-width: 760px) {
+  .stagewrap, .about { grid-template-columns: minmax(0, 1fr); }
+  .btn { margin-inline-start: 0; }
+  .page { padding-inline: 16px; }
+}
+</style>
+
+<div class="page" id="app" data-style="avance">
+  <div>
+    <h1>Cómo carga nx32-elements</h1>
+    <p class="lede">Ninguna opción dibuja bloques grises. Las tres piezas piden sus datos a la vez; cambia el estilo y la velocidad, y «Cargar de nuevo» repite la espera. «Actual» es lo que trae hoy la librería (0.17.0) y «Hilo», la que va ganando.</p>
+  </div>
+
+  <div class="bar-top">
+    <div class="ctl">
+      <span class="lbl" id="l-style">Estilo</span>
+      <div class="seg" role="group" aria-labelledby="l-style" id="seg-style">
+        <button type="button" id="s-actual" data-v="actual" aria-pressed="false">Actual</button>
+        <button type="button" id="s-hilo" data-v="hilo" aria-pressed="false">Hilo</button>
+        <button type="button" id="s-avance" data-v="avance" aria-pressed="true">Avance</button>
+        <button type="button" id="s-borde" data-v="borde" aria-pressed="false">Borde vivo</button>
+        <button type="button" id="s-trazo" data-v="trazo" aria-pressed="false">Trazo</button>
+        <button type="button" id="s-puntos" data-v="puntos" aria-pressed="false">Puntos</button>
+        <button type="button" id="s-mezcla" data-v="mezcla" aria-pressed="false">Hilo + Puntos</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="lbl" id="l-speed">Respuesta</span>
+      <div class="seg" role="group" aria-labelledby="l-speed" id="seg-speed">
+        <button type="button" id="v-150" data-v="150" aria-pressed="false">150 ms</button>
+        <button type="button" id="v-1200" data-v="1200" aria-pressed="false">1,2 s</button>
+        <button type="button" id="v-4000" data-v="4000" aria-pressed="true">4 s</button>
+        <button type="button" id="v-inf" data-v="inf" aria-pressed="false">Sin fin</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="lbl" id="l-theme">Tema</span>
+      <div class="seg" role="group" aria-labelledby="l-theme" id="seg-theme">
+        <button type="button" id="t-auto" data-v="" aria-pressed="true">Sistema</button>
+        <button type="button" id="t-claro" data-v="claro" aria-pressed="false">Claro</button>
+        <button type="button" id="t-oscuro" data-v="oscuro" aria-pressed="false">Oscuro</button>
+      </div>
+    </div>
+    <div class="ctl" id="ctl-pulso" hidden>
+      <span class="lbl" id="l-pulso">Pulso</span>
+      <div class="seg" role="group" aria-labelledby="l-pulso" id="seg-pulso">
+        <button type="button" id="p-ola" data-v="ola" aria-pressed="true">Ola</button>
+        <button type="button" id="p-onda" data-v="onda" aria-pressed="false">Onda</button>
+        <button type="button" id="p-respiro" data-v="respiro" aria-pressed="false">Respiro</button>
+        <button type="button" id="p-escaner" data-v="escaner" aria-pressed="false">Escáner</button>
+        <button type="button" id="p-centelleo" data-v="centelleo" aria-pressed="false">Centelleo</button>
+      </div>
+    </div>
+    <button type="button" class="btn" id="again">Cargar de nuevo</button>
+  </div>
+
+  <section class="about" aria-live="polite">
+    <div>
+      <h2 id="a-title"></h2>
+      <p id="a-text"></p>
+    </div>
+    <div>
+      <p class="pulso-txt" id="a-pulso" hidden></p>
+      <ul id="a-list"></ul>
+    </div>
+  </section>
+
+  <div class="stagewrap">
+    <article class="demo ficha" data-kind="ficha" data-state="pending">
+      <header><h3>Ficha (nx-dialog)</h3><p class="st" role="status"></p></header>
+      <div class="sheet stage"><div class="topline" aria-hidden="true"></div><div class="ph"></div><div class="real"></div></div>
+    </article>
+    <article class="demo tarjetas" data-kind="tarjetas" data-state="pending">
+      <header><h3>Tarjetas (nx-kanban)</h3><p class="st" role="status"></p></header>
+      <div class="sheet stage"><div class="topline" aria-hidden="true"></div><div class="ph"></div><div class="real"></div></div>
+    </article>
+    <article class="demo tabla" data-kind="tabla" data-state="pending">
+      <header><h3>Tabla (nx-grid)</h3><p class="st" role="status"></p></header>
+      <div class="sheet stage"><div class="topline" aria-hidden="true"></div><div class="ph"></div><div class="real"></div></div>
+    </article>
+  </div>
+</div>
+
+<script>
+(() => {
+  const app = document.getElementById("app");
+  const demos = [...document.querySelectorAll(".demo")];
+  const S = { style: "avance", speed: 4000 };
+  const DELAY = 250, MIN_SHOW = 500;
+  const FACTOR = { ficha: 1, tarjetas: 0.8, tabla: 1.25 };
+
+  const ABOUT = {
+    actual: {
+      t: "Actual: barras grises",
+      p: "Cada barra tiene su propio barrido gris, del mismo alto sin importar el texto que reemplaza. Aparecen aunque la respuesta tarde 100 ms y el contenido entra de golpe. La tabla deja barras quietas y las tarjetas son bloques lisos.",
+      l: ["Seis componentes, seis barridos distintos (1,4 s y 1,6 s).", "Con «150 ms» se ve el parpadeo: esqueleto y datos en un abrir y cerrar de ojos.", "Las barras no se parecen al texto: se ve el cambio de forma al llegar."],
+    },
+    hilo: {
+      t: "Hilo: la que va ganando",
+      p: "Se dibuja solo lo que ya se sabe (el título de la columna, los encabezados, las pestañas). Una línea fina corre bajo la cabecera y una frase con brillo dice qué se está cargando.",
+      l: ["La frase que se ve es la misma que oye un lector de pantalla.", "No promete una forma que luego no llega.", "Queda aquí para comparar con las nuevas."],
+    },
+    avance: {
+      t: "Avance: una barra que termina",
+      p: "Una barra en el borde de arriba de la pieza: avanza rápido al principio, se frena y nunca llega sola al final. Cuando los datos llegan, se completa y se desvanece. La frase va quieta, sin brillo.",
+      l: ["Da sensación de progreso aunque no se sepa cuánto falta.", "El final se nota: la barra se llena justo cuando aparece el contenido.", "Es el patrón de GitHub, YouTube o Linear al cambiar de página, aquí por pieza."],
+    },
+    borde: {
+      t: "Borde vivo: el contorno se ilumina",
+      p: "Una luz del color de marca recorre el borde de la pieza que está cargando. Adentro, el marco ya conocido y una frase. Al llegar, el borde vuelve a su línea normal.",
+      l: ["Marca qué pieza espera sin tocar su interior.", "Funciona igual en una ficha, una tarjeta o un panel del tablero.", "Es el más llamativo de los cuatro; en piezas pequeñas se nota más."],
+    },
+    trazo: {
+      t: "Trazo: el ícono se dibuja",
+      p: "En el centro, el ícono de lo que viene (una ficha, una tabla, unas tarjetas) se dibuja con una línea, se sostiene y se borra. Debajo, la frase.",
+      l: ["Dice qué viene sin inventar su forma.", "Cada componente pone su ícono; el ritmo es el mismo para todos.", "Quieto con movimiento reducido: el ícono dibujado y la frase."],
+    },
+    mezcla: {
+      t: "Hilo + Puntos",
+      p: "El marco que ya se conoce y la línea de Hilo bajo la cabecera. En el cuerpo, la trama de puntos que respira (se enciende y se apaga despacio) y en el centro la frase con brillo.",
+      l: ["La línea dice que algo corre; los puntos llenan el espacio sin fingir contenido.", "El color de la trama va más tenue que en Puntos.", "Con movimiento reducido: la trama quieta, la línea lenta y la frase."],
+    },
+    puntos: {
+      t: "Puntos: una trama que se enciende",
+      p: "El cuerpo de la pieza se llena de una trama de puntos tenues. Una ola del color de marca la cruza en diagonal, y la frase va en el centro.",
+      l: ["Llena el espacio sin fingir contenido.", "La ola cruza todas las piezas al mismo paso.", "Se ve técnico y moderno; es el que más se aleja de lo actual."],
+    },
+  };
+  const COMMON = "<li class=\"common\"><strong>Para todas las propuestas:</strong> si llega antes de 250 ms no se dibuja nada; si se dibujó, se queda al menos 500 ms; un solo ritmo para toda la librería.</li>";
+
+  // ------------------------------------------------------------ datos
+  const D = {
+    ficha: {
+      ini: "LR", name: "Laura Restrepo Gómez", sub: "Analista de nómina · CC 1.020.456.789", chip: ["ok", "Activa"],
+      sum: [["Área", "Gestión Humana"], ["Ingreso", "14 mar 2019"], ["Contrato", "Indefinido"]],
+      tabs: ["Datos", "Contrato", "Historial"],
+      rows: [["Jefe inmediato", "Andrés Mejía Vargas"], ["Sede", "Medellín · El Poblado"], ["Correo", "laura.restrepo@empresa.co"], ["Celular", "300 418 2290"], ["EPS", "Sura"]],
+    },
+    tabla: [
+      ["LR", "Laura Restrepo Gómez", "Analista de nómina", "Gestión Humana", "14 mar 2019", ["ok", "Activa"]],
+      ["JO", "Julián Ospina Ríos", "Operario de empaque", "Producción", "02 ago 2022", ["ok", "Activo"]],
+      ["MD", "Marcela Duque Henao", "Coordinadora de SST", "Gestión Humana", "21 ene 2017", ["ok", "Activa"]],
+      ["CA", "Camilo Arango Toro", "Conductor", "Logística", "09 nov 2023", ["info", "Vacaciones"]],
+      ["PZ", "Paula Zapata Correa", "Auxiliar contable", "Finanzas", "30 may 2021", ["ok", "Activa"]],
+      ["EG", "Esteban Gil Montoya", "Técnico de mantenimiento", "Mantenimiento", "17 feb 2020", ["warn", "Incapacidad"]],
+      ["NV", "Natalia Velásquez Ruiz", "Jefe de compras", "Abastecimiento", "05 oct 2015", ["ok", "Activa"]],
+    ],
+    tarjetas: {
+      title: "Por aprobar", n: 3,
+      cards: [
+        ["Camilo Arango Toro", "Vacaciones", "15 días hábiles", "4 – 22 nov"],
+        ["Paula Zapata Correa", "Permiso", "1 día", "18 oct"],
+        ["Julián Ospina Ríos", "Vacaciones", "6 días hábiles", "28 oct – 4 nov"],
+      ],
+    },
+  };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const chip = ([tone, t]) => `<span class="chip ${tone}">${esc(t)}</span>`;
+
+  // ------------------------------------------------------------ piezas reales
+  const R = {
+    ficha: (d) => `
+      <div class="f-head in-i" style="--i:0"><span class="av">${esc(d.ini)}</span><div class="f-id"><div class="f-name">${esc(d.name)}</div><div class="f-sub">${esc(d.sub)}</div></div>${chip(d.chip)}</div>
+      <dl class="f-sum in-i" style="--i:1">${d.sum.map(([k, v]) => `<div class="pair"><dt class="k">${esc(k)}</dt><dd class="v">${esc(v)}</dd></div>`).join("")}</dl>
+      <div class="f-tabs in-i" style="--i:2">${d.tabs.map((t, i) => `<span${i ? "" : ' class="on"'}>${esc(t)}</span>`).join("")}</div>
+      <dl class="f-rows">${d.rows.map(([k, v], i) => `<div class="pair in-i" style="--i:${3 + i}"><dt class="k">${esc(k)}</dt><dd class="v">${esc(v)}</dd></div>`).join("")}</dl>`,
+    tabla: (rows) => `<div class="tbl-scroll"><table><thead><tr><th>Empleado</th><th>Cargo</th><th>Área</th><th>Ingreso</th><th>Estado</th></tr></thead><tbody>${rows
+      .map((r, i) => `<tr class="in-i" style="--i:${i}"><td><span class="who"><span class="av">${esc(r[0])}</span>${esc(r[1])}</span></td><td>${esc(r[2])}</td><td class="muted">${esc(r[3])}</td><td class="muted">${esc(r[4])}</td><td>${chip(r[5])}</td></tr>`)
+      .join("")}</tbody></table></div>`,
+    tarjetas: (d) => `<div class="col-head in-i" style="--i:0">${esc(d.title)} <span class="count">${esc(d.n)}</span></div><div class="cards">${d.cards
+      .map((c, i) => `<div class="card in-i" style="--i:${i + 1}"><div class="t">${esc(c[0])}</div><div class="row"><span class="d">${esc(c[2])} · ${esc(c[3])}</span><span class="tag">${esc(c[1])}</span></div></div>`)
+      .join("")}</div>`,
+  };
+
+  // ------------------------------------------------------------ barras (Actual)
+  const b = (w, cls = "") => `<span class="bar ${cls}" style="--w:${w}%"></span>`;
+  const bpair = (wk, wv) => `<div class="pair"><span class="k">${b(wk)}</span><span class="v">${b(wv, "big")}</span></div>`;
+  const BARS = {
+    ficha: () => `
+      <div class="f-head"><span class="sk-av"></span><div class="f-id"><span class="f-name">${b(55)}</span><span class="f-sub">${b(72)}</span></div></div>
+      <div class="f-sum">${bpair(40, 80) + bpair(45, 70) + bpair(50, 65)}</div>
+      <div class="f-tabs">${["Datos", "Contrato", "Historial"].map((t) => `<span>${b(100)}<span style="visibility:hidden;display:block;block-size:0;overflow:hidden">${t}</span></span>`).join("")}</div>
+      <div class="f-rows">${bpair(30, 55) + bpair(18, 62) + bpair(22, 80) + bpair(24, 40) + bpair(14, 28)}</div>`,
+    tabla: () => `<div class="tbl-scroll"><table><thead><tr><th>Empleado</th><th>Cargo</th><th>Área</th><th>Ingreso</th><th>Estado</th></tr></thead><tbody>${Array.from({ length: 7 }, (_, i) => {
+      const w = [[150, 120, 90, 80, 54], [130, 140, 70, 80, 54], [160, 130, 100, 80, 54]][i % 3];
+      return `<tr><td><span class="who"><span class="sk-av"></span><span class="bar in" style="inline-size:${w[0]}px"></span></span></td>${w.slice(1).map((x) => `<td><span class="bar in" style="inline-size:${x}px"></span></td>`).join("")}</tr>`;
+    }).join("")}</tbody></table></div>`,
+    tarjetas: () => `<div class="col-head">Por aprobar</div><div class="cards"><div class="old-card"></div><div class="old-card"></div><div class="old-card"></div></div>`,
+  };
+
+  // ------------------------------------------------------------ Hilo
+  const HILO = {
+    ficha: () => `<div class="hilo" style="display:grid">
+      <div class="h-top"><span class="av" style="background:var(--hover)"></span><div class="f-id"><div class="f-name">Empleado</div></div></div>
+      <div class="thread"></div>
+      <div class="h-body"><span class="say">Cargando la ficha de empleado…</span><div class="f-tabs"><span>Datos</span><span>Contrato</span><span>Historial</span></div></div></div>`,
+    tabla: () => `<div class="tbl-scroll hilo"><table><thead><tr><th>Empleado</th><th>Cargo</th><th>Área</th><th>Ingreso</th><th>Estado</th></tr></thead></table><div class="thread"></div><table><tbody>
+      <tr class="rule"><td colspan="5"><span class="say">Cargando empleados…</span></td></tr>${'<tr class="rule"><td colspan="5"></td></tr>'.repeat(6)}</tbody></table></div>`,
+    tarjetas: () => `<div class="hilo"><div class="col-head">Por aprobar</div><div class="thread"></div><div class="col-pad"><span class="say">Cargando solicitudes…</span></div></div>`,
+  };
+
+  // ------------------------------------------------------------ marco común (Avance, Borde vivo, Trazo, Puntos)
+  const SAY = { ficha: "Cargando la ficha de empleado…", tabla: "Cargando empleados…", tarjetas: "Cargando solicitudes…" };
+  const ICON = {
+    ficha: '<rect x="3" y="6" width="26" height="20" rx="3" pathLength="1" style="--d:0"/><circle cx="11" cy="14" r="3" pathLength="1" style="--d:1"/><path d="M6.5 22c1-2.4 2.7-3.5 4.5-3.5s3.5 1.1 4.5 3.5" pathLength="1" style="--d:2"/><path d="M19 12h6M19 16h6M19 20h4" pathLength="1" style="--d:3"/>',
+    tabla: '<rect x="4" y="6" width="24" height="20" rx="2.5" pathLength="1" style="--d:0"/><path d="M4 12.5h24M4 19h24" pathLength="1" style="--d:1"/><path d="M12 6v20" pathLength="1" style="--d:2"/>',
+    tarjetas: '<rect x="6" y="4" width="20" height="6.5" rx="1.8" pathLength="1" style="--d:0"/><rect x="6" y="13" width="20" height="6.5" rx="1.8" pathLength="1" style="--d:1"/><rect x="6" y="22" width="20" height="6.5" rx="1.8" pathLength="1" style="--d:2"/>',
+  };
+  const TOP = {
+    ficha: `<div class="h-top"><span class="av" style="background:var(--hover)"></span><div class="f-id"><div class="f-name">Empleado</div></div></div>`,
+    tabla: `<div class="tbl-scroll"><table><thead><tr><th>Empleado</th><th>Cargo</th><th>Área</th><th>Ingreso</th><th>Estado</th></tr></thead></table></div>`,
+    tarjetas: `<div class="col-head">Por aprobar</div>`,
+  };
+  const BODY = {
+    avance: (k) => `<div class="fbody top"><span class="msg">${SAY[k]}</span></div>`,
+    borde: (k) => `<div class="fbody"><span class="msg">${SAY[k]}</span></div>`,
+    trazo: (k) => `<div class="fbody"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true">${ICON[k]}</svg><span class="msg">${SAY[k]}</span></div>`,
+    puntos: (k) => `<div class="dots"><canvas aria-hidden="true"></canvas><span class="msg">${SAY[k]}</span></div>`,
+    mezcla: (k) => `<div class="thread"></div><div class="dots"><span class="pill"><span class="say">${SAY[k]}</span></span></div>`,
+  };
+
+  const ph = (k) => {
+    if (S.style === "hilo") return HILO[k]();
+    if (S.style === "actual") return BARS[k]();
+    return TOP[k] + BODY[S.style](k);
+  };
+
+  // ------------------------------------------------------------ ciclo
+  let timers = [];
+  const T = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const fmt = (ms) => (ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1).replace(".", ",")} s`);
+
+  function run() {
+    timers.forEach(clearTimeout);
+    timers = [];
+    const delay = S.style === "actual" ? 0 : DELAY;
+    const minShow = S.style === "actual" ? 0 : MIN_SHOW;
+    for (const d of demos) {
+      const k = d.dataset.kind;
+      const phEl = d.querySelector(".ph");
+      phEl.className = "ph" + (S.style === "hilo" ? " hilo" : S.style === "actual" ? "" : " frame");
+      phEl.innerHTML = ph(k);
+      const line = d.querySelector(".topline");
+      line.classList.remove("went");
+      d.querySelector(".real").innerHTML = R[k](D[k]);
+      const st = d.querySelector(".st");
+      const t0 = performance.now();
+      let shownAt = 0;
+      const show = () => {
+        d.dataset.state = "loading";
+        shownAt = performance.now();
+        st.textContent = "Cargando…";
+      };
+      const arrive = () => {
+        const took = performance.now() - t0;
+        const never = d.dataset.state === "pending";
+        if (!never) {
+          // La barra de Avance termina desde donde iba.
+          line.style.setProperty("--from", getComputedStyle(line).scale.split(" ")[0] || "0.6");
+          line.classList.add("went");
+        }
+        d.dataset.state = "ready";
+        st.textContent = never ? `Llegó en ${fmt(took)}: no hizo falta mostrar la espera` : `Llegó en ${fmt(took)}`;
+      };
+      d.dataset.state = "pending";
+      st.textContent = "";
+      void d.offsetWidth;
+      if (delay) T(() => d.dataset.state === "pending" && show(), delay);
+      else show();
+      if (S.speed !== Infinity) {
+        const ms = S.speed * FACTOR[k];
+        T(() => {
+          if (d.dataset.state === "pending") return arrive();
+          const wait = Math.max(0, shownAt + minShow - performance.now());
+          wait ? T(arrive, wait) : arrive();
+        }, ms);
+      }
+    }
+  }
+
+  function paintAbout() {
+    const a = ABOUT[S.style];
+    document.getElementById("a-title").textContent = a.t;
+    document.getElementById("a-text").textContent = a.p;
+    document.getElementById("a-list").innerHTML = a.l.map((x) => `<li>${esc(x)}</li>`).join("") + (S.style === "actual" ? "" : COMMON);
+  }
+
+  // ------------------------------------------------------------ pulso de Puntos
+  const PULSO = {
+    ola: "Ola: una franja de color cruza la trama en diagonal, de izquierda a derecha.",
+    onda: "Onda: un anillo sale de la frase hacia afuera y se apaga, como una gota en el agua.",
+    respiro: "Respiro: toda la trama se enciende y se apaga despacio, sin dirección.",
+    escaner: "Escáner: una franja baja de arriba abajo, como si leyera la pieza.",
+    centelleo: "Centelleo: puntos sueltos se encienden y se apagan al azar.",
+  };
+  let pulso = "ola";
+  function setPulso(v) {
+    pulso = PULSO[v] ? v : "ola";
+    app.dataset.pulso = pulso;
+    for (const btn of document.querySelectorAll("#seg-pulso button")) btn.setAttribute("aria-pressed", String(btn.dataset.v === pulso));
+    document.getElementById("a-pulso").textContent = PULSO[pulso];
+    try { localStorage.setItem("nx-cargando-pulso", pulso); } catch {}
+  }
+  document.getElementById("seg-pulso").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setPulso(b.dataset.v); });
+
+  // Centelleo: cada punto de la trama (cada 14 px) tiene su fase y su ritmo; se ve solo en el pico.
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const seeds = new Map();
+  function twinkle(t) {
+    requestAnimationFrame(twinkle);
+    if (S.style !== "puntos" || pulso !== "centelleo" || reduce.matches) return;
+    for (const cv of document.querySelectorAll('.demo[data-state="loading"] .dots canvas')) {
+      const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+      if (!w || !h) continue;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+        cv.width = Math.round(w * dpr);
+        cv.height = Math.round(h * dpr);
+      }
+      const ctx = cv.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = getComputedStyle(cv).color;
+      const cols = Math.ceil(w / 14) + 1, rows = Math.ceil(h / 14) + 1;
+      let seed = seeds.get(cv);
+      if (!seed || seed.length < cols * rows) {
+        seed = Array.from({ length: cols * rows }, () => [Math.random() * Math.PI * 2, 0.6 + Math.random() * 1.4]);
+        seeds.set(cv, seed);
+      }
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          const x = i * 14, y = j * 14;
+          const [ph, sp] = seed[j * cols + i];
+          const on = Math.pow(Math.max(0, Math.sin((t / 1000) * sp + ph)), 14);
+          if (on < 0.02) continue;
+          // El mismo desvanecido hacia los bordes que la trama.
+          const dx = (x - w / 2) / (w * 0.7), dy = (y - h / 2) / (h * 0.7);
+          const edge = Math.max(0, 1 - Math.max(0, Math.hypot(dx, dy) - 0.3) / 0.7);
+          ctx.globalAlpha = on * edge;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+  }
+  requestAnimationFrame(twinkle);
+
+  function setStyle(v) {
+    S.style = v;
+    app.dataset.style = v;
+    for (const btn of document.querySelectorAll("#seg-style button")) btn.setAttribute("aria-pressed", String(btn.dataset.v === v));
+    try { localStorage.setItem("nx-cargando-estilo", v); } catch {}
+    paintAbout();
+    document.getElementById("ctl-pulso").hidden = v !== "puntos";
+    document.getElementById("a-pulso").hidden = v !== "puntos";
+    run();
+  }
+  function setSpeed(v) {
+    S.speed = v === "inf" ? Infinity : Number(v);
+    for (const btn of document.querySelectorAll("#seg-speed button")) btn.setAttribute("aria-pressed", String(btn.dataset.v === v));
+    run();
+  }
+
+  document.getElementById("seg-style").addEventListener("click", (e) => { const v = e.target.closest("button")?.dataset.v; if (v) setStyle(v); });
+  document.getElementById("seg-speed").addEventListener("click", (e) => { const v = e.target.closest("button")?.dataset.v; if (v) setSpeed(v); });
+  document.getElementById("again").addEventListener("click", run);
+  // El tema va en <body>: el visor de artefactos maneja el data-theme de la raíz.
+  function setTheme(v) {
+    if (v) document.body.dataset.tema = v;
+    else delete document.body.dataset.tema;
+    for (const btn of document.querySelectorAll("#seg-theme button")) btn.setAttribute("aria-pressed", String(btn.dataset.v === v));
+    try { localStorage.setItem("nx-cargando-tema", v); } catch {}
+  }
+  document.getElementById("seg-theme").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setTheme(b.dataset.v); });
+  try { setTheme(localStorage.getItem("nx-cargando-tema") || ""); } catch { setTheme(""); }
+  addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea")) return;
+    const map = { 1: "actual", 2: "hilo", 3: "avance", 4: "borde", 5: "trazo", 6: "puntos", 7: "mezcla" };
+    if (map[e.key]) setStyle(map[e.key]);
+    else if (e.key === "r" || e.key === "R") run();
+  });
+
+  try { setPulso(localStorage.getItem("nx-cargando-pulso") || "ola"); } catch { setPulso("ola"); }
+  let start = "mezcla";
+  try { start = localStorage.getItem("nx-cargando-estilo") || start; } catch {}
+  if (!ABOUT[start]) start = "mezcla";
+  setStyle(start);
+})();
+</script>

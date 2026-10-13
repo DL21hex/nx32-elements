@@ -242,27 +242,10 @@ nx-ai-answer:is([data-state="working"], [data-state="streaming"]) .nx-ai__send {
   background: var(--nx-danger-soft);
   color: var(--nx-danger);
 }
-.nx-ai__skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  & span {
-    block-size: 12px;
-    border-radius: 6px;
-    background: linear-gradient(90deg, var(--nx-hover) 25%, color-mix(in oklch, var(--nx-ai-b) 18%, transparent) 50%, var(--nx-hover) 75%);
-    background-size: 300% 100%;
-    animation: nx-ai-shimmer 1.4s linear infinite;
-  }
-  & span:nth-child(1) {
-    inline-size: 92%;
-  }
-  & span:nth-child(2) {
-    inline-size: 78%;
-  }
-  & span:nth-child(3) {
-    inline-size: 54%;
-  }
+/* Hasta el primer texto: la espera común (tokens.css), baja y con el color de la IA. */
+.nx-ai__wait {
+  --nx-wait-height: 88px;
+  --nx-wait-glow: color-mix(in oklch, var(--nx-ai-b) 45%, transparent);
 }
 .nx-ai__answer {
   & p,
@@ -440,14 +423,6 @@ a.nx-ai__source:hover .nx-ai__source-title {
   50% {
     opacity: 0.45;
     scale: 0.88;
-  }
-}
-@keyframes nx-ai-shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
   }
 }
 @keyframes nx-ai-blink {

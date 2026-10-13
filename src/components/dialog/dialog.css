@@ -397,86 +397,45 @@ nx-dialog:has(> [slot="footer"]) > :not(.nx-dialog__head, .nx-dialog__guard, [sl
 
 /* ---------------------------------------------------------------- cargando (`loading`) */
 
-/* El registro todavía no llega: el contenido del autor se esconde (sin moverlo) y en su lugar va un
-   esqueleto con la forma de una ficha: el resumen, las pestañas y unos campos. */
-nx-dialog[loading] > :not(.nx-dialog__head, .nx-dialog__guard, .nx-dialog__loading) {
+/* El registro todavía no llega: el contenido del autor se esconde (sin moverlo) y en su lugar va la
+   espera común (`.nx-wait`, tokens.css), a todo lo ancho: su línea queda justo bajo la cabecera.
+   `data-nx-wait` sigue a `loading`, pero se queda el medio segundo mínimo si la espera llegó a verse. */
+nx-dialog[data-nx-wait] > :not(.nx-dialog__head, .nx-dialog__guard, .nx-wait) {
   display: none !important;
 }
-.nx-dialog__loading {
-  display: grid;
-  gap: 22px;
-  padding-block: 4px 12px;
+nx-dialog > .nx-wait {
+  --nx-wait-bg: var(--nx-popover);
+  --nx-wait-height: min(360px, 55vh);
+  flex: 1;
+  margin: 0;
 }
-.nx-dialog__skel {
-  display: block;
-  block-size: 10px;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--nx-border-subtle) 0 35%, color-mix(in oklch, var(--nx-border-subtle) 45%, var(--nx-popover)) 50%, var(--nx-border-subtle) 65% 100%);
-  background-size: 300% 100%;
-  animation: nx-dialog-shimmer 1.6s linear infinite;
+/* Al llegar (si la espera se vio), el contenido entra con un fundido corto, bloque tras bloque. */
+nx-dialog[data-nx-arrived] > :not(.nx-dialog__head, .nx-dialog__guard, [slot="footer"]) {
+  animation: nx-dialog-arrive 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
-.nx-dialog__skel.is-label {
-  inline-size: 45%;
+nx-dialog[data-nx-arrived] > :nth-child(2 of :not(.nx-dialog__head, .nx-dialog__guard, [slot="footer"])) {
+  animation-delay: 40ms;
 }
-.nx-dialog__skel.is-value {
-  inline-size: 75%;
-  block-size: 14px;
-  margin-block-start: 8px;
+nx-dialog[data-nx-arrived] > :nth-child(3 of :not(.nx-dialog__head, .nx-dialog__guard, [slot="footer"])) {
+  animation-delay: 80ms;
 }
-/* El resumen: tres datos en fila (en lo angosto, dos). */
-.nx-dialog__skel-sum {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 14px 20px;
+nx-dialog[data-nx-arrived] > :nth-child(n + 4 of :not(.nx-dialog__head, .nx-dialog__guard, [slot="footer"])) {
+  animation-delay: 120ms;
 }
-/* Las pestañas: tres nombres sobre su línea. */
-.nx-dialog__skel-tabs {
-  display: flex;
-  gap: 20px;
-  padding-block-end: 10px;
-  border-block-end: 1px solid var(--nx-border-subtle);
-
-  & > .nx-dialog__skel {
-    inline-size: 64px;
-    block-size: 12px;
-  }
-}
-/* Los campos: etiqueta y valor, de largos distintos. */
-.nx-dialog__skel-rows {
-  display: grid;
-  gap: 18px;
-
-  & > span:nth-child(2n) .is-value {
-    inline-size: 55%;
-  }
-  & > span:nth-child(3n) .is-value {
-    inline-size: 85%;
-  }
-}
-/* Sin título todavía: también es un esqueleto. */
-.nx-dialog__head[data-skeleton] .nx-dialog__trow::before {
-  content: "";
-  display: block;
-  flex: none;
-  /* El bloque del título se ajusta a su contenido: un porcentaje aquí no mide nada. */
-  inline-size: min(200px, 50vw);
-  block-size: 18px;
-  border-radius: 6px;
-  background: var(--nx-border-subtle);
-}
-@keyframes nx-dialog-shimmer {
+@keyframes nx-dialog-arrive {
   from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: 0 0;
+    opacity: 0;
+    translate: 0 5px;
   }
 }
-@media (forced-colors: active) {
-  .nx-dialog__skel,
-  .nx-dialog__head[data-skeleton] .nx-dialog__trow::before {
-    forced-color-adjust: none;
-    background: GrayText;
+@media (prefers-reduced-motion: reduce) {
+  nx-dialog[data-nx-arrived] > * {
+    animation-name: nx-dialog-arrive-fade;
+  }
+  @keyframes nx-dialog-arrive-fade {
+    from {
+      opacity: 0;
+    }
   }
 }
 

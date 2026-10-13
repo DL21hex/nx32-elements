@@ -359,7 +359,7 @@ export function mountDrawerDemo(root: HTMLElement): void {
     paintAll();
     void panel.show();
   });
-  // Pasar de registro: en la app el siguiente se pide al servidor; mientras «llega», el esqueleto.
+  // Pasar de registro: en la app el siguiente se pide al servidor; mientras «llega», la espera.
   let navTimer = 0;
   panel.addEventListener("nx-dialog-nav", (e) => {
     add(`nx-dialog-nav · ${e.detail.dir}`);
@@ -390,7 +390,7 @@ export function mountDrawerDemo(root: HTMLElement): void {
     });
   }
 
-  // Una ficha que tarda: abre con el esqueleto y el contenido llega después.
+  // Una ficha que tarda: abre con la espera y el contenido llega después.
   const slow = $<NxDialog>("#dw-loading");
   $("#dw-loading-open").addEventListener("click", () => {
     slow.heading = "";

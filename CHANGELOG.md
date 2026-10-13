@@ -1,5 +1,35 @@
 # Registro de cambios
 
+## 0.18.0 — 2026-10-12
+
+- **Una sola espera para toda la librería, sin esqueletos.** Seis componentes tenían su propio
+  barrido gris con la forma del contenido (diálogo, kanban, historial, IA, tendencia y la primera
+  carga del grid, que además tenía un spinner). Ahora todos usan la misma espera, `.nx-wait`
+  (`waitEl` en `core/wait.ts`, estilos en tokens.css): lo que ya se conoce queda en su sitio y el
+  resto lo llena una línea que corre bajo la cabecera, una trama de puntos que respira en el color
+  de la marca y, si hay, una frase con brillo. Se eligió en la maqueta `maquetas/nx-cargando.html`
+  («Hilo + Puntos»).
+  - Aparece a los 250 ms: una respuesta rápida ya no dibuja nada (antes parpadeaba). En
+    `<nx-dialog loading>`, si llegó a verse, se queda al menos medio segundo y el contenido entra
+    con un fundido corto.
+  - Cuesta menos que los barridos: la línea y la trama solo animan posición y opacidad (no
+    repintan); solo la frase se repinta, una línea de texto. El diálogo repintaba ~19 barras.
+  - `<nx-dialog loading>`: sin `heading`, la cabecera ya no pinta una barra en lugar del título.
+  - `<nx-grid>`: la primera carga ocupa todo bajo la cabecera, con «Cargando…»; las filas que aún no
+    llegan al desplazarse muestran la trama quieta en vez de barras.
+  - `<nx-kanban busy>`: cada columna vacía muestra la espera (sin frase; la anuncia `aria-busy`).
+  - `<nx-trend busy>`: la espera sobre el área del gráfico, con `labels.loading` (nuevo,
+    «Cargando…»).
+  - `<nx-history>` y `<nx-ai-answer>`: la espera en lugar de las barras (en la IA, baja, con su
+    color y sin frase: los pasos en vivo ya cuentan qué hace).
+  - Con menos movimiento: la trama quieta, la frase sin brillo y la línea más lenta. En alto
+    contraste: `GrayText` y `Highlight`.
+  - Se ajusta con `--nx-wait-height`, `--nx-wait-bg`, `--nx-wait-dot` y `--nx-wait-glow`.
+  - **Cambia (0.x):** desaparecen las clases `.nx-dialog__skel*`, `.nx-kanban__skel`,
+    `.nx-history__skel`, `.nx-ai__skeleton` y el atributo `data-skeleton` de la cabecera del
+    diálogo. `.nx-dialog__loading` sigue (ahora es la espera). Quien las usaba en sus estilos o
+    pruebas busca `.nx-wait`.
+
 ## 0.17.1 — 2026-10-12
 
 - **`<nx-grid>` con `source`: lo que se asigna en la misma tarea es una sola petición.** Una app (o

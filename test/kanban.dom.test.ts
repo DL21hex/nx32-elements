@@ -301,12 +301,17 @@ describe("<nx-kanban>", () => {
     expect(got).toEqual(["add:ok", "open:2310", "open:2310"]);
   });
 
-  it("busy: tarjetas de relleno mientras carga", () => {
+  it("busy: la espera común en cada columna vacía, la misma de un repintado a otro", () => {
     const el = mount("busy");
-    expect(col(el, "void").querySelectorAll(".nx-kanban__skel")).toHaveLength(3);
-    expect(col(el, "draft").querySelectorAll(".nx-kanban__skel")).toHaveLength(0);
+    const w = col(el, "void").querySelector(".nx-kanban__wait");
+    expect(w).not.toBeNull();
+    expect(w!.querySelector(".nx-wait .nx-wait__dots")).not.toBeNull();
+    expect(w!.getAttribute("aria-hidden")).toBe("true");
+    expect(col(el, "draft").querySelectorAll(".nx-kanban__wait")).toHaveLength(0);
+    el.heading = "Otro";
+    expect(col(el, "void").querySelector(".nx-kanban__wait")).toBe(w);
     el.busy = false;
-    expect(el.querySelectorAll(".nx-kanban__skel")).toHaveLength(0);
+    expect(el.querySelectorAll(".nx-kanban__wait")).toHaveLength(0);
   });
 
   it("labels en otro idioma", () => {

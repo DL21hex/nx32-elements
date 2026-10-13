@@ -71,6 +71,14 @@
   ligarse: el lector de pantalla solo la decía si se seguía leyendo, no al llegar al botón con Tab.
   Ahora el control de adentro del `<nx-button>` (el `<button>` o el `<a>`) lleva
   `aria-describedby` a su descripción, también tras pasar a enlace; sin descripción, nada.
+- **`nxToast()`: un error no se va solo, y cada aviso se anuncia una vez.** Un aviso con
+  `tone: "danger"` se cerraba a los 5 s, a veces antes de leerlo; ahora se queda hasta cerrarlo con
+  su × (sin el anillo del tiempo), salvo con un `duration` explícito o con `undo` (que necesita su
+  tiempo). La lista que se ve ya no es una región viva (era `aria-live` y cada aviso, además,
+  `role="status"`/`"alert"`: un mismo aviso se podía anunciar dos veces, y otra al volver a subir
+  el toaster sobre un diálogo); el texto va una sola vez a una región aparte, cortés o de alerta
+  (error), que se vacía sola a los pocos segundos y al ocultarse el toaster. **Cambia (0.x):** los
+  `<li class="nx-toast">` ya no llevan `role`.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

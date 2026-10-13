@@ -34,6 +34,18 @@
   lo hace después: en otra tarea o en un microtask encolado tras asignar las propiedades, y sale en
   la misma petición. Una prueba que miraba la vista en el acto la encuentra tras un
   `await Promise.resolve()`.
+- **`<nx-grid source client-max>`: la descarga completa que no cabe se contesta con un número.**
+  Cuando la primera página dice `total <= client-max`, la tabla pide el conjunto entero sin filtros
+  (`{offset: 0, limit: client-max + 1, sort: null, filters: []}`) para seguir en el navegador. Pero
+  ese `total` era el de la consulta filtrada (una bandeja que abre en «Activo»): si sin filtros
+  pasaban del tope, la fuente leía y mandaba `client-max + 1` filas que la tabla tiraba. Ahora es
+  parte del protocolo de `source` (README y `GridPage`): a la petición completa la fuente puede
+  contestar solo `{rows: [], total: N}`, sin leer las filas; con un `total` numérico mayor que
+  `client-max` la tabla entiende que no cabe y sigue en el servidor aunque `rows` venga corta o
+  vacía (ya lo hacía porque llegaban menos filas que `total`; ahora es la regla escrita y probada).
+  Ese `total` es el de la consulta sin filtros: «Todos» (los segmentos) lo muestra, cuando antes iba
+  sin número hasta quitar los filtros. Una fuente que sigue mandando las `client-max + 1` filas
+  funciona igual que antes.
 
 ## 0.18.0 — 2026-10-12
 

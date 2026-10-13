@@ -643,7 +643,12 @@ grid.addEventListener("nx-grid-error", (e) => {
 - **O que la tabla elija.** Con `source` y `client-max="20000"`, la primera página dice el total:
   si pasa del tope, sigue en el servidor sin pedir nada más; si cabe, trae la consulta completa una
   vez (`{offset: 0, limit: 20001, sort: null, filters: []}`) y sigue en el cliente, con conteos
-  exactos, filtros al instante y agrupación. `grid.mode` dice dónde quedó. Las filas traídas son
+  exactos, filtros al instante y agrupación. `grid.mode` dice dónde quedó. Si la primera página
+  iba filtrada (una bandeja que abre en «Activo»), su total no es el del conjunto, y el conjunto
+  puede no caber: la fuente contesta la consulta completa con las filas o, si ya sabe que son más
+  que el tope, solo con su número, `{rows: [], total: N}`, sin leerlas. Con un `total` mayor que el
+  tope, más filas que el tope o menos filas que su `total`, la tabla sigue en el servidor (y ese
+  `total` es el número de «Todos»). Las filas traídas son
   una foto: `refresh()` las vuelve a pedir (y vuelve a mirar el total). Es opcional: sin
   `client-max` nada cambia. Un origen sin modo servidor (que solo sabe responder la consulta
   completa) también sirve: si la primera página trae filtros, búsqueda u orden (los recordados al

@@ -851,7 +851,10 @@ export class NxGrid extends Base {
   }
   /** Con `source`: si la consulta sin filtros tiene hasta este tanto de filas, se traen todas una
    *  vez y se sigue en el cliente (conteos exactos, filtros al instante, agrupar). 0: siempre en el
-   *  servidor. */
+   *  servidor. Cuando la primera página dice que puede caber, se pide la consulta completa
+   *  (`{offset: 0, limit: client-max + 1, sort: null, filters: []}`); la fuente contesta las filas
+   *  o, si sabe que son más que el tope, solo `{rows: [], total: N}`: con un `total` mayor que el
+   *  tope (o menos filas que su `total`) la tabla sigue en el servidor. */
   get clientMax(): number {
     return Math.max(0, Math.floor(Number(this.getAttribute("client-max")) || 0));
   }
@@ -1934,7 +1937,14 @@ export class NxGrid extends Base {
   }
 
   /** Trae la consulta completa (hasta `max` + 1 filas) y, si cabe, sigue en el cliente con ella.
-   *  Devuelve si pasó al cliente. */
+   *  Devuelve si pasó al cliente.
+   *
+   *  No cabe si el `total` de la respuesta pasa del tope, aunque `rows` venga corta o vacía: la
+   *  primera página decía el total CON los filtros (el «Activo» de una bandeja), y el conjunto sin
+   *  ellos puede ser mucho mayor. Una fuente que sabe contar contesta `{rows: [], total: N}` sin leer
+   *  las filas; antes leía y mandaba `max + 1` filas que aquí se tiraban (eso sigue sirviendo).
+   *  Tampoco cabe si llegan más filas que el tope, o menos que su total (una fuente con tope por
+   *  página). Ese total es el de la consulta sin filtros: el número de «Todos». */
   async #tryLocal(max: number): Promise<boolean> {
     const src = this.getAttribute("source");
     const ac = (this.#tryAc = new AbortController());
@@ -1949,7 +1959,14 @@ export class NxGrid extends Base {
     // Mientras tanto cambió el origen o el tope: esa respuesta ya no dice nada.
     if (!page || src !== this.getAttribute("source") || !this.#server || !this.#decided) return false;
     const rows = page.rows.filter((r) => r && typeof r === "object");
-    if (rows.length > max || rows.length < (Number(page.total) || 0)) return false;
+    const total = Number(page.total);
+    if (total > max || rows.length > max || rows.length < (total || 0)) {
+      if (Number.isFinite(total) && total >= 0 && total !== this.#scopeN) {
+        this.#scopeN = total;
+        this.#paintChrome();
+      }
+      return false;
+    }
     // Lo que falte por llegar del servidor se descarta.
     this.#drop();
     clearTimeout(this.#wait);

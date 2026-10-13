@@ -693,6 +693,55 @@ describe("<nx-grid>", () => {
     expect(el.mode).toBe("server");
   });
 
+  // La primera página va filtrada (una bandeja abre en «Pendiente»: 30 de 250, cabría en el tope de
+  // 100) y la tabla pide el conjunto entero; pero sin filtros son 250. Antes la fuente leía y
+  // mandaba 101 filas que la tabla tiraba; ahora puede contestar solo el número.
+  for (const [name, whole] of [
+    ["solo su total (`{rows: [], total}`), sin leer las filas", () => ({ rows: [], total: 250 })],
+    ["las filas hasta el tope + 1 (como antes), con su total", (all: unknown[]) => ({ rows: all.slice(0, 101), total: 250 })],
+    ["las filas hasta el tope + 1, sin total", (all: unknown[]) => ({ rows: all.slice(0, 101) })],
+  ] as const) {
+    it(`client-max: la consulta completa que no cabe, contestada con ${name}: la tabla sigue en el servidor`, async () => {
+      const all = Array.from({ length: 250 }, (_, i) => ({ id: String(i), oc: `OC-${i}`, prov: "Aceros", estado: i < 30 ? "pend" : "apr", monto: 1 }));
+      const fetch = vi.fn(async (_u: string, init: RequestInit) => {
+        const q = JSON.parse(init.body as string);
+        if (q.limit === 101) return new Response(JSON.stringify(whole(all)));
+        const rows = q.filters.length ? all.filter((r) => r.estado === "pend") : all;
+        return new Response(JSON.stringify({ rows: rows.slice(q.offset, q.offset + q.limit), total: rows.length }));
+      });
+      vi.stubGlobal("fetch", fetch);
+      const bodies = () => fetch.mock.calls.map((c) => JSON.parse((c as unknown as [string, RequestInit])[1].body as string));
+      const errors: unknown[] = [];
+      document.body.innerHTML = "";
+      const el = document.createElement("nx-grid");
+      el.addEventListener("nx-grid-error", (e) => errors.push(e.detail));
+      el.columns = COLS;
+      el.filters = [{ key: "estado", op: "in", values: ["pend"] }];
+      el.presets = [{ id: "pend", label: "Pendientes", filters: [{ key: "estado", op: "in", values: ["pend"] }] }];
+      el.setAttribute("segments", "");
+      el.setAttribute("client-max", "100");
+      el.setAttribute("source", "/datos");
+      document.body.append(el);
+      await new Promise((r) => setTimeout(r, 30));
+      expect(bodies()).toEqual([
+        { offset: 0, limit: 100, sort: null, filters: [{ key: "estado", op: "in", values: ["pend"] }] },
+        { offset: 0, limit: 101, sort: null, filters: [] },
+      ]);
+      expect(el.mode).toBe("server");
+      expect(errors).toEqual([]);
+      expect(el.count).toBe(30);
+      expect(el.querySelectorAll(".nx-grid__row[data-r]").length).toBeGreaterThan(0);
+      // «Todos» lleva el total sin filtros que dijo la fuente (si lo dijo).
+      const todos = el.querySelector(".nx-grid__segment[data-preset-all]")!.textContent;
+      expect(todos).toBe("total" in whole(all) ? "Todos250" : "Todos");
+      // Sigue en el servidor: quitar el filtro vuelve a pedir la página, no el conjunto.
+      el.filters = [];
+      await new Promise((r) => setTimeout(r, 30));
+      expect(bodies().slice(2)).toEqual([{ offset: 0, limit: 100, sort: null, filters: [] }]);
+      expect(el.mode).toBe("server");
+    });
+  }
+
   it("locale: formatos del atributo, o del lang más cercano", () => {
     document.body.innerHTML = `<div lang="en-US"><nx-grid></nx-grid></div>`;
     const el = document.querySelector("nx-grid")!;

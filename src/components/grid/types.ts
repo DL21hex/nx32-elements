@@ -358,6 +358,16 @@ export interface GridMatrixCell {
 }
 
 /** Lo que responde `source`: un bloque de filas y, opcionalmente, los agregados con los filtros aplicados. */
+/**
+ * La respuesta de `source` a `{offset, limit, sort, filters, search?}`. `total`: cuántas filas
+ * tiene la consulta entera (no solo esta página).
+ *
+ * Con `client-max`, si la primera página dice que puede caber, la tabla pide una vez la consulta
+ * completa: `{offset: 0, limit: client-max + 1, sort: null, filters: []}`. La fuente contesta las
+ * filas (hasta `client-max + 1`) o, si ya sabe que son más que el tope, solo el número:
+ * `{rows: [], total: N}`, sin leerlas. La tabla sigue en el servidor si `total` pasa del tope, si
+ * llegan más filas que el tope o si llegan menos que `total`; si no, sigue en el navegador con esas.
+ */
 export interface GridPage {
   rows: GridRow[];
   total: number;

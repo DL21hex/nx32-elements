@@ -28,6 +28,7 @@ export type {
   ImportColumn,
   ImportColumnInput,
   ImportDoneDetail,
+  ImportBatchDetail,
   ImportErrorCode,
   ImportErrorDetail,
   ImportLabels,
@@ -55,5 +56,6 @@ declare global {
     "nx-import-mapped": CustomEvent<import("./types").ImportMappedDetail>;
     "nx-import-done": CustomEvent<import("./types").ImportDoneDetail>;
     "nx-import-error": CustomEvent<import("./types").ImportErrorDetail>;
+    "nx-import-batch": CustomEvent<import("./types").ImportBatchDetail>;
   }
 }

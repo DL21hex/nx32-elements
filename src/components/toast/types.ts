@@ -11,7 +11,8 @@ export interface ToastOptions {
   undo?: boolean;
   /** Un botón propio: la promesa se resuelve con `"action"`. */
   action?: string;
-  /** Milisegundos a la vista (por defecto 5000; 7000 con deshacer). 0 = hasta cerrarlo. */
+  /** Milisegundos a la vista (por defecto 5000; 7000 con deshacer; un error, `tone: "danger"`,
+   *  hasta cerrarlo). 0 = hasta cerrarlo. */
   duration?: number;
   /** Cierra el aviso desde el código (se resuelve con `"dismiss"`): p. ej. el componente que lo
    *  pidió salió del DOM y ya confirmó la acción. */

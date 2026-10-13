@@ -26,7 +26,7 @@ import { attrProps, Base, upgrade } from "../../core/define";
 import { h, safeHref } from "../../core/dom";
 import { hasIcon, icon } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
-import { resolveLocale } from "../../core/locale";
+import { formatZeroSafe, resolveLocale } from "../../core/locale";
 import type { PageHeaderKpi, PageHeaderLabels, PageHeaderLink, PageHeaderTone } from "./types";
 
 export const PAGE_HEADER_LABELS: PageHeaderLabels = {
@@ -221,7 +221,8 @@ export class NxPageHeader extends Base {
     this.#kpiKey = key;
     this.#kpiEl.setAttribute("aria-label", this.#labels.kpis);
     let nf: Intl.NumberFormat | undefined;
-    const value = (v: string | number) => (typeof v === "number" ? (nf ??= new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })).format(v).replace(/[  ]/g, " ") : str(v));
+    // Sin «-0»: ni -0 (una suma vacía en el servidor) ni un negativo que se redondea a cero.
+    const value = (v: string | number) => (typeof v === "number" ? formatZeroSafe((nf ??= new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })), v).replace(/[  ]/g, " ") : str(v));
     this.#kpiEl.replaceChildren(
       ...this.#kpis.map((k) => {
         const delta = str(k.delta);

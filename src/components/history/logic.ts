@@ -5,7 +5,7 @@ import type { HistoryAction, HistoryActor, HistoryChange, HistoryEvent, HistoryF
 
 const ACTIONS = new Set<HistoryAction>(["create", "update", "delete", "comment", "status"]);
 const TYPES = new Set<HistoryFieldType>(["text", "number", "money", "date", "status"]);
-const TONES = new Set<HistoryTone>(["neutral", "success", "warning", "danger"]);
+const TONES = new Set<HistoryTone>(["neutral", "success", "info", "warning", "danger"]);
 const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v : undefined);
 const idOf = (v: unknown) => str(v) ?? (typeof v === "number" ? String(v) : undefined);
 /**

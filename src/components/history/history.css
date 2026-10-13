@@ -381,6 +381,10 @@ nx-history .nx-glyph {
     background: var(--nx-danger-soft);
     color: var(--nx-danger);
   }
+  &[data-tone="info"] {
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+  }
   &[data-tone="warning"] {
     background: light-dark(oklch(0.95 0.06 85), oklch(0.36 0.07 75));
     color: light-dark(oklch(0.47 0.11 60), oklch(0.88 0.1 85));

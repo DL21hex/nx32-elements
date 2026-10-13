@@ -1,6 +1,6 @@
 # Registro de cambios
 
-## 0.20.0 (sin publicar)
+## 0.20.0 — 2026-10-13
 
 - **`<nx-grid source client-max>`: una descarga del conjunto entero que llega tarde ya no pisa la
   nueva.** La descarga que decide si caben en el navegador solo se cortaba al salir del DOM. Con
@@ -76,6 +76,83 @@
   a ~32 ms por `patchRow`. El resultado es el mismo que recalcular todo (lo fija una prueba que
   compara con una tabla armada de cero).
 
+- **`<nx-select source>`: Enter durante la búsqueda ya no elige una opción de la consulta
+  anterior.** Cada tecla deja a la vista la lista de antes mientras llega la nueva, y se resaltaba
+  su primera opción: un Enter rápido elegía a otra persona. Ahora los resultados llevan la consulta
+  que los produjo y, mientras la escrita no tiene respuesta, la lista vieja se ve atenuada pero ni
+  se resalta ni se elige con el teclado (las flechas no la recorren). Un Enter pulsado en esa espera
+  se guarda y elige la primera opción de la respuesta que llegue (si llega vacía, nada); seguir
+  escribiendo lo cancela. Una respuesta en camino se cancela con la tecla siguiente (antes podía
+  pintarse durante la espera entre teclas como si fuera la vigente). Al cerrar se olvidan los
+  resultados y el Enter pendiente. No se descarta ningún resultado del servidor por no casar en el
+  cliente: el servidor busca en campos que el cliente no ve (la cédula). Nuevo `timeout` (atributo
+  y propiedad, en ms; por defecto 30 000): una búsqueda que no contesta muestra el error en vez de
+  «Buscando…» para siempre. Documentado: con `source`, el valor elegido llega con su registro en
+  `selection` (no se pide suelto al servidor).
+- **`<nx-form>`: `dirty` y `nx-form-dirty`.** El formulario dice si tiene cambios sin guardar:
+  algún campo que se ve (no los `readonly`) difiere de lo último que cargó la app, con `values` o
+  con un `fill()` SIN origen (un recálculo del servidor; un `fill()` con origen, como el texto
+  pegado o un escaneo, es la persona trayendo datos y sí cuenta). Escribir y borrar vuelve a
+  `false`. `nx-form-dirty` `{dirty}` avisa cada cambio (y el elemento lleva `data-dirty`).
+  `markClean()` da lo que se ve por cargado sin tocar los valores. Solid: `onDirty`.
+- **`<nx-dialog>`: el `dirty` efectivo suma el de sus formularios.** `dirty` es la marca propia O
+  algún `<nx-form>` de adentro con `dirty`, también el de una pestaña oculta. `dialog.dirty = false`
+  solo quita la marca propia: guardar una pestaña (la app recarga sus `values` y limpia la marca)
+  ya no deja sin aviso a otra pestaña con cambios. Lo que se escribe dentro de un `<nx-form>` ya
+  no pone la marca propia (escribir y borrar no es un cambio). El aviso al cerrar y al pasar de
+  registro (botones, J / K, `requestNav`) usa el `dirty` efectivo. Al abrirse, al «Descartar» y al
+  pasar de registro, los formularios quedan limpios (`markClean()`). **Cambia (0.x):** «Descartar»
+  ya no pone la marca en `false` si la app cancela después `nx-dialog-close`: lo escrito sigue
+  protegido.
+- **`<nx-dialog>`: `nx-dialog-beforeclose`, cancelable, antes del aviso de cambios.** Sale en todo
+  intento de cierre (botón, Escape, fondo, arrastre, «atrás», `close()`), antes de preguntar
+  «¿Descartar?», y no otra vez tras «Descartar». Con `preventDefault()` el diálogo sigue abierto
+  sin preguntar nada: así la app se niega a cerrar mientras guarda. `nx-dialog-close` sigue
+  saliendo después, cuando ya se va a cerrar. Solid: `onBeforeClose`.
+- **`<nx-dialog>`: el fondo queda `inert`.** Mientras un diálogo está arriba de la pila, los
+  hermanos del diálogo y de cada uno de sus ancestros hasta `<body>` llevan `inert` (el lector de
+  pantalla no los recorre y no se activan); al cerrar, o al quedar otro arriba, vuelven. No se tocan
+  los avisos (`<nx-toaster>`), la paleta (`<nx-command>`) ni lo que los contiene, ni lo que ya era
+  `inert`; las capas que se crean después quedan vivas. El clic en el fondo sigue cerrando.
+- **`<nx-form>`: el reloj de «Guardado hace…» solo corre con borrador.** Cada formulario arrancaba
+  un `setInterval` de 15 s aunque no tuviera `draft`; ahora solo con él (y se para al quitarlo).
+- **`<nx-fields>`: el candado de `readonly` también al leer.** Solo se pintaba con `editing`: al
+  mirar la ficha no se sabía qué no se cambia aquí hasta pulsar «Editar». Ahora va en el valor al
+  leer y, en `variant="summary"` (donde el valor se corta con «…»), junto a la etiqueta; siempre
+  con `role="img"`, `aria-label` y `title` (`labels.readonly`, «No se edita aquí»). Al leer, el
+  valor no cambia de color.
+- **`<nx-import>`: cada lote tiene identidad, un 4xx dice por qué y no invita a reintentar.**
+  (a) Cada lote va con la cabecera `Idempotency-Key`, estable entre reintentos de ESE lote (la
+  sesión del archivo cargado más una huella de sus filas y líneas) y distinta para otro lote u otro
+  archivo; y el cuerpo suma `lines` (la línea del archivo de cada fila) a `{rows, offset}`, que no
+  cambian. (b) Un no-2xx sin `errors` muestra el `error` (o `message`) del cuerpo en vez de «HTTP
+  403», y si es un 4xx distinto de 408/429 no ofrece reintentar: «El servidor no aceptó el envío:
+  {error}. Se importaron {n}.» (`labels.refused`) y `nx-import-error` `{code: "refused", message,
+  status}`; sin red, un 5xx, 408 o 429 siguen siendo `network` (ahora con `status`). (c)
+  `nx-import-batch` `{accepted, rejected, offset}` tras cada lote respondido: la app refresca
+  aunque queden filas rechazadas. (d) Plazo por lote, `timeout` (ms, por defecto 60 000): vencido,
+  el envío se detiene con «el servidor no respondió a tiempo» (`labels.timedOut`) y se puede
+  reintentar. Solid: `timeout`, `onBatch`. **Cambia (0.x):** el cuerpo trae `lines` (un backend que
+  rechaza claves desconocidas tiene que aceptarla) y `nx-import-error` de red lleva `status` si hubo
+  respuesta.
+- **`<nx-page-header>`: una cifra nunca dice «-0».** Los `kpis` numéricos usaban
+  `Intl.NumberFormat` directo: un `-0` (una suma vacía en el servidor) o un negativo que se redondea
+  a cero (-0,001 con dos decimales) salía «-0». Ahora pasan por `formatZeroSafe`, como las gráficas.
+- **`<nx-history>`: acepta el tono `info`.** Los estados (`options[].tone`) admitían `neutral`,
+  `success`, `warning` y `danger`; un `info` (el de `<nx-badge>` y `<nx-notice>`) caía en neutro.
+  Ahora se acepta y se pinta como en `<nx-badge>`.
+- **`<nx-actions>`: la descripción de cada acción describe a su botón.** Iba debajo, pero sin
+  ligarse: el lector de pantalla solo la decía si se seguía leyendo, no al llegar al botón con Tab.
+  Ahora el control de adentro del `<nx-button>` (el `<button>` o el `<a>`) lleva
+  `aria-describedby` a su descripción, también tras pasar a enlace; sin descripción, nada.
+- **`nxToast()`: un error no se va solo, y cada aviso se anuncia una vez.** Un aviso con
+  `tone: "danger"` se cerraba a los 5 s, a veces antes de leerlo; ahora se queda hasta cerrarlo con
+  su × (sin el anillo del tiempo), salvo con un `duration` explícito o con `undo` (que necesita su
+  tiempo). La lista que se ve ya no es una región viva (era `aria-live` y cada aviso, además,
+  `role="status"`/`"alert"`: un mismo aviso se podía anunciar dos veces, y otra al volver a subir
+  el toaster sobre un diálogo); el texto va una sola vez a una región aparte, cortés o de alerta
+  (error), que se vacía sola a los pocos segundos y al ocultarse el toaster. **Cambia (0.x):** los
+  `<li class="nx-toast">` ya no llevan `role`.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

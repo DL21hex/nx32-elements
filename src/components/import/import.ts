@@ -37,14 +37,17 @@ import {
   markDuplicates,
   normalizeValue,
   parseCsv,
+  batchKey,
   parseServerErrors,
   parseSize,
+  retryableStatus,
+  serverMessage,
   recallMapping,
   rememberMapping,
   rowIssues,
   toCsv,
 } from "./logic";
-import type { ImportCell, ImportColumn, ImportColumnInput, ImportDoneDetail, ImportErrorCode, ImportLabels, ImportMapping, ImportMatch, ImportRowCheck, ImportState, ImportTable } from "./types";
+import type { ImportBatchDetail, ImportCell, ImportColumn, ImportColumnInput, ImportDoneDetail, ImportErrorCode, ImportErrorDetail, ImportLabels, ImportMapping, ImportMatch, ImportRowCheck, ImportState, ImportTable } from "./types";
 import type { XlsxBook } from "./read-xlsx";
 
 export const IMPORT_LABELS: ImportLabels = {
@@ -98,6 +101,8 @@ export const IMPORT_LABELS: ImportLabels = {
   cancel: "Cancelar",
   cancelled: "Envío cancelado. Se importaron {n}; puedes seguir con el resto.",
   failed: "No se pudo enviar ({error}). Se importaron {n}; puedes reintentar el resto.",
+  refused: "El servidor no aceptó el envío: {error}. Se importaron {n}.",
+  timedOut: "el servidor no respondió a tiempo",
   rejected: "El servidor rechazó 1 fila: corrígela y vuelve a enviarla.|El servidor rechazó {n} filas: corrígelas y vuelve a enviarlas.",
   done: "Importamos 1 fila|Importamos {n} filas",
   notImported: "1 fila no entró|{n} filas no entraron",
@@ -119,6 +124,26 @@ const LIMIT = 200;
 /** Filas por tramo al revisar: entre tramos, la página respira. */
 const SLICE = 5000;
 const STEPS = ["file", "columns", "review"] as const;
+/** Plazo por defecto de cada lote (`timeout`, en ms). */
+const BATCH_TIMEOUT_MS = 60_000;
+
+/** Un fallo del envío: el estado HTTP (0 sin respuesta) y el texto para la persona. */
+class SendError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+/** La sesión de un archivo cargado: la mitad estable de la `Idempotency-Key` de sus lotes. */
+function newSession(): string {
+  try {
+    return [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return Math.random().toString(36).slice(2, 12);
+  }
+}
 
 type Loaded = { name: string; rows: ImportCell[][]; book?: XlsxBook; sheet: number };
 
@@ -158,6 +183,8 @@ export class NxImport extends Base {
   #progress: [number, number] | null = null;
   #done: ImportDoneDetail | null = null;
   #abort?: AbortController;
+  /** La sesión del archivo cargado (ver `batchKey`). */
+  #session = newSession();
   /** Sube con cada lectura o revisión: una que quedó vieja no pinta encima de la nueva. */
   #run = 0;
   #built = false;
@@ -198,6 +225,14 @@ export class NxImport extends Base {
     this.#attr("template", v);
   }
   /** Filas por lote (por defecto 500). */
+  /** Plazo de cada lote, en ms (por defecto 60 000). Vencido, el envío se detiene y deja reintentar. */
+  get timeout(): number {
+    const n = Number(this.getAttribute("timeout"));
+    return Number.isFinite(n) && n > 0 ? n : BATCH_TIMEOUT_MS;
+  }
+  set timeout(v: number) {
+    this.#attr("timeout", v ? String(v) : null);
+  }
   get batch(): number {
     const n = Math.floor(Number(this.getAttribute("batch")));
     return n > 0 ? n : 500;
@@ -298,6 +333,7 @@ export class NxImport extends Base {
     }
     if (run !== this.#run) return;
     this.#reset(false);
+    this.#session = newSession();
     this.#file = { name, rows, book, sheet };
     this.#read(detectHeaderRow(rows));
   }
@@ -706,22 +742,37 @@ export class NxImport extends Base {
     try {
       for (let k = 0; k < todo.length; k += size) {
         const part = todo.slice(k, k + size);
-        const res = await fetch(url, {
-          method: "POST",
-          signal: ctrl.signal,
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ rows: part.map((c) => c.values), offset: k }),
-        });
+        const rows = part.map((c) => c.values);
+        // La línea del archivo de cada fila (la que ve Excel): el servidor la puede citar o registrar.
+        const lines = part.map((c) => c.line);
+        // El plazo del lote: vencido, se corta como un corte de red (se puede reintentar).
+        let late = false;
+        const timer = setTimeout(() => ((late = true), ctrl.abort()), this.timeout);
+        let res: Response;
         let body: unknown = null;
         try {
-          body = await res.json();
-        } catch {
-          /* sin cuerpo JSON: vale si fue 2xx */
+          res = await fetch(url, {
+            method: "POST",
+            signal: ctrl.signal,
+            credentials: "same-origin",
+            // Estable entre reintentos de ESTE lote (mismas filas, mismas líneas, mismo archivo).
+            headers: { "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": batchKey(this.#session, rows, lines) },
+            body: JSON.stringify({ rows, offset: k, lines }),
+          });
+          try {
+            body = await res.json();
+          } catch {
+            /* sin cuerpo JSON: vale si fue 2xx */
+          }
+        } catch (err) {
+          if (late) throw new SendError(L.timedOut, 0);
+          throw err;
+        } finally {
+          clearTimeout(timer);
         }
         if (run !== this.#run) return;
         const errs = parseServerErrors(body, k, part.length);
-        if (!res.ok && !errs.length) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok && !errs.length) throw new SendError(serverMessage(body) || `HTTP ${res.status}`, res.status);
         const bad = new Set<number>();
         for (const e of errs) {
           const c = part[e.index];
@@ -732,16 +783,24 @@ export class NxImport extends Base {
         part.forEach((c, j) => bad.has(j) || this.#accepted.add(c.index));
         rejected += bad.size;
         progress(Math.min(k + size, todo.length));
+        // Cada lote respondido: la app refresca lo que muestra, aunque queden filas por corregir.
+        this.#emit<ImportBatchDetail>("nx-import-batch", { accepted: part.length - bad.size, rejected: bad.size, offset: k });
       }
     } catch (err) {
       if (run !== this.#run) return;
       this.#step = "review";
       const n = fmt.number(this.#accepted.size);
-      if (ctrl.signal.aborted) this.#setStatus(this.#count(L.cancelled, this.#accepted.size));
-      else {
+      const status = err instanceof SendError ? err.status : 0;
+      if (ctrl.signal.aborted && !(err instanceof SendError)) this.#setStatus(this.#count(L.cancelled, this.#accepted.size));
+      else if (!retryableStatus(status)) {
+        // Un 4xx sin errores por fila (sin permiso, mal formado): su mensaje, y sin ofrecer reintentar.
+        const message = fmtLabel(L.refused, { error: (err as Error).message.replace(/[\s.]+$/, ""), n });
+        this.#setStatus(message);
+        this.#emit<ImportErrorDetail>("nx-import-error", { code: "refused", message, status });
+      } else {
         const message = fmtLabel(L.failed, { error: err instanceof Error ? err.message : String(err), n });
         this.#setStatus(message);
-        this.#emit("nx-import-error", { code: "network", message });
+        this.#emit<ImportErrorDetail>("nx-import-error", status ? { code: "network", message, status } : { code: "network", message });
       }
       return this.#paint();
     }

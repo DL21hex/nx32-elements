@@ -215,6 +215,11 @@ export interface FormChangeDetail {
   field?: string;
 }
 
+/** `nx-form-dirty`: los cambios sin guardar aparecieron o desaparecieron. */
+export interface FormDirtyDetail {
+  dirty: boolean;
+}
+
 export interface FormFillDetail {
   /** Las claves que cambiaron (también las que llenó una opción con `fills`). */
   keys: string[];

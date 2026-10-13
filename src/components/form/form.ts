@@ -19,6 +19,9 @@
  *   clic. El índice dice qué le falta a cada sección y el pie, cuántos datos faltan, con «Ir al
  *   siguiente».
  * - **Borrador solo** (`draft`): se guarda en el navegador mientras se escribe y se recupera al volver.
+ * - **Cambios sin guardar** (`dirty`): lo que se ve difiere de lo último que cargó la app
+ *   (`values`, o un `fill()` sin origen); escribir y borrar vuelve a «sin cambios». Avisa con
+ *   `nx-form-dirty`. Un `<nx-dialog>` lo suma a su propio `dirty`.
  * - **Teclado de captura:** Enter pasa al campo siguiente, Ctrl+S envía y Ctrl+Z deshace el último
  *   llenado. **Lectura** (`mode="read"`): la misma rejilla con los valores como texto.
  *
@@ -35,7 +38,7 @@ import "../field/index";
 import type { NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
 import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isNumeric, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
-import type { FormChangeDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
+import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
 
 export const FORM_LABELS: FormLabels = {
   submit: "Guardar",
@@ -193,6 +196,10 @@ export class NxForm extends Base {
   #v: Record<string, FormValue> = {};
   /** Los valores de partida (los de `values`, o los del esquema): `reset()` vuelve a ellos. */
   #initial: Record<string, FormValue> = {};
+  /** Lo último que cargó la app (`values`, un `fill()` sin origen): contra esto se mide `dirty`. */
+  #loaded: Record<string, FormValue> = {};
+  /** El último `dirty` avisado con `nx-form-dirty`. */
+  #wasDirty = false;
   #given: Record<string, unknown> = {};
   #marks: Record<string, FormSource> = {};
   #touched = new Set<string>();
@@ -353,6 +360,26 @@ export class NxForm extends Base {
   }
 
   /** Las claves que faltan o tienen un error, en orden (en una fila, `"beneficiarios.0.nombre"`). */
+  /**
+   * Hay cambios sin guardar: algún campo que se ve (no los `readonly`) difiere de lo último que
+   * cargó la app, con `values` o con un `fill()` sin origen (un recálculo del servidor). Un `fill()`
+   * con origen (texto pegado, un escaneo) es la persona trayendo datos: sí cuenta. Escribir y borrar
+   * vuelve a `false`. Cambia avisando `nx-form-dirty` `{dirty}`.
+   */
+  get dirty(): boolean {
+    const vis = visibleKeys([...this.#defs.values()], this.#v);
+    for (const [k, def] of this.#defs) if (def.type !== "readonly" && vis.has(k) && !sameValue(this.#v[k] ?? null, this.#loaded[k] ?? null)) return true;
+    return false;
+  }
+
+  /** Da lo que se ve por cargado: `dirty` vuelve a `false` sin tocar los valores (un `<nx-dialog>`
+   *  lo hace al abrirse, al descartar y al pasar de registro). No borra el borrador. */
+  markClean(): void {
+    this.#loaded = {};
+    for (const k of this.#defs.keys()) this.#loaded[k] = copy(this.#v[k] ?? null);
+    this.#tellDirty();
+  }
+
   get missing(): string[] {
     return this.#problems.map((k) => this.#publicKey(k));
   }
@@ -383,6 +410,15 @@ export class NxForm extends Base {
     const src = typeof source === "string" ? (source ? { label: source } : null) : source && typeof source.label === "string" && source.label ? { label: source.label, detail: typeof source.detail === "string" ? source.detail : undefined } : null;
     const snap = this.#snap();
     const { keys, kept, flash } = this.#apply(values, src, !!options.force, textMap(options.details));
+    // Sin origen es la app cargando (un recálculo del servidor): lo que entró pasa a ser lo cargado.
+    // Lo que no entró (lo escribió la persona y no hubo `force`) sigue contando como cambio.
+    if (!src) {
+      for (const [k, raw] of Object.entries(values)) {
+        const def = this.#defs.get(k);
+        if (def && def.type !== "rows" && sameValue(this.#v[k] ?? null, coerce(def, raw, this.#fmt))) this.#loaded[k] = copy(this.#v[k] ?? null);
+      }
+      this.#tellDirty();
+    }
     if (!keys.length) return 0;
     if (src) {
       this.#last = { snap, source: src };
@@ -473,8 +509,7 @@ export class NxForm extends Base {
     upgrade(this);
     if (!this.#head) this.#build();
     this.#render();
-    clearInterval(this.#tick);
-    this.#tick = window.setInterval(() => this.#paintHead(), 15000);
+    this.#syncTick();
   }
 
   disconnectedCallback(): void {
@@ -503,6 +538,7 @@ export class NxForm extends Base {
     if (name === "draft") {
       this.#draftChecked = false;
       this.#checkDraft();
+      this.#syncTick();
     }
     this.#paint();
   }
@@ -616,6 +652,10 @@ export class NxForm extends Base {
     this.#initial = this.#startValues();
     this.#v = {};
     for (const k of this.#defs.keys()) this.#v[k] = k in keep ? keep[k] : copy(this.#initial[k]);
+    // Lo cargado de las claves que siguen se conserva; las nuevas entran con su valor de partida.
+    const was = this.#loaded;
+    this.#loaded = {};
+    for (const k of this.#defs.keys()) this.#loaded[k] = k in was ? was[k] : copy(this.#initial[k]);
     for (const s of this.#slots.values()) this.#write(s);
     const all = [...this.#defs.values()].flatMap((d) => [d, ...(d.subs ?? [])]);
     if (all.some((d) => isNumeric(d.type))) void import("../number/index");
@@ -818,7 +858,11 @@ export class NxForm extends Base {
   #load(): void {
     this.#initial = this.#startValues();
     this.#v = {};
-    for (const [k, v] of Object.entries(this.#initial)) this.#v[k] = copy(v);
+    this.#loaded = {};
+    for (const [k, v] of Object.entries(this.#initial)) {
+      this.#v[k] = copy(v);
+      this.#loaded[k] = copy(v);
+    }
     this.#rowIds.clear();
     this.#marks = {};
     this.#server = {};
@@ -1358,6 +1402,16 @@ export class NxForm extends Base {
     this.#paintIndex(stats);
     this.#paintFoot(tally.missing, tally.invalid);
     this.#paintHead();
+    this.#tellDirty();
+  }
+
+  /** Avisa `nx-form-dirty` si `dirty` cambió desde el último aviso. */
+  #tellDirty(): void {
+    const dirty = this.dirty;
+    if (dirty === this.#wasDirty) return;
+    this.#wasDirty = dirty;
+    this.toggleAttribute("data-dirty", dirty);
+    this.#emit<FormDirtyDetail>("nx-form-dirty", { dirty });
   }
 
   /** Un campo: su valor, su error, su aviso, su ayuda y su origen; y lo que suma a su sección. */
@@ -1574,6 +1628,13 @@ export class NxForm extends Base {
   }
 
   // ---------------------------------------------------------------- borrador
+
+  /** El reloj de «Guardado hace…» solo corre con borrador: sin él no hay nada que repintar. */
+  #syncTick(): void {
+    clearInterval(this.#tick);
+    this.#tick = 0;
+    if (this.isConnected && this.#draftKey()) this.#tick = window.setInterval(() => this.#paintHead(), 15000);
+  }
 
   #draftKey(): string {
     const d = this.draft?.trim();

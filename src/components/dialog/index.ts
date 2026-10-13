@@ -12,6 +12,7 @@ declare global {
   }
   interface HTMLElementEventMap {
     "nx-dialog-close": CustomEvent<import("./types").DialogCloseDetail>;
+    "nx-dialog-beforeclose": CustomEvent<import("./types").DialogCloseDetail>;
     "nx-dialog-nav": CustomEvent<import("./types").DialogNavDetail>;
     "nx-dialog-action": CustomEvent<import("./types").DialogActionDetail>;
   }

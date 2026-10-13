@@ -13,8 +13,11 @@ export interface SelectProps extends Omit<JSX.HTMLAttributes<NxSelect>, "onChang
   fields: SelectField[];
   /** Registros locales. Para catálogos grandes, `source`. */
   options?: SelectOption[];
-  /** URL de búsqueda en el servidor (`?q=`). */
+  /** URL de búsqueda en el servidor (`?q=`). El valor elegido va con su registro en `selection`:
+   *  no se pide suelto al servidor. */
   source?: string;
+  /** Plazo de cada búsqueda en el servidor, en ms (30 000). */
+  timeout?: number;
   value?: string | string[];
   /** Registros elegidos (con `source`, para pintar la selección inicial). */
   selection?: SelectOption[];
@@ -53,6 +56,7 @@ export function Select(props: SelectProps): JSX.Element {
     "clearable",
     "avatar",
     "limit",
+    "timeout",
     "labels",
     "onChange",
     "children",
@@ -71,6 +75,7 @@ export function Select(props: SelectProps): JSX.Element {
       attr:label={local.label}
       attr:name={local.name}
       attr:limit={local.limit === undefined ? undefined : String(local.limit)}
+      attr:timeout={local.timeout === undefined ? undefined : String(local.timeout)}
       bool:required={!!local.required}
       bool:disabled={!!local.disabled}
       bool:clearable={!!local.clearable}

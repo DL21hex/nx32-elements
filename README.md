@@ -374,11 +374,21 @@ sel.options = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987", 
   (`value='["1","2"]'`).
 - Un `value` repetido en `options` se avisa por consola y se queda el primero.
 - `source`: mismo origen (o `allowOrigins`); lo que se escribe no sale hacia un tercero. Una
-  búsqueda nueva cancela la anterior.
+  búsqueda nueva cancela la anterior. Cada búsqueda tiene plazo (`timeout`, en ms; por defecto
+  30 000): vencido, se muestra el error. Los resultados llevan la consulta que los produjo: mientras
+  la consulta escrita no tiene respuesta, la lista anterior se ve atenuada pero no se resalta ni se
+  elige con el teclado, y un Enter pulsado en esa espera elige la primera opción de la respuesta
+  que llegue (si llega vacía, nada). El servidor decide qué casa (puede buscar en campos que el
+  cliente no ve, como la cédula): no se descarta ninguno de sus resultados. Al cerrar se olvidan.
+- **Con `source`, el valor elegido tiene que llegar con su registro.** El select no pide al
+  servidor un `value` suelto: si el valor inicial no viene en `options` (ni en `selection`), queda
+  pendiente y `value` es `""` hasta que aparezca en una búsqueda. Para pintar la selección inicial,
+  pasa los registros elegidos en `selection` (o en `options`):
+  `sel.selection = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987" }]`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `fields`, `options`, `source`, `value`, `selection`, `multiple`, `placeholder`, `label`, `name`, `required`, `disabled`, `clearable`, `avatar`, `limit`, `labels` |
+| Propiedades / atributos | `fields`, `options`, `source`, `value`, `selection`, `multiple`, `placeholder`, `label`, `name`, `required`, `disabled`, `clearable`, `avatar`, `limit`, `timeout`, `labels` |
 | Métodos | `show()`, `hide()`, `open`, `focus()`, `checkValidity()`, `reportValidity()`, `setCustomValidity(msg)`, `form`, `validity`, `validationMessage`, `willValidate` |
 | Eventos | `nx-select-change` `{value, options}` y un `change` nativo, al elegir, quitar o limpiar |
 

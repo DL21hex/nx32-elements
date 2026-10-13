@@ -32,6 +32,8 @@ const CHEVRON = '<path d="m6 9 6 6 6-6"/>';
 const CHECK = '<path d="M20 6 9 17l-5-5"/>';
 const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
 const DEBOUNCE_MS = 250;
+/** Plazo por defecto de una búsqueda en el servidor (`timeout`, en ms). */
+const FETCH_TIMEOUT_MS = 30_000;
 
 let uid = 0;
 
@@ -44,7 +46,7 @@ export class NxSelect extends Base {
     attrProps(this, ["label"]);
   }
   declare label: string | null;
-  static observedAttributes = ["options", "fields", "value", "multiple", "placeholder", "source", "name", "required", "disabled", "clearable", "avatar", "labels", "limit", "label"];
+  static observedAttributes = ["options", "fields", "value", "multiple", "placeholder", "source", "name", "required", "disabled", "clearable", "avatar", "labels", "limit", "label", "timeout"];
 
   #options: SelectOption[] = [];
   #fields: SelectField[] = [{ key: "label", label: "" }];
@@ -77,6 +79,13 @@ export class NxSelect extends Base {
   #matches: Match[] = [];
   #highlighted = -1;
   #remote: SelectOption[] = [];
+  /** La consulta (recortada) que produjo `#remote`; `null` sin respuesta todavía. Mientras no sea la
+   *  vigente, lo que hay en la lista es de una consulta anterior: se ve, pero ni se resalta ni se
+   *  elige con el teclado. */
+  #remoteFor: string | null = null;
+  /** Enter pulsado mientras la consulta vigente esperaba su respuesta: elige la primera opción de
+   *  ESA respuesta cuando llegue (si llega vacía, nada). */
+  #enterPending = false;
   #loading = false;
   #failed = false;
   #timer = 0;
@@ -158,7 +167,11 @@ export class NxSelect extends Base {
   set placeholder(v: string) {
     this.#attr("placeholder", v);
   }
-  /** URL de búsqueda en el servidor: se pide `source?q=…` y se espera un arreglo (o `{options}`). */
+  /**
+   * URL de búsqueda en el servidor: se pide `source?q=…` y se espera un arreglo (o `{options}`).
+   * El valor elegido no se pide suelto al servidor: si no viene en `options`, pásalo con su registro
+   * en `selection` (o queda pendiente y `value` es `""` hasta que salga en una búsqueda).
+   */
   get source(): string | null {
     return this.getAttribute("source");
   }
@@ -196,6 +209,14 @@ export class NxSelect extends Base {
   }
   set avatar(v: boolean) {
     this.#bool("avatar", v);
+  }
+  /** Plazo de cada búsqueda en el servidor, en ms (por defecto 30 000). Vencido, se muestra el error. */
+  get timeout(): number {
+    const n = Number(this.getAttribute("timeout"));
+    return Number.isFinite(n) && n > 0 ? n : FETCH_TIMEOUT_MS;
+  }
+  set timeout(v: number) {
+    this.#attr("timeout", v ? String(v) : null);
   }
   get limit(): number {
     const n = Number(this.getAttribute("limit"));
@@ -289,8 +310,8 @@ export class NxSelect extends Base {
     // `open` quedaría en `true` y, al volver (un portal, una lista que se reordena), ningún clic lo
     // abriría otra vez.
     this.#isOpen = false;
-    this.#loading = false;
     this.#query = "";
+    this.#forget();
     this.#field?.setAttribute("aria-expanded", "false");
   }
 
@@ -589,9 +610,8 @@ export class NxSelect extends Base {
       this.#field!.setAttribute("aria-expanded", String(open));
       if (!open && !this.open) {
         this.#track?.();
-        this.#abort?.abort();
-        clearTimeout(this.#timer);
         this.#query = "";
+        this.#forget();
       }
     });
 
@@ -601,6 +621,8 @@ export class NxSelect extends Base {
     this.#input.addEventListener("input", () => {
       this.#query = this.#input!.value;
       this.#highlighted = -1;
+      // Un Enter que esperaba era de la consulta anterior.
+      this.#enterPending = false;
       this.#refresh(false);
     });
     this.#input.addEventListener("keydown", (e) => {
@@ -613,7 +635,7 @@ export class NxSelect extends Base {
         return;
       }
       const step = listKeyStep(e.key, this.#highlighted, this.#matches.length);
-      if (step === null) return;
+      if (step === null && !(e.key === "Enter" && this.#stale())) return;
       if (step === "close") {
         // Escape y Tab cierran (Escape explícito: no todos los webviews lo hacen solos).
         if (e.key === "Escape") e.preventDefault();
@@ -622,6 +644,12 @@ export class NxSelect extends Base {
         return;
       }
       e.preventDefault();
+      // Lo que se ve es de la consulta anterior: Enter espera a la respuesta de la vigente y las
+      // flechas no resaltan nada viejo.
+      if (this.#stale()) {
+        if (e.key === "Enter") this.#enterPending = true;
+        return;
+      }
       if (step === "select") this.#pick(this.#matches[this.#highlighted]?.option);
       else this.#highlight(step, true);
     });
@@ -664,6 +692,25 @@ export class NxSelect extends Base {
     this.#setSelection(has ? this.#selected.filter((o) => o.value !== option.value) : [...this.#selected, option]);
   }
 
+  /** La lista es de una consulta que ya no es la escrita (o la vigente sigue esperando respuesta). */
+  #stale(): boolean {
+    return !!this.source && (this.#loading || this.#remoteFor !== this.#query.trim());
+  }
+
+  /** Al cerrar: nada de esta búsqueda sobrevive a la siguiente (ni sus resultados ni un Enter). */
+  #forget(): void {
+    this.#abort?.abort();
+    clearTimeout(this.#timer);
+    this.#loading = false;
+    this.#enterPending = false;
+    this.#remote = [];
+    this.#remoteFor = null;
+    this.#matches = [];
+    this.#highlighted = -1;
+    this.#list?.replaceChildren();
+    this.#input?.removeAttribute("aria-activedescendant");
+  }
+
   /** Recalcula los resultados: filtro local o búsqueda en el servidor (con espera entre teclas). */
   #refresh(opening: boolean): void {
     const src = this.source;
@@ -672,6 +719,9 @@ export class NxSelect extends Base {
       return;
     }
     clearTimeout(this.#timer);
+    // Una respuesta en camino es de una consulta que ya no vale: que no llegue a pintarse mientras
+    // corre la espera entre teclas.
+    this.#abort?.abort();
     this.#loading = true;
     this.#renderList();
     this.#timer = window.setTimeout(() => void this.#fetch(src), opening ? 0 : DEBOUNCE_MS);
@@ -691,6 +741,9 @@ export class NxSelect extends Base {
     this.#abort?.abort();
     const ctrl = (this.#abort = new AbortController());
     const q = this.#query;
+    // El plazo: una búsqueda que no contesta no deja «Buscando…» para siempre.
+    let late = false;
+    const timer = setTimeout(() => ((late = true), ctrl.abort()), this.timeout);
     try {
       // Solo del mismo origen (o de uno permitido): lo que se escribe no sale hacia un tercero.
       const safe = safeEndpoint(src);
@@ -704,15 +757,30 @@ export class NxSelect extends Base {
       this.#remote = this.#clean(list, "source");
       this.#failed = false;
     } catch (err) {
-      if (ctrl.signal.aborted) return;
+      if (ctrl.signal.aborted && !late) return;
       this.#remote = [];
       this.#failed = true;
       void err;
+    } finally {
+      clearTimeout(timer);
     }
+    // Otra búsqueda tomó el relevo (o se cerró el panel) mientras se leía esta respuesta.
+    if (ctrl !== this.#abort || (ctrl.signal.aborted && !late)) return;
+    // Los resultados llevan la consulta que los produjo. No se descarta ninguno por no casar aquí:
+    // el servidor busca también en campos que el cliente no ve (la cédula).
+    this.#remoteFor = q.trim();
     this.#loading = false;
     this.#matches = this.#remoteMatches(q);
     this.#resolvePending();
     this.#renderList();
+    if (this.#enterPending) {
+      this.#enterPending = false;
+      const i = this.#matches.findIndex((m) => !m.option.disabled);
+      if (i >= 0) {
+        this.#highlight(i, false);
+        this.#pick(this.#matches[i].option);
+      }
+    }
   }
 
   #highlight(i: number, scroll: boolean): void {
@@ -801,7 +869,9 @@ export class NxSelect extends Base {
       const msg = this.#loading ? this.#labels.loading : this.#failed ? this.#labels.error : this.#labels.empty;
       list.append(h("p", { class: "nx-select__empty" }, msg));
     }
-    if (this.#highlighted < 0 && this.#matches.length && this.#query.trim()) this.#highlight(0, false);
+    // Con una lista vieja (la consulta vigente sin respuesta) no se resalta nada: Enter la elegiría.
+    if (this.#stale()) this.#highlight(-1, false);
+    else if (this.#highlighted < 0 && this.#matches.length && this.#query.trim()) this.#highlight(0, false);
     // Sin resaltado (se borró la consulta), el lector no anuncia como activa una opción que no lo está.
     else if (this.#highlighted < 0) this.#input!.removeAttribute("aria-activedescendant");
   }

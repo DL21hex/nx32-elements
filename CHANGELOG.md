@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## 0.20.0 (sin publicar)
+
+- **`<nx-select source>`: Enter durante la búsqueda ya no elige una opción de la consulta
+  anterior.** Cada tecla deja a la vista la lista de antes mientras llega la nueva, y se resaltaba
+  su primera opción: un Enter rápido elegía a otra persona. Ahora los resultados llevan la consulta
+  que los produjo y, mientras la escrita no tiene respuesta, la lista vieja se ve atenuada pero ni
+  se resalta ni se elige con el teclado (las flechas no la recorren). Un Enter pulsado en esa espera
+  se guarda y elige la primera opción de la respuesta que llegue (si llega vacía, nada); seguir
+  escribiendo lo cancela. Una respuesta en camino se cancela con la tecla siguiente (antes podía
+  pintarse durante la espera entre teclas como si fuera la vigente). Al cerrar se olvidan los
+  resultados y el Enter pendiente. No se descarta ningún resultado del servidor por no casar en el
+  cliente: el servidor busca en campos que el cliente no ve (la cédula). Nuevo `timeout` (atributo
+  y propiedad, en ms; por defecto 30 000): una búsqueda que no contesta muestra el error en vez de
+  «Buscando…» para siempre. Documentado: con `source`, el valor elegido llega con su registro en
+  `selection` (no se pide suelto al servidor).
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

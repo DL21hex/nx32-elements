@@ -611,6 +611,9 @@ export class NxGrid extends Base {
   #ac?: AbortController;
   #tryAc?: AbortController;
   #resume = false;
+  /** El primer bloque de una consulta nueva espera al final de la tarea (ver `#reload`): la `#gen`
+   *  de la consulta que lo espera, o 0 si no hay ninguno en espera. */
+  #queued = 0;
   /** Bloques que fallaron: cuántas veces y desde cuándo se pueden volver a pedir (1 s, 2 s, 4 s… hasta
    *  30 s). `hard`: un 4xx, que no se repite solo (ni al desplazarse: ver `#revive`). `#loadError`:
    *  falló el primero y no hay filas que mostrar; `#loadWhy`, lo que dijo el servidor (si dijo algo). */
@@ -1330,6 +1333,12 @@ export class NxGrid extends Base {
     }
     this.#ac?.abort();
     this.#ac = undefined;
+    // El primer bloque que esperaba el final de la tarea no sale: al volver se pide con lo que falte,
+    // como una petición cortada.
+    if (this.#queued && this.#queued === this.#gen) {
+      this.#queued = 0;
+      if (this.#blocks.get(0) === "loading") this.#blocks.delete(0);
+    }
     // La matriz que venía del servidor se vuelve a pedir al volver.
     this.#mxAc?.abort();
     this.#mxAc = undefined;
@@ -1615,7 +1624,21 @@ export class NxGrid extends Base {
     this.#byId.clear();
     for (const id of this.#picked) if (id.startsWith("#")) this.#picked.delete(id);
     this.#win = { start: -1, end: -1 };
-    void this.#load(0);
+    // El primer bloque se pide al final de esta tarea, no ahora: una app (o su adaptador) conecta la
+    // tabla y enseguida le asigna `filters`, `sort` y `search`, y cada asignación es una consulta
+    // nueva. Pedido en el acto, cada una cortaba la anterior: tres peticiones por carga, dos
+    // canceladas a los ~50 ms. Ahora todas las de la misma tarea son una sola, la última. El bloque
+    // queda «cargando» ya (el esqueleto se pinta sin esperar, y el scroll no lo pide otra vez); una
+    // consulta nueva antes del microtask lo reemplaza (`#gen`). Una app que asigna lo suyo un cuadro
+    // después (dentro de un `Suspense`, tras un `await`) sigue costando una petición cortada: esperar
+    // un cuadro más retrasaría la primera pintura de todas las demás.
+    const gen = (this.#queued = this.#gen);
+    this.#blocks.set(0, "loading");
+    queueMicrotask(() => {
+      if (this.#queued !== gen || this.#gen !== gen) return;
+      this.#queued = 0;
+      void this.#load(0, true);
+    });
     this.#paintAll();
   }
 
@@ -1653,12 +1676,15 @@ export class NxGrid extends Base {
     return data && Array.isArray(data.rows) ? data : null;
   }
 
-  async #load(block: number): Promise<void> {
-    if (this.#blocks.has(block)) return;
-    // Un bloque que falló espera su turno (no se vuelve a pedir en cada cuadro del scroll).
-    const fail = this.#fails.get(block);
-    if (fail && fail.at > Date.now()) return fail.at < Infinity ? this.#retryLater(fail.at) : undefined;
-    this.#blocks.set(block, "loading");
+  /** `queued`: el primer bloque de `#reload`, que ya quedó «cargando» al pedirse. */
+  async #load(block: number, queued = false): Promise<void> {
+    if (!queued) {
+      if (this.#blocks.has(block)) return;
+      // Un bloque que falló espera su turno (no se vuelve a pedir en cada cuadro del scroll).
+      const fail = this.#fails.get(block);
+      if (fail && fail.at > Date.now()) return fail.at < Infinity ? this.#retryLater(fail.at) : undefined;
+      this.#blocks.set(block, "loading");
+    }
     const gen = this.#gen;
     const signal = (this.#ac ??= new AbortController()).signal;
     if (this.clientOnly) return this.#loadWhole(gen, signal);
@@ -2642,21 +2668,27 @@ export class NxGrid extends Base {
     const ac = (this.#mxAc = new AbortController());
     const gen = ++this.#mxGen;
     this.#mxState = "loading";
-    this.#request(0, 0, q, ac.signal, { matrix: { rows: cfg.rows, cols: cfg.cols, agg: cfg.agg, ...(cfg.value ? { value: cfg.value } : {}) } })
-      .then((page) => {
-        if (!page || !Array.isArray(page.matrix)) throw new Error("la respuesta no trae matrix");
-        if (gen !== this.#mxGen) return;
-        this.#mxCells = cleanCells(page.matrix);
-        this.#mxState = "idle";
-      })
-      .catch((err) => {
-        if (gen !== this.#mxGen || ac.signal.aborted) return;
-        console.warn("[nx-grid] no se pudo cargar la matriz", err);
-        this.#mxState = "failed";
-      })
-      .finally(() => {
-        if (gen === this.#mxGen && this.layout === "matrix") this.#matrixUI?.paint();
-      });
+    // Como el primer bloque (ver `#reload`): se pide al final de la tarea, así las asignaciones
+    // seguidas (filtros, orden, búsqueda) son una sola petición. Si mientras tanto llegó otra
+    // consulta (`#mxGen`) o la tabla salió del DOM (la señal), esta no sale.
+    queueMicrotask(() => {
+      if (gen !== this.#mxGen || ac.signal.aborted) return;
+      this.#request(0, 0, q, ac.signal, { matrix: { rows: cfg.rows, cols: cfg.cols, agg: cfg.agg, ...(cfg.value ? { value: cfg.value } : {}) } })
+        .then((page) => {
+          if (!page || !Array.isArray(page.matrix)) throw new Error("la respuesta no trae matrix");
+          if (gen !== this.#mxGen) return;
+          this.#mxCells = cleanCells(page.matrix);
+          this.#mxState = "idle";
+        })
+        .catch((err) => {
+          if (gen !== this.#mxGen || ac.signal.aborted) return;
+          console.warn("[nx-grid] no se pudo cargar la matriz", err);
+          this.#mxState = "failed";
+        })
+        .finally(() => {
+          if (gen === this.#mxGen && this.layout === "matrix") this.#matrixUI?.paint();
+        });
+    });
   }
 
   #matrixHost(): MatrixHost {

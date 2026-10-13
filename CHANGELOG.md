@@ -1,5 +1,23 @@
 # Registro de cambios
 
+## 0.17.1 — 2026-10-12
+
+- **`<nx-grid>` con `source`: la primera carga es una sola petición.** Una app (o un envoltorio)
+  conecta la tabla y enseguida le asigna `filters`, `sort` y `search`; cada asignación es una
+  consulta nueva y la tabla pedía su página en el acto, cortando la anterior. Al abrir una página
+  con filtros recordados salían tres peticiones de filas y dos se cancelaban a los ~50 ms (en
+  producción, el 5 % de las peticiones de una tabla de empleados y el 28 % de una de incapacidades
+  eran esas cancelaciones). Ahora el primer bloque de una consulta nueva se pide al final de la
+  tarea (un microtask): las asignaciones seguidas son una sola petición, con la consulta final. Lo
+  mismo con `refresh()` (llamado varias veces seguidas, una petición), un `row-key` nuevo, la vuelta
+  al DOM, `client-only` y la matriz con `source`. «Cargando…» se pinta igual que antes, sin esperar;
+  los bloques que se piden al desplazarse salen en el acto; los reintentos y `nx-grid-error` no
+  cambian. Una app que asigna sus propiedades un cuadro después (tras un `await`, dentro de un
+  `Suspense`) sigue costando una petición cortada: esperar ese cuadro retrasaría la primera carga de
+  todas las demás.
+  Una prueba que esperaba el `fetch` en el acto al conectar lo encuentra tras un
+  `await Promise.resolve()`.
+
 ## 0.17.0 — 2026-10-12
 
 Sin cambios que rompan: todo es nuevo y opcional. Lo único que cambia de comportamiento es que un

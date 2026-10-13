@@ -2440,7 +2440,8 @@ seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, 
   registro), `copy` (botón para copiar) y `mono`. Con `editing`, cada valor se vuelve un campo en su
   sitio (texto, correo, teléfono, número, monto, fecha, lista o área de texto) con `name`, así que
   sirve dentro de un `<form>` y marca los cambios sin guardar de `<nx-dialog>`; `readonly` sigue como
-  texto con candado. `values` devuelve lo escrito ya convertido, `validate()` revisa lo obligatorio y
+  texto con candado (el candado, «No se edita aquí», se ve también al leer y, en el resumen, junto a
+  la etiqueta). `values` devuelve lo escrito ya convertido, `validate()` revisa lo obligatorio y
   el formato y enfoca el primer error, y `errors` muestra los del servidor. Un número se edita sin
   redondear; lo escrito en los items con `key` no se pierde si la ficha se vuelve a pintar (los
   mismos `items` otra vez, otro `locale`), y `reset()` lo descarta (un formulario que se reabre).

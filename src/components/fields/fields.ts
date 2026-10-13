@@ -77,6 +77,16 @@ interface Initial {
   keyed: boolean;
 }
 
+/** El candado de lo que no se edita aquí: una imagen con nombre («No se edita aquí») y su `title`. */
+function lockOf(L: FieldsLabels): HTMLSpanElement {
+  const lock = glyph(LOCK, "nx-fields__lock");
+  lock.removeAttribute("aria-hidden");
+  lock.setAttribute("role", "img");
+  lock.setAttribute("aria-label", L.readonly);
+  lock.title = L.readonly;
+  return lock;
+}
+
 export class NxFields extends Base {
   static observedAttributes = ["items", "variant", "columns", "heading", "action", "editing", "errors", "locale", "currency", "labels"];
 
@@ -389,7 +399,12 @@ export class NxFields extends Base {
   }
 
   #readRow(it: FieldItem, summary: boolean, L: FieldsLabels): HTMLElement {
-    return h("div", { class: `nx-fields__f${it.wide && !summary ? " is-wide" : ""}` }, h("dt", { class: "nx-fields__l" }, it.label), this.#value(it, L, summary));
+    const dt = h("dt", { class: "nx-fields__l" }, it.label);
+    const dd = this.#value(it, L, summary);
+    // El candado también al leer: quien mira la ficha sabe, antes de pulsar «Editar», qué no se
+    // cambia aquí. En el resumen va junto a la etiqueta (el valor se corta con «…» y se lo llevaría).
+    if (it.readonly) (summary ? dt : dd).append(lockOf(L));
+    return h("div", { class: `nx-fields__f${it.wide && !summary ? " is-wide" : ""}` }, dt, dd);
   }
 
   #editRow(it: FieldItem, i: number): HTMLElement {
@@ -398,12 +413,7 @@ export class NxFields extends Base {
     const row = h("div", { class: `nx-fields__f${it.wide ? " is-wide" : ""}${it.readonly ? " is-ro" : ""}` });
     if (it.readonly) {
       const v = this.#value(it, L, false, "div");
-      const lock = glyph(LOCK, "nx-fields__lock");
-      lock.removeAttribute("aria-hidden");
-      lock.setAttribute("role", "img");
-      lock.setAttribute("aria-label", L.readonly);
-      lock.title = L.readonly;
-      v.append(lock);
+      v.append(lockOf(L));
       row.append(h("span", { class: "nx-fields__l" }, it.label), v);
       return row;
     }

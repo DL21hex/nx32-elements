@@ -42,6 +42,11 @@
   `inert`; las capas que se crean después quedan vivas. El clic en el fondo sigue cerrando.
 - **`<nx-form>`: el reloj de «Guardado hace…» solo corre con borrador.** Cada formulario arrancaba
   un `setInterval` de 15 s aunque no tuviera `draft`; ahora solo con él (y se para al quitarlo).
+- **`<nx-fields>`: el candado de `readonly` también al leer.** Solo se pintaba con `editing`: al
+  mirar la ficha no se sabía qué no se cambia aquí hasta pulsar «Editar». Ahora va en el valor al
+  leer y, en `variant="summary"` (donde el valor se corta con «…»), junto a la etiqueta; siempre
+  con `role="img"`, `aria-label` y `title` (`labels.readonly`, «No se edita aquí»). Al leer, el
+  valor no cambia de color.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

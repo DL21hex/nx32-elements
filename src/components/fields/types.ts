@@ -39,7 +39,8 @@ export interface FieldItem {
   copy?: boolean;
   /** Letra monoespaciada (códigos). */
   mono?: boolean;
-  /** Al editar, sigue como texto con un candado: lo que no se cambia aquí. */
+  /** Lo que no se cambia aquí: un candado («No se edita aquí») al leer, en el resumen (junto a la
+   *  etiqueta) y al editar, donde sigue como texto. */
   readonly?: boolean;
   /** El control al editar. */
   input?: FieldInput;

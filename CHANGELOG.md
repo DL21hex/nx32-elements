@@ -67,6 +67,10 @@
 - **`<nx-history>`: acepta el tono `info`.** Los estados (`options[].tone`) admitían `neutral`,
   `success`, `warning` y `danger`; un `info` (el de `<nx-badge>` y `<nx-notice>`) caía en neutro.
   Ahora se acepta y se pinta como en `<nx-badge>`.
+- **`<nx-actions>`: la descripción de cada acción describe a su botón.** Iba debajo, pero sin
+  ligarse: el lector de pantalla solo la decía si se seguía leyendo, no al llegar al botón con Tab.
+  Ahora el control de adentro del `<nx-button>` (el `<button>` o el `<a>`) lleva
+  `aria-describedby` a su descripción, también tras pasar a enlace; sin descripción, nada.
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

@@ -26,6 +26,7 @@ export const ACTIONS_LABELS: ActionsLabels = {
   group: "Acciones",
 };
 
+let uid = 0;
 const str = (v: unknown): string => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "");
 
 /** Las acciones que llegan de afuera (BDUI: JSON): sin `id` o sin `label` no sirven; un `id` repetido
@@ -127,7 +128,7 @@ export class NxActions extends Base {
       let node = this.#nodes.get(a.id);
       if (!node) {
         const btn = h("nx-button", { "log-mode": "none" }) as NxButton;
-        const desc = h("p", { class: "nx-actions__desc" });
+        const desc = h("p", { class: "nx-actions__desc", id: `nx-act${++uid}-d` });
         const li = h("li", { class: "nx-actions__item", "data-nx-id": a.id }, btn, desc);
         node = { li, btn, desc };
         this.#nodes.set(a.id, node);
@@ -148,6 +149,11 @@ export class NxActions extends Base {
       desc.hidden = !text;
       // Solo se mueve lo que cambió de lugar: mover el nodo con el foco lo soltaría.
       if (list.children[i] !== li) list.insertBefore(li, list.children[i] ?? null);
+      // La descripción describe a SU botón: el lector la dice al llegar a él, no solo si se sigue
+      // leyendo. Va en el control de adentro (el `<button>` o el `<a>`), que ya existe: el
+      // `<nx-button>` se arma al conectarse y rehace el control si cambia `href` (arriba).
+      const ctl = btn.querySelector(".nx-button__btn");
+      if (ctl) setAttr(ctl, "aria-describedby", text ? desc.id : null);
     });
     for (const [id, node] of this.#nodes)
       if (!keep.has(id)) {

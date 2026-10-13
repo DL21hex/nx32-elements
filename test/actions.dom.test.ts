@@ -129,3 +129,24 @@ describe("<nx-actions>", () => {
     expect(buttons(el)[0].hasAttribute("busy")).toBe(true);
   });
 });
+
+// La descripción de cada acción iba debajo de su botón, pero sin ligarse a él: el lector de pantalla
+// solo la decía si se seguía leyendo, no al llegar al botón con Tab.
+describe("<nx-actions>: la descripción describe a su botón", () => {
+  it("aria-describedby en el control de adentro, con la descripción; sin descripción, nada", async () => {
+    const el = await mount();
+    const [reset, off, cert, card] = buttons(el);
+    const desc = (b: NxButton) => document.getElementById(inner(b).getAttribute("aria-describedby") ?? "")?.textContent;
+    expect(desc(reset)).toBe(ITEMS[0].description);
+    expect(desc(off)).toBe(ITEMS[1].description);
+    expect(inner(cert).hasAttribute("aria-describedby")).toBe(false);
+    expect(inner(card).hasAttribute("aria-describedby")).toBe(false);
+    // Cambia la descripción, o la acción pasa a enlace (el control se rehace): sigue ligada.
+    el.items = [{ ...ITEMS[0], href: "/x", description: "Otra explicación" }, { ...ITEMS[1], description: "" }];
+    await flush();
+    const [a, b] = buttons(el);
+    expect(inner(a).tagName).toBe("A");
+    expect(desc(a)).toBe("Otra explicación");
+    expect(inner(b).hasAttribute("aria-describedby")).toBe(false);
+  });
+});

@@ -35,6 +35,7 @@ export type {
   GridSavedView,
   GridSort,
   GridTone,
+  GridTruncatedDetail,
   GridView,
   GridViewLabels,
 } from "./types";
@@ -52,6 +53,7 @@ declare global {
     "nx-grid-open": CustomEvent<{ id: string; row: import("./types").GridRow; key: string; origin: HTMLElement | null }>;
     "nx-grid-action": CustomEvent<import("./types").GridActionDetail>;
     "nx-grid-error": CustomEvent<import("./types").GridErrorDetail>;
+    "nx-grid-truncated": CustomEvent<import("./types").GridTruncatedDetail>;
     "nx-grid-export": CustomEvent<import("./types").GridExportDetail>;
     "nx-grid-layout": CustomEvent<import("./types").GridLayoutDetail>;
   }

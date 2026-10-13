@@ -64,7 +64,7 @@ import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequen
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { MatrixConfig, MatrixHost, MatrixUI, MatrixView } from "./grid-matrix";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridTruncatedDetail, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
@@ -95,6 +95,7 @@ export const GRID_LABELS: GridLabels = {
   loading: "Cargando…",
   loadError: "No se pudieron cargar las filas",
   retry: "Reintentar",
+  truncated: "Se muestran las primeras {shown} de {total} filas: los filtros y la búsqueda solo miran estas.",
   presets: "Atajos",
   presetsAll: "Todos",
   selected: "{n} seleccionadas",
@@ -207,6 +208,32 @@ const BLOCK = 100;
 const KEEP = 50;
 /** Intentos automáticos de un bloque que falla (el primero y sus reintentos). */
 const TRIES = 5;
+/** Plazo de una petición a `source` si la tabla no trae `timeout`: pasado esto se corta y cuenta como
+ *  un fallo de la red (se repite solo). Sin plazo, un servidor que no contesta dejaba «Cargando…»
+ *  para siempre, sin error ni reintento. */
+const TIMEOUT = 30_000;
+/** Lo más que se espera por un `Retry-After` (un 429 o un 503 que pide horas no deja la tabla muda
+ *  tanto tiempo: después de esto se intenta, y quedan los intentos de siempre). */
+const RETRY_AFTER_MAX = 10 * 60_000;
+
+/** La espera antes del intento `n + 1` de un bloque que falló: 1 s, 2 s, 4 s… hasta 30 s, con una
+ *  variación al azar de hasta la mitad hacia abajo (muchas pestañas que vieron caer al servidor a la
+ *  vez no vuelven todas en el mismo instante). Con `Retry-After`, lo que pidió el servidor (nunca
+ *  antes), más una variación de hasta un segundo. */
+function retryWait(n: number, retryAfter?: number): number {
+  if (retryAfter !== undefined) return Math.min(RETRY_AFTER_MAX, retryAfter) + Math.random() * 1000;
+  const base = Math.min(30_000, 1000 * 2 ** (n - 1));
+  return base / 2 + Math.random() * (base / 2);
+}
+
+/** `Retry-After` en ms: segundos («120») o una fecha HTTP. `undefined` si no viene o no se entiende. */
+function retryAfterMs(v: string | null): number | undefined {
+  if (!v || !v.trim()) return undefined;
+  const s = Number(v.trim());
+  if (Number.isFinite(s)) return s >= 0 ? s * 1000 : undefined;
+  const at = Date.parse(v);
+  return Number.isNaN(at) ? undefined : Math.max(0, at - Date.now());
+}
 /** Tope del alto del cuerpo (px): los navegadores no pintan elementos más altos (Firefox, ~17,9 M), y
  *  Firefox deja de fijar la cabecera (`sticky`) pasados ~8,9 M de desplazamiento: con 15 M, al fondo
  *  de un millón de filas la cabecera se iba con el scroll. Más allá, el cuerpo se queda en este alto
@@ -278,6 +305,13 @@ function plural(t: string, count: number): string {
   return bar < 0 ? t : count === 1 ? t.slice(0, bar) : t.slice(bar + 1);
 }
 
+/** Las palabras de una búsqueda ya normalizada (separadas por espacios, sin repetir). Un salto de
+ *  línea separa las columnas en el texto de una fila (`rowTexter`): una palabra nunca lo contiene,
+ *  así que encontrarla en ese texto es encontrarla dentro de una columna. */
+function searchWords(q: string): string[] {
+  return [...new Set(q.split(/\s+/).filter(Boolean))];
+}
+
 /** ¿La consulta pide algo más que todas las filas (filtros, una búsqueda, un orden)? */
 function asksSomething(q: { sort: GridSort | null; filters: GridFilter[]; search?: string }): boolean {
   return q.filters.length > 0 || !!q.sort || !!q.search?.trim();
@@ -289,8 +323,17 @@ class SourceError extends Error {
   constructor(
     readonly status: number,
     readonly body: unknown,
+    /** `Retry-After` de la respuesta, en ms (un 429, un 503). */
+    readonly retryAfter?: number,
   ) {
     super(`HTTP ${status}`);
+  }
+}
+
+/** La petición pasó del plazo (`timeout`): como la red caída (estado 0, se repite sola). */
+class TimeoutError extends Error {
+  constructor(ms: number) {
+    super(`Sin respuesta en ${Math.round(ms / 100) / 10} s`);
   }
 }
 
@@ -307,12 +350,14 @@ function serverMessage(body: unknown): string {
 }
 
 /** El fallo de un bloque, para `nx-grid-error`: estado (0 sin respuesta), lo que dijo el servidor y
- *  si vale la pena repetirlo solo: la red, un 5xx o un 429 pueden pasar; un 4xx, no. */
-function failureOf(error: unknown): { status: number; body: unknown; error: string; message: string; transient: boolean } {
+ *  si vale la pena repetirlo solo: la red, el plazo vencido, un 5xx, un 408 o un 429 pueden pasar;
+ *  otro 4xx, no. `retryAfter`: lo que pidió esperar el servidor (`Retry-After`), en ms. */
+function failureOf(error: unknown): { status: number; body: unknown; error: string; message: string; transient: boolean; retryAfter?: number } {
   const line = String((error as Error)?.message ?? error);
   const status = error instanceof SourceError ? error.status : 0;
   const body = error instanceof SourceError ? error.body : null;
-  return { status, body, error: line, message: serverMessage(body) || line, transient: status === 0 || status === 429 || status >= 500 };
+  const retryAfter = error instanceof SourceError ? error.retryAfter : undefined;
+  return { status, body, error: line, message: serverMessage(body) || line, transient: status === 0 || status === 408 || status === 429 || status >= 500, ...(retryAfter !== undefined ? { retryAfter } : {}) };
 }
 
 /** Una columna que llega de afuera (BDUI: JSON). Sin `key` y `label` de texto no sirve; lo demás que
@@ -484,7 +529,7 @@ function cleanViews(list: unknown): GridSavedView[] {
 
 export class NxGrid extends Base {
   static {
-    attrProps(this, ["height", "heading", "headingIcon"]);
+    attrProps(this, ["height", "heading", "headingIcon", "label"]);
   }
   /** Alto del área con scroll en px, o `fill`: la tabla ocupa el alto de su contenedor (que tiene que
    *  tenerlo: un flex en columna con alto, o un alto fijo) y es lo único que se desplaza. */
@@ -496,7 +541,11 @@ export class NxGrid extends Base {
    *  acento: el del módulo («users» en Empleados). Sin `heading`, o con un nombre que no está
    *  registrado, no se pinta. */
   declare headingIcon: string | null;
-  static observedAttributes = ["columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "client-only", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group"];
+  /** El nombre de la tabla para el lector de pantalla (el `aria-label` de su `role="grid"`). Sin él,
+   *  el título (`heading`); sin los dos, la tabla no tiene nombre: una tabla que es la página y cuyo
+   *  título pone la cabecera (`segments`) lo trae aquí («Empleados»). */
+  declare label: string | null;
+  static observedAttributes = ["label", "timeout", "columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "client-only", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -634,6 +683,18 @@ export class NxGrid extends Base {
   /** `client-max`: la consulta completa se trajo y se filtra aquí (`local`); ya se miró el total (`decided`). */
   #local = false;
   #decided = false;
+  /** La época de las descargas del conjunto entero que van en `#tryAc` (`#tryLocal`, y `refresh()`
+   *  con las filas aquí): cambia al cortarlas (`refresh()`, `#drop()`, salir del DOM) y al empezar
+   *  otra. Una descarga que vuelve con otra época ya no dice nada y se tira: si no, una vieja que
+   *  llegaba tarde pasaba las guardas y ponía sus filas encima de las nuevas. */
+  #wholeGen = 0;
+  /** Lo que `patchRow` y `removeRow` cambiaron mientras una de esas descargas iba en camino (por id;
+   *  `null`: quitada). Se vuelve a aplicar sobre lo que llega: la descarga pudo leerse antes del cambio. */
+  #pending = new Map<string, GridRow | null>();
+  /** Un `refresh()` con las filas aquí se cortó al salir del DOM: se pide otra vez al volver. */
+  #rewhole = false;
+  /** `client-only`: el origen mandó más filas que el tope y se tomaron las primeras (ver `#takeWhole`). */
+  #truncated: GridTruncatedDetail | null = null;
   // Filtro por columna (se carga aparte).
   #panel?: FilterPanel;
   #panelLoad?: Promise<FilterPanel>;
@@ -819,9 +880,11 @@ export class NxGrid extends Base {
     this.#mxDrill = null;
     this.#setFilters(validFilters(v), false);
   }
-  /** Buscar en la tabla: quedan las filas que contienen este texto en alguna columna visible (sin
-   *  tildes ni mayúsculas; con `accents="exact"`, con sus tildes). Se suma a los filtros, pero no es uno: no deja chip ni va en las vistas.
-   *  Con `source`, viaja al servidor como `search`. */
+  /** Buscar en la tabla, por palabras: quedan las filas en las que CADA palabra (separadas por
+   *  espacios, en cualquier orden) aparece en alguna columna visible, sin tildes ni mayúsculas (con
+   *  `accents="exact"`, con sus tildes): «jose martinez» encuentra «JOSE LUIS MARTINEZ». Se suma a
+   *  los filtros, pero no es uno: no deja chip ni va en las vistas. Con `source`, viaja al servidor
+   *  como `search`, y el servidor tiene que buscar con la misma regla. */
   get search(): string {
     return this.#search;
   }
@@ -871,6 +934,15 @@ export class NxGrid extends Base {
   }
   set clientOnly(v: boolean) {
     this.toggleAttribute("client-only", !!v);
+  }
+  /** Con `source`: el plazo de cada petición, en ms (30.000 por defecto). Vencido, la petición se
+   *  corta y cuenta como la red caída: `nx-grid-error` con `status: 0` y se repite sola, como un 5xx. */
+  get timeout(): number {
+    const n = Number(this.getAttribute("timeout"));
+    return n > 0 && Number.isFinite(n) ? Math.floor(n) : TIMEOUT;
+  }
+  set timeout(v: number | null | undefined) {
+    this.#attr("timeout", v ? String(v) : null);
   }
   /** Dónde se filtra ahora: `client` (las filas están en el navegador) o `server`. */
   get mode(): "client" | "server" {
@@ -1115,9 +1187,14 @@ export class NxGrid extends Base {
     this.#emitColumns();
   }
 
-  /** Vuelve a pedir los datos (con `source`). Con `client-max`, vuelve a mirar si caben en el cliente. */
+  /** Vuelve a pedir los datos (con `source`). Con `client-max`, vuelve a mirar si caben en el cliente.
+   *  Con las filas ya en el navegador (`client-max` o `client-only`), las que se ven se quedan (y el
+   *  desplazamiento, y la celda activa) hasta que llega el conjunto nuevo, que las reemplaza; si ya no
+   *  cabe, la tabla pasa al servidor. Lo que seguía en camino de antes se corta. */
   refresh(): void {
     if (!this.#url("source")) return;
+    if (this.#local && this.#built) return void this.#refetch();
+    this.#abortWhole();
     this.#local = this.#decided = false;
     this.#dataChanged();
   }
@@ -1138,6 +1215,13 @@ export class NxGrid extends Base {
    * atajo que es enlace tiene un conteo del servidor. La tabla no deja conteos viejos callada: los
    * marca así. Una fila sin `id` no se toca y responde `false`. Las marcas de edición y el historial
    * para deshacer de esa fila se olvidan: lo que llega es lo guardado.
+   *
+   * Mientras la tabla trae el conjunto entero (`client-max` decidiendo si cabe, o un `refresh()` con
+   * las filas aquí) responde `false`: lo que viene pudo leerse antes del cambio. El cambio se aplica
+   * igual a lo que se ve y se vuelve a aplicar sobre lo que llegue; `refresh()` corta esa descarga y
+   * pide una que ya lo trae.
+   *
+   * La celda activa sigue a su fila (por su id) si el cambio la mueve de lugar.
    */
   patchRow(row: GridRow): boolean {
     if (!row || typeof row !== "object") return false;
@@ -1147,6 +1231,7 @@ export class NxGrid extends Base {
     const id = String(v);
     const next = own(row);
     const old = this.#byId.get(id);
+    const whole = this.#noteWhole(id, next);
     if (this.#server) {
       const block = old && [...this.#blocks.values()].find((b): b is GridRow[] => Array.isArray(b) && b.includes(old));
       if (!old || !block) return false;
@@ -1155,14 +1240,16 @@ export class NxGrid extends Base {
       this.#footDirty = true;
       this.#paintRows(true);
       this.#paintFoot();
-      return this.#keepsAggregates(old, next);
+      return !whole && this.#keepsAggregates(old, next);
     }
-    const i = old ? this.#all.indexOf(old) : -1;
-    if (i >= 0) this.#all[i] = next;
-    else this.#all.push(next);
-    this.#adopt(id, next);
-    this.#dataChanged();
-    return this.#exactHere();
+    this.#followActive(() => {
+      const i = old ? this.#all.indexOf(old) : -1;
+      if (i >= 0) this.#all[i] = next;
+      else this.#all.push(next);
+      this.#adopt(id, next);
+      this.#rowChanged(old, next);
+    });
+    return !whole && this.#exactHere();
   }
 
   /**
@@ -1170,21 +1257,130 @@ export class NxGrid extends Base {
    * se ve): se quita y se recalcula todo, como en `patchRow()`; si estaba seleccionada, sale de la
    * selección (con `nx-grid-selection`). Con la consulta en el servidor no se quita nada (el total y
    * las páginas cambian) y responde `false`: «pide otra vez». Un `id` que no está responde como si
-   * se hubiera quitado.
+   * se hubiera quitado. Mientras la tabla trae el conjunto entero, como `patchRow()`: se quita de lo
+   * que se ve y de lo que llegue, y responde `false`.
    */
   removeRow(id: string | number): boolean {
-    if (id === null || id === undefined || this.#server) return false;
+    if (id === null || id === undefined) return false;
     const key = String(id);
+    const whole = this.#noteWhole(key, null);
+    if (this.#server) return false;
     const old = this.#byId.get(key);
-    if (!old) return this.#exactHere();
-    const i = this.#all.indexOf(old);
-    if (i >= 0) this.#all.splice(i, 1);
-    this.#byId.delete(key);
-    this.#forgetMarks(key);
-    const picked = this.#picked.delete(key);
-    this.#dataChanged();
+    if (!old) return !whole && this.#exactHere();
+    let picked = false;
+    this.#followActive(() => {
+      const i = this.#all.indexOf(old);
+      if (i >= 0) this.#all.splice(i, 1);
+      this.#byId.delete(key);
+      this.#forgetMarks(key);
+      picked = this.#picked.delete(key);
+      this.#rowChanged(old, null);
+    });
     if (picked) this.#paintPicked(true);
-    return this.#exactHere();
+    return !whole && this.#exactHere();
+  }
+
+  /** Va en camino el conjunto entero (`#tryAc`): el cambio de la fila `id` se anota para volver a
+   *  aplicarlo sobre lo que llegue (`null`: quitada). Responde si iba. */
+  #noteWhole(id: string, row: GridRow | null): boolean {
+    if (!this.#tryAc) return false;
+    this.#pending.set(id, row);
+    return true;
+  }
+
+  /** Las filas que llegan de una descarga completa, con lo que `patchRow`/`removeRow` cambiaron
+   *  mientras venía: la descarga pudo leerse antes de esos cambios. */
+  #withPending(rows: GridRow[]): GridRow[] {
+    if (!this.#pending.size) return rows;
+    const key = this.rowKey;
+    const at = new Map<string, number>();
+    rows.forEach((r, i) => {
+      const v = Object.hasOwn(r, key) ? r[key] : undefined;
+      if (v !== null && v !== undefined && v !== "") at.set(String(v), i);
+    });
+    const out = rows.slice();
+    const gone = new Set<number>();
+    for (const [id, row] of this.#pending) {
+      const i = at.get(id);
+      if (row === null) {
+        if (i !== undefined) gone.add(i);
+      } else if (i !== undefined) out[i] = row;
+      else out.push(row);
+    }
+    this.#pending.clear();
+    return gone.size ? out.filter((_, i) => !gone.has(i)) : out;
+  }
+
+  /** Corta la descarga del conjunto entero que vaya en camino (y la da por vieja si vuelve). */
+  #abortWhole(): void {
+    this.#tryAc?.abort();
+    this.#tryAc = undefined;
+    this.#wholeGen++;
+    this.#pending.clear();
+    this.#scroll?.removeAttribute("aria-busy");
+  }
+
+  /** Un cambio de datos que puede mover filas (`patchRow`, `removeRow`, un `refresh()` que llega):
+   *  la celda activa (y el otro extremo de la selección) siguen a su fila por su id, como el campo de
+   *  una edición (`#track`). Si la fila ya no se ve, queda la posición (la fila que ocupa su lugar). */
+  #followActive(change: () => void): void {
+    const idAt = (p: Pos) => {
+      const it = this.#itemAt(p.r);
+      return it && "r" in it ? this.#ids.get(it.r) : undefined;
+    };
+    const act = idAt(this.#act);
+    const anchor = idAt(this.#anchor);
+    change();
+    const where = (id: string | undefined) => {
+      const row = id === undefined ? undefined : this.#byId.get(id);
+      return row ? this.#indexOf(row) : -1;
+    };
+    const r = where(act);
+    if (r >= 0) {
+      const a = where(anchor);
+      this.#act = { r, c: this.#act.c };
+      this.#anchor = { r: a >= 0 ? a : r, c: this.#anchor.c };
+    }
+    this.#clampSel();
+    if (this.#built) this.#paintSel();
+  }
+
+  /** Cambió una sola fila de `#all` (`old` → `next`; `undefined`: no estaba, `null`: se quitó). No
+   *  se rehace lo que no depende de ella, que con miles de filas era casi todo el costo (medido con
+   *  20.000 filas, un orden por texto, una búsqueda y dos atajos: ~90 ms por `patchRow`):
+   *  - el texto de búsqueda de las demás filas (es por fila; el de la nueva se arma al buscar);
+   *  - el orden de todas, si no cambió el valor por el que se ordena (la nueva va en el lugar de la
+   *    vieja: el orden es estable y su clave es la misma) o si se quitó;
+   *  - los conteos de los atajos: se resta la vieja y se suma la nueva;
+   *  - qué columnas son facetas y el orden de sus opciones, si no cambió ninguno de esos valores.
+   *  Lo demás (filtros, facetas, totales, grupos) se recalcula como siempre. El resultado es el mismo
+   *  que el de recalcular todo (lo fija `grid.gold3.dom.test.ts`). */
+  #rowChanged(old: GridRow | undefined, next: GridRow | null): void {
+    if (!this.#built || this.#server) return this.#dataChanged();
+    if (this.#presetN.size) {
+      const hit = (fs: GridFilter[], r: GridRow | null | undefined) => (r ? applyFilters([r], fs, this.accents).length : 0);
+      for (const p of this.#presets) {
+        const n = this.#presetN.get(p.id);
+        if (p.href || n === undefined) continue;
+        const fs = validFilters(p.filters);
+        this.#presetN.set(p.id, n - hit(fs, old) + hit(fs, next));
+      }
+    }
+    // Quitar una fila de una lista ordenada (estable) la deja ordenada; reemplazarla por otra con la
+    // misma clave, también.
+    const sorted = this.#sortedAll;
+    const at = sorted && old && (next === null || sameValue(old[sorted.sort.key], next[sorted.sort.key])) ? sorted.rows.indexOf(old) : -1;
+    if (at < 0) this.#sortedAll = null;
+    else if (next) sorted!.rows[at] = next;
+    else sorted!.rows.splice(at, 1);
+    this.#baseQ = null;
+    const facetish = (c: GridColumn) => c.facet === true || (!isNumeric(c) && colType(c) !== "date");
+    if (!old || !next || this.#cols.some((c) => facetish(c) && !sameValue(old[c.key], next[c.key]))) {
+      const auto = facetColumns(this.#cols, this.#all);
+      this.#facetCols = this.#cols.filter((c) => c.facet === true || (c.facet !== false && auto.includes(c)));
+      this.#order = facetOrder(this.#facetCols, this.#all);
+    }
+    this.#recompute("filter");
   }
 
   /** La fila nueva toma el lugar de la vieja en el índice. */
@@ -1320,6 +1516,10 @@ export class NxGrid extends Base {
       this.#asked = "";
       this.#refilter(true);
     } else this.#paintRows(true);
+    if (!first && this.#rewhole) {
+      this.#rewhole = false;
+      this.refresh();
+    }
     // Lo escrito en la búsqueda que no alcanzó a aplicarse antes de salir del DOM.
     if (!first && (this.#typing || this.#searchInput!.value !== this.#search)) this.search = this.#searchInput!.value;
     // La hora de ahora de las líneas (`timeline`) vuelve a moverse.
@@ -1370,10 +1570,14 @@ export class NxGrid extends Base {
     this.#mxAc = undefined;
     if (this.#mxState === "loading") this.#mxFor = { rows: null, key: "" };
     if (this.#tryAc) {
-      this.#tryAc.abort();
-      this.#tryAc = undefined;
-      this.#decided = false;
-      this.#resume = true;
+      // Un `refresh()` con las filas aquí se pide otra vez al volver; la decisión de `client-max`,
+      // también (con la consulta, como una petición cortada).
+      if (this.#local) this.#rewhole = true;
+      else {
+        this.#decided = false;
+        this.#resume = true;
+      }
+      this.#abortWhole();
     }
   }
 
@@ -1405,7 +1609,7 @@ export class NxGrid extends Base {
       if (this.#built) this.#paintAll();
       return;
     }
-    if (!this.#built || old === value || this.#quiet) return;
+    if (!this.#built || old === value || this.#quiet || name === "timeout") return;
     if (name === "source" || name === "client-max" || name === "client-only") {
       this.#settle();
       // Lo que seguía en camino de la consulta anterior ya no sirve: un bloque que llegara después
@@ -1541,9 +1745,18 @@ export class NxGrid extends Base {
     const cols = this.#cols;
     if (stage === "filter") {
       // La búsqueda va primero: las facetas y los filtros de columna cuentan sobre lo que encontró.
+      // Por palabras: cada una tiene que estar en alguna columna visible de la fila, en cualquier
+      // orden («jose martinez» encuentra «JOSE LUIS MARTINEZ»). Es la regla que se le pide al
+      // servidor con `source` (`search`), así la tabla encuentra lo mismo en los dos modos.
       const q = this.#q;
       if (!q) this.#base = this.#all;
-      else if (this.#baseQ !== q) this.#base = this.#all.filter((r) => this.#textOf(r).includes(q));
+      else if (this.#baseQ !== q) {
+        const words = searchWords(q);
+        this.#base = this.#all.filter((r) => {
+          const t = this.#textOf(r);
+          return words.every((w) => t.includes(w));
+        });
+      }
       this.#baseQ = q;
       const x = crossfilter(this.#base, this.#filters, this.#facetCols, this.#order, this.accents);
       this.#filtered = x.filtered;
@@ -1697,30 +1910,55 @@ export class NxGrid extends Base {
   async #request(offset: number, limit: number, q: { sort: GridSort | null; filters: GridFilter[]; search?: string } = this.#query(), signal?: AbortSignal, extra?: Record<string, unknown>): Promise<GridPage | null> {
     const url = this.#url("source");
     if (!url) return null;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ offset, limit, ...q, ...extra }),
-      signal,
+    // Con plazo (`timeout`): la respuesta entera, cuerpo incluido. Vencido, se corta la petición y
+    // falla con `TimeoutError` (estado 0: se repite sola). Se compite con el plazo y no solo se
+    // aborta: un `fetch` que no atiende la señal también tiene que soltar a la tabla. La señal de
+    // quien pide (otra consulta, la tabla fuera del DOM) sigue cortando como antes.
+    const ms = this.timeout;
+    const ac = new AbortController();
+    const cut = () => ac.abort();
+    if (signal?.aborted) ac.abort();
+    else signal?.addEventListener("abort", cut, { once: true });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new TimeoutError(ms));
+        ac.abort();
+      }, ms);
     });
-    if (!res.ok) {
-      // Lo que explica el rechazo viaja con el error (`nx-grid-error`): el JSON, o el texto si no lo es.
-      let body: unknown = null;
-      try {
-        const text = await res.text();
+    deadline.catch(() => {});
+    try {
+      const res = await Promise.race([
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ offset, limit, ...q, ...extra }),
+          signal: ac.signal,
+        }),
+        deadline,
+      ]);
+      if (!res.ok) {
+        // Lo que explica el rechazo viaja con el error (`nx-grid-error`): el JSON, o el texto si no lo es.
+        let body: unknown = null;
         try {
-          body = JSON.parse(text);
+          const text = await Promise.race([res.text(), deadline]);
+          try {
+            body = JSON.parse(text);
+          } catch {
+            body = text || null;
+          }
         } catch {
-          body = text || null;
+          /* sin cuerpo legible */
         }
-      } catch {
-        /* sin cuerpo legible */
+        throw new SourceError(res.status, body, retryAfterMs(res.headers?.get?.("Retry-After") ?? null));
       }
-      throw new SourceError(res.status, body);
+      const data = (await Promise.race([res.json(), deadline])) as GridPage;
+      return data && Array.isArray(data.rows) ? data : null;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", cut);
     }
-    const data = (await res.json()) as GridPage;
-    return data && Array.isArray(data.rows) ? data : null;
   }
 
   /** `queued`: el primer bloque de `#reload`, que ya quedó «cargando» al pedirse. */
@@ -1845,22 +2083,105 @@ export class NxGrid extends Base {
       if (signal.aborted) return;
       return this.#failed(0, error ?? new Error("la respuesta no trae rows"));
     }
-    let rows = page.rows.filter((r) => r && typeof r === "object");
-    if (rows.length > max) {
-      console.warn(`[nx-grid] client-only: el origen mandó más de ${max} filas; se muestran las primeras ${max}`);
-      rows = rows.slice(0, max);
-    }
+    const rows = this.#takeWhole(page, max);
     this.#drop();
     clearTimeout(this.#wait);
     this.#wait = undefined;
+    this.#truncated = this.#cut;
     // Los conteos de los atajos que son enlaces solo los sabe el servidor.
     if (page.presets && typeof page.presets === "object") this.#serverN = new Map(Object.entries(page.presets).filter((e): e is [string, number] => typeof e[1] === "number"));
     this.#local = this.#decided = true;
     this.rows = rows;
+    this.#sayTruncated();
+  }
+
+  /** Lo que `#takeWhole` recortó de la última respuesta (se pasa a `#truncated` al usarla). */
+  #cut: GridTruncatedDetail | null = null;
+
+  /** `client-only`: las filas del conjunto entero, hasta `max`. Si el origen mandó más, se toman las
+   *  primeras y se recuerda cuántas había (`#cut`): la tabla no presenta el recorte como el total. */
+  #takeWhole(page: GridPage, max: number): GridRow[] {
+    const rows = page.rows.filter((r) => r && typeof r === "object");
+    this.#cut = null;
+    if (rows.length <= max) return rows;
+    const total = Math.max(rows.length, Number(page.total) || 0);
+    console.warn(`[nx-grid] client-only: el origen mandó ${total} filas y caben ${max}; se muestran las primeras ${max} (nx-grid-truncated)`);
+    this.#cut = { shown: max, total };
+    return rows.slice(0, max);
+  }
+
+  /** Avisa el recorte (si lo hubo): `nx-grid-truncated` y la región viva. */
+  #sayTruncated(): void {
+    const t = this.#truncated;
+    if (!t) return;
+    this.#emit("nx-grid-truncated", { ...t } satisfies GridTruncatedDetail);
+    if (this.#live) this.#live.textContent = this.#truncText(t);
+  }
+
+  #truncText(t: GridTruncatedDetail): string {
+    return this.#fmt(this.#labels.truncated, { shown: this.#loc.number(t.shown), total: this.#loc.number(t.total) });
+  }
+
+  /** `refresh()` con las filas aquí: se pide el conjunto entero otra vez y, mientras llega, se quedan
+   *  las de antes (sin «Cargando…», sin perder el desplazamiento ni la celda activa). Si llega y cabe,
+   *  reemplaza a las de antes (con lo que cambió `patchRow`/`removeRow` mientras tanto); si ya no
+   *  cabe (`client-max`), la tabla pasa al servidor con la consulta de ahora; si falla, se quedan las
+   *  de antes y sale `nx-grid-error` (sin reintentos: es una foto que ya se tiene). */
+  async #refetch(): Promise<void> {
+    this.#abortWhole();
+    const epoch = this.#wholeGen;
+    const src = this.getAttribute("source");
+    const only = this.clientOnly;
+    const max = only ? this.clientMax || CLIENT_ONLY_MAX : this.clientMax;
+    const ac = (this.#tryAc = new AbortController());
+    this.#scroll?.setAttribute("aria-busy", "true");
+    let page: GridPage | null = null;
+    let error: unknown = null;
+    try {
+      page = await this.#request(0, max + 1, { sort: null, filters: [] }, ac.signal);
+    } catch (err) {
+      error = err;
+    } finally {
+      if (this.#tryAc === ac) {
+        this.#tryAc = undefined;
+        this.#scroll?.removeAttribute("aria-busy");
+      }
+    }
+    if (epoch !== this.#wholeGen || ac.signal.aborted || src !== this.getAttribute("source") || !this.#local) return;
+    if (!page || error) {
+      this.#pending.clear();
+      const why = failureOf(error ?? new Error("la respuesta no trae rows"));
+      this.#sayFailed(serverMessage(why.body));
+      this.#emit("nx-grid-error", { offset: 0, limit: max + 1, error: why.error, status: why.status, message: why.message, body: why.body, attempt: 1, retrying: false } satisfies GridErrorDetail);
+      return;
+    }
+    if (only) {
+      const rows = this.#withPending(this.#takeWhole(page, max));
+      if (page.presets && typeof page.presets === "object") this.#serverN = new Map(Object.entries(page.presets).filter((e): e is [string, number] => typeof e[1] === "number"));
+      this.#truncated = this.#cut;
+      this.#followActive(() => (this.rows = rows));
+      this.#sayTruncated();
+      return;
+    }
+    const rows = page.rows.filter((r) => r && typeof r === "object");
+    const total = Number(page.total);
+    if (total > max || rows.length > max || rows.length < (total || 0)) {
+      // Ya no cabe: sigue en el servidor, con la consulta de ahora (y ese total es el de «Todos»).
+      this.#pending.clear();
+      if (Number.isFinite(total) && total >= 0) this.#scopeN = total;
+      this.#local = false;
+      this.#decided = true;
+      this.#dataChanged();
+      return;
+    }
+    const next = this.#withPending(rows);
+    this.#followActive(() => (this.rows = next));
   }
 
   /** Se descarta lo del servidor: lo que seguía en camino (y su reintento) y los bloques guardados. */
   #drop(): void {
+    this.#abortWhole();
+    this.#truncated = null;
     this.#gen++;
     this.#asked = "";
     this.#ac?.abort();
@@ -1881,12 +2202,15 @@ export class NxGrid extends Base {
     const why = failureOf(error);
     // Un 4xx no se arregla solo: pedirlo otra vez cada pocos segundos solo repite el rechazo.
     const again = why.transient && n < TRIES && !!this.#url("source");
-    const at = again ? Date.now() + Math.min(30_000, 1000 * 2 ** (n - 1)) : Infinity;
+    const at = again ? Date.now() + retryWait(n, why.retryAfter) : Infinity;
     this.#fails.set(block, { n, at, ...(why.transient ? {} : { hard: true }) });
     if (again) this.#retryLater(at);
     if (block === 0) {
       this.#loadError = true;
       this.#loadWhy = serverMessage(why.body);
+      // El aviso de la tabla es una celda, no una región viva: el lector de pantalla se entera aquí,
+      // una vez por fallo (no en cada reintento).
+      if (n === 1) this.#sayFailed(this.#loadWhy);
     }
     const whole = this.clientOnly && block === 0;
     this.#emit("nx-grid-error", {
@@ -1900,6 +2224,11 @@ export class NxGrid extends Base {
       retrying: again,
     } satisfies GridErrorDetail);
     this.#paintChrome();
+  }
+
+  /** «No se pudieron cargar las filas», con lo que dijo el servidor si dijo algo, en la región viva. */
+  #sayFailed(why: string): void {
+    if (this.#live) this.#live.textContent = why ? `${this.#labels.loadError}: ${why}` : this.#labels.loadError;
   }
 
   /** Los bloques que agotaron sus intentos empiezan otra tanda: cuando otro bloque llega bien (el
@@ -1947,32 +2276,45 @@ export class NxGrid extends Base {
    *  página). Ese total es el de la consulta sin filtros: el número de «Todos». */
   async #tryLocal(max: number): Promise<boolean> {
     const src = this.getAttribute("source");
+    // Una descarga anterior que siguiera en camino ya no sirve: esta la reemplaza (y su época).
+    this.#abortWhole();
+    const epoch = this.#wholeGen;
     const ac = (this.#tryAc = new AbortController());
     let page: GridPage | null = null;
     try {
       page = await this.#request(0, max + 1, { sort: null, filters: [] }, ac.signal);
     } catch {
+      if (epoch === this.#wholeGen) this.#pending.clear();
       return false; // se queda en el servidor
     } finally {
       if (this.#tryAc === ac) this.#tryAc = undefined;
     }
-    // Mientras tanto cambió el origen o el tope: esa respuesta ya no dice nada.
-    if (!page || src !== this.getAttribute("source") || !this.#server || !this.#decided) return false;
+    // Mientras tanto la cortaron (`refresh()`, otro origen o tope, la tabla salió del DOM) o empezó
+    // otra: esa respuesta ya no dice nada. `#decided` no basta: el bloque 0 de la consulta nueva lo
+    // vuelve a poner en `true`.
+    if (epoch !== this.#wholeGen || ac.signal.aborted) return false;
+    if (!page || src !== this.getAttribute("source") || !this.#server || !this.#decided) {
+      this.#pending.clear();
+      return false;
+    }
     const rows = page.rows.filter((r) => r && typeof r === "object");
     const total = Number(page.total);
     if (total > max || rows.length > max || rows.length < (total || 0)) {
+      this.#pending.clear();
       if (Number.isFinite(total) && total >= 0 && total !== this.#scopeN) {
         this.#scopeN = total;
         this.#paintChrome();
       }
       return false;
     }
+    // Lo que `patchRow`/`removeRow` cambiaron mientras venía, encima.
+    const next = this.#withPending(rows);
     // Lo que falte por llegar del servidor se descarta.
     this.#drop();
     clearTimeout(this.#wait);
     this.#wait = undefined;
     this.#local = true;
-    this.rows = rows;
+    this.rows = next;
     return true;
   }
 
@@ -2516,10 +2858,11 @@ export class NxGrid extends Base {
     this.#live = h("span", { class: "nx-sr-only", role: "status" });
     this.#presetBar = h("div", { class: "nx-grid__presets", role: "group", hidden: true });
     this.#presetBar.addEventListener("click", (e) => {
-      // «Todos» (junto al título): quita el atajo marcado, si hay uno.
+      // «Todos» (junto al título): todas las filas, sin filtros (ver `#paintSegments`).
       if ((e.target as Element).closest("[data-preset-all]")) {
-        const on = this.#presets.find((x) => !x.href && this.#presetOn(x));
-        if (on) this.#togglePreset(on);
+        if (!this.#filters.length) return;
+        this.#beforePreset = null;
+        this.#setFilters([]);
         return;
       }
       const id = (e.target as Element).closest<HTMLElement>("[data-preset]")?.dataset.preset;
@@ -2585,6 +2928,10 @@ export class NxGrid extends Base {
     this.#searchInput!.placeholder = L.searchTable;
     this.#searchInput!.setAttribute("aria-label", L.searchTable);
     this.#searchClear!.setAttribute("aria-label", L.clearSearch);
+    // El nombre de la tabla: `label` o, sin él, el título.
+    const name = (this.label ?? "").trim() || (this.heading ?? "").trim();
+    if (name) this.#scroll!.setAttribute("aria-label", name);
+    else this.#scroll!.removeAttribute("aria-label");
     const actsHead = this.#head!.querySelector(".nx-grid__actions > .nx-sr-only");
     if (actsHead) actsHead.textContent = L.actions;
     this.#paintSearch();
@@ -2627,6 +2974,9 @@ export class NxGrid extends Base {
       }),
       ...(this.#filters.length ? [h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear)] : []),
       ...(this.viewsStorage && this.#filters.length ? [h("button", { type: "button", class: "nx-grid__save-view", "data-save-view": "" }, L.saveView)] : []),
+      // El recorte de `client-only`, bajo el conteo que lo resume: su propio renglón (el aviso de las
+      // vistas y el de la exportación lo pisarían).
+      ...(!this.#server && this.#truncated ? [h("span", { class: "nx-grid__truncated" }, this.#truncText(this.#truncated))] : []),
     );
     // Cabeceras: cuántas filas tienen cada paso de un proceso (en el cliente, donde están todas).
     this.#stepN.clear();
@@ -2887,10 +3237,13 @@ export class NxGrid extends Base {
   /** «**9.704** filas», o «**12** de 9.704 filas» con filtros en el navegador: el número en negrita. */
   #countEl(): HTMLElement {
     const L = this.#labels;
-    const of = (this.#filters.length || this.#q) && !this.#server;
+    // Con un recorte (`client-only`), el total es el del origen: «20.000 de 25.300 filas».
+    const trunc = this.#server ? null : this.#truncated;
+    const of = trunc || ((this.#filters.length || this.#q) && !this.#server);
     const n = this.#loc.number(this.#rowCount());
-    const total = this.#loc.number(this.#server ? this.#total : this.#all.length);
-    const parts = plural(of ? L.of : L.rows, of ? (this.#server ? this.#total : this.#all.length) : this.#rowCount()).split(/(\{n\}|\{total\})/).filter(Boolean);
+    const all = this.#server ? this.#total : trunc ? trunc.total : this.#all.length;
+    const total = this.#loc.number(all);
+    const parts = plural(of ? L.of : L.rows, of ? all : this.#rowCount()).split(/(\{n\}|\{total\})/).filter(Boolean);
     return h("span", { class: "nx-grid__count" }, ...parts.map((x) => (x === "{n}" ? h("strong", null, n) : x === "{total}" ? total : x)));
   }
 
@@ -2934,8 +3287,9 @@ export class NxGrid extends Base {
       for (const p of counted) this.#presetN.set(p.id, applyFilters(this.#all, validFilters(p.filters), this.accents).length);
     const countOf = (p: GridPreset) => (p.href ? this.#serverN.get(p.id) : this.#presetN.get(p.id));
     const state = list.map((p) => [p.id, p.label, p.hint, p.tone, p.href, countOf(p), this.#presetOn(p)]);
-    const all = this.#server ? this.#scopeN : this.#all.length;
-    const key = JSON.stringify([this.#labels.presets, this.#labels.presetsAll, this.locale, go, all, state]);
+    const all = this.#server ? this.#scopeN : this.#truncated ? this.#truncated.total : this.#all.length;
+    // «Todos» presionado depende de que no haya filtros (ver `#paintSegments`), no solo de los atajos.
+    const key = JSON.stringify([this.#labels.presets, this.#labels.presetsAll, this.locale, go, all, !this.#filters.length, state]);
     if (key === this.#presetKey) return;
     this.#presetKey = key;
     bar.hidden = !list.length;
@@ -2962,12 +3316,18 @@ export class NxGrid extends Base {
 
   /** Junto al título, los atajos son un filtro segmentado: «Todos» y uno por atajo, cada uno con su
    *  conteo, excluyentes (como pestañas, pero sin salir de la página); su línea corta va al pasar el
-   *  mouse (`title`). Los que llevan a otra página van después, como enlaces con ↗. */
+   *  mouse (`title`). Los que llevan a otra página van después, como enlaces con ↗.
+   *
+   *  Cada segmento presionado dice la verdad de lo que se ve: un atajo, si los filtros de ahora son
+   *  los suyos; «Todos», si no hay ningún filtro (su número es el del conjunto sin filtros). Con
+   *  otros filtros (los de arranque de la app, uno puesto a mano) no hay ninguno presionado, y
+   *  «Todos» los quita todos: su clic siempre hace algo cuando no está presionado. Una tabla que
+   *  arranca filtrada y quiere ese filtro presionado lo declara como un atajo con los mismos filtros. */
   #paintSegments(bar: HTMLElement, list: GridPreset[], countOf: (p: GridPreset) => number | undefined, all: number | undefined): void {
     const L = this.#labels;
     const num = (n: number | undefined) => h("strong", null, n === undefined ? "—" : this.#loc.number(n));
     const filters = list.filter((p) => !p.href);
-    const none = !filters.some((p) => this.#presetOn(p));
+    const none = !this.#filters.length;
     const seg = h(
       "div",
       { class: "nx-grid__segments" },

@@ -575,14 +575,14 @@ describe("<nx-grid>", () => {
     el.filters = [{ key: "estado", op: "in", values: ["apr"] }];
     expect(count(el)).toBe("50 de 250 filas");
     expect(fetch).toHaveBeenCalledTimes(calls);
-    // refresh() vuelve a mirar el servidor: la primera página (con el filtro) y la consulta completa.
+    // refresh() (0.20.0) pide otra vez la consulta completa sin soltar lo que se ve: sigue en el
+    // cliente con las filas de antes (sin «Cargando…») hasta que llegan las nuevas.
     el.refresh();
-    expect(el.mode).toBe("server");
+    expect(el.mode).toBe("client");
+    expect(count(el)).toBe("50 de 250 filas");
+    expect(el.querySelector(".nx-grid__empty.is-loading")).toBeNull();
     await new Promise((r) => setTimeout(r, 30));
-    expect(bodies().slice(calls)).toEqual([
-      { offset: 0, limit: 100, sort: null, filters: [{ key: "estado", op: "in", values: ["apr"] }] },
-      { offset: 0, limit: 1001, sort: null, filters: [] },
-    ]);
+    expect(bodies().slice(calls)).toEqual([{ offset: 0, limit: 1001, sort: null, filters: [] }]);
     expect(el.mode).toBe("client");
     expect(count(el)).toBe("50 de 250 filas");
   });

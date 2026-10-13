@@ -12,7 +12,7 @@ import type { AiActionDetail, AiDoneDetail, AiEvent, AiFeedbackDetail, AiLabels 
 import type { NxDocCapture } from "../components/capture/doc-capture";
 import type { CaptureEvent, CaptureLabels, CaptureSchemaItem, CaptureSubmitDetail, CaptureValues } from "../components/capture/types";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridView } from "../components/grid/types";
+import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView } from "../components/grid/types";
 import type { NxDialog } from "../components/dialog/dialog";
 import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 import type { NxBadge } from "../components/badge/badge";
@@ -314,6 +314,8 @@ declare module "solid-js" {
       "row-key": string | undefined;
       accents: string | undefined;
       "client-max": string | undefined;
+      /** `<nx-grid timeout>`: el plazo de cada petición a `source`, en ms. */
+      timeout: string | undefined;
       "views-storage": string | undefined;
       filename: string | undefined;
       height: string | undefined;
@@ -560,6 +562,7 @@ declare module "solid-js" {
       "nx-grid-action": CustomEvent<GridActionDetail>;
       "nx-grid-views": CustomEvent<{ views: GridSavedView[] }>;
       "nx-grid-error": CustomEvent<GridErrorDetail>;
+      "nx-grid-truncated": CustomEvent<GridTruncatedDetail>;
       "nx-grid-export": CustomEvent<GridExportDetail>;
       "nx-grid-layout": CustomEvent<GridLayoutDetail>;
       "nx-command-select": CustomEvent<CommandSelectDetail>;

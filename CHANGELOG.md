@@ -1,5 +1,81 @@
 # Registro de cambios
 
+## 0.20.0 (sin publicar)
+
+- **`<nx-grid source client-max>`: una descarga del conjunto entero que llega tarde ya no pisa la
+  nueva.** La descarga que decide si caben en el navegador solo se cortaba al salir del DOM. Con
+  `refresh()` (o otro `source`) a mitad de camino, la vieja podía llegar después de que el bloque 0
+  de la consulta nueva volviera a dar la decisión por tomada: pasaba las guardas, la tabla se quedaba
+  en el cliente con los datos viejos y la buena se tiraba al llegar. Ahora `refresh()`, un `source`
+  o un tope nuevos y salir del DOM cortan esa descarga y le cambian la época: la que vuelve con otra
+  se tira. Y mientras una va en camino, `patchRow()` y `removeRow()` responden `false` (el cambio
+  se ve ya y se vuelve a aplicar sobre lo que llegue, que pudo leerse antes): antes lo que llegaba
+  pisaba el cambio. **Cambia (0.x):** en esa ventana, `patchRow()` responde `false` donde antes
+  podía responder `true`; la app que hace `if (!grid.patchRow(fila)) grid.refresh()` pide una vez
+  más y recibe datos que ya traen el cambio.
+- **`<nx-grid>`: buscar en la tabla es por palabras.** Con las filas en el navegador, «Buscar en la
+  tabla» pedía la frase entera (`includes`): «jose martinez» no encontraba «JOSE LUIS MARTINEZ»,
+  que el servidor de nx32 sí encuentra. Ahora cada palabra (separadas por espacios, en cualquier
+  orden) tiene que estar en alguna columna visible de la fila, con la misma regla de tildes de
+  `accents`. Es la regla escrita para `search` en el protocolo de `source` (`GridPage`, README): el
+  servidor tiene que buscar igual, o la tabla encuentra cosas distintas según dónde se filtre.
+  **Cambia (0.x):** una búsqueda con espacios encuentra más filas que antes (las que tienen las
+  palabras separadas o en otro orden).
+- **`<nx-grid client-only>`: lo que no cabe se dice.** Si el origen mandaba más filas que el tope
+  (`client-max`, o 20.000), la tabla se quedaba con las primeras, lo decía solo en la consola y
+  presentaba el recorte como el total («20.000 filas»). Ahora el conteo y «Todos» llevan el total
+  real («20.000 de 25.300 filas»), un aviso bajo el conteo lo explica («Se muestran las primeras
+  20.000 de 25.300 filas: los filtros y la búsqueda solo miran estas», `labels.truncated`), la región
+  viva lo anuncia y sale `nx-grid-truncated` con `{shown, total}` (`GridTruncatedDetail`; `total`
+  es el `total` del origen o, si dice menos, las filas que llegaron). Solid: `onTruncated`.
+- **`<nx-grid>`: la tabla tiene nombre y avisa el fallo.** El `role="grid"` no tenía nombre
+  accesible: ahora lo da `label` (atributo y propiedad; su `aria-label`) o, sin él, `heading`. Y
+  cuando la primera carga falla, «No se pudieron cargar las filas», con lo que dijo el servidor, va a
+  la región viva (una vez por fallo, no en cada reintento): el aviso con «Reintentar» es una celda,
+  que el lector de pantalla no lee solo.
+- **`<nx-grid source>`: las peticiones tienen plazo, y los reintentos se reparten.** Ninguna petición
+  tenía plazo: un servidor que no contestaba dejaba «Cargando…» para siempre, sin `nx-grid-error`
+  ni reintento. Ahora `timeout` (atributo y propiedad, en ms; 30.000 por defecto) corta la petición
+  (cuerpo incluido, aunque el `fetch` no atienda la señal) y cuenta como la red caída: `status: 0`,
+  `error: "Sin respuesta en 30 s"`, y se repite sola. Un 408 también se repite (como un 5xx o un
+  429); un 429 o un 503 con `Retry-After` (segundos o fecha) espera lo que pide el servidor (hasta
+  10 min); y la espera entre intentos lleva una variación al azar de hasta la mitad hacia abajo
+  (1 s pasa a ser entre 0,5 y 1 s), para que muchas pestañas no vuelvan a la vez. Vale también para
+  la matriz, la descarga completa y exportar. Solid: `timeout`.
+- **`<nx-grid>`: la celda activa sigue a su fila.** Tras un `patchRow()` que la cambiaba de lugar (un
+  orden por la columna que cambió) o un `removeRow()` de una fila de arriba, la celda activa se
+  quedaba en la misma posición, sobre otra fila (y Enter abría otra ficha). Ahora sigue a su fila
+  por su id, como ya lo hacía el campo de una edición; si su fila ya no se ve, queda la que ocupa su
+  lugar.
+- **`<nx-grid source client-max|client-only>`: `refresh()` con las filas aquí no vacía la tabla.**
+  Pasaba al servidor y volvía: «Cargando…», el cuerpo con alto 0 y el desplazamiento arriba, aunque
+  las filas de antes eran buenas hasta que llegaran las nuevas. Ahora la tabla sigue en el cliente
+  con las filas de antes (y su desplazamiento, su celda activa y sus filtros), con `aria-busy`
+  mientras viene la nueva, y pide solo el conjunto entero (sin la primera página filtrada que antes
+  pedía primero). Al llegar, la reemplaza; si ya no cabe (`client-max`), pasa al servidor con la
+  consulta de ahora; si falla, se quedan las de antes y sale `nx-grid-error` con `attempt: 1` y
+  `retrying: false` (y la región viva lo dice). Si la tabla sale del DOM mientras tanto, lo pide al
+  volver. **Cambia (0.x):** `refresh()` en ese modo ya no pasa por `mode === "server"` ni pide la
+  página filtrada.
+- **`<nx-grid>`: «Todos» dice la verdad y su clic siempre hace algo.** «Todos» salía presionado
+  siempre que ningún atajo lo estuviera, aunque hubiera filtros: Empleados de nx32 arranca en
+  «Activo» (que no es un atajo), «Todos» se veía presionado mostrando solo a los activos, y pulsarlo
+  no hacía nada (solo quitaba un atajo presionado). Ahora un segmento presionado dice lo que se ve:
+  un atajo, si los filtros son los suyos; «Todos», solo sin ningún filtro (su número es el del
+  conjunto sin filtros). Con otros filtros no hay ninguno presionado, y «Todos» los quita todos.
+  Pulsar un atajo presionado sigue devolviendo los filtros de antes de tocarlo. El arranque con
+  filtro de la app no cambia (sigue filtrando); quien quiera ese filtro presionado lo declara como
+  un atajo con los mismos filtros. **Cambia (0.x):** con un atajo presionado, «Todos» quita todos los
+  filtros en vez de volver a los de antes del atajo.
+- **`<nx-grid>`: `patchRow()` no rehace lo que no cambió.** Con las filas aquí, cada `patchRow` o
+  `removeRow` recalculaba todo: el texto de búsqueda de cada fila, el orden de todas (con el
+  alfabeto del locale), los conteos de los atajos y las columnas de facetas. Ahora conserva el texto
+  de las demás filas, el orden si no cambió el valor por el que se ordena (la nueva va en el lugar
+  de la vieja), los conteos de los atajos por diferencia y las facetas si no cambió ninguno de esos
+  valores. Medido con 20.000 filas, un orden por texto, una búsqueda, un filtro y dos atajos: de ~95
+  a ~32 ms por `patchRow`. El resultado es el mismo que recalcular todo (lo fija una prueba que
+  compara con una tabla armada de cero).
+
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

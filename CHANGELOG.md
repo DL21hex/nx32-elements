@@ -1,5 +1,34 @@
 # Registro de cambios
 
+## 0.17.1 — 2026-10-12
+
+- **`<nx-grid>` con `source`: lo que se asigna en la misma tarea es una sola petición.** Una app (o
+  un envoltorio) conecta la tabla y enseguida le asigna `filters`, `sort` y `search`; cada
+  asignación es una consulta nueva y la tabla pedía su página en el acto, cortando la anterior. Al
+  abrir una página con filtros recordados salían tres peticiones de filas y dos se cancelaban a los
+  ~50 ms (en producción, el 5 % de las peticiones de una tabla de empleados y el 28 % de una de
+  incapacidades eran esas cancelaciones). Ahora el primer bloque de una consulta nueva se pide al
+  final de la tarea (un microtask): las asignaciones seguidas son una sola petición, con la consulta
+  final. Lo mismo con `refresh()` (llamado varias veces seguidas, una petición), un `row-key` nuevo,
+  la vuelta al DOM, `client-only` y la matriz con `source`. «Cargando…» se pinta igual que antes,
+  sin esperar; los bloques que se piden al desplazarse salen en el acto; los reintentos y
+  `nx-grid-error` no cambian. Una app que asigna sus propiedades un cuadro después (tras un `await`,
+  dentro de un `Suspense`) sigue costando una petición cortada: esperar ese cuadro retrasaría la
+  primera carga de todas las demás. Una prueba que esperaba el `fetch` en el acto al conectar lo
+  encuentra tras un `await Promise.resolve()`.
+- **`<nx-grid source>` sin columnas no pide filas.** Una tabla que llega en el HTML del servidor
+  solo con sus atributos (`source`, `client-max`, `views-storage`…) se conecta al cargar la
+  librería, antes de que la hidratación le asigne `columns`, `filters` y `sort`; esas propiedades
+  llegan después y a veces en otras tareas, así que juntarlas en un microtask no alcanzaba: salía
+  una petición con la consulta vacía y cada propiedad la cortaba (tres peticiones por carga, dos
+  canceladas). Ahora, sin columnas, la tabla no pide (no hay qué pintar y quien la configura aún no
+  termina): ni al conectarse, ni con `refresh()`, ni al cambiar filtros, ni la matriz ni
+  `client-only`. Las primeras columnas piden una vez, con los filtros, el orden y la búsqueda que
+  lleguen en su misma tarea (y la vista predeterminada de `views-storage`). Si los filtros llegan en
+  una tarea posterior a las columnas, son dos peticiones y la primera se corta, pero ninguna sale
+  sin columnas. Volver a asignar las mismas columnas sigue sin pedir; un `source` puesto después de
+  las columnas pide como siempre.
+
 ## 0.17.0 — 2026-10-12
 
 Sin cambios que rompan: todo es nuevo y opcional. Lo único que cambia de comportamiento es que un

@@ -5,6 +5,7 @@ import { render } from "solid-js/web";
 import { Grid } from "../src/solid/grid";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   document.body.innerHTML = "";
 });
 
@@ -69,5 +70,27 @@ describe("<Grid>", () => {
     root.querySelector("nx-grid")!.filters = [{ key: "oc", op: "in", values: ["OC-1"] }];
     root.querySelector("nx-grid")!.clearFilters();
     expect(onFilter).toHaveBeenCalledOnce();
+  });
+
+  it("con source, la primera carga es una sola petición con filtros, orden y búsqueda", async () => {
+    // Aquí las propiedades llegan antes de insertar el elemento; una app que las asigna ya conectado
+    // es el caso de grid.coalesce.dom.test.ts. Las dos formas, una sola petición.
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        bodies.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify({ rows: [], total: 0 }));
+      }),
+    );
+    const root = document.body.appendChild(document.createElement("div"));
+    const filters = [{ key: "oc", op: "in" as const, values: ["OC-1"] }];
+    render(() => <Grid columns={COLS} source="/datos" clientMax={5000} filters={filters} sort={{ key: "oc", dir: -1 }} search="oc" />, root);
+    await new Promise((r) => setTimeout(r, 20));
+    // La consulta final, una vez; después, la de `client-max` (el conjunto entero cabe).
+    expect(bodies).toEqual([
+      { offset: 0, limit: 100, sort: { key: "oc", dir: -1 }, filters, search: "oc" },
+      { offset: 0, limit: 5001, sort: null, filters: [] },
+    ]);
   });
 });

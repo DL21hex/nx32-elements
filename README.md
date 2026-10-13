@@ -895,6 +895,12 @@ Cuatro formas de hacer lo que hoy se hace con un modal, cada una para su caso:
   Buscar o filtrar dentro de un `<nx-select>` o una `<nx-grid>` no cuenta como cambio (sus
   controles de consulta llevan `data-nx-ephemeral`, y el diálogo ignora lo que venga de ahí);
   elegir un valor (el `change` de `<nx-select>`) o editar una celda (`nx-grid-change`) sí.
+  Un `<nx-form>` de adentro lleva su propia cuenta (`dirty`: escribir y borrar no es un cambio) y
+  el diálogo la suma a la suya, también la de una pestaña oculta: guardar una pestaña (la app le
+  vuelve a asignar `values` y pone `dialog.dirty = false`) no deja sin aviso a otra con cambios. Al
+  abrirse, al «Descartar» y al pasar de registro, los formularios quedan limpios (`markClean()`).
+  Para negarse a cerrar mientras guarda, la app cancela `nx-dialog-beforeclose`, que sale antes del
+  aviso de cambios; `nx-dialog-close` sale después, cuando ya se va a cerrar.
 - **B · Paneles apilados.** `mode="panel"`: cada nivel se apila sobre el anterior (pedido →
   proveedor → factura), con migas para volver, y la página sigue a la vista. Con `url` (del mismo
   origen; si no, se ignora), «atrás» del navegador cierra el nivel de arriba. Al cerrarse quita su
@@ -933,7 +939,7 @@ if (await nxConfirm({ heading: "Anular OC-2291", impact: "/compras/oc/2291/impac
 
 | | |
 |---|---|
-| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty`, `loading` (la espera común mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` · `nx-dialog-close` (cancelable), `nx-open-change` · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
+| `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty` (la marca propia O algún `<nx-form>` de adentro con `dirty`, también en una pestaña oculta; `dirty = false` solo quita la marca propia), `loading` (la espera común mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` → si cerró · `nx-dialog-beforeclose` `{reason, value}` (cancelable, en todo intento de cierre y ANTES del aviso de cambios: la app se niega ahí mientras guarda), `nx-dialog-close` `{reason, value}` (cancelable, cuando ya se va a cerrar), `nx-open-change` · mientras está arriba, el fondo queda `inert` (no los avisos ni la paleta) · cabecera de ficha (`avatar`, `badge`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
 | `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo) |
 | `nxConfirm()` | `{heading, message?, impact?, body?, confirmLabel?, tone?, hold?, failOpen?}` → `true` / `false`. Con `impact` como URL (mismo origen o `allowOrigins`) falla cerrado: si hay un error de red o del servidor, un evento `error` o el stream termina sin `done`, no se puede confirmar; `failOpen: true` deja confirmar igual, con el aviso a la vista |
 | `<nx-button hold>` | Mantener pulsado (ms, 1000 por defecto) para activarlo; con teclado, mantener Enter o Espacio |
@@ -2634,7 +2640,7 @@ el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices
 
 | | |
 |---|---|
-| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources` · `nx-form-change` `{key, value, values}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
+| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources`, `dirty` (lo que se ve difiere de lo último cargado con `values` o con un `fill()` sin origen; escribir y borrar vuelve a `false`), `markClean()` · `nx-form-change` `{key, value, values}`, `nx-form-dirty` `{dirty}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
 | Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes)}` |
 | `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |

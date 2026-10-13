@@ -21,7 +21,7 @@ import type { NoticeActionDetail } from "../components/notice/types";
 import type { NxField } from "../components/field/field";
 import type { FieldActionDetail, FieldLabels } from "../components/field/types";
 import type { NxForm } from "../components/form/form";
-import type { FormChangeDetail, FormField, FormFillDetail, FormLabels, FormMode, FormSection, FormSubmitDetail, FormValue, FormVariant } from "../components/form/types";
+import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormSection, FormSubmitDetail, FormValue, FormVariant } from "../components/form/types";
 import type { HistoryVariant } from "../components/history/types";
 import type { NxFields } from "../components/fields/fields";
 import type { FieldItem, FieldsActionDetail, FieldsLabels, FieldsVariant } from "../components/fields/types";
@@ -291,6 +291,8 @@ declare module "solid-js" {
       detect: string | undefined;
       kind: TrendKind | HandoffKind | undefined;
       debounce: string | undefined;
+      /** `<nx-select source timeout>`: plazo de cada búsqueda, en ms. */
+      timeout: string | undefined;
       idle: string | undefined;
       channel: string | undefined;
       active: string | undefined;
@@ -545,6 +547,7 @@ declare module "solid-js" {
       "nx-grid-change": CustomEvent<{ changes: GridChange[]; source: GridChangeSource }>;
       "nx-grid-columns": CustomEvent<GridColumnsDetail>;
       "nx-dialog-close": CustomEvent<DialogCloseDetail>;
+      "nx-dialog-beforeclose": CustomEvent<DialogCloseDetail>;
       "nx-dialog-nav": CustomEvent<DialogNavDetail>;
       "nx-dialog-action": CustomEvent<DialogActionDetail>;
       "nx-notice-action": CustomEvent<NoticeActionDetail>;
@@ -585,6 +588,7 @@ declare module "solid-js" {
       "nx-field-action": CustomEvent<FieldActionDetail>;
       "nx-form-change": CustomEvent<FormChangeDetail>;
       "nx-form-fill": CustomEvent<FormFillDetail>;
+      "nx-form-dirty": CustomEvent<FormDirtyDetail>;
       "nx-form-undo": CustomEvent<{ keys: string[] }>;
       "nx-form-submit": CustomEvent<FormSubmitDetail>;
       "nx-form-cancel": CustomEvent<Record<string, never>>;

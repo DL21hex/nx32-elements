@@ -15,6 +15,33 @@
   y propiedad, en ms; por defecto 30 000): una búsqueda que no contesta muestra el error en vez de
   «Buscando…» para siempre. Documentado: con `source`, el valor elegido llega con su registro en
   `selection` (no se pide suelto al servidor).
+- **`<nx-form>`: `dirty` y `nx-form-dirty`.** El formulario dice si tiene cambios sin guardar:
+  algún campo que se ve (no los `readonly`) difiere de lo último que cargó la app, con `values` o
+  con un `fill()` SIN origen (un recálculo del servidor; un `fill()` con origen, como el texto
+  pegado o un escaneo, es la persona trayendo datos y sí cuenta). Escribir y borrar vuelve a
+  `false`. `nx-form-dirty` `{dirty}` avisa cada cambio (y el elemento lleva `data-dirty`).
+  `markClean()` da lo que se ve por cargado sin tocar los valores. Solid: `onDirty`.
+- **`<nx-dialog>`: el `dirty` efectivo suma el de sus formularios.** `dirty` es la marca propia O
+  algún `<nx-form>` de adentro con `dirty`, también el de una pestaña oculta. `dialog.dirty = false`
+  solo quita la marca propia: guardar una pestaña (la app recarga sus `values` y limpia la marca)
+  ya no deja sin aviso a otra pestaña con cambios. Lo que se escribe dentro de un `<nx-form>` ya
+  no pone la marca propia (escribir y borrar no es un cambio). El aviso al cerrar y al pasar de
+  registro (botones, J / K, `requestNav`) usa el `dirty` efectivo. Al abrirse, al «Descartar» y al
+  pasar de registro, los formularios quedan limpios (`markClean()`). **Cambia (0.x):** «Descartar»
+  ya no pone la marca en `false` si la app cancela después `nx-dialog-close`: lo escrito sigue
+  protegido.
+- **`<nx-dialog>`: `nx-dialog-beforeclose`, cancelable, antes del aviso de cambios.** Sale en todo
+  intento de cierre (botón, Escape, fondo, arrastre, «atrás», `close()`), antes de preguntar
+  «¿Descartar?», y no otra vez tras «Descartar». Con `preventDefault()` el diálogo sigue abierto
+  sin preguntar nada: así la app se niega a cerrar mientras guarda. `nx-dialog-close` sigue
+  saliendo después, cuando ya se va a cerrar. Solid: `onBeforeClose`.
+- **`<nx-dialog>`: el fondo queda `inert`.** Mientras un diálogo está arriba de la pila, los
+  hermanos del diálogo y de cada uno de sus ancestros hasta `<body>` llevan `inert` (el lector de
+  pantalla no los recorre y no se activan); al cerrar, o al quedar otro arriba, vuelven. No se tocan
+  los avisos (`<nx-toaster>`), la paleta (`<nx-command>`) ni lo que los contiene, ni lo que ya era
+  `inert`; las capas que se crean después quedan vivas. El clic en el fondo sigue cerrando.
+- **`<nx-form>`: el reloj de «Guardado hace…» solo corre con borrador.** Cada formulario arrancaba
+  un `setInterval` de 15 s aunque no tuviera `draft`; ahora solo con él (y se para al quitarlo).
 ## 0.19.0 — 2026-10-13
 
 - **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un

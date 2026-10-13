@@ -39,11 +39,14 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
   onOpenChange?: (e: CustomEvent<{ open: boolean; value?: string; reason?: CloseReason }>) => void;
   /** Cancelable: `e.preventDefault()` lo deja abierto. */
   onClose?: (e: CustomEvent<DialogCloseDetail>) => void;
+  /** `nx-dialog-beforeclose`: todo intento de cierre, antes del aviso de cambios sin guardar.
+   *  Cancelable: `e.preventDefault()` lo deja abierto sin preguntar nada (p. ej. mientras guarda). */
+  onBeforeClose?: (e: CustomEvent<DialogCloseDetail>) => void;
   children?: JSX.Element;
 }
 
 export function Dialog(props: DialogProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["open", "heading", "description", "mode", "size", "persistent", "loading", "url", "dirty", "labels", "badge", "badgeTone", "avatar", "nav", "actions", "onNav", "onAction", "onOpenChange", "onClose", "children"]);
+  const [local, rest] = splitProps(props, ["open", "heading", "description", "mode", "size", "persistent", "loading", "url", "dirty", "labels", "badge", "badgeTone", "avatar", "nav", "actions", "onNav", "onAction", "onOpenChange", "onClose", "onBeforeClose", "children"]);
   let el: NxDialog | undefined;
   createEffect(() => {
     const want = !!local.open;
@@ -75,6 +78,7 @@ export function Dialog(props: DialogProps): JSX.Element {
       on:nx-dialog-action={(e) => e.target === e.currentTarget && local.onAction?.(e)}
       on:nx-open-change={(e) => e.target === e.currentTarget && local.onOpenChange?.(e)}
       on:nx-dialog-close={(e) => e.target === e.currentTarget && local.onClose?.(e)}
+      on:nx-dialog-beforeclose={(e) => e.target === e.currentTarget && local.onBeforeClose?.(e)}
     >
       {local.children}
       {/* Tope de los hijos: ver «Hijos» en ./index.tsx. */}

@@ -134,6 +134,38 @@ function paintStack(): void {
     d.toggleAttribute("data-stacked", i > 0);
     d.paintCrumbs(i === stack.length - 1 ? stack.slice(0, i).filter((x) => x.mode === "panel") : []);
   });
+  syncInert();
+}
+
+/** Lo que nunca se vuelve `inert` bajo un diálogo: los avisos y la paleta de comandos (capas que
+ *  pueden quedar por encima de él). */
+const KEEP_LIVE = "nx-toaster, nx-command";
+/** Lo que `syncInert` volvió `inert` (y no lo estaba): solo eso se le devuelve al cerrar. */
+let inerted: Element[] = [];
+
+/**
+ * El fondo del diálogo de arriba, `inert`: ni el lector de pantalla lo recorre como si fuera parte
+ * del diálogo ni se activa con el teclado o un clic. Un `showModal()` lo hace solo; el diálogo es un
+ * popover (para no mover el contenido del autor), así que se hace a mano: los hermanos de cada
+ * ancestro del diálogo, hasta `<body>`. No se tocan los avisos ni la paleta (`KEEP_LIVE`), ni lo que
+ * los contiene; las capas que se crean después (un aviso nuevo, un menú que cuelga de `<body>`) no
+ * existían y quedan vivas. Un clic en el fondo sigue cerrando: lo `inert` no recibe el evento, y le
+ * llega a `<body>`, que es fondo.
+ */
+function syncInert(): void {
+  if (typeof document === "undefined") return;
+  for (const el of inerted) el.removeAttribute("inert");
+  inerted = [];
+  const top = stack[stack.length - 1];
+  if (!top?.isConnected) return;
+  for (let node: Element = top; node.parentElement && node !== document.body; node = node.parentElement) {
+    for (const sib of node.parentElement.children) {
+      if (sib === node || sib.hasAttribute("inert") || /^(SCRIPT|STYLE|TEMPLATE|LINK|META)$/.test(sib.tagName)) continue;
+      if (sib.matches(KEEP_LIVE) || sib.querySelector(KEEP_LIVE)) continue;
+      sib.setAttribute("inert", "");
+      inerted.push(sib);
+    }
+  }
 }
 
 /** Lo último que se pulsó, si fue hace poco: un `show()` por temporizador no nace de un botón de hace minutos. */
@@ -269,13 +301,20 @@ export class NxDialog extends Base {
     if (v) void this.show();
     else this.close(undefined, "api");
   }
-  /** Hay cambios sin guardar (se marca solo al escribir en un campo; `false` al guardar). */
+  /**
+   * Hay cambios sin guardar: la marca propia (se pone sola al escribir en un campo del autor que no
+   * es de un `<nx-form>`, o la app con `dirty = true`) O algún `<nx-form>` de adentro con `dirty`,
+   * también el de una pestaña oculta. `dirty = false` (al guardar) solo quita la marca propia: un
+   * formulario se da por guardado cuando la app le vuelve a asignar sus `values`, así que guardar
+   * una pestaña no deja sin aviso a otra con cambios. Al abrirse, al descartar y al pasar de
+   * registro, todo empieza limpio (los formularios, con `markClean()`).
+   */
   get dirty(): boolean {
-    return this.#dirty;
+    return this.#dirty || this.#forms().some((f) => f.dirty === true);
   }
   set dirty(v: boolean) {
     this.#dirty = !!v;
-    if (!v) this.#showGuard(false);
+    if (!v && !this.dirty) this.#showGuard(false);
   }
   /** El estado del registro, en una píldora al lado del título («Activa»). */
   get badge(): string | null {
@@ -344,7 +383,7 @@ export class NxDialog extends Base {
     wire();
     if (!this.#built) this.#build();
     this.#open = true;
-    this.#dirty = false;
+    this.#clean();
     this.returnValue = undefined;
     // De dónde nace: lo que se pasa, o el control con foco (quien lo abrió con teclado o clic), o
     // lo último que se pulsó (Safari no enfoca los botones al hacer clic).
@@ -402,13 +441,23 @@ export class NxDialog extends Base {
    * lo que cierra la app con `close()` no).
    */
   close(value?: string, reason: CloseReason = "api"): boolean {
+    return this.#close(value, reason, false);
+  }
+
+  /** `discarded`: la persona ya dijo «Descartar»; no se vuelve a preguntar. */
+  #close(value: string | undefined, reason: CloseReason, discarded: boolean): boolean {
     if (!this.#open) return true;
     // Primero los que están encima (y cada uno puede negarse).
     for (let top = stack[stack.length - 1]; top && top !== this; top = stack[stack.length - 1]) {
       if (!top.close(undefined, "stack")) return false;
     }
+    // La app puede negarse antes de todo, también antes del aviso de cambios (p. ej. mientras guarda).
+    if (!discarded && !this.dispatchEvent(new CustomEvent("nx-dialog-beforeclose", { detail: { reason, value }, bubbles: true, composed: true, cancelable: true }))) {
+      if (reason === "history" && this.pushedState) history.pushState({ ...history.state, nxDialog: this.pushedState }, "", location.href);
+      return false;
+    }
     const guarded = reason !== "api" && reason !== "form";
-    if (guarded && this.#dirty) {
+    if (guarded && !discarded && this.dirty) {
       this.#pending = { value, reason };
       this.#showGuard(true);
       if (reason === "history" && this.pushedState) history.pushState({ ...history.state, nxDialog: this.pushedState }, "", location.href);
@@ -419,6 +468,9 @@ export class NxDialog extends Base {
       if (reason === "history" && this.pushedState) history.pushState({ ...history.state, nxDialog: this.pushedState }, "", location.href);
       return false;
     }
+    // Descartado: lo escrito no se protege más (los formularios conservan lo que se ve hasta que la
+    // app los recargue; al abrir otra vez empiezan limpios).
+    if (discarded) this.#clean();
     this.#finish(value, reason);
     return true;
   }
@@ -431,7 +483,7 @@ export class NxDialog extends Base {
    * cerrar la ficha siguiente, sin tocarla, preguntaría «¿Descartar?»). Devuelve si pasó.
    */
   requestNav(dir: DialogNavDetail["dir"]): boolean {
-    if (this.#dirty && this.#open) {
+    if (this.#open && this.dirty) {
       this.#pending = { dir };
       this.#showGuard(true);
       return false;
@@ -632,8 +684,7 @@ export class NxDialog extends Base {
           const b = this.querySelector<HTMLButtonElement>(`.nx-dialog__tool[data-tool="${p.dir}"]`);
           return b && !b.hidden && !b.disabled ? b.focus() : this.focusFirst();
         }
-        this.#dirty = false;
-        this.close(p.value, p.reason === "history" ? "button" : p.reason);
+        this.#close(p.value, p.reason === "history" ? "button" : p.reason, true);
       }
     });
 
@@ -645,6 +696,9 @@ export class NxDialog extends Base {
     const touch = (e: Event) => {
       const t = e.target as Element;
       if (this.#head!.contains(t) || this.#guard!.contains(t) || t.closest?.("[data-nx-ephemeral]")) return;
+      // Un `<nx-form>` lleva su propia cuenta (`dirty`), que sabe cuándo escribir y borrar es no
+      // cambiar nada: lo de adentro no pone la marca propia.
+      if ((t.closest?.("nx-form") as { dirty?: unknown } | null)?.dirty !== undefined) return;
       if (e.type === "nx-grid-change" && e.defaultPrevented) return;
       this.#dirty = true;
     };
@@ -707,8 +761,21 @@ export class NxDialog extends Base {
   #nav(dir: DialogNavDetail["dir"]): boolean {
     const detail: DialogNavDetail = { dir };
     if (!this.dispatchEvent(new CustomEvent("nx-dialog-nav", { detail, bubbles: true, composed: true, cancelable: true }))) return false;
-    this.dirty = false;
+    this.#clean();
     return true;
+  }
+
+  /** Los `<nx-form>` de este diálogo (no los de otro diálogo de adentro), también los ocultos. */
+  #forms(): { dirty?: unknown; markClean?: () => void }[] {
+    if (!this.#built) return [];
+    return [...this.querySelectorAll("nx-form")].filter((f) => f.closest("nx-dialog") === this) as { dirty?: unknown; markClean?: () => void }[];
+  }
+
+  /** Empezar limpio: sin la marca propia y con los formularios dando lo que se ve por cargado. */
+  #clean(): void {
+    this.#dirty = false;
+    for (const f of this.#forms()) if (f.dirty === true) f.markClean?.();
+    this.#showGuard(false);
   }
 
   #outside(e: MouseEvent): boolean {
@@ -744,6 +811,8 @@ export class NxDialog extends Base {
     this.#showGuard(false);
     const i = stack.indexOf(this);
     if (i >= 0) stack.splice(i, 1);
+    // El fondo vuelve antes de devolver el foco (a un botón que estaba `inert`).
+    syncInert();
     delete this.dataset.depth;
     this.removeAttribute("data-stacked");
     const origin = this.#origin;

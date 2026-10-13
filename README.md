@@ -573,7 +573,14 @@ Una tabla de datos que se explora sola:
   con un nombre en `localStorage` (filtros, orden, agrupación, columnas ocultas y anchos) y lo
   aplica con un clic. Si después se cambia algo, el botón dice «modificada» y el menú ofrece
   guardar los cambios o guardarla como nueva; también renombrar, borrar y volver a la tabla
-  original. Una puede abrir la tabla. Los tramos de fechas relativos siguen siendo ciertos otro
+  original. Una puede abrir la tabla («abrir con esta vista»): se aplica cuando la tabla, ya en la
+  página, tiene sus columnas, encima de los `filters` y el `sort` de arranque que asigna la app. Si
+  la tabla se conecta sin columnas (la del HTML del servidor, que recibe sus propiedades al
+  hidratar), espera a las primeras y se aplica al final de esa tarea: encima de lo asignado en ella
+  o antes, y la primera petición de filas ya sale con la vista. `activeView` la nombra desde que se
+  aplicó; `applyView(id)` en esa tarea la reemplaza. Lo que la app quiera poner encima (la URL, lo
+  recordado) va después: en otra tarea, o en un microtask encolado tras asignar las propiedades
+  (sale en la misma petición). Los tramos de fechas relativos siguen siendo ciertos otro
   día, lo de columnas que ya no existen se quita (y se dice) y otra pestaña que guarda se ve al
   instante. Guardar, renombrar o borrar cambia solo esa vista sobre lo guardado en ese momento: no
   pisa lo que guardó otra pestaña u otra tabla con la misma clave. `grid.view` lee o aplica ese

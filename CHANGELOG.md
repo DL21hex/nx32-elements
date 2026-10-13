@@ -14,6 +14,26 @@
   **Cambia (0.x):** con cambios sin guardar, `nx-dialog-nav` ya no sale al pulsar: sale después de
   «Descartar». Una app que guarda sola antes de pasar de registro pone `dirty = false` al guardar,
   como ya lo hacía para cerrar sin el aviso.
+- **`<nx-grid>`: la vista predeterminada gana también cuando la tabla se conecta antes de recibir
+  sus propiedades.** La prioridad del arranque es: lo que la app pone encima (la URL, lo recordado)
+  › la vista marcada «abrir con esta vista» (`views-storage`) › los filtros y el orden de arranque
+  que asigna la app. Una tabla que llega en el HTML del servidor solo con sus atributos (`source`,
+  `views-storage`, `client-max`…) se conecta al cargar la librería, antes de que la hidratación le
+  asigne `columns`, `filters` y `sort` (en cada carga completa: un enlace, un marcador, recargar).
+  La vista se aplicaba al conectarse, los filtros y el orden de arranque la pisaban enseguida y
+  `activeView` seguía nombrándola: la tabla abría sin la vista de la persona y el menú decía que
+  estaba puesta. En una navegación dentro de la app (las propiedades llegan antes de conectar) sí
+  ganaba. Ahora, sin columnas, la vista espera a las primeras (sin ellas no se sabe qué claves
+  valen) y se aplica al final de esa tarea, encima de los `filters` y `sort` asignados en ella o
+  antes, sin importar el orden; la primera petición de filas ya sale con la vista (una sola, sin
+  cancelaciones). `activeView` es `null` hasta que se aplica. `applyView(id)` en esa misma tarea
+  reemplaza a la predeterminada. Con las propiedades antes de conectar nada cambia; sin `source`,
+  lo mismo (sin petición). **Cambia (0.x):** en una tabla que se conecta sin columnas, la vista
+  predeterminada (y `activeView`) ya no está en la misma tarea en que llegan las columnas, sino al
+  final de ella. Quien repone algo encima (la URL, lo recordado) y miraba `activeView` en esa tarea
+  lo hace después: en otra tarea o en un microtask encolado tras asignar las propiedades, y sale en
+  la misma petición. Una prueba que miraba la vista en el acto la encuentra tras un
+  `await Promise.resolve()`.
 
 ## 0.18.0 — 2026-10-12
 

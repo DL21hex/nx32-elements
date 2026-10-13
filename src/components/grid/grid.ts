@@ -512,6 +512,10 @@ export class NxGrid extends Base {
   #viewList: GridSavedView[] | null = null;
   #activeView: string | null = null;
   #booted = "";
+  /** La vista predeterminada espera las primeras columnas (sin ellas no se sabe qué claves valen):
+   *  `#bootWait`. `#bootQueued`: ya está pedido el microtask que la aplica (ver `columns`). */
+  #bootWait = false;
+  #bootQueued = false;
   #quiet = false;
   #viewsUI?: ViewsUI;
   #viewsLoad?: Promise<ViewsUI>;
@@ -721,6 +725,19 @@ export class NxGrid extends Base {
     // Una columna `hidden` empieza escondida la primera vez que llega; si ya estaba, manda lo que
     // eligió la persona (reasignar las columnas no le vuelve a esconder lo que mostró).
     for (const c of this.#cols) if (c.hidden && !known.has(c.key)) this.#hidden.add(c.key);
+    // Las primeras columnas de una tabla que se conectó sin ellas (la del HTML del servidor, que la
+    // hidratación completa después): la vista predeterminada se aplica al final de esta tarea, encima
+    // de los `filters` y `sort` de arranque que la app asigna con las columnas, antes o después de
+    // ellas. Este microtask va antes que el de la primera petición (`#reload`, más abajo): esa ya
+    // sale con la vista. Lo que la app ponga después (una tarea más tarde, o un microtask encolado
+    // después de asignar las columnas) va encima de la vista.
+    if (this.#bootWait && this.#built && this.#cols.length && !this.#bootQueued) {
+      this.#bootQueued = true;
+      queueMicrotask(() => {
+        this.#bootQueued = false;
+        if (this.#bootWait && this.#cols.length) this.#bootDefault();
+      });
+    }
     this.#syncColumns();
     // Otro juego de columnas puede traer (o quitar) la línea de un proceso: su valor se recalcula.
     this.#deriveStates(this.#all);
@@ -767,7 +784,8 @@ export class NxGrid extends Base {
     this.#emit("nx-grid-views", { views: this.#viewList });
     this.#paintChrome();
   }
-  /** La vista guardada que está aplicada (su `id`), o null. */
+  /** La vista guardada que está aplicada (su `id`), o null. La predeterminada de una tabla que se
+   *  conectó sin columnas no cuenta hasta aplicarse: al final de la tarea en que llegan. */
   get activeView(): string | null {
     return this.#activeView;
   }
@@ -1072,7 +1090,8 @@ export class NxGrid extends Base {
     if (panel.openKey !== key) panel.toggle(col, this.#thOf(key) ?? this.#chips ?? null);
   }
 
-  /** Aplica una vista guardada (por su `id`); `false` si no existe. */
+  /** Aplica una vista guardada (por su `id`); `false` si no existe. Antes de que la tabla aplique la
+   *  predeterminada (ver `activeView`), la reemplaza: la app eligió esta. */
   applyView(id: string): boolean {
     const v = this.views.find((x) => x.id === id);
     if (v) this.#applyView(v, v.id);
@@ -1990,6 +2009,9 @@ export class NxGrid extends Base {
    *  y se dice. */
   #applyView(v: unknown, id: string | null): void {
     this.#mxDrill = null;
+    // Una vista con nombre (la app con `applyView`, la persona en el menú) ya no deja lugar a la
+    // predeterminada que esperaba las columnas.
+    if (id !== null) this.#bootWait = false;
     const x = cleanView(v);
     const known = (k: string) => !this.#cols.length || this.#cols.some((c) => c.key === k);
     const gone = [...new Set([...x.filters.map((f) => f.key), ...(x.sort ? [x.sort.key] : [])].filter((k) => !known(k)))];
@@ -2019,15 +2041,31 @@ export class NxGrid extends Base {
   }
 
   /** Con `views-storage`: la vista marcada «abrir con esta vista» se aplica al empezar (una vez por
-   *  clave), y el menú se trae en reposo para poner su nombre en el botón. */
+   *  clave), y el menú se trae en reposo para poner su nombre en el botón.
+   *
+   *  «Al empezar» es cuando la tabla, ya conectada, tiene columnas: sin ellas no se sabe qué claves
+   *  valen. Si ya las tiene al conectarse (una app que asigna todo antes de ponerla en la página), en
+   *  el acto, encima de lo asignado. Si no (la tabla del HTML del servidor, que se conecta al cargar la
+   *  librería y recibe columnas, filtros y orden al hidratar), espera a las primeras columnas y se
+   *  aplica al final de esa tarea (ver `columns`): encima de los filtros y el orden de arranque de esa
+   *  tarea, y antes de la primera petición. Antes, aplicada al conectarse, la pisaban esos filtros y
+   *  `activeView` seguía nombrándola. */
   #bootViews(): void {
     const key = this.viewsStorage;
-    if (!key || key === this.#booted) return;
+    if (!key) return void (this.#bootWait = false);
+    if (key === this.#booted) return;
     this.#booted = key;
     this.#viewList = null;
+    if (this.#cols.length) this.#bootDefault();
+    else this.#bootWait = true;
+    void this.#loadViews().catch(() => {});
+  }
+
+  /** La vista marcada «abrir con esta vista», si hay. */
+  #bootDefault(): void {
+    this.#bootWait = false;
     const d = this.views.find((v) => v.default);
     if (d) this.#applyView(d, d.id);
-    void this.#loadViews().catch(() => {});
   }
 
   /** Si el menú ya está cargado, en el mismo clic; si no, al llegar. */

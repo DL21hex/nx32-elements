@@ -237,6 +237,9 @@ describe("<nx-grid>: vistas guardadas", () => {
       }),
     );
     const el = mount(`views-storage="${KEY}"`);
+    // Conectada sin columnas, la vista predeterminada se aplica al final de la tarea en que llegan.
+    expect(el.activeView).toBeNull();
+    await Promise.resolve();
     expect(el.views.map((v) => [v.id, !!v.default])).toEqual([
       ["a", true],
       ["b", false],

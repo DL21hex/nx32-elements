@@ -32,6 +32,8 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
   nav?: string;
   /** El menú «Más» de la cabecera. */
   actions?: DialogAction[];
+  /** Pasar de registro. Cancelable: `e.preventDefault()` no pasa. Con cambios sin guardar llega
+   *  solo si la persona eligió «Descartar», y al pasar `dirty` vuelve a `false`. */
   onNav?: (e: CustomEvent<DialogNavDetail>) => void;
   onAction?: (e: CustomEvent<DialogActionDetail>) => void;
   onOpenChange?: (e: CustomEvent<{ open: boolean; value?: string; reason?: CloseReason }>) => void;

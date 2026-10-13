@@ -39,6 +39,8 @@ export interface DialogActionDetail {
   id: string;
 }
 
+/** `nx-dialog-nav`: pasar al registro anterior o siguiente. Cancelable: con `preventDefault()` no se
+ *  pasa (y `dirty` no cambia). Con cambios sin guardar sale solo si la persona eligió «Descartar». */
 export interface DialogNavDetail {
   dir: "prev" | "next";
 }

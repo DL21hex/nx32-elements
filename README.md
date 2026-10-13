@@ -2390,7 +2390,10 @@ seis zonas siempre en el mismo orden: arriba orienta, en medio informa o edita, 
 
 1. **Cabecera** (la del diálogo): quién es (`avatar`), su estado (`badge`), pasar al registro
    anterior o siguiente sin cerrar (`nav`, también con J y K) y el menú «Más» (`actions`: lo poco
-   usado y lo destructivo, separado al final). Se carga aparte, solo si se usa.
+   usado y lo destructivo, separado al final). Se carga aparte, solo si se usa. Pasar de registro
+   con cambios sin guardar pide la misma confirmación que cerrar: «Seguir editando» se queda y
+   «Descartar» pasa; al pasar, `dirty` vuelve a `false` (lo que se protegía era del registro que se
+   deja). `nx-dialog-nav` es cancelable: con `preventDefault()` no se pasa.
 2. **Resumen**: `<nx-fields variant="summary">`, tres o cuatro datos clave, solo lectura.
 3. **Aviso**: `<nx-notice>`, uno solo y solo si hay algo que hacer, con su acción adentro.
 4. **Pestañas**: `<nx-tabs sticky>`, temas y no pasos, pegadas bajo la cabecera al desplazarse.
@@ -2468,7 +2471,7 @@ guardar.onclick = async () => {
 
 | | |
 |---|---|
-| `<nx-dialog>` (ficha) | `avatar`, `badge`, `badge-tone`, `nav` (`"prev next"`, `"next"`, `"prev"`, `""`), `actions` (`[{id, label, danger?, disabled?, icon?}]`) · `nx-dialog-nav` `{dir}`, `nx-dialog-action` `{id}` · pone `--nx-sticky-top` (alto de su cabecera) |
+| `<nx-dialog>` (ficha) | `avatar`, `badge`, `badge-tone`, `nav` (`"prev next"`, `"next"`, `"prev"`, `""`), `actions` (`[{id, label, danger?, disabled?, icon?}]`) · `requestNav(dir)` → si pasó · `nx-dialog-nav` `{dir}` (cancelable; con cambios sin guardar, después de «Descartar»), `nx-dialog-action` `{id}` · pone `--nx-sticky-top` (alto de su cabecera) |
 | `<nx-fields>` | `items` (`[{key?, label, value, wide?, format?, currency?, href?, copy?, mono?, readonly?, input?}]`; `format`: `text`, `number`, `money`, `date`; `input`: `{type?, options?, required?, placeholder?, hint?, rows?}`), `variant` (`grid` / `summary`), `columns` (1–4), `heading`, `action`, `editing`, `errors`, `locale`, `currency`, `labels` · `values`, `validate()`, `focusField(key)`, `reset()` · `nx-fields-action` `{action}` |
 | `<nx-tabs>` | hijos con `data-tab`, `data-value`, `data-count`, `data-errors`, `data-disabled`, o `tabs` (`[{value, label, count?, errors?, disabled?}]`) · `value`, `sticky`, `label`, `labels` · `nx-tabs-change` `{value, previous}` (cancelable) |
 | `<nx-notice>` | `tone` (`info`, `success`, `warning`, `danger`), `text`, `action`, `action-href` · `nx-notice-action` `{action}` |

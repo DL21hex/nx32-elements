@@ -22,7 +22,7 @@ import { WAIT_DELAY, waitEl, waitLeft, waitText } from "../../core/wait";
 import { FOCUSABLE, focusFrom, hasStops, stepTab, tabOrder, tabThrough } from "../../core/order";
 import type { BadgeTone } from "../badge/types";
 import type { DialogHead } from "./dialog-head";
-import type { CloseReason, DialogAction, DialogLabels, DialogMode, DialogSize } from "./types";
+import type { CloseReason, DialogAction, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "./types";
 
 export const DIALOG_LABELS: DialogLabels = {
   close: "Cerrar",
@@ -195,7 +195,8 @@ export class NxDialog extends Base {
   #resolve?: (v: string | undefined) => void;
   #promise?: Promise<string | undefined>;
   #dirty = false;
-  #pending: { value: string | undefined; reason: CloseReason } | null = null;
+  /** Lo que espera la respuesta al aviso de cambios sin guardar: un cierre, o pasar de registro. */
+  #pending: { value: string | undefined; reason: CloseReason } | { dir: DialogNavDetail["dir"] } | null = null;
   #downOutside = false;
   #drag: { y: number; t: number; id: number } | null = null;
   /** Los popovers de la página que ya estaban abiertos al abrirse: quedan debajo, el foco no va a ellos. */
@@ -298,7 +299,8 @@ export class NxDialog extends Base {
     this.#attr("avatar", v);
   }
   /** Pasar al registro anterior o siguiente sin cerrar (abierto desde una tabla): `"prev next"`,
-   *  `"next"`, `"prev"` o `""` (los dos botones, deshabilitados). Avisa con `nx-dialog-nav`. */
+   *  `"next"`, `"prev"` o `""` (los dos botones, deshabilitados). Avisa con `nx-dialog-nav`
+   *  (cancelable); con cambios sin guardar, antes pide la misma confirmación que al cerrar. */
   get nav(): string | null {
     return this.getAttribute("nav");
   }
@@ -419,6 +421,22 @@ export class NxDialog extends Base {
     }
     this.#finish(value, reason);
     return true;
+  }
+
+  /**
+   * Pasa al registro anterior o siguiente, como los botones de la cabecera (y J / K): avisa con
+   * `nx-dialog-nav` (cancelable: con `preventDefault()` no se pasa). Con cambios sin guardar, antes
+   * pide la misma confirmación que al cerrar: «Seguir editando» se queda donde está y «Descartar»
+   * pasa. Si pasa, lo que se protegía era del registro que se deja: `dirty` vuelve a `false` (si no,
+   * cerrar la ficha siguiente, sin tocarla, preguntaría «¿Descartar?»). Devuelve si pasó.
+   */
+  requestNav(dir: DialogNavDetail["dir"]): boolean {
+    if (this.#dirty && this.#open) {
+      this.#pending = { dir };
+      this.#showGuard(true);
+      return false;
+    }
+    return this.#nav(dir);
   }
 
   // ---------------------------------------------------------------- ciclo de vida
@@ -606,8 +624,15 @@ export class NxDialog extends Base {
       if (act === "keep") return this.#showGuard(false), this.focusFirst();
       if (act === "discard") {
         const p = this.#pending ?? { value: undefined, reason: "button" as CloseReason };
-        this.#dirty = false;
         this.#showGuard(false);
+        if ("dir" in p) {
+          // Si la app no lo deja pasar, lo escrito sigue ahí: `dirty` no cambia.
+          this.#nav(p.dir);
+          // El foco vuelve al botón que pasó de registro (J / K siguen a mano), o al primer campo.
+          const b = this.querySelector<HTMLButtonElement>(`.nx-dialog__tool[data-tool="${p.dir}"]`);
+          return b && !b.hidden && !b.disabled ? b.focus() : this.focusFirst();
+        }
+        this.#dirty = false;
         this.close(p.value, p.reason === "history" ? "button" : p.reason);
       }
     });
@@ -676,6 +701,14 @@ export class NxDialog extends Base {
     this.addEventListener("toggle", (e) => {
       if ((e as ToggleEvent).newState === "closed" && this.#open && !popoverOpen(this)) this.#finish(undefined, "api", true);
     });
+  }
+
+  /** Avisa `nx-dialog-nav`; si nadie lo cancela, el registro cambia y lo que se protegía ya no está. */
+  #nav(dir: DialogNavDetail["dir"]): boolean {
+    const detail: DialogNavDetail = { dir };
+    if (!this.dispatchEvent(new CustomEvent("nx-dialog-nav", { detail, bubbles: true, composed: true, cancelable: true }))) return false;
+    this.dirty = false;
+    return true;
   }
 
   #outside(e: MouseEvent): boolean {

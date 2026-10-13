@@ -10,7 +10,7 @@
 import { h, safeImageSrc } from "../../core/dom";
 import { glyph, hasIcon, icon, initials } from "../../core/icons";
 import type { NxDialog } from "./dialog";
-import type { DialogAction, DialogActionDetail, DialogLabels, DialogNavDetail } from "./types";
+import type { DialogAction, DialogActionDetail, DialogLabels } from "./types";
 
 const UP = '<path d="m18 15-6-6-6 6"/>';
 const DOWN = '<path d="m6 9 6 6 6-6"/>';
@@ -44,11 +44,8 @@ export class DialogHead {
     head.querySelector(".nx-dialog__trow")!.append(this.#badge);
     head.querySelector(".nx-dialog__tools")!.prepend(this.#prev, this.#next, this.#sep, this.#more, this.#menu);
 
-    for (const b of [this.#prev, this.#next])
-      b.addEventListener("click", () => {
-        const detail: DialogNavDetail = { dir: b === this.#prev ? "prev" : "next" };
-        d.dispatchEvent(new CustomEvent("nx-dialog-nav", { detail, bubbles: true, composed: true }));
-      });
+    // Pasar de registro lo decide el diálogo: con cambios sin guardar, primero la misma guarda que al cerrar.
+    for (const b of [this.#prev, this.#next]) b.addEventListener("click", () => void d.requestNav(b === this.#prev ? "prev" : "next"));
     this.#more.addEventListener("click", () => (this.#menu.hidden ? this.#open() : this.#close(true)));
     this.#menu.addEventListener("click", (e) => {
       const item = (e.target as Element).closest<HTMLButtonElement>("[data-action]");

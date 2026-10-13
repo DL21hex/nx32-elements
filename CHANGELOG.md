@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## 0.19.0 — 2026-10-13
+
+- **`<nx-dialog>`: pasar de registro respeta los cambios sin guardar.** En una ficha con un
+  formulario editado, «siguiente» (o J / K) cargaba otro registro y lo escrito se perdía sin aviso;
+  y como `dirty` solo volvía a `false` al abrir, cerrar después la ficha siguiente, sin haberla
+  tocado, preguntaba «¿Descartar?». Ahora, con `dirty`, pasar de registro pide la misma
+  confirmación que cerrar (el mismo aviso, con `labels.unsaved`, `keep` y `discard`): «Seguir
+  editando» (o Escape) se queda donde está y «Descartar» pasa, con el foco de vuelta en el botón de
+  pasar. Al pasar, el diálogo pone `dirty = false`: lo que protegía era del registro que se deja.
+  `nx-dialog-nav` es cancelable: con `preventDefault()` no se pasa, y `dirty` no cambia (lo escrito
+  sigue ahí). `requestNav("prev" | "next")` hace lo mismo que los botones y devuelve si pasó.
+  **Cambia (0.x):** con cambios sin guardar, `nx-dialog-nav` ya no sale al pulsar: sale después de
+  «Descartar». Una app que guarda sola antes de pasar de registro pone `dirty = false` al guardar,
+  como ya lo hacía para cerrar sin el aviso.
+
 ## 0.18.0 — 2026-10-12
 
 - **Una sola espera para toda la librería, sin esqueletos.** Seis componentes tenían su propio

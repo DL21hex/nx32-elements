@@ -1479,7 +1479,7 @@ export class NxGrid extends Base {
     this.#sortedAll = null;
     this.#forgetText();
     if (columns) this.#buildHead();
-    if (this.#server) return columnsOnly && this.#gen ? this.#paintAll() : this.#reload();
+    if (this.#server) return columnsOnly && this.#askedFresh() ? this.#paintAll() : this.#reload();
     // Las facetas salen de todas las columnas: esconder una no quita su filtro ni su lista.
     const auto = facetColumns(this.#cols, this.#all);
     this.#facetCols = this.#cols.filter((c) => (c.facet === true || (c.facet !== false && auto.includes(c))));
@@ -1605,6 +1605,13 @@ export class NxGrid extends Base {
   // ---------------------------------------------------------------- servidor
 
   #reload(): void {
+    // Sin columnas no se pide nada: no hay qué pintar y quien configura la tabla aún no termina. Una
+    // tabla que llega en el HTML del servidor con solo sus atributos se mejora al cargar la librería
+    // (`connectedCallback`) y las columnas, los filtros y el orden llegan después, al hidratar, a
+    // veces en otras tareas: pedir con lo que había era una consulta vacía y luego una cancelación
+    // por cada propiedad. Nada cambia aquí (ni `#gen`, ni `#asked`): las columnas, al llegar, piden
+    // (ver `#askedFresh`).
+    if (!this.#cols.length) return void this.#paintAll();
     // Las filas de la consulta anterior se sueltan: una edición abierta no puede seguir a la suya.
     this.#settle();
     this.#gen++;
@@ -1637,9 +1644,23 @@ export class NxGrid extends Base {
     queueMicrotask(() => {
       if (this.#queued !== gen || this.#gen !== gen) return;
       this.#queued = 0;
+      // Las columnas se quitaron en la misma tarea: no sale, y las próximas columnas lo piden.
+      if (!this.#cols.length) {
+        this.#blocks.delete(0);
+        this.#asked = "";
+        return;
+      }
       void this.#load(0, true);
     });
     this.#paintAll();
+  }
+
+  /** Lo pedido sirve para la consulta de ahora: se pidió algo con este `source` y con estos filtros,
+   *  orden y búsqueda (en `client-only` la consulta no viaja: basta con haber pedido). Si no (nunca
+   *  se pidió porque faltaban las columnas, o la consulta cambió mientras faltaban), las columnas
+   *  que llegan piden. */
+  #askedFresh(): boolean {
+    return !!this.#asked && (this.clientOnly || this.#asked === JSON.stringify(this.#query()));
   }
 
   /** La consulta de ahora (orden, filtros y búsqueda). */
@@ -1679,7 +1700,8 @@ export class NxGrid extends Base {
   /** `queued`: el primer bloque de `#reload`, que ya quedó «cargando» al pedirse. */
   async #load(block: number, queued = false): Promise<void> {
     if (!queued) {
-      if (this.#blocks.has(block)) return;
+      // Sin columnas no se pide (ver `#reload`): tampoco el bloque que el pintado ve vacío.
+      if (this.#blocks.has(block) || !this.#cols.length) return;
       // Un bloque que falló espera su turno (no se vuelve a pedir en cada cuadro del scroll).
       const fail = this.#fails.get(block);
       if (fail && fail.at > Date.now()) return fail.at < Infinity ? this.#retryLater(fail.at) : undefined;

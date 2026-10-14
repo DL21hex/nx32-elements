@@ -1,5 +1,98 @@
 # Registro de cambios
 
+## 0.21.0 — 2026-10-14
+
+- **`<nx-award>`: lo adjudicado son repartos por cantidad.** Hasta ahora cada artículo iba entero a
+  un proveedor, por la cantidad pedida completa. Una compra real necesita más, y el componente lo
+  cubre ahora: un artículo se reparte entre varios proveedores por cantidad («a Diego le compro 20
+  y a este otro 80»), se deja sin adjudicar («No adjudicar», en el detalle) o va entero. Las
+  cotizaciones traen `offered` (una oferta parcial: pidieron 150 y da 120) y nunca se le adjudica a
+  nadie más de lo que ofreció ni se pasa de lo pedido: un clic en la celda da hasta lo ofrecido, y
+  en el detalle cada proveedor tiene su cantidad (lo que se escribe gana; si pasa de lo pedido,
+  ceden los demás). Lo que falta se dice en la fila («faltan 40»), en el detalle y en el resumen
+  («1 con menos de lo pedido»); la celda muestra la cantidad cuando el artículo se reparte, o
+  «≤ 120» si el proveedor ofrece menos. Antes, el total de una oferta parcial salía inflado (precio ×
+  lo pedido). Un artículo sin `qty` numérica (lo pedido es un texto: `qtyText: "servicio mensual"`)
+  no se reparte: va entero, por lo que se ofreció. Las cantidades van en milésimas. La recomendación
+  puede repartir (`{"type":"recommend","item","allocations":[{supplier, qty}]}`; `supplier` sigue
+  valiendo para darlo entero a uno) y «seguir la sugerencia» es el mismo proveedor por la misma
+  cantidad.
+- **`<nx-award>`: una recomendación que falla, se corta o tarda no deja nada a medias.** Si el
+  stream cerraba sin `done`, las filas que alcanzaron a llegar se mezclaban, sin aviso, con las de
+  la recomendación anterior (pedidas con otros pesos). Si fallaba, los pesos y exclusiones nuevos se
+  quedaban en pantalla con la sugerencia vieja: un proveedor «Excluido» seguía adjudicado y el envío
+  llevaba esos pesos como si la hubieran dado. Ahora una recomendación que falla, se corta o vence
+  el plazo devuelve la anterior **con los pesos y exclusiones que la dieron**, lo dice («La
+  recomendación se cortó antes de terminar: sigue la anterior», «… tardó demasiado …») y deja
+  «Reintentar». `nx-award-submit` lleva los pesos y exclusiones de la recomendación que se ve.
+- **`<nx-award>`: plazo.** Un backend colgado dejaba «Revisando…» para siempre y bloqueaba «Generar
+  órdenes». `timeout` (atributo y propiedad, en ms; 60.000 por defecto, un modelo puede tardar) corta
+  el `endpoint`, y también espera a la app que respondió `nx-award-advise` con `preventDefault()` y
+  nunca llamó `respond()`.
+- **`<nx-award>`: una recomendación nueva que mueve lo adjudicado lo avisa.** Los artículos que
+  seguían a la sugerencia cambiaban de proveedor sin `nx-award-change` (la app perdía el hilo de lo
+  adjudicado). Ahora sale `nx-award-change` con `kind: "advice"` y los artículos que se movieron, la
+  región viva lo dice («La nueva sugerencia cambió 4 artículos.») y las filas destellan un momento.
+  Lo que el comprador eligió a mano no se mueve.
+- **`<nx-award>`: guardar sin enviar dos veces.** Un doble clic en «Generar órdenes» emitía dos
+  `nx-award-submit`. El detalle trae `wait(promesa)`: mientras la app guarda, el botón dice
+  «Generando…», no se puede volver a enviar ni cambiar nada; si la promesa falla, su mensaje queda
+  junto al botón y se puede reintentar; si termina bien, `dirty` se apaga. Y `key`: la misma
+  adjudicación da la misma clave, para usarla como `Idempotency-Key`. El detalle trae también
+  `followed` (sin cambios frente a la sugerencia), `partial` y `motive`.
+- **`<nx-award>`: el motivo de la decisión.** Al pie, «Motivo de la decisión» (`motive`, atributo y
+  propiedad, hasta 500 caracteres), obligatorio con `require-motive`. Además del motivo de cada
+  cambio (`require-reason`).
+- **`<nx-award>`: proveedores no elegibles.** `blocked: "motivo"` en un proveedor: sus celdas no se
+  eligen (tachadas), su sugerencia no vale, no se le puede «Dar todo» y, si un borrador lo traía,
+  «Generar órdenes» lleva a la fila y lo dice.
+- **`<nx-award>`: la alerta de un proveedor cuenta en la revisión.** `alert` («Póliza vencida») era
+  solo un ícono en su columna: con `require-review` se le podía adjudicar sin abrir nada. Ahora cuenta
+  como alerta en las filas donde se le adjudica algo, sale en su detalle y se da por vista al abrir
+  una de ellas (o su columna).
+- **`<nx-award>` dentro de `<nx-dialog>`: los cambios sin guardar, al derecho.** Cambiar «Ver» marcaba
+  el diálogo como cambiado y adjudicar no. Ahora los controles de vista llevan `data-nx-ephemeral` y
+  cada cambio del comprador emite, además de `nx-award-change`, un `change` nativo. Nueva propiedad
+  `dirty` (y `submitting`, de solo lectura).
+- **`<nx-award>` en `readonly` no pide recomendación.** Con `endpoint`, abrir una adjudicación cerrada
+  llamaba a la IA (gasto, y marcas que no eran las del momento de la decisión). Para abrirla tal
+  cual: `value` (lo adjudicado; lo que no aparece no se adjudicó) y, si se quiere ver, `advice`.
+- **`<nx-award>`: pesos.** Un juego completo se asigna en cualquier escala (600/200 queda 75/25;
+  antes se topaba en 100 y quedaba 50/50); unos pocos, en la escala de los deslizadores. Asignar los
+  mismos pesos ya no vuelve a pedir la recomendación. Los deslizadores y «Excluir de la sugerencia»
+  solo se muestran si alguien puede volver a recomendar: con `endpoint` o con `adjustable` (la app
+  responde `nx-award-advise` cada vez).
+- **`<nx-award>`: más pequeños.** Los montos ya no se redondean a enteros desde 100 (US$ 123,45 se
+  veía «123»); el total del resumen va completo (era compacto: «$ 4,42 M»), y el del pie lo da en su
+  `title`. «1 artículo pasó a …» en singular. Apartarse de la sugerencia ya no abre el detalle (empujaba
+  las filas de abajo mientras se hacía clic): el costo del cambio va en la fila; con `require-reason`,
+  sí se abre. Un clic dentro del detalle ya no se pierde cuando el `change` de un campo lo repinta.
+  Una celda que no cambió no se rehace al repintar, y el aviso de «Revisando…» espera lo mismo que la
+  espera común antes de aparecer. Mientras se guarda no se puede volver a pedir la recomendación (lo
+  que se asigne se pide al terminar); lo que el comprador cambia mientras llega una recomendación no
+  se le atribuye a ella; asignar las mismas `choices` no borra «Deshacer» ni `dirty`; una cantidad
+  inválida en un reparto no se lee como «todo»; una cotización retirada devuelve el artículo a la
+  sugerencia; `advice` acepta texto JSON también por propiedad. `key` incluye precios y total.
+
+### Migrar `<nx-award>` desde 0.20
+
+- `value` es una lista `[{item, supplier, qty?}]` (antes `{artículo: proveedor}`), y ahora también
+  se asigna.
+- `choices` es `[{item, allocations: [{supplier, qty?}], reason?}]` (`allocations: []`: no se
+  adjudica). La forma vieja `{item, supplier, reason?}` se sigue aceptando al asignar.
+- `items[].qty` ya no vale 1 si falta: sin número, el artículo no se reparte.
+- `nx-award-change` trae `{kind, item, items, value, choices, weights, excluded, scenario, motive}`
+  (ya no `supplier`, `recommended` ni `reason`).
+- `nx-award-submit`: `changes[]` trae `allocations` y `recommended` como repartos (no ids); hay
+  `followed`, `partial`, `motive`, `key` y `wait()`. `orders[].lines[].qty` falta si no hay número.
+- Sin `endpoint`, los pesos y «Excluir» necesitan `adjustable`.
+- `awardTotal()` y `awardChanges()` reciben una función `(item) => repartos` en vez de un objeto;
+  nuevas `awardChoicesFrom(value, items)` y `awardNormSplits()`.
+- Textos: `vsAi` dice «Frente a la sugerencia»; `advising`, «Revisando las cotizaciones…». Nuevos:
+  `partial`, `skipped`, `short`, `offers`, `qtyFor`, `left`, `youSplit`, `youSkip`, `youSplitFree`,
+  `skip`, `blocked`, `gaveOne`, `motive`, `submitting`, `needMotive`, `needEligible`, `saveError`,
+  `partialAdvice`, `timeout`, `movedOne`, `movedMany`.
+
 ## 0.20.0 — 2026-10-13
 
 - **`<nx-grid source client-max>`: una descarga del conjunto entero que llega tarde ya no pisa la

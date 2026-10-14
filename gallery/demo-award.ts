@@ -24,7 +24,7 @@ const SUPPLIERS: S[] = [
   { id: "rivera", name: "Tornillos Rivera", rating: 3.6, lead: 10, bias: 0.95, groups: { el: 0.2, hi: 0.3, og: 0.5, fe: 0.95, pi: 0.3 } },
   { id: "union", name: "Metales Unión", rating: 4.3, lead: 7, bias: 0.99, groups: { el: 0.5, hi: 0.4, og: 0.7, fe: 0.6, pi: 0.2 }, alert: "Póliza de cumplimiento vence el 30 sep" },
   { id: "costa", name: "Pinturas Costa", rating: 3.8, lead: 5, bias: 0.97, groups: { el: 0, hi: 0, og: 0.3, fe: 0.4, pi: 0.97 } },
-  { id: "covial", name: "Grupo Covial", rating: 4.1, lead: 15, bias: 0.9, groups: { el: 0.5, hi: 0.5, og: 0.6, fe: 0.5, pi: 0.5 } },
+  { id: "covial", name: "Grupo Covial", rating: 4.1, lead: 15, bias: 0.9, groups: { el: 0.5, hi: 0.5, og: 0.6, fe: 0.5, pi: 0.5 }, blocked: "RUT sin actualizar" },
 ];
 for (const s of SUPPLIERS) s.detail = `★ ${String(s.rating).replace(".", ",")} · ${s.lead} d`;
 
@@ -92,7 +92,7 @@ const RAW: [keyof typeof G, string, number, string, number][] = [
   ["pi", "Pegante cerámico 25 kg", 110, "bulto", 24500],
 ];
 
-export const AWARD_ITEMS: AwardItem[] = RAW.map(([g, name, qty, unit], i) => ({ id: `A${String(i + 1).padStart(2, "0")}`, code: `REF-${1040 + i * 7}`, name, qty, unit, group: G[g] }));
+export const AWARD_ITEMS: (AwardItem & { qty: number })[] = RAW.map(([g, name, qty, unit], i) => ({ id: `A${String(i + 1).padStart(2, "0")}`, code: `REF-${1040 + i * 7}`, name, qty, unit, group: G[g] }));
 
 export const AWARD_CRITERIA: AwardCriterion[] = [
   { id: "precio", label: "Precio", weight: 50 },
@@ -126,7 +126,8 @@ function makeQuotes(): AwardQuote[] {
       const q: AwardQuote = { item: item.id, supplier: s.id, price, leadTime: Math.max(1, s.lead + Math.round(r() * 4 - 2)) };
       if (s.id === "norte" && (item.name.includes("LED") || item.name.startsWith("Breaker"))) q.original = `US$ ${f.number(Math.round((price / 4150) * 100) / 100)} · TRM 4.150 · IVA incluido`;
       if (unit === "caja" && s.id === "rivera") q.original = `$ ${f.number(Math.round(price / 10))} el paquete x100 (se compara la caja x1000)`;
-      if (r() < 0.04) q.note = `Entrega parcial: ${f.number(Math.round(item.qty * 0.7))} de ${f.number(item.qty)} ${unit}`;
+      // Una oferta parcial: pidieron 240 y da 168.
+      if (r() < 0.06) q.offered = Math.round(item.qty * 0.7);
       out.push(q);
     }
   });
@@ -154,7 +155,7 @@ export function recommend(weights: Record<string, number>, excluded: Set<string>
     const prices = qs.map((q) => q.price).sort((a, b) => a - b);
     const med = prices[Math.floor(prices.length / 2)];
     const odd = qs.filter((q) => qs.length > 2 && q.price < med * 0.65);
-    const ok = qs.filter((q) => !odd.includes(q) && !excluded.has(q.supplier));
+    const ok = qs.filter((q) => !odd.includes(q) && !excluded.has(q.supplier) && !byId.get(q.supplier)!.blocked);
     const flags: Record<string, unknown>[] = odd.map((q) => ({ type: "flag", item: it.id, supplier: q.supplier, message: `${byId.get(q.supplier)!.name} cotiza ${Math.round((1 - q.price / med) * 100)} % bajo la mediana: ¿otra unidad o empaque? No se tuvo en cuenta.` }));
     if (!qs.length) {
       lines.push({ type: "recommend", item: it.id, supplier: null, ranking: [] });
@@ -183,7 +184,12 @@ export function recommend(weights: Record<string, number>, excluded: Set<string>
             ? `No es el más barato (+${f.number(Math.round(over * 1000) / 10)} %), pero entrega en ${q.leadTime} días.`
             : `Buen equilibrio: +${f.number(Math.round(over * 1000) / 10)} % sobre el más barato, ${q.leadTime} días y calificación ${String(byId.get(q.supplier)!.rating).replace(".", ",")}.`;
     }
-    lines.push({ type: "recommend", item: it.id, supplier: top?.supplier ?? null, reason, ranking });
+    // Si el mejor no ofrece todo lo pedido, el resto va al siguiente que lo cubra: un reparto.
+    const second = q?.offered !== undefined && ranking.slice(1).find((x) => (ok.find((o) => o.supplier === x.supplier)!.offered ?? it.qty) >= it.qty - q.offered!);
+    if (q && second) {
+      lines.push({ type: "recommend", item: it.id, allocations: [{ supplier: q.supplier, qty: q.offered }, { supplier: second.supplier, qty: it.qty - q.offered! }], reason: `${reason} Ofrece ${f.number(q.offered!)} de ${f.number(it.qty)}: el resto, a ${byId.get(second.supplier)!.name}.`, ranking });
+      flags.push({ type: "flag", item: it.id, supplier: q.supplier, message: `Oferta parcial: ${f.number(q.offered!)} de ${f.number(it.qty)} ${it.unit ?? ""}. Se reparte.`, tone: "neutral" });
+    } else lines.push({ type: "recommend", item: it.id, supplier: top?.supplier ?? null, reason, ranking });
     if (ok.length === 1) flags.push({ type: "flag", item: it.id, message: "Única cotización: no hay con qué comparar. Conviene pedir al menos otra." });
     else if (ranking.length > 1 && ranking[0].score - ranking[1].score < 2)
       flags.push({ type: "flag", item: it.id, message: `Decisión cerrada: ${byId.get(ranking[1].supplier)!.name} queda a ${f.number(Math.round((ranking[0].score - ranking[1].score) * 10) / 10)} puntos.`, tone: "neutral" });
@@ -236,7 +242,7 @@ addDemoRoute("/demo/award", async (req, out) => {
 /** La página de la galería: el cuadro contra la IA de mentira, y el registro de eventos. */
 export function mountAwardDemo(root: HTMLElement): void {
   const el = root.querySelector<NxAward>("#award-demo")!;
-  el.suppliers = SUPPLIERS.map(({ id, name, detail, alert }) => ({ id, name, detail, alert }));
+  el.suppliers = SUPPLIERS.map(({ id, name, detail, alert, blocked }) => ({ id, name, detail, alert, blocked }));
   el.items = AWARD_ITEMS;
   el.quotes = AWARD_QUOTES;
   el.criteria = AWARD_CRITERIA;
@@ -251,10 +257,13 @@ export function mountAwardDemo(root: HTMLElement): void {
   el.addEventListener("nx-award-change", (e) => {
     const d = e.detail;
     const it = AWARD_ITEMS.find((i) => i.id === d.item);
-    add(it ? `nx-award-change → ${it.name}: ${name(d.supplier)}${d.supplier !== d.recommended ? ` (la IA sugiere ${name(d.recommended)})` : ""}${d.reason ? ` · «${d.reason}»` : ""}` : "nx-award-change → varios artículos");
+    const parts = it ? d.value.filter((v) => v.item === it.id).map((v) => `${name(v.supplier)} ${f.number(v.qty ?? 0)}`) : [];
+    add(it ? `nx-award-change (${d.kind}) → ${it.name}: ${parts.join(" + ") || "sin adjudicar"}` : `nx-award-change (${d.kind}) → ${d.items.length} artículos`);
   });
   el.addEventListener("nx-award-submit", (e) => {
     const d = e.detail;
-    add(`nx-award-submit → ${d.orders.length} órdenes por ${f.money(d.total, { currency: "COP" })} · ${d.changes.length} cambios frente a la IA${d.unassigned.length ? ` · ${d.unassigned.length} sin adjudicar` : ""}`);
+    add(`nx-award-submit → ${d.orders.length} órdenes por ${f.money(d.total, { currency: "COP" })} · ${d.changes.length} cambios frente a la sugerencia${d.unassigned.length ? ` · ${d.unassigned.length} sin adjudicar` : ""}${d.partial.length ? ` · ${d.partial.length} incompletos` : ""}`);
+    // Como un servidor: «Generando…» mientras guarda; la misma adjudicación trae la misma `key`.
+    d.wait(sleep(900));
   });
 }

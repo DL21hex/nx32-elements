@@ -71,7 +71,7 @@ import type { GuardFields, GuardFinding, GuardLabels, GuardMode } from "../compo
 import type { NxHandoff } from "../components/handoff/handoff";
 import type { HandoffDoneDetail, HandoffItemDetail, HandoffKind, HandoffLabels, HandoffPhoneLabels, HandoffSide, HandoffState } from "../components/handoff/types";
 import type { NxAward } from "../components/award/award";
-import type { AwardAdviseDetail, AwardChangeDetail, AwardChoice, AwardCriterion, AwardEvent, AwardFilter, AwardItem, AwardLabels, AwardLens, AwardQuote, AwardSubmitDetail, AwardSupplier } from "../components/award/types";
+import type { AwardAdviseDetail, AwardAllocation, AwardChangeDetail, AwardChoice, AwardCriterion, AwardEvent, AwardFilter, AwardItem, AwardLabels, AwardLens, AwardQuote, AwardSubmitDetail, AwardSupplier } from "../components/award/types";
 import type { NxAccount } from "../components/account/account";
 import type { AccountItem, AccountLabels, AccountLocale, AccountLogoutDetail, AccountPalette, AccountPerson, AccountSession, AccountStatus, AccountStatusDetail, AccountSwitchDetail, AccountTenant, AccountThemeDetail, AccountUser, AccountViewAsDetail } from "../components/account/types";
 import type { NxCards } from "../components/cards/cards";
@@ -195,7 +195,9 @@ declare module "solid-js" {
       locales: AccountLocale[] | undefined;
       session: AccountSession | null | undefined;
       viewAs: AccountPerson | null | undefined;
-      value: string | string[] | number | DateRangeValue | SignatureValue | null | undefined;
+      value: string | string[] | number | DateRangeValue | SignatureValue | AwardAllocation[] | null | undefined;
+      /** `<nx-award>`: el motivo de la decisión. */
+      motive: string | undefined;
       // Los atajos del selector de fechas y los de la tabla: la misma propiedad en dos componentes.
       presets: DateRangePresetInput[] | GridPreset[] | undefined;
       selection: SelectOption[] | undefined;
@@ -432,6 +434,8 @@ declare module "solid-js" {
       selectable: boolean;
       "require-reason": boolean;
       "require-review": boolean;
+      "require-motive": boolean;
+      adjustable: boolean;
       echo: boolean;
       words: boolean;
       readonly: boolean;

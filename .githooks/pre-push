@@ -1,4 +1,5 @@
 #!/bin/sh
 # Antes de enviar: las mismas verificaciones que haría un CI, en esta máquina.
 # Si algo falla, el push no sale. Para saltarlo en una emergencia: git push --no-verify
+# Navegador: solo Chromium. Con Firefox y WebKit también: NX_CHECK_ALL=1 git push
 npm run check

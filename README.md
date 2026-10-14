@@ -3174,13 +3174,23 @@ npm run typecheck
 npm run bench          # rendimiento de la lógica con datos grandes (mediana de varias corridas)
 npm run e2e            # Playwright sobre la galería en Chromium, con axe
 npm run contrast       # contraste AA de los tokens de texto, en claro y oscuro y en las 9 paletas
-npm run check          # todo lo anterior + build y peso; Chromium, Firefox y WebKit
+npm run check          # todo lo anterior + build y peso, en Chromium
+npm run check:all      # lo mismo en Chromium, Firefox y WebKit (si la máquina lo abre)
+npm run check:nx32     # solo lo de los componentes que usa nx32 (no sirve para publicar)
 ```
 
 Las verificaciones corren en local. En GitHub solo corre el despliegue de la galería a Pages
 (`.github/workflows/pages.yml`), sin pruebas. `npm install` activa el hook `pre-push`
 (`.githooks/`), que corre `npm run check` antes de cada `git push` y no deja enviar si algo falla.
-WebKit se prueba si la máquina lo puede abrir; en Linux necesita `sudo npx playwright install-deps webkit`.
+Por defecto el navegador es solo Chromium (Chrome, Edge y Brave son casi todos los usuarios de
+escritorio); `NX_CHECK_ALL=1 git push` (o `npm run check:all`) suma Firefox y WebKit. WebKit se
+prueba si la máquina lo puede abrir; en Linux necesita `sudo npx playwright install-deps webkit`. En
+iPhone todos los navegadores son WebKit por dentro: lo que se use en el celular conviene pasarlo
+por `check:all` en una máquina que lo abra.
+
+`npm run check:nx32` lee del código de nx32 (`NX32_DIR`, por defecto `../nx32/frontend/src`) los
+componentes que importa o pinta, y deja fuera las pruebas que son solo de otros; lo común (núcleo,
+API, dist, SSR, transversal y accesibilidad) corre siempre. Con `-- --all`, también en Firefox.
 
 En `npm run check`, Playwright abre menos navegadores a la vez (uno por cada 4 núcleos y por cada
 2,5 GB de RAM, lo que alcance primero; `NX_E2E_WORKERS` lo fija), espera más (10 s por aserción,

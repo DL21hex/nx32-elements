@@ -51,6 +51,15 @@ export interface FormOption {
 export type FormRule = FormValue | FormValue[] | { not: FormValue | FormValue[] } | { filled: boolean };
 export type FormCondition = Record<string, FormRule>;
 
+/** Un enlace debajo de un campo («Descargar formato»): con aspecto de botón secundario y siempre en
+ *  otra pestaña (no se pierde lo escrito, y el router de la app no lo intercepta). */
+export interface FormLink {
+  /** El texto del enlace (su nombre accesible). Siempre texto, nunca HTML. */
+  label: string;
+  /** Pasa por `safeHref`: rutas relativas, http(s), mailto y tel. */
+  href: string;
+}
+
 export interface FormField {
   /** La clave del dato: en `values`, en `errors` y en el `name` del control. Única en el formulario. */
   key: string;
@@ -99,6 +108,11 @@ export interface FormField {
   accept?: string;
   /** `file`: el tamaño máximo, en bytes (20 MB por defecto). */
   maxSize?: number;
+  /** Un enlace debajo del campo, después de la ayuda (un formato para descargar, el reglamento).
+   *  Se ve también en lectura y se va con el campo cuando `when` lo oculta. No es un dato: no sale en
+   *  `values`, no se valida ni marca cambios. Sin `label` o con un `href` inseguro, se descarta (con
+   *  un aviso). En un campo de una fila (`rows`) no se pinta. */
+  link?: FormLink;
 }
 
 export interface FormSection {
@@ -203,6 +217,8 @@ export interface FormLabels {
   fileRemove: string;
   fileBadType: string;
   fileTooBig: string;
+  /** Para el lector de pantalla, tras el texto de un enlace (`link`): «(se abre en otra pestaña)». */
+  newTab: string;
 }
 
 export interface FormChangeDetail {

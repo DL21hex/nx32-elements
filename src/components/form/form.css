@@ -253,6 +253,12 @@ nx-form[data-read] .nx-form__row-del {
     color: var(--nx-danger);
   }
 }
+/* El enlace de un campo de filas (`link`), en su renglón, debajo de «Agregar». */
+.nx-form__rows > .nx-field__link {
+  display: flex;
+  inline-size: fit-content;
+  margin-block-start: 10px;
+}
 .nx-form__add {
   display: inline-flex;
   align-items: center;

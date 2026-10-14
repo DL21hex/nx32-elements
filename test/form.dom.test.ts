@@ -398,6 +398,15 @@ describe("la demo de la galería", () => {
     expect(field(f, "correo").getAttribute("warning")).toBe("¿Quisiste decir andres.ortiz@gmail.com?");
     // Con todo lo que llegó solo, faltan el número de cuenta y la autorización.
     expect(f.missing).toEqual(["cuenta", "autoriza"]);
+    // La nota de Salud Total, con su enlace, solo con esa EPS.
+    expect(field(f, "formatoEps").hidden).toBe(true);
+    f.fill({ eps: "Salud Total" }, null);
+    expect(field(f, "formatoEps").hidden).toBe(false);
+    const formato = field(f, "formatoEps").querySelector<HTMLAnchorElement>("a.nx-field__link")!;
+    expect(formato.getAttribute("href")).toBe("./formato-descarte.pdf");
+    expect(formato.target).toBe("_blank");
+    f.fill({ eps: "Sura" }, null);
+    expect(field(f, "formatoEps").hidden).toBe(true);
     f.fill({ cuenta: "123-456789-01", autoriza: true }, null);
     // Una persona a cargo, en su fila.
     f.querySelector<HTMLButtonElement>(".nx-form__add")!.click();
@@ -729,5 +738,97 @@ describe("<nx-form>: archivo (file)", () => {
     f = await mountFile('draft="incap"');
     expect(f.values.nota).toBe("Hola");
     expect(f.values.soporte).toBeNull();
+  });
+});
+
+describe("<nx-form>: enlace bajo un campo (link)", () => {
+  const NOTE = "Si estás afiliado a Salud Total, descarga el formato de descarte, diligéncialo y anéxalo con los demás documentos.";
+  async function mountLink(values: Record<string, string> = {}): Promise<NxForm> {
+    document.body.innerHTML = '<nx-form locale="es-CO" draft="incapacidad"></nx-form>';
+    const f = document.querySelector("nx-form")!;
+    f.fields = [
+      { key: "motivo", label: "Motivo", type: "select", required: true, options: ["1", "2", "4"] },
+      { key: "formato", label: "Salud Total", type: "readonly", hint: "Solo afiliados", when: { motivo: ["2", "4"] }, link: { label: "Descargar formato", href: "/assets/hcm/formato.pdf" } },
+      { key: "soporte", label: "Soporte", type: "file", link: { label: "Ver instructivo", href: "https://acme.co/instructivo" } },
+    ];
+    f.values = { formato: NOTE, ...values };
+    await tick();
+    return f;
+  }
+  const link = (f: NxForm, k: string) => field(f, k).querySelector<HTMLAnchorElement>("a.nx-field__link");
+
+  it("se pinta bajo el campo con href, target y rel; en readonly, debajo de la nota", async () => {
+    const f = await mountLink({ motivo: "2" });
+    const a = link(f, "formato")!;
+    expect(field(f, "formato").hidden).toBe(false);
+    expect(field(f, "formato").getAttribute("text")).toBe(NOTE);
+    expect(a.getAttribute("href")).toBe("/assets/hcm/formato.pdf");
+    expect(a.target).toBe("_blank");
+    expect(a.rel).toBe("noopener noreferrer");
+    expect(a.textContent).toBe("Descargar formato (se abre en otra pestaña)");
+    // En cualquier tipo de campo: también en un archivo.
+    expect(link(f, "soporte")!.getAttribute("href")).toBe("https://acme.co/instructivo");
+  });
+
+  it("when lo oculta con su campo", async () => {
+    const f = await mountLink();
+    expect(field(f, "formato").hidden).toBe(true);
+    type(ctl<HTMLSelectElement>(f, "motivo"), "4");
+    expect(field(f, "formato").hidden).toBe(false);
+    expect(link(f, "formato")).not.toBeNull();
+    type(ctl<HTMLSelectElement>(f, "motivo"), "1");
+    expect(field(f, "formato").hidden).toBe(true);
+  });
+
+  it("en lectura sigue ahí (la ayuda no)", async () => {
+    const f = await mountLink({ motivo: "2" });
+    f.mode = "read";
+    expect(field(f, "formato").hasAttribute("hint")).toBe(false);
+    expect(link(f, "formato")!.getAttribute("href")).toBe("/assets/hcm/formato.pdf");
+    expect(link(f, "soporte")).not.toBeNull();
+  });
+
+  it("no es un dato: no sale en values, no marca dirty, no cuenta en el pie ni va al borrador", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const f = await mountLink({ motivo: "2" });
+    const changes = vi.fn();
+    f.addEventListener("nx-form-change", changes);
+    expect(f.dirty).toBe(false);
+    const a = link(f, "formato")!;
+    a.addEventListener("click", (e) => e.preventDefault());
+    a.click();
+    expect(changes).not.toHaveBeenCalled();
+    expect(f.dirty).toBe(false);
+    expect(JSON.stringify(f.values)).not.toContain("formato.pdf");
+    expect(f.missing).toEqual([]);
+    type(ctl<HTMLSelectElement>(f, "motivo"), "4");
+    vi.advanceTimersByTime(700);
+    const saved = localStorage.getItem("nx-form:incapacidad")!;
+    expect(saved).toContain('"motivo":"4"');
+    expect(saved).not.toContain("formato.pdf");
+    expect(saved).not.toContain("Descargar formato");
+  });
+
+  it("un href inseguro no se pinta y el campo sí", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    document.body.innerHTML = "<nx-form></nx-form>";
+    const f = document.querySelector("nx-form")!;
+    f.fields = [{ key: "x", label: "X", link: { label: "Abrir", href: "javascript:alert(1)" } }];
+    await tick();
+    expect(field(f, "x")).not.toBeNull();
+    expect(f.querySelector("a")).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[nx-form] enlace descartado en "x"'));
+  });
+
+  it("en un campo de filas, al pie del grupo; labels.newTab se configura", async () => {
+    document.body.innerHTML = "<nx-form></nx-form>";
+    const f = document.querySelector("nx-form")!;
+    f.labels = { newTab: "(nueva pestaña)" };
+    f.fields = [{ key: "hijos", label: "Hijos", type: "rows", fields: [{ key: "nombre", label: "Nombre" }], link: { label: "Plantilla", href: "/p.xlsx" } }];
+    await tick();
+    const a = f.querySelector<HTMLAnchorElement>('.nx-form__rows[data-key="hijos"] > a.nx-field__link')!;
+    expect(a.getAttribute("href")).toBe("/p.xlsx");
+    expect(a.target).toBe("_blank");
+    expect(a.textContent).toBe("Plantilla (nueva pestaña)");
   });
 });

@@ -8,7 +8,9 @@
  * - debajo, una sola línea: el error (`error`, en rojo), o un aviso que no bloquea (`warning`, en
  *   ámbar), o la ayuda (`hint`). Lo que se escribe borra el error, el aviso y el origen;
  * - en lectura (`text`), el valor como texto en lugar del control, con «—» si está vacío y candado
- *   con `locked`: la misma rejilla para leer y para editar.
+ *   con `locked`: la misma rejilla para leer y para editar;
+ * - al final, un enlace con aspecto de botón secundario (`link-label` + `link-href`: «Descargar
+ *   formato»), siempre en otra pestaña. Es un recurso, no una ayuda: se ve también en lectura.
  *
  * Conecta la accesibilidad sola: `<label for>` con el id del control (se lo pone si no tiene),
  * `aria-describedby` hacia el mensaje, `aria-invalid` con un error y `required`/`aria-required`. Un
@@ -19,7 +21,7 @@
  * Dentro de `.nx-form-grid`, `span` dice cuántas de sus seis columnas ocupa.
  */
 import { attrProps, Base, boolAttr, upgrade } from "../../core/define";
-import { h } from "../../core/dom";
+import { h, safeHref } from "../../core/dom";
 import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import type { FieldActionDetail, FieldLabels, FieldSpan } from "./types";
@@ -29,12 +31,29 @@ export const FIELD_LABELS: FieldLabels = {
   empty: "Sin dato",
   locked: "No se edita aquí",
   source: "Dato de {source}",
+  newTab: "(se abre en otra pestaña)",
 };
 
 const ALERT = '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>';
 const WARN = '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>';
 const LOCK = '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
 const SOURCE = '<path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4"/>';
+const DOWNLOAD = '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>';
+
+/**
+ * El enlace de debajo de un campo: botón secundario pequeño, siempre en otra pestaña (no se pierde
+ * lo escrito y el router de una SPA no lo intercepta). `href` ya tiene que venir de `safeHref`. El
+ * nombre accesible es `label` más `newTab` («Descargar formato (se abre en otra pestaña)»).
+ */
+export function fieldLink(label: string, href: string, newTab: string): HTMLAnchorElement {
+  return h(
+    "a",
+    { class: "nx-field__link", href, target: "_blank", rel: "noopener noreferrer" },
+    glyph(DOWNLOAD),
+    h("span", null, label),
+    newTab ? h("span", { class: "nx-sr-only" }, ` ${newTab}`) : null,
+  );
+}
 
 /** Lo que cuenta como el control del campo (el primero, en orden de documento). */
 const CONTROL = "input:not([type=hidden]), select, textarea, nx-number, nx-select, nx-date-range, nx-recurrence, nx-signature, [data-nx-control]";
@@ -43,7 +62,7 @@ let uid = 0;
 
 export class NxField extends Base {
   static {
-    attrProps(this, ["label", "hint", "error", "warning", "action", "source", "sourceDetail", "text"]);
+    attrProps(this, ["label", "hint", "error", "warning", "action", "source", "sourceDetail", "text", "linkLabel", "linkHref"]);
   }
   /** La etiqueta, arriba del control. */
   declare label: string | null;
@@ -61,7 +80,11 @@ export class NxField extends Base {
   declare sourceDetail: string | null;
   /** El campo se lee: muestra este texto en lugar del control («—» si está vacío). */
   declare text: string | null;
-  static observedAttributes = ["label", "hint", "error", "warning", "action", "required", "optional", "source", "source-detail", "span", "text", "locked", "labels"];
+  /** El texto del enlace de debajo («Descargar formato»). Sin él, no hay enlace. */
+  declare linkLabel: string | null;
+  /** Adónde lleva el enlace (pasa por `safeHref`; uno inseguro no se pinta). Siempre en otra pestaña. */
+  declare linkHref: string | null;
+  static observedAttributes = ["label", "hint", "error", "warning", "action", "required", "optional", "source", "source-detail", "span", "text", "locked", "link-label", "link-href", "labels"];
 
   #uid = `nx-field${++uid}`;
   #labels: FieldLabels = FIELD_LABELS;
@@ -72,6 +95,8 @@ export class NxField extends Base {
   #view?: HTMLDivElement;
   #msg?: HTMLDivElement;
   #msgKey = "";
+  #link?: HTMLAnchorElement;
+  #linkKey = "";
   #observer?: MutationObserver;
   #wired = new WeakSet<Element>();
   /** Los controles a los que el campo les puso `required` (los únicos a los que se lo quita). */
@@ -195,7 +220,7 @@ export class NxField extends Base {
 
   /** Los controles del autor (todos los radios o casillas de un grupo; si no, uno). */
   #controls(): HTMLElement[] {
-    const mine = (el: Element) => this.#top?.contains(el) || this.#view?.contains(el) || this.#msg?.contains(el);
+    const mine = (el: Element) => this.#top?.contains(el) || this.#view?.contains(el) || this.#msg?.contains(el) || this.#link?.contains(el);
     const first = [...this.querySelectorAll<HTMLElement>(CONTROL)].find((el) => !mine(el) && !el.parentElement?.closest("nx-number, nx-select, nx-date-range, nx-recurrence, nx-signature"));
     if (!first) return [];
     if (first instanceof HTMLInputElement && (first.type === "radio" || first.type === "checkbox")) {
@@ -292,9 +317,27 @@ export class NxField extends Base {
     for (const c of controls) this.#wire(c, !!error && !reading, group);
 
     // Lo propio va primero y al final; si el control llegó después, se reacomoda (CSS ya lo ordena).
+    const tail: HTMLElement[] = [this.#view!, this.#msg!];
+    const link = this.#paintLink(L);
+    if (link) tail.push(link);
     if (this.firstChild !== this.#top) this.prepend(this.#top);
-    for (const el of [this.#view!, this.#msg!]) if (el.parentNode !== this) this.append(el);
-    if (this.lastChild !== this.#msg) this.append(this.#view!, this.#msg!);
+    for (const el of tail) if (el.parentNode !== this) this.append(el);
+    if (this.lastChild !== tail[tail.length - 1]) this.append(...tail);
+  }
+
+  /** El enlace de debajo (`link-label` + `link-href`), o nada. Uno a medias o con un `href` inseguro
+   *  no se pinta y se avisa una vez. */
+  #paintLink(L: FieldLabels): HTMLAnchorElement | undefined {
+    const label = (this.getAttribute("link-label") ?? "").trim();
+    const raw = this.getAttribute("link-href");
+    const key = `${label}\u0000${raw ?? ""}\u0000${L.newTab}`;
+    if (key === this.#linkKey) return this.#link;
+    this.#linkKey = key;
+    const href = label ? safeHref(raw) : undefined;
+    if (!href && (label || raw !== null)) console.warn("[nx-field] enlace descartado: sin link-label o con un link-href inseguro");
+    this.#link?.remove();
+    this.#link = href ? fieldLink(label, href, L.newTab) : undefined;
+    return this.#link;
   }
 
   /** `aria-describedby`, `aria-invalid` y `required` en el control y en lo que de verdad recibe el

@@ -35,7 +35,7 @@ import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import "../field/index";
-import type { NxField } from "../field/field";
+import { fieldLink, type NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
 import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isNumeric, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
 import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
@@ -47,6 +47,7 @@ export const FORM_LABELS: FormLabels = {
   empty: "Sin dato",
   locked: "No se edita aquí",
   source: "Dato de {source}",
+  newTab: "(se abre en otra pestaña)",
   pick: "Elige…",
   yes: "Sí",
   no: "No",
@@ -683,12 +684,17 @@ export class NxForm extends Base {
     const L = this.#labels;
     const field = document.createElement("nx-field") as NxField;
     field.dataset.key = key;
-    field.labels = { optional: L.optional, empty: L.empty, locked: L.locked, source: L.source };
+    field.labels = { optional: L.optional, empty: L.empty, locked: L.locked, source: L.source, newTab: L.newTab };
     const span = Math.round(Number(def.span));
     if (span >= 1 && span <= 5) field.setAttribute("span", String(span));
     if (def.label && def.type !== "checkbox") field.setAttribute("label", def.label);
     if (def.required && def.type !== "readonly") field.setAttribute("required", "");
     else if (def.type !== "readonly" && def.type !== "checkbox") field.setAttribute("optional", "");
+    // El enlace de debajo lo pinta el campo (también en lectura): no es un dato del formulario.
+    if (def.link) {
+      field.setAttribute("link-label", def.link.label);
+      field.setAttribute("link-href", def.link.href);
+    }
     const ctl = this.#control(def, key);
     if (ctl) field.append(ctl);
     return { key, def, field, ctl, row };
@@ -702,7 +708,8 @@ export class NxForm extends Base {
     const list = h("div", { class: "nx-form__rows-list" });
     const msg = h("p", { class: "nx-form__rows-msg", id: `${id}-msg` });
     const add = h("button", { type: "button", class: "nx-form__add", "data-act": "add-row" }, glyph(PLUS), h("span", null, def.addLabel || L.addRow));
-    const box = h("fieldset", { class: "nx-form__rows", "data-key": def.key, "aria-describedby": msg.id }, legend, list, msg, add);
+    const link = def.link ? fieldLink(def.link.label, def.link.href, L.newTab) : null;
+    const box = h("fieldset", { class: "nx-form__rows", "data-key": def.key, "aria-describedby": msg.id }, legend, list, msg, add, link);
     return { key: def.key, def, field: box, ctl: list };
   }
 

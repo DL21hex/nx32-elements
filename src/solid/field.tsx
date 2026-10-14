@@ -27,6 +27,9 @@ export interface FieldProps extends JSX.HTMLAttributes<NxField> {
   /** En lectura: el valor como texto en lugar del control. */
   text?: string;
   locked?: boolean;
+  /** Un enlace debajo («Descargar formato»), siempre en otra pestaña; también en lectura. */
+  linkLabel?: string;
+  linkHref?: string;
   labels?: Partial<FieldLabels>;
   onAction?: (e: CustomEvent<FieldActionDetail>) => void;
   /** El control: un `<input>`, `<select>`, `<NumberInput>`… o un grupo de radios. */
@@ -34,7 +37,7 @@ export interface FieldProps extends JSX.HTMLAttributes<NxField> {
 }
 
 export function Field(props: FieldProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["label", "hint", "error", "warning", "action", "required", "optional", "source", "sourceDetail", "span", "text", "locked", "labels", "onAction", "children"]);
+  const [local, rest] = splitProps(props, ["label", "hint", "error", "warning", "action", "required", "optional", "source", "sourceDetail", "span", "text", "locked", "linkLabel", "linkHref", "labels", "onAction", "children"]);
   return (
     <nx-field
       {...rest}
@@ -48,6 +51,8 @@ export function Field(props: FieldProps): JSX.Element {
       attr:source-detail={local.sourceDetail}
       attr:span={local.span === undefined ? undefined : String(local.span)}
       attr:text={local.text}
+      attr:link-label={local.linkLabel}
+      attr:link-href={local.linkHref}
       bool:required={!!local.required}
       bool:optional={!!local.optional}
       bool:locked={!!local.locked}

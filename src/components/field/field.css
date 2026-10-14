@@ -1,6 +1,7 @@
 /*
  * <nx-field> y los controles de la casa. Etiqueta arriba (13 px), control de 36 px y, debajo, una
- * sola línea: error, aviso o ayuda (12,5 px). El control es el mismo de <nx-number>: borde suave,
+ * sola línea: error, aviso o ayuda (12,5 px); al final, si lo hay, el enlace (botón secundario
+ * pequeño, también en lectura). El control es el mismo de <nx-number>: borde suave,
  * anillo del acento al enfocar, rojo con error, ámbar con aviso, punteado si es de solo lectura.
  *
  * Sirven también sin <nx-field>: `.nx-input` (input, select, textarea), `.nx-check` (una casilla o
@@ -131,11 +132,65 @@ nx-field [hidden] {
   }
 }
 
-/* Lectura: el valor en lugar del control, con la etiqueta más tenue (como <nx-fields>). */
+/* El enlace de debajo (`link-label` + `link-href`): un botón secundario pequeño, después de la
+   ayuda. Sin el subrayado ni el color que un `<a>` trae de serie, tampoco los de la app. También
+   sirve fuera de <nx-field> (el grupo de filas de <nx-form>). */
+.nx-field__link,
+.nx-field__link:is(:link, :visited, :hover) {
+  color: var(--nx-foreground);
+  text-decoration: none;
+}
+.nx-field__link {
+  order: 2;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  justify-self: start;
+  gap: 6px;
+  max-inline-size: 100%;
+  min-block-size: 30px;
+  margin-block-start: 2px;
+  padding: 4px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition:
+    background-color var(--nx-motion-fast),
+    border-color var(--nx-motion-fast);
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+    background: color-mix(in oklch, var(--nx-card), var(--nx-foreground) 6%);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 2px;
+  }
+  & .nx-glyph {
+    display: inline-flex;
+    flex: none;
+    color: var(--nx-muted-foreground);
+  }
+  & svg {
+    display: block;
+    inline-size: 15px;
+    block-size: 15px;
+  }
+}
+
+/* Lectura: el valor en lugar del control, con la etiqueta más tenue (como <nx-fields>). El enlace
+   se queda: es un recurso, no una ayuda de edición. */
 nx-field[text] {
   gap: 4px;
 
-  & > :not(.nx-field__top, .nx-field__text) {
+  & > :not(.nx-field__top, .nx-field__text, .nx-field__link) {
     display: none !important;
   }
   & .nx-field__label {

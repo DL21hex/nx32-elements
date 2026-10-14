@@ -221,9 +221,11 @@ textarea.nx-fields__input {
 
 /* ---------------------------------------------------------------- resumen */
 
+/* Hasta cuatro por fila (`--_n`): con más, el 5.º empieza otra fila. Las columnas las calcula el
+   componente (`--_tracks`): un dato `mono` mide lo que mide, el resto se reparte lo demás. */
 nx-fields[variant="summary"] {
   & .nx-fields__list {
-    grid-template-columns: repeat(var(--_n, 4), minmax(0, 1fr));
+    grid-template-columns: var(--_tracks, repeat(var(--_n, 4), minmax(0, 1fr)));
     gap: 14px 0;
   }
   & .nx-fields__f {
@@ -231,17 +233,28 @@ nx-fields[variant="summary"] {
     padding-inline: 14px;
     border-inline-start: 1px solid var(--nx-border-subtle);
   }
-  & .nx-fields__f:first-child {
+  /* El primero de CADA fila va sin separador ni sangría, no sólo el primero de todos: si no, la
+     segunda fila sale corrida frente a la primera. */
+  & .nx-fields__f:nth-child(4n + 1) {
     padding-inline-start: 0;
     border: 0;
   }
+  /* Un valor que no cabe envuelve a dos renglones y se corta ahí («…»); el `title` lo trae entero. */
   & .nx-fields__v {
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
+    overflow-wrap: break-word;
     font-weight: 550;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Un código no se parte: un renglón, y «…» si ni así cabe. */
+  & .nx-fields__v.nx-fields__mono {
+    display: block;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-variant-numeric: tabular-nums;
   }
   & .nx-fields__copy {
     display: none;

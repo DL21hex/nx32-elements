@@ -4,9 +4,9 @@ import "./jsx";
 import "../components/dialog/index";
 import type { NxDialog } from "../components/dialog/dialog";
 import type { BadgeTone } from "../components/badge/types";
-import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
+import type { CloseReason, DialogAction, DialogActionDetail, DialogBadge, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 
-export type { NxDialog, CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize };
+export type { NxDialog, CloseReason, DialogAction, DialogActionDetail, DialogBadge, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize };
 
 export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose"> {
   /** Controlado: abre y cierra con la señal (y avisa en `onOpenChange`). */
@@ -26,6 +26,8 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
   /** Cabecera de una ficha: el estado en una píldora al lado del título, y su tono. */
   badge?: string;
   badgeTone?: BadgeTone;
+  /** Otras insignias, después del estado («Extemporánea»), cada una con su tono. */
+  badges?: DialogBadge[];
   /** Una imagen (URL) o un nombre, del que salen las iniciales. */
   avatar?: string;
   /** Pasar de registro sin cerrar: `"prev next"`, `"next"`, `"prev"` o `""`. */
@@ -46,7 +48,7 @@ export interface DialogProps extends Omit<JSX.HTMLAttributes<NxDialog>, "onClose
 }
 
 export function Dialog(props: DialogProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["open", "heading", "description", "mode", "size", "persistent", "loading", "url", "dirty", "labels", "badge", "badgeTone", "avatar", "nav", "actions", "onNav", "onAction", "onOpenChange", "onClose", "onBeforeClose", "children"]);
+  const [local, rest] = splitProps(props, ["open", "heading", "description", "mode", "size", "persistent", "loading", "url", "dirty", "labels", "badge", "badgeTone", "badges", "avatar", "nav", "actions", "onNav", "onAction", "onOpenChange", "onClose", "onBeforeClose", "children"]);
   let el: NxDialog | undefined;
   createEffect(() => {
     const want = !!local.open;
@@ -71,6 +73,7 @@ export function Dialog(props: DialogProps): JSX.Element {
       prop:labels={local.labels}
       attr:badge={local.badge}
       attr:badge-tone={local.badgeTone}
+      prop:badges={local.badges}
       attr:avatar={local.avatar}
       attr:nav={local.nav}
       prop:actions={local.actions}

@@ -1,5 +1,6 @@
 /**
- * La cabecera de ficha de `<nx-dialog>`: quién es (`avatar`), su estado (`badge`), pasar al
+ * La cabecera de ficha de `<nx-dialog>`: quién es (`avatar`), su estado (`badge`) y sus otras
+ * señales (`badges`), pasar al
  * registro anterior o siguiente sin cerrar (`nav`, también con J / K) y el menú «Más» (`actions`,
  * las acciones poco usadas y las destructivas, separadas al final).
  *
@@ -22,6 +23,8 @@ export class DialogHead {
   #d: NxDialog;
   #avatar = h("span", { class: "nx-dialog__avatar", "aria-hidden": "true", hidden: true });
   #badge = document.createElement("nx-badge");
+  /** Las insignias de `badges`, después del estado: se rehacen en cada pintado. */
+  #extra: HTMLElement[] = [];
   #prev: HTMLButtonElement;
   #next: HTMLButtonElement;
   #sep = h("span", { class: "nx-dialog__sep", "aria-hidden": "true", hidden: true });
@@ -87,6 +90,14 @@ export class DialogHead {
     const tone = d.badgeTone;
     if (tone) this.#badge.setAttribute("tone", tone);
     else this.#badge.removeAttribute("tone");
+    for (const b of this.#extra) b.remove();
+    this.#extra = d.badges.map((x) => {
+      const b = document.createElement("nx-badge");
+      b.textContent = x.label;
+      if (x.tone) b.setAttribute("tone", x.tone);
+      return b;
+    });
+    this.#badge.after(...this.#extra);
 
     const nav = d.nav;
     const dirs = (nav ?? "").split(/[\s,]+/);

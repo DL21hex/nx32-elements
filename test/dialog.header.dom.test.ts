@@ -48,6 +48,24 @@ describe("<nx-dialog> como ficha", () => {
     expect(b.hidden).toBe(false);
   });
 
+  it("badges: otras insignias después del estado, cada una con su tono; se rehacen al cambiar", async () => {
+    const d = mount(`badge="Radicado" badge-tone="info" badges='[{"label":"Extemporánea","tone":"warning"},{"label":""}]'`);
+    await ready(d);
+    const pills = () => [...d.querySelectorAll(".nx-dialog__trow nx-badge")].map((b) => [b.textContent, b.getAttribute("tone")]);
+    expect(pills()).toEqual([["Radicado", "info"], ["Extemporánea", "warning"]]);
+    d.badges = [{ label: "Prórroga" }];
+    await vi.waitFor(() => expect(pills()).toEqual([["Radicado", "info"], ["Prórroga", null]]));
+    d.badges = null;
+    await vi.waitFor(() => expect(pills()).toEqual([["Radicado", "info"]]));
+  });
+
+  it("badges sin badge también trae la cabecera de ficha", async () => {
+    const d = mount();
+    d.badges = [{ label: "Extemporánea", tone: "warning" }];
+    await ready(d);
+    expect($(d, ".nx-dialog__trow nx-badge:not([hidden])").textContent).toBe("Extemporánea");
+  });
+
   it("nav: anterior y siguiente avisan con nx-dialog-nav; lo que no está, deshabilitado", async () => {
     const d = mount('nav="next"');
     void d.show();

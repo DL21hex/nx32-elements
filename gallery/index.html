@@ -3478,7 +3478,7 @@ import { Tabs } from "nx32-elements/solid/tabs";
               <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
               <tbody>
                 <tr><td colspan="2"><strong><code>&lt;nx-dialog&gt;</code>, cabecera de ficha</strong> (se carga aparte, solo si se usa)</td></tr>
-                <tr><td><code>avatar</code>, <code>badge</code>, <code>badge-tone</code></td><td>Una imagen (https o del mismo origen) o un nombre, del que salen las iniciales; el estado en una píldora al lado del título y su tono.</td></tr>
+                <tr><td><code>avatar</code>, <code>badge</code>, <code>badge-tone</code>, <code>badges</code></td><td>Una imagen (https o del mismo origen) o un nombre, del que salen las iniciales; el estado en una píldora al lado del título y su tono; y en <code>badges</code> (<code>[{label, tone?}]</code>) las otras señales del registro que no son su estado («Extemporánea»), después de él.</td></tr>
                 <tr><td><code>nav</code>, <code>nx-dialog-nav</code></td><td><code>"prev next"</code>, <code>"next"</code>, <code>"prev"</code> o <code>""</code>: pasar de registro sin cerrar (también con <kbd>J</kbd> y <kbd>K</kbd> fuera de un campo). Avisa <code>{dir}</code>.</td></tr>
                 <tr><td><code>actions</code>, <code>nx-dialog-action</code></td><td><code>[{id, label, danger?, disabled?, icon?}]</code>: el menú «Más»; las destructivas van al final, separadas. Avisa <code>{id}</code>.</td></tr>
                 <tr><td colspan="2"><strong><code>&lt;nx-fields&gt;</code></strong></td></tr>

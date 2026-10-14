@@ -5,7 +5,9 @@
  *   entera. Un dato vacío se ve como «—» (y se lee «Sin dato»): no se oculta, así la ficha conserva
  *   su forma de un registro a otro. Montos, números y fechas salen con el locale.
  * - **Resumir.** `variant="summary"`: la franja de tres o cuatro datos clave bajo el título de una
- *   ficha, separados por líneas; en un panel angosto pasa a 2 × 2.
+ *   ficha, separados por líneas; en un panel angosto pasa a 2 × 2. Una columna de datos `mono`
+ *   (cédula, código) mide lo que mide su dato y el resto se reparte lo demás; un valor que no cabe
+ *   envuelve a dos renglones (el código, que no se parte, se corta con «…») y lleva `title`.
  * - **Editar.** Con `editing`, cada valor se vuelve un campo en su sitio, así nada salta. Lo que no
  *   se edita aquí (`readonly`) sigue como texto, con candado. Los campos llevan `name` (la clave):
  *   dentro de un `<form>` sirven tal cual, y dentro de un `<nx-dialog>` marcan los cambios sin
@@ -85,6 +87,18 @@ function lockOf(L: FieldsLabels): HTMLSpanElement {
   lock.setAttribute("aria-label", L.readonly);
   lock.title = L.readonly;
   return lock;
+}
+
+/** Las columnas del resumen: `fit-content` para la que sólo lleva datos `mono` (con tope, para que
+ *  un código largo no se coma la franja), una parte igual del resto para las demás. */
+function summaryTracks(items: readonly FieldItem[], n: number): string {
+  const tracks: string[] = [];
+  for (let col = 0; col < n; col++) {
+    let fit = true;
+    for (let i = col; i < items.length; i += n) if (!items[i].mono) fit = false;
+    tracks.push(fit ? "fit-content(40%)" : "minmax(0, 1fr)");
+  }
+  return tracks.join(" ");
 }
 
 export class NxFields extends Base {
@@ -315,7 +329,12 @@ export class NxFields extends Base {
     this.#head!.hidden = !this.heading && !this.action;
 
     this.style.setProperty("--_cols", String(this.columns));
-    this.style.setProperty("--_n", String(Math.min(4, Math.max(1, this.#items.length))));
+    const n = Math.min(4, Math.max(1, this.#items.length));
+    this.style.setProperty("--_n", String(n));
+    // En el resumen, una columna que sólo lleva datos `mono` (cédula, código) mide lo que su dato, y
+    // el resto se reparte lo demás: con columnas iguales la cédula sobraba y la empresa no cabía.
+    if (summary) this.style.setProperty("--_tracks", summaryTracks(this.#items, n));
+    else this.style.removeProperty("--_tracks");
     // Lo que la persona escribió (y dónde estaba): se pasa a los campos nuevos de la misma clave,
     // salvo que la app haya cambiado ese dato.
     const typed = new Map<string, { text: string; value: FieldItem["value"]; numeric: boolean }>();
@@ -402,7 +421,7 @@ export class NxFields extends Base {
     const dt = h("dt", { class: "nx-fields__l" }, it.label);
     const dd = this.#value(it, L, summary);
     // El candado también al leer: quien mira la ficha sabe, antes de pulsar «Editar», qué no se
-    // cambia aquí. En el resumen va junto a la etiqueta (el valor se corta con «…» y se lo llevaría).
+    // cambia aquí. En el resumen va junto a la etiqueta (el valor puede cortarse y se lo llevaría).
     if (it.readonly) (summary ? dt : dd).append(lockOf(L));
     return h("div", { class: `nx-fields__f${it.wide && !summary ? " is-wide" : ""}` }, dt, dd);
   }

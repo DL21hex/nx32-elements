@@ -1,4 +1,5 @@
 /** `<nx-dialog>` y `nxConfirm()`: tipos. */
+import type { BadgeTone } from "../badge/types";
 
 /** `modal`: centrado (en móvil, hoja desde abajo). `panel`: lateral y apilable. */
 export type DialogMode = "modal" | "panel";
@@ -33,6 +34,14 @@ export interface DialogAction {
   disabled?: boolean;
   /** Nombre de un ícono registrado (`registerIcons`). */
   icon?: string;
+}
+
+/** Una insignia más de la cabecera, después del estado (`badge`): una señal del registro que no es
+ *  su estado («Extemporánea», «Vence hoy»). */
+export interface DialogBadge {
+  label: string;
+  /** `neutral` (por defecto), `success`, `info`, `warning` o `danger`. */
+  tone?: BadgeTone;
 }
 
 export interface DialogActionDetail {

@@ -22,7 +22,7 @@ import { WAIT_DELAY, waitEl, waitLeft, waitText } from "../../core/wait";
 import { FOCUSABLE, focusFrom, hasStops, stepTab, tabOrder, tabThrough } from "../../core/order";
 import type { BadgeTone } from "../badge/types";
 import type { DialogHead } from "./dialog-head";
-import type { CloseReason, DialogAction, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "./types";
+import type { CloseReason, DialogAction, DialogBadge, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "./types";
 
 export const DIALOG_LABELS: DialogLabels = {
   close: "Cerrar",
@@ -209,7 +209,7 @@ function morph(from: Element | null, to: Element | null, update: () => void): vo
 }
 
 export class NxDialog extends Base {
-  static observedAttributes = ["heading", "description", "labels", "open", "mode", "badge", "badge-tone", "avatar", "nav", "actions", "loading"];
+  static observedAttributes = ["heading", "description", "labels", "open", "mode", "badge", "badge-tone", "badges", "avatar", "nav", "actions", "loading"];
 
   #uid = `nx-dialog${++uid}`;
   #labels: DialogLabels = DIALOG_LABELS;
@@ -249,6 +249,7 @@ export class NxDialog extends Base {
   #waitSince = 0;
   #waitTimer?: ReturnType<typeof setTimeout>;
   #actions: DialogAction[] = [];
+  #badges: DialogBadge[] = [];
   /** La cabecera de ficha (avatar, estado, pasar de registro, «Más»): un chunk aparte. */
   #extras?: Promise<DialogHead>;
 
@@ -329,6 +330,15 @@ export class NxDialog extends Base {
   }
   set badgeTone(v: BadgeTone | null | undefined) {
     this.#attr("badge-tone", v);
+  }
+  /** Otras insignias, después del estado: las señales del registro que no son su estado
+   *  («Extemporánea»). Cada una con su tono. El atributo acepta el mismo arreglo como JSON. */
+  get badges(): DialogBadge[] {
+    return this.#badges;
+  }
+  set badges(v: DialogBadge[] | null | undefined) {
+    this.#badges = Array.isArray(v) ? v.filter((b) => b && typeof b === "object" && typeof b.label === "string" && b.label.trim() !== "").map((b) => ({ label: b.label, tone: b.tone })) : [];
+    this.#paint();
   }
   /** Quién o qué es: una imagen (URL https o del mismo origen) o un nombre, del que salen las iniciales. */
   get avatar(): string | null {
@@ -506,13 +516,14 @@ export class NxDialog extends Base {
   }
 
   attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
-    if (name === "labels" || name === "actions") {
-      // Quitar el atributo vuelve a lo de fábrica (sin acciones, los textos por defecto).
-      if (value === null) return void (name === "labels" ? (this.labels = null) : (this.actions = null));
+    if (name === "labels" || name === "actions" || name === "badges") {
+      // Quitar el atributo vuelve a lo de fábrica (sin acciones ni insignias, los textos por defecto).
+      if (value === null) return void (name === "labels" ? (this.labels = null) : name === "actions" ? (this.actions = null) : (this.badges = null));
       try {
         const parsed = JSON.parse(value);
         if (name === "labels") this.labels = parsed;
-        else this.actions = parsed;
+        else if (name === "actions") this.actions = parsed;
+        else this.badges = parsed;
       } catch {
         console.warn(`[nx-dialog] el atributo "${name}" no es JSON válido`);
       }
@@ -901,7 +912,7 @@ export class NxDialog extends Base {
     this.#closeBtn!.setAttribute("aria-label", L.close);
 
     // Cabecera de ficha: se trae solo si el diálogo la usa (los modales no la pagan).
-    if (this.#extras || this.avatar || this.badge || this.nav !== null || this.#actions.length) {
+    if (this.#extras || this.avatar || this.badge || this.#badges.length || this.nav !== null || this.#actions.length) {
       // Si el chunk no llega (la red), se avisa y el próximo pintado lo vuelve a pedir.
       const extras = (this.#extras ??= import("./dialog-head").then((m) => new m.DialogHead(this, this.#head!, this.#uid)));
       extras.then(

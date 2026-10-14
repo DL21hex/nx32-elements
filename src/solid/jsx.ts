@@ -14,7 +14,7 @@ import type { CaptureEvent, CaptureLabels, CaptureSchemaItem, CaptureSubmitDetai
 import type { NxGrid } from "../components/grid/grid";
 import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView } from "../components/grid/types";
 import type { NxDialog } from "../components/dialog/dialog";
-import type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
+import type { CloseReason, DialogAction, DialogActionDetail, DialogBadge, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 import type { NxBadge } from "../components/badge/badge";
 import type { NxNotice } from "../components/notice/notice";
 import type { NoticeActionDetail } from "../components/notice/types";
@@ -150,6 +150,8 @@ declare module "solid-js" {
       query: string | undefined;
       layout: CardsLayout | null | undefined;
       actions: CardsAction[] | DialogAction[] | GridAction[] | undefined;
+      /** `<nx-dialog badges>`: las otras insignias de la cabecera. */
+      badges: DialogBadge[] | undefined;
       suppliers: AwardSupplier[] | undefined;
       quotes: AwardQuote[] | undefined;
       criteria: AwardCriterion[] | undefined;

@@ -4,7 +4,7 @@ import { NxDialog } from "./dialog";
 define("nx-dialog", NxDialog);
 
 export { NxDialog, DIALOG_LABELS } from "./dialog";
-export type { CloseReason, DialogAction, DialogActionDetail, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "./types";
+export type { CloseReason, DialogAction, DialogActionDetail, DialogBadge, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "./types";
 
 declare global {
   interface HTMLElementTagNameMap {

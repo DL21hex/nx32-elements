@@ -200,6 +200,8 @@ export function mountDrawerDemo(root: HTMLElement): void {
     panel.avatar = p.name;
     panel.badge = label;
     panel.badgeTone = tone as "success";
+    // Una señal que no es el estado va en su propia insignia.
+    panel.badges = p.pend.some((x) => !x.done) ? [{ label: "Con pendientes", tone: "warning" }] : [];
     panel.nav = editing ? "" : [idx > 0 ? "prev" : "", idx < PEOPLE.length - 1 ? "next" : ""].join(" ").trim();
     panel.actions = [
       { id: "copiar", label: "Copiar código" },
@@ -210,11 +212,12 @@ export function mountDrawerDemo(root: HTMLElement): void {
 
   function paintSummary(): void {
     const p = person();
+    // El documento es `mono`: su columna mide lo que mide, y el área (que puede ser larga) envuelve.
     sum.items = [
+      { label: "Documento", value: p.d.doc, mono: true },
       { label: "Área", value: p.area },
       { label: "Jefe directo", value: p.boss },
       { label: "Sede", value: p.sede },
-      { label: "Salario", value: p.d.salario, format: "money" },
     ];
     const n = noticeOf(p);
     notice.hidden = !n;

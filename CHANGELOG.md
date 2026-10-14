@@ -1,5 +1,24 @@
 # Registro de cambios
 
+## 0.22.0 — 2026-10-14
+
+- **`<nx-fields variant="summary">`: con más de cuatro datos, cada fila empieza alineada.** Sólo
+  el primer dato de todos iba sin separador ni sangría; el primero de la segunda fila (el 5.º)
+  conservaba los dos y salía corrido frente al de arriba. Ahora el primero de cada fila va como el
+  primero de la franja.
+- **`<nx-fields variant="summary">`: una columna de datos `mono` mide lo que mide su dato.** Las
+  columnas eran iguales: la cédula y un código sobraban de espacio y la empresa, al lado, se cortaba
+  («Inversiones S…»). Una columna cuyos datos son todos `mono` toma el ancho de su dato (con tope del
+  40 %) y las demás se reparten el resto.
+- **`<nx-fields variant="summary">`: un valor que no cabe envuelve a dos renglones.** Antes iba en
+  uno y se cortaba con «…» aunque hubiera alto de sobra, y se perdía justo el dato que importaba (la
+  empresa, la fecha fin de un periodo). Ahora envuelve y sólo se corta en el segundo renglón; el
+  `title` sigue trayéndolo entero. Un dato `mono` (un código) no se parte: un renglón y «…».
+- **`<nx-dialog>`: `badges`, otras insignias en la cabecera de ficha.** Después del estado
+  (`badge`), las señales del registro que no son su estado, cada una con su tono:
+  `badges='[{"label":"Extemporánea","tone":"warning"}]'` (atributo JSON o propiedad; también
+  `badges` en el `<Dialog>` de Solid). Sin `badge`, `badges` también trae la cabecera de ficha.
+
 ## 0.21.0 — 2026-10-14
 
 - **`<nx-award>`: lo adjudicado son repartos por cantidad.** Hasta ahora cada artículo iba entero a

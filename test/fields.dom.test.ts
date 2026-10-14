@@ -85,6 +85,24 @@ describe("<nx-fields> al leer", () => {
     expect(rows(f)[0].querySelector("dd")!.title).toBe("CC 1.020.456.789");
   });
 
+  it("summary: una columna que sólo lleva datos mono mide lo que su dato; las demás se reparten el resto", () => {
+    document.body.innerHTML = `<nx-fields variant="summary"></nx-fields>`;
+    const f = document.querySelector<NxFields>("nx-fields")!;
+    f.items = [
+      { label: "Documento", value: "CC 1006579131", mono: true },
+      { label: "I-ID", value: "66873", mono: true },
+      { label: "Empresa", value: "Inversiones Santa Cruz de Papare S.A.S." },
+      { label: "Subdivisión", value: "Eva Norte I" },
+    ];
+    expect(f.style.getPropertyValue("--_tracks")).toBe("fit-content(40%) fit-content(40%) minmax(0, 1fr) minmax(0, 1fr)");
+    // Con una segunda fila, la columna es mono sólo si todos sus datos lo son.
+    f.items = [...f.items, { label: "Periodo", value: "30 jul – 12 ago 2026" }];
+    expect(f.style.getPropertyValue("--_tracks")).toBe("minmax(0, 1fr) fit-content(40%) minmax(0, 1fr) minmax(0, 1fr)");
+    // Fuera del resumen no hay columnas calculadas.
+    f.variant = "grid";
+    expect(f.style.getPropertyValue("--_tracks")).toBe("");
+  });
+
   it("acepta items como JSON en el atributo", () => {
     document.body.innerHTML = `<nx-fields items='[{"label":"Área","value":"Nómina"}]'></nx-fields>`;
     expect(document.querySelector("dd")!.textContent).toBe("Nómina");

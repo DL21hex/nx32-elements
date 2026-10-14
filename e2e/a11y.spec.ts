@@ -404,7 +404,9 @@ test("ficha lateral: cabecera de ficha, aviso, pestañas, campos en edición y e
   await open(page, "#/drawer");
   await page.locator("#dw-open .nx-button__btn").click();
   const panel = page.locator("#dw-panel");
-  await expect(panel.locator("nx-badge")).toBeVisible();
+  // El estado y, después, la otra señal del registro (`badges`).
+  await expect(panel.locator(".nx-dialog__trow nx-badge").first()).toBeVisible();
+  await expect(panel.locator(".nx-dialog__trow nx-badge").nth(1)).toHaveText("Con pendientes");
   await audit(page, ["#dw-panel"]);
   await panel.getByRole("tab", { name: "Datos" }).click();
   await panel.locator("nx-fields[data-sec=contrato] .nx-fields__action").click();
@@ -450,7 +452,7 @@ test("alto contraste: la pestaña activa conserva el subrayado en Highlight; la 
   await open(page, "#/drawer");
   await page.locator("#dw-open .nx-button__btn").click();
   const panel = page.locator("#dw-panel");
-  await expect(panel.locator("nx-badge")).toBeVisible();
+  await expect(panel.locator(".nx-dialog__trow nx-badge").first()).toBeVisible();
   await expect(panel.locator("#dw-notice")).toBeVisible();
   const s = await page.evaluate(() => {
     // El color de sistema Highlight, tal como lo resuelve este navegador.

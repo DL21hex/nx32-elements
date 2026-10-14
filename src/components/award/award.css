@@ -7,8 +7,9 @@
  *   --nx-award-warn / --nx-award-ink: el ámbar de las alertas (ícono / texto); por defecto
  *     `--nx-warning` y `--nx-warning-ink`, si existen
  *
- * Tres marcas en la celda, nada más: contorno punteado con ✦ (sugerida por la IA), relleno (lo
- * elegido) y ámbar (una alerta).
+ * Tres marcas en la celda, nada más: contorno punteado con ✦ (sugerida), relleno (lo elegido) y
+ * ámbar (una alerta). Bajo el número, en pequeño, la cantidad cuando el artículo se reparte o
+ * cuando el proveedor ofrece menos de lo pedido («≤ 120»).
  */
 
 nx-award {
@@ -291,9 +292,18 @@ nx-award [data-tone="down"] {
   &[data-tone="danger"] {
     color: var(--nx-danger);
   }
+  &[data-tone="busy"] {
+    /* Como la espera común: una respuesta rápida no alcanza a dibujarla. */
+    animation: nx-award-in var(--nx-motion-fast, 0.15s) var(--nx-wait-delay, 250ms) both;
+  }
   &[data-tone="busy"] .nx-glyph {
     color: var(--nx-primary-ink);
     animation: nx-award-pulse 1.2s var(--nx-ease-out) infinite alternate;
+  }
+}
+@keyframes nx-award-in {
+  from {
+    opacity: 0;
   }
 }
 @keyframes nx-award-pulse {
@@ -319,6 +329,9 @@ nx-award [data-tone="down"] {
   align-items: center;
   gap: 6px;
   color: var(--nx-award-ink);
+  &[data-tone="danger"] {
+    color: var(--nx-danger);
+  }
 }
 .nx-award__supacts {
   margin-inline-start: auto;
@@ -395,6 +408,15 @@ nx-award [data-tone="down"] {
     color: var(--nx-text-tertiary);
     text-decoration: line-through;
   }
+  &[data-blocked] .nx-award__sname > span:last-child {
+    color: var(--nx-text-tertiary);
+  }
+  &[data-blocked] .nx-award__sdetail {
+    color: var(--nx-danger);
+  }
+}
+.nx-award__ban {
+  color: var(--nx-danger);
 }
 .nx-award__sname {
   display: flex;
@@ -484,6 +506,18 @@ nx-award [data-tone="down"] {
 .nx-award__chg {
   color: var(--nx-primary-ink);
 }
+.nx-award__short {
+  color: var(--nx-award-ink);
+}
+/* Lo que movió la última recomendación: un destello en lo elegido. */
+.nx-award__row[data-moved] .nx-award__cell[data-chosen] {
+  animation: nx-award-moved 1.6s var(--nx-ease-out);
+}
+@keyframes nx-award-moved {
+  from {
+    background: color-mix(in oklch, var(--nx-primary) 32%, var(--nx-card));
+  }
+}
 
 /* Celdas */
 .nx-award__cell {
@@ -504,6 +538,11 @@ nx-award [data-tone="down"] {
   }
   &[data-excluded]:not([data-chosen]) {
     color: var(--nx-text-tertiary);
+  }
+  &[data-blocked] {
+    color: var(--nx-text-quaternary);
+    cursor: not-allowed;
+    text-decoration: line-through;
   }
   &[data-chosen] {
     background: var(--nx-primary-soft);
@@ -538,6 +577,18 @@ nx-award[data-busy] .nx-award__spark {
     inset-block-start: 7px;
     inset-inline-end: 7px;
     font-size: 10px;
+  }
+}
+.nx-award__q {
+  position: absolute;
+  inset-block-end: 3px;
+  inset-inline-end: 12px;
+  color: var(--nx-text-tertiary);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  [data-chosen] > & {
+    color: var(--nx-primary-ink);
   }
 }
 .nx-award__cwarn {
@@ -693,6 +744,45 @@ nx-award [data-k="4"] {
   & > li[data-tone] .nx-award__sub {
     color: var(--nx-award-ink);
   }
+  & > li[data-blocked] .nx-award__sub {
+    color: var(--nx-danger);
+  }
+}
+.nx-award__rank--qty > li {
+  grid-template-columns: minmax(8rem, 13rem) minmax(5rem, 1fr) 4.5rem minmax(8.5rem, auto) 7.5rem;
+}
+.nx-award__qtybox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.nx-award__qty {
+  inline-size: 5rem;
+  block-size: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-background);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 13px;
+  text-align: end;
+  &::placeholder {
+    color: var(--nx-text-quaternary);
+  }
+  &:focus-visible {
+    border-color: var(--nx-primary);
+    box-shadow: 0 0 0 3px var(--nx-primary-soft);
+    outline: none;
+  }
+}
+.nx-award__left {
+  margin: 0;
+  color: var(--nx-award-ink);
 }
 .nx-award__pick {
   display: inline-flex;
@@ -764,6 +854,9 @@ nx-award [data-k="4"] {
   gap: 8px 10px;
   padding-block-start: 10px;
   border-block-start: 1px solid var(--nx-border-subtle);
+  &.nx-award__change--plain {
+    justify-content: flex-end;
+  }
   & p {
     margin: 0;
   }
@@ -780,11 +873,55 @@ nx-award [data-k="4"] {
 /* ---------------------------------------------------------------- pie */
 
 .nx-award__foot {
-  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 10px 16px;
   padding: 12px 18px;
+  border-block-start: 1px solid var(--nx-border-subtle);
+}
+.nx-award__motive {
+  display: grid;
+  flex: 1 1 18rem;
+  gap: 4px;
+  max-inline-size: 40rem;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+}
+.nx-award__mtext {
+  min-block-size: 2.6rem;
+  padding: 6px 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-background);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+  &:focus-visible {
+    border-color: var(--nx-primary);
+    box-shadow: 0 0 0 3px var(--nx-primary-soft);
+    outline: none;
+  }
+  &:read-only {
+    border-color: transparent;
+    background: none;
+    padding-inline: 0;
+    resize: none;
+  }
+}
+.nx-award__send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  margin-inline-start: auto;
+}
+.nx-award__btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
 }
 .nx-award__msg {
-  margin: 0 auto 0 0;
+  margin: 0;
   color: var(--nx-award-ink);
   font-size: 13px;
   &:empty {
@@ -809,8 +946,14 @@ nx-award [data-k="4"] {
   .nx-award__tools {
     margin-inline-start: 0;
   }
-  .nx-award__rank > li {
+  .nx-award__rank > li,
+  .nx-award__rank--qty > li {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .nx-award__qtybox {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-inline-start: 28px;
   }
   .nx-award__bar {
     grid-column: 1 / -1;

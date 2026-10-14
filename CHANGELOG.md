@@ -81,6 +81,8 @@
   aviso ya no está en la página (una prueba lo veía como error suelto al cerrarse).
 - **Pruebas:** `grid.coalesce` esperaba un tiempo fijo a dos respuestas y fallaba con la máquina
   cargada; ahora espera a que no quede ninguna petición en camino.
+  La demo de `<nx-form>` (cinco componentes con `import()`) tiene 30 s, y el toaster que ya salió de
+  la página no oculta su capa al terminar el fundido.
 
 - **`<nx-launcher density="compact" pack>`: las tarjetas de secciones que comparten fila miden lo
   mismo.** La separación compacta (28 px) pisaba también la de las columnas, que el subgrid comparte

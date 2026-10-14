@@ -420,7 +420,8 @@ describe("la demo de la galería", () => {
     const plain = document.querySelectorAll<NxField>("#frm-plain nx-field");
     expect(plain[4].querySelector(".nx-field__err")!.textContent).toBe("En Bancolombia la cuenta tiene 11 dígitos");
     expect(plain[3].querySelector(".nx-field__src")!.textContent).toContain("REQ-118");
-  });
+    // Trae cinco componentes con import(): con la máquina cargada, 5 s no alcanzan.
+  }, 30_000);
 });
 
 describe("<nx-form>: filas (rows)", () => {

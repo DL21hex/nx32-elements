@@ -136,6 +136,8 @@ export class NxToaster extends Base {
       t.el.classList.add("is-out");
       setTimeout(() => {
         t.el.remove();
+        // El toaster ya salió de la página (o se cerró): no hay capa que ocultar.
+        if (!this.isConnected) return;
         if (!this.#live.length) {
           this.hidePopover?.();
           // Oculto, nada queda por decir: al volver a mostrarse no se repite.

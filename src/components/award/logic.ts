@@ -8,7 +8,7 @@ const TONES = new Set<AwardTone>(["neutral", "warning", "danger"]);
 const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v : undefined);
 const idOf = (v: unknown) => str(v) ?? (typeof v === "number" && Number.isFinite(v) ? String(v) : undefined);
 const obj = (v: unknown): Record<string, unknown> | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
-const list = (v: unknown): unknown[] => {
+export const list = (v: unknown): unknown[] => {
   if (typeof v === "string") {
     try {
       v = JSON.parse(v);
@@ -76,7 +76,8 @@ export function cleanItems(v: unknown): AwardItem[] {
     const id = idOf(o?.id);
     const name = str(o?.name);
     if (!o || !id || !name || out.some((i) => i.id === id)) continue;
-    out.push({ id, name, qty: qtyIn(o.qty), qtyText: str(o.qtyText), unit: str(o.unit), code: idOf(o.code), group: str(o.group) });
+    const qty = qtyIn(o.qty);
+    out.push({ id, name, qty: qty ? qty : undefined, qtyText: str(o.qtyText), unit: str(o.unit), code: idOf(o.code), group: str(o.group) });
   }
   return out;
 }
@@ -121,6 +122,8 @@ export function cleanSplits(v: unknown): AwardSplit[] {
     const supplier = idOf(o?.supplier);
     if (!supplier) continue;
     const qty = qtyIn(o!.qty);
+    // Una cantidad que vino pero no se entiende (negativa, texto) no es «todo»: la parte no vale.
+    if (qty === undefined && o!.qty !== undefined && o!.qty !== null) continue;
     out.push(qty === undefined ? { supplier } : { supplier, qty });
   }
   return out;

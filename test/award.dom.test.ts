@@ -1001,6 +1001,186 @@ describe("<nx-award>", () => {
     expect([...detail(el)!.querySelectorAll(".nx-award__price")].map((p) => nb(p.firstChild!.textContent))).toEqual([usd.money(120.99, { currency: "USD" }), usd.money(123.45, { currency: "USD" })]);
   });
 
+  it("revisión: una recomendación reemplazada a medias no queda como «la anterior» si la siguiente falla", async () => {
+    let n = 0;
+    let hang!: (r: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_u: string, init: RequestInit) => {
+        n++;
+        if (n === 1) return ndjson(ADVICE);
+        if (n === 2) {
+          // Manda «a → p1» y se queda abierta.
+          const stream = new ReadableStream({
+            start(c) {
+              c.enqueue(new TextEncoder().encode(`${JSON.stringify({ type: "recommend", item: "a", supplier: "p1" })}\n`));
+              init.signal!.addEventListener("abort", () => c.error(new DOMException("x", "AbortError")));
+            },
+          });
+          return new Response(stream, { headers: { "Content-Type": "application/x-ndjson" } });
+        }
+        return new Response("no", { status: 500 });
+      }),
+    );
+    void hang;
+    const el = mount('endpoint="/rec"', null);
+    await tick(10);
+    el.weights = { precio: 10, plazo: 80, calidad: 10 };
+    await tick(10);
+    expect(who(el, "a")).toBe("p1");
+    el.weights = { precio: 20, plazo: 70, calidad: 10 };
+    await tick(10);
+    expect(n).toBe(3);
+    expect(who(el, "a")).toBe("p2");
+    expect(el.weights).toEqual({ precio: 55, plazo: 30, calidad: 15 });
+  });
+
+  it("revisión: salir del DOM a mitad de una recomendación la deshace y la vuelve a pedir al volver", async () => {
+    let n = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_u: string, init: RequestInit) => {
+        n++;
+        if (n === 1) return ndjson(ADVICE);
+        const stream = new ReadableStream({
+          start(c) {
+            c.enqueue(new TextEncoder().encode(`${JSON.stringify({ type: "recommend", item: "a", supplier: "p1" })}\n`));
+            init.signal!.addEventListener("abort", () => c.error(new DOMException("x", "AbortError")));
+          },
+        });
+        return new Response(stream);
+      }),
+    );
+    const el = mount('endpoint="/rec"', null);
+    await tick(10);
+    el.refresh();
+    await tick(10);
+    expect(who(el, "a")).toBe("p1");
+    el.remove();
+    await tick();
+    expect(who(el, "a")).toBe("p2");
+    document.body.append(el);
+    await tick(10);
+    expect(n).toBe(3);
+  });
+
+  it("revisión: si falla una recomendación, no se pierde el peso que el comprador movió mientras corría", async () => {
+    vi.useFakeTimers();
+    const el = mount("adjustable");
+    const asks: AwardAdviseDetail[] = [];
+    el.addEventListener("nx-award-advise", (e) => {
+      asks.push(e.detail);
+      e.preventDefault();
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    el.refresh();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(asks.length).toBe(1);
+    el.querySelector<HTMLButtonElement>(".nx-award__tools .nx-award__btn")!.click();
+    const range = el.querySelector<HTMLInputElement>(".nx-award__range")!;
+    range.value = "90";
+    range.dispatchEvent(new Event("input"));
+    asks[0].respond([{ type: "error", message: "Sin cupo" }]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(range.value).toBe("90");
+    await vi.advanceTimersByTimeAsync(400);
+    expect(asks.at(-1)!.weights.precio).toBe(90);
+  });
+
+  it("revisión: mientras se guarda no se vuelve a pedir la recomendación; lo pedido sale al terminar", async () => {
+    const el = mount("adjustable");
+    const asks: AwardAdviseDetail[] = [];
+    el.addEventListener("nx-award-advise", (e) => asks.push(e.detail));
+    let done!: () => void;
+    el.addEventListener("nx-award-submit", (e) => e.detail.wait(new Promise<void>((r) => (done = r))));
+    await tick();
+    expect(el.submit()).toBe(true);
+    await tick();
+    expect(el.querySelector<HTMLInputElement>(".nx-award__range")!.disabled).toBe(true);
+    click(el.querySelector('[data-supplier="p2"]')!);
+    await tick();
+    expect(el.querySelector('[data-f="sup:ex"]')).toBeNull();
+    const n = asks.length;
+    el.excluded = ["p2"];
+    el.refresh();
+    await tick(5);
+    expect(asks.length).toBe(n);
+    expect(who(el, "a")).toBe("p2");
+    done();
+    await tick(5);
+    expect(asks.length).toBe(n + 1);
+    expect(asks.at(-1)!.excluded).toEqual(["p2"]);
+  });
+
+  it("revisión: lo que el comprador cambia mientras llega una recomendación no se le atribuye a ella", async () => {
+    const el = mount("adjustable");
+    let pending: AwardAdviseDetail | undefined;
+    el.addEventListener("nx-award-advise", (e) => {
+      pending = e.detail;
+      e.preventDefault();
+    });
+    await tick();
+    el.refresh();
+    await tick();
+    const kinds: [string, string[]][] = [];
+    el.addEventListener("nx-award-change", (e) => kinds.push([e.detail.kind, e.detail.items]));
+    click(cell(el, "b", 0));
+    await tick();
+    pending!.respond(ADVICE);
+    await tick();
+    expect(kinds).toEqual([["pick", ["b"]]]);
+    expect(row(el, "b").hasAttribute("data-moved")).toBe(false);
+  });
+
+  it("revisión: `advice` como texto JSON por propiedad; `choices` iguales no borran «Deshacer» ni `dirty`", async () => {
+    const el = mount("", null);
+    (el as unknown as { advice: string }).advice = JSON.stringify(ADVICE);
+    await tick();
+    expect(who(el, "a")).toBe("p2");
+    click(cell(el, "a", 0));
+    await tick();
+    expect(el.dirty).toBe(true);
+    el.choices = el.choices;
+    expect(el.dirty).toBe(true);
+  });
+
+  it("revisión: cantidades inválidas no son «todo»; una cotización retirada vuelve a la sugerencia; «No adjudicar» sin sugerencia se mantiene", async () => {
+    const el = mount();
+    el.choices = [{ item: "a", allocations: [{ supplier: "p1", qty: -5 }] }];
+    await tick();
+    // La parte inválida no vale: lo elegido queda vacío (no 240 a Ferrex).
+    expect(who(el, "a")).toBe("");
+    el.choices = [{ item: "b", allocations: [{ supplier: "p1" }] }];
+    el.quotes = QUOTES.filter((q) => !(q.item === "b" && q.supplier === "p1"));
+    await tick();
+    expect(who(el, "b")).toBe("p3");
+    el.advice = ADVICE.filter((e) => !(e.type === "recommend" && e.item === "c"));
+    await tick();
+    expect(who(el, "c")).toBe("");
+    el.open("c");
+    el.choices = [{ item: "c", allocations: [{ supplier: "p2" }] }];
+    await tick();
+    click(detail(el)!.querySelector('[data-f="skip"]')!);
+    await tick();
+    expect(el.choices).toEqual([{ item: "c", allocations: [] }]);
+    el.advice = ADVICE;
+    await tick();
+    expect(who(el, "c")).toBe("");
+    expect(row(el, "c").hasAttribute("data-changed")).toBe(true);
+  });
+
+  it("revisión: la clave cambia si cambian los precios", async () => {
+    const el = mount();
+    const keys: string[] = [];
+    el.addEventListener("nx-award-submit", (e) => keys.push(e.detail.key));
+    await tick();
+    el.submit();
+    el.quotes = QUOTES.map((q) => (q.item === "a" && q.supplier === "p2" ? { ...q, price: 18000 } : q));
+    await tick();
+    el.submit();
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
   it("atributos JSON (BDUI) y textos propios", async () => {
     document.body.innerHTML = `<nx-award locale="es-CO" heading="RFQ-88" motive="Comité" labels='{"submit":"Adjudicar","total":7}'
       suppliers='${JSON.stringify(SUPPLIERS)}' items='${JSON.stringify(ITEMS)}' quotes='${JSON.stringify(QUOTES)}'

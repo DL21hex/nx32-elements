@@ -25,7 +25,7 @@ import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import { lineData, readLines } from "../../core/stream";
-import { amountOf, buildOrders, capOf, changesOf, choiceList, choicesFromValue, cleanChoices, cleanCriteria, cleanEvent, cleanItems, cleanQuotes, cleanStrings, cleanSuppliers, contributions, fill, flagSig, gridMove, keyOf, milli, nextIndex, normSplits, num, parseEvent, partTotal, percents, qkey, qtyOf, sameSplits, shares, shortOf, splittable, totalOf, valueOf, type Choice } from "./logic";
+import { amountOf, buildOrders, capOf, changesOf, choiceList, choicesFromValue, cleanChoices, cleanCriteria, cleanEvent, cleanItems, cleanQuotes, cleanStrings, cleanSuppliers, contributions, fill, flagSig, gridMove, keyOf, list, milli, nextIndex, normSplits, num, parseEvent, partTotal, percents, qkey, qtyOf, sameSplits, shares, shortOf, splittable, totalOf, valueOf, type Choice } from "./logic";
 import type { AwardAllocation, AwardChangeDetail, AwardChangeKind, AwardChoice, AwardCriterion, AwardEvent, AwardFilter, AwardFlag, AwardItem, AwardLabels, AwardLens, AwardNote, AwardQuote, AwardRecommendation, AwardScenario, AwardSplit, AwardSubmitDetail, AwardSupplier } from "./types";
 
 export const AWARD_LABELS: AwardLabels = {
@@ -145,6 +145,8 @@ type Run = {
   before: Map<string, string>;
   recs: Set<string>;
   flagged: Set<string>;
+  /** Lo que el comprador cambió mientras corría: no lo movió la recomendación. */
+  touched: Set<string>;
   scenarios: AwardScenario[] | null;
   notes: AwardNote[];
   timer?: number;
@@ -351,9 +353,8 @@ export class NxAward extends Base {
     if (v === null || v === undefined) return;
     clearTimeout(this.#timer);
     this.#timer = 0;
-    this.#ctrl?.abort();
-    this.#ctrl = undefined;
-    this.#applyAll(this.#newRun(), Array.isArray(v) ? v : []);
+    this.#dropRun();
+    this.#applyAll((this.#run = this.#newRun()), list(v));
   }
   /** Lo que decidió el comprador `[{item, allocations: [{supplier, qty?}], reason?}]` (`[]`: no se
    *  adjudica). Para guardar y retomar un borrador; los artículos sin elección siguen a la sugerencia. */
@@ -361,7 +362,10 @@ export class NxAward extends Base {
     return choiceList(this.#choices);
   }
   set choices(v: unknown) {
-    this.#choices = cleanChoices(v);
+    const next = cleanChoices(v);
+    // Las mismas (una app que devuelve `choices` en cada cambio): no se borra «Deshacer» ni `dirty`.
+    if (JSON.stringify(choiceList(next)) === JSON.stringify(this.choices)) return;
+    this.#choices = next;
     this.#valueRaw = undefined;
     this.#bulk = null;
     this.#dirty = false;
@@ -374,8 +378,10 @@ export class NxAward extends Base {
   }
   set value(v: unknown) {
     if (v === null || v === undefined) return;
+    const next = cleanChoices(choicesFromValue(v, this.#items));
+    if (this.#items.length && JSON.stringify(choiceList(next)) === JSON.stringify(this.choices)) return;
     this.#valueRaw = v;
-    this.#choices = cleanChoices(choicesFromValue(v, this.#items));
+    this.#choices = next;
     this.#bulk = null;
     this.#dirty = false;
     this.#repaint();
@@ -583,7 +589,8 @@ export class NxAward extends Base {
     const value = this.value;
     const { orders, total, unassigned, partial } = buildOrders(this.#items, this.#suppliers, (id) => this.#allocOf(id), this.#quotes);
     const applied = this.#applied ?? { weights: this.weights, excluded: this.excluded };
-    const key = keyOf(JSON.stringify([value, motive, changes.map((c) => [c.item, c.reason ?? ""]), this.#scenario]));
+    // Con precios y total: la misma asignación con otras cotizaciones es otra adjudicación.
+    const key = keyOf(JSON.stringify([orders, total, motive, changes.map((c) => [c.item, c.reason ?? ""]), this.#scenario]));
     const seq = ++this.#submitSeq;
     let work: Promise<unknown> | undefined;
     this.#say("");
@@ -637,11 +644,11 @@ export class NxAward extends Base {
   }
 
   disconnectedCallback(): void {
-    this.#ctrl?.abort();
-    this.#ctrl = undefined;
+    // Lo que estaba en camino se suelta (y se vuelve a pedir al reconectar: `#stale`).
+    if (this.#run && !this.#run.done) this.#stale = true;
+    this.#dropRun();
     clearTimeout(this.#timer);
     this.#timer = 0;
-    if (this.#run) clearTimeout(this.#run.timer);
     clearTimeout(this.#holdTimer);
     this.#hold = false;
     this.#busy(false);
@@ -662,6 +669,7 @@ export class NxAward extends Base {
       if (this.#built) this.#build();
     } else if (name !== "timeout") {
       this.#f = undefined;
+      if (name === "locale") this.#paintCrit();
       this.#repaint();
     }
   }
@@ -708,7 +716,7 @@ export class NxAward extends Base {
     return this.readonly || this.#submitting;
   }
   #canAdvise(): boolean {
-    return !this.readonly && (!!safeEndpoint(this.endpoint) || this.adjustable);
+    return !this.#locked() && (!!safeEndpoint(this.endpoint) || this.adjustable);
   }
   /** Pesos nuevos sobre los de ahora. Un juego completo se lee en cualquier escala relativa
    *  (0,6/0,4 o 600/200) y queda en porcentaje de su suma; uno parcial, en la escala de los
@@ -744,7 +752,10 @@ export class NxAward extends Base {
   #ownOf(id: string): AwardSplit[] | null {
     const c = this.#choices.get(id);
     const it = this.#itemMap.get(id);
-    return c && it ? normSplits(it, c.allocations, this.#quotes) : null;
+    if (!c || !it) return null;
+    const own = normSplits(it, c.allocations, this.#quotes);
+    // Elegía a alguien cuya cotización ya no está: vuelve a la sugerencia (no a «no se adjudica»).
+    return c.allocations.length && !own.length ? null : own;
   }
   /** Lo adjudicado: lo elegido o, sin elección, la sugerencia. */
   #allocOf(id: string): readonly AwardSplit[] {
@@ -800,8 +811,10 @@ export class NxAward extends Base {
       this.#choices.delete(id);
     } else {
       const next = normSplits(it, splits, this.#quotes, this.#okSup);
-      // Lo mismo que sugiere la recomendación: sigue a la sugerencia (si cambia, la sigue).
-      if (sameSplits(it, next, this.#recOf(id), this.#quotes)) {
+      // Lo mismo que sugiere la recomendación: sigue a la sugerencia (si cambia, la sigue). Salvo
+      // «no adjudicar» sin sugerencia: queda dicho, por si después llega una.
+      const rec = this.#recOf(id);
+      if (sameSplits(it, next, rec, this.#quotes) && (rec.length || next.length)) {
         if (!had) return false;
         this.#choices.delete(id);
       } else {
@@ -844,6 +857,7 @@ export class NxAward extends Base {
   #changedBy(kind: AwardChangeKind, item: string | null, items: string[]): void {
     const user = kind !== "advice";
     if (user) {
+      if (this.#run && !this.#run.done) for (const id of items) this.#run.touched.add(id);
       this.#dirty = true;
       // Lo que se asignó en `value` ya no se vuelve a leer si llegan otros `items`.
       this.#valueRaw = undefined;
@@ -943,6 +957,8 @@ export class NxAward extends Base {
     this.#submitting = on;
     this.toggleAttribute("data-submitting", on);
     this.#repaint();
+    // Lo que se pidió mientras se guardaba (pesos o exclusiones asignados), ahora.
+    if (!on && this.#stale && !this.#timer && !this.#ctrl) this.#request(0);
   }
 
   #holdDetail(e: Event): void {
@@ -976,17 +992,34 @@ export class NxAward extends Base {
       before: this.#snapshot(),
       recs: new Set(),
       flagged: new Set(),
+      touched: new Set(),
       scenarios: null,
       notes: [],
     };
   }
 
-  /** Pide la recomendación después de `delay` ms (cancela lo anterior). En `readonly`, nunca. */
+  /** Suelta una recomendación que no terminó: lo que alcanzó a aplicar se deshace (si no, la
+   *  siguiente que falle «volvería» a esa mitad). */
+  #dropRun(): void {
+    const run = this.#run;
+    this.#ctrl?.abort();
+    this.#ctrl = undefined;
+    if (!run || run.done) return;
+    run.done = true;
+    clearTimeout(run.timer);
+    this.#recs = run.prev.recs;
+    this.#flags = run.prev.flags;
+    this.#full = true;
+    this.#queue();
+  }
+
+  /** Pide la recomendación después de `delay` ms (cancela lo anterior). En `readonly`, nunca;
+   *  mientras se guarda, al terminar. */
   #request(delay: number): void {
     if (this.readonly) return;
     this.#stale = true;
     this.#clearMoved();
-    if (!this.isConnected || !this.#built) return;
+    if (!this.isConnected || !this.#built || this.#submitting) return;
     clearTimeout(this.#timer);
     this.#busy(true);
     this.#timer = window.setTimeout(() => {
@@ -1004,9 +1037,7 @@ export class NxAward extends Base {
   }
 
   async #advise(): Promise<void> {
-    this.#ctrl?.abort();
-    this.#ctrl = undefined;
-    if (this.#run) clearTimeout(this.#run.timer);
+    this.#dropRun();
     const run = (this.#run = this.#newRun());
     const { weights, excluded } = run.params;
     const url = safeEndpoint(this.endpoint);
@@ -1123,7 +1154,9 @@ export class NxAward extends Base {
       // Nada a medias: vuelve la recomendación anterior, con los pesos y exclusiones que la dieron.
       this.#recs = run.prev.recs;
       this.#flags = run.prev.flags;
-      if (this.#applied) {
+      // Si el comprador ya movió otra cosa (un pedido nuevo en espera), eso no se toca.
+      const same = !this.#timer && JSON.stringify([this.#weights, [...this.#excluded].sort()]) === JSON.stringify([run.params.weights, [...run.params.excluded].sort()]);
+      if (this.#applied && same) {
         this.#weights = { ...this.#applied.weights };
         this.#excluded = new Set(this.#applied.excluded);
         this.#paintCrit();
@@ -1150,7 +1183,7 @@ export class NxAward extends Base {
       this.#busy(false);
     }
     const now = this.#snapshot();
-    const moved = this.#items.filter((it) => run.before.get(it.id) !== now.get(it.id)).map((it) => it.id);
+    const moved = this.#items.filter((it) => !run.touched.has(it.id) && run.before.get(it.id) !== now.get(it.id)).map((it) => it.id);
     if (moved.length && wasAdvised) {
       this.#moved = new Set(moved);
       this.#announce(fill(moved.length === 1 ? L.movedOne : L.movedMany, { n: moved.length }));
@@ -1252,7 +1285,15 @@ export class NxAward extends Base {
     const key = inside ? a!.dataset.f : undefined;
     const sel = inside && a instanceof HTMLInputElement ? [a.selectionStart, a.selectionEnd] : null;
     paint();
-    if (!inside || (a!.isConnected && this.contains(a))) return;
+    if (!inside) return;
+    if (a!.isConnected && this.contains(a)) {
+      // El mismo campo, movido a un detalle nuevo: sacarlo del DOM le quitó el foco.
+      if (document.activeElement !== a) {
+        a!.focus();
+        if (sel && a instanceof HTMLInputElement && sel[0] !== null) a.setSelectionRange(sel[0], sel[1]);
+      }
+      return;
+    }
     const el = key ? [...this.querySelectorAll<HTMLElement>("[data-f]")].find((x) => x.dataset.f === key) : undefined;
     if (!el || el.closest("[hidden]") || (el as HTMLButtonElement).disabled) return fallback?.();
     el.focus();
@@ -1654,6 +1695,7 @@ export class NxAward extends Base {
     this.#motiveEl!.readOnly = ro || this.#submitting;
     this.#motiveEl!.required = this.requireMotive;
     this.#motiveBox!.hidden = ro && !this.#motive.trim();
+    for (const { range } of this.#critRows.values()) range.disabled = this.#locked();
     if (document.activeElement !== this.#motiveEl && this.#motiveEl!.value !== this.#motive) this.#motiveEl!.value = this.#motive;
   }
 
@@ -1735,7 +1777,12 @@ export class NxAward extends Base {
     }
     // Lo que muestra el detalle: si no cambió (una recomendación que no lo toca), no se recrea.
     const sig = id ? JSON.stringify([id, this.#recs.get(id), this.#flags.get(id), this.#recOf(id), this.#ownOf(id), this.#supAlerts(id).map((s) => s.id), this.#weights, this.#criteria, [...this.#excluded], this.#locked(), this.#canAdvise(), this.currency, this.#fmt.locale, this.#labels]) : "";
-    if (sig && sig === this.#detailSig && this.#detailTr?.isConnected && this.#detailTr.previousElementSibling === ref!.tr) return;
+    if (sig && sig === this.#detailSig && this.#detailTr?.isConnected && this.#detailTr.previousElementSibling === ref!.tr) {
+      // El motivo pudo cambiar por fuera (`choices`): el campo, si no se está escribiendo.
+      const r = this.#inputs.get("reason");
+      if (r && document.activeElement !== r) r.value = this.#choices.get(id)?.reason ?? "";
+      return;
+    }
     this.#detailSig = sig;
     this.#detailTr?.remove();
     this.#detailTr = undefined;

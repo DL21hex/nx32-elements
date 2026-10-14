@@ -1,5 +1,27 @@
 # Registro de cambios
 
+## 0.23.0 — 2026-10-14
+
+- **`<nx-form>`: un enlace bajo un campo (`link`).** `{"link": {"label": "Descargar formato",
+  "href": "/formatos/descarte.pdf"}}` en cualquier campo pinta, después de la ayuda, un botón
+  secundario pequeño con ícono de descarga. **Siempre abre en otra pestaña** (`target="_blank"`,
+  `rel="noopener noreferrer"`): así no se pierde lo escrito y el router de una SPA no lo intercepta
+  (un PDF navegado por el router salía como «Página no encontrada»). Va bien bajo un `readonly` que
+  trae la nota («Si estás afiliado a Salud Total, descarga el formato…») o bajo el `file` donde se
+  sube lo diligenciado. Se ve también en lectura (`mode="read"`, donde la ayuda se oculta: es un
+  recurso, no una ayuda de edición) y se va con su campo cuando `when` lo oculta. No es un dato: no
+  sale en `values`, no se valida, no cuenta en el pie, no marca `dirty` ni va al borrador. El `href`
+  pasa por `safeHref` y el `label` es siempre texto; sin `label` o con un `href` inseguro
+  (`javascript:`, `data:`, vacío) el enlace se descarta con un aviso `[nx-form] enlace descartado…`
+  (el campo sigue). En un campo `rows` va al pie del grupo; en un campo de una fila no se pinta
+  (también con aviso). El lector de pantalla oye «Descargar formato (se abre en otra pestaña)»:
+  `labels.newTab`. Tipo `FormLink` exportado (también en `nx32-elements/solid/form`).
+- **`<nx-field>`: `link-label` y `link-href`** (propiedades `linkLabel`/`linkHref`; `linkLabel` y
+  `linkHref` en el `<Field>` de Solid). Es quien pinta el enlace de `<nx-form>`, y un campo suelto lo
+  tiene igual: al final, después del error, el aviso o la ayuda, y también con `text`. Un enlace a
+  medias o con un `href` inseguro no se pinta y avisa en la consola. `labels.newTab` («(se abre en
+  otra pestaña)»).
+
 ## 0.22.0 — 2026-10-14
 
 - **`<nx-fields variant="summary">`: con más de cuatro datos, cada fila empieza alineada.** Sólo

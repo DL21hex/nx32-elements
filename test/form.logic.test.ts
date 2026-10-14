@@ -37,6 +37,41 @@ describe("cleanSections", () => {
     expect(cleanSections(null)).toEqual([]);
     expect(cleanSections({ fields: [] })).toEqual([]);
   });
+
+  it("link: uno válido se conserva limpio; javascript:, data:, vacío o sin label se descartan con aviso; en una fila no va", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const [sec] = cleanSections([
+      {
+        fields: [
+          { key: "nota", label: "Salud Total", type: "readonly", link: { label: " Descargar formato ", href: "/assets/hcm/formato.pdf" } },
+          { key: "web", label: "Web", link: { label: "Reglamento", href: "https://acme.co/reglamento" } },
+          { key: "js", label: "Js", link: { label: "X", href: "javascript:alert(1)" } },
+          { key: "jstab", label: "Js con tab", link: { label: "X", href: "java\tscript:alert(1)" } },
+          { key: "data", label: "Data", link: { label: "X", href: "data:text/html,<b>x</b>" } },
+          { key: "vacio", label: "Vacío", link: { label: "X", href: "  " } },
+          { key: "sinlabel", label: "Sin label", link: { href: "/a.pdf" } },
+          { key: "labelvacio", label: "Label vacío", link: { label: "  ", href: "/a.pdf" } },
+          { key: "texto", label: "Texto", link: "/a.pdf" },
+          { key: "nada", label: "Nada", link: null },
+          { key: "filas", label: "Filas", type: "rows", link: { label: "Plantilla", href: "/p.xlsx" }, fields: [{ key: "n", label: "N", link: { label: "X", href: "/x.pdf" } }] },
+        ],
+      },
+    ]);
+    const by = Object.fromEntries(sec.fields.map((f) => [f.key, f]));
+    expect(by.nota.link).toEqual({ label: "Descargar formato", href: "/assets/hcm/formato.pdf" });
+    expect(by.web.link).toEqual({ label: "Reglamento", href: "https://acme.co/reglamento" });
+    for (const k of ["js", "jstab", "data", "vacio", "sinlabel", "labelvacio", "texto", "nada"]) expect(by[k].link, k).toBeUndefined();
+    // Descartar el enlace no descarta el campo.
+    expect(sec.fields).toHaveLength(11);
+    expect(by.filas.link).toEqual({ label: "Plantilla", href: "/p.xlsx" });
+    expect(by.filas.subs![0].link).toBeUndefined();
+    const said = warn.mock.calls.map((c) => String(c[0]));
+    expect(said.filter((m) => m.startsWith("[nx-form] enlace descartado"))).toHaveLength(7);
+    expect(said).toContain('[nx-form] un enlace no va dentro de una fila: el de "n" no se pinta');
+    expect(said.some((m) => m.includes('"js" (href inválido)'))).toBe(true);
+    expect(said.some((m) => m.includes('"sinlabel" (sin label)'))).toBe(true);
+    warn.mockRestore();
+  });
 });
 
 describe("condiciones", () => {

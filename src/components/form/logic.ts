@@ -3,9 +3,10 @@
  * (`when`), valida cada valor y lo pasa a texto para leerlo. Todo puro: se prueba sin navegador y el
  * servidor puede usar lo mismo.
  */
+import { safeHref } from "../../core/dom";
 import type { NxFormat } from "../../core/locale";
 import { acceptsFile, formatBytes } from "../capture/logic";
-import type { FormCondition, FormField, FormFieldType, FormLabels, FormOption, FormRow, FormRule, FormSection, FormValue } from "./types";
+import type { FormCondition, FormField, FormFieldType, FormLabels, FormLink, FormOption, FormRow, FormRule, FormSection, FormValue } from "./types";
 
 export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows", "file"];
 /** El tamaño máximo de un archivo si el campo no trae `maxSize` (20 MB, como `<nx-doc-capture>`). */
@@ -53,6 +54,23 @@ export function optionOf(o: unknown): FormOption | null {
   return out;
 }
 
+/** El `link` de un campo como llega → `{label, href}` limpio, o `undefined`: con un aviso si llegó y
+ *  no sirve (sin `label`, con un `href` inseguro o vacío) o si es de un campo de una fila. */
+function cleanLink(v: unknown, key: string, nested: boolean): FormLink | undefined {
+  if (v === undefined || v === null) return undefined;
+  if (nested) {
+    console.warn(`[nx-form] un enlace no va dentro de una fila: el de "${key}" no se pinta`);
+    return undefined;
+  }
+  const label = isObj(v) && typeof v.label === "string" ? v.label.trim() : "";
+  const href = isObj(v) ? safeHref(v.href) : undefined;
+  if (!label || !href) {
+    console.warn(`[nx-form] enlace descartado en "${key}" (${label ? "href inválido" : "sin label"}): ${JSON.stringify(v).slice(0, 80)}`);
+    return undefined;
+  }
+  return { label, href };
+}
+
 /** Un campo como llega → limpio, o `null` (con un aviso). En una fila no hay filas. */
 function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean): FieldDef | null {
   if (!isObj(f)) return null;
@@ -74,8 +92,10 @@ function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean)
   if (t !== undefined && (!FORM_TYPES.includes(t) || (nested && t === "rows"))) console.warn(`[nx-form] tipo ${nested && t === "rows" ? "rows dentro de una fila" : `desconocido "${String(t)}"`} en "${key}": se usa text`);
   const type: FormFieldType = FORM_TYPES.includes(t) && !(nested && t === "rows") ? t : "text";
   const options = (Array.isArray(f.options) ? f.options : []).map(optionOf).filter((o): o is FormOption => !!o);
-  const { fields: subs, ...rest } = f as unknown as FormField;
+  const { fields: subs, link: rawLink, ...rest } = f as unknown as FormField;
   const def: FieldDef = { ...rest, key, type, options, sec };
+  const link = cleanLink(rawLink, key, nested);
+  if (link) def.link = link;
   if (type === "rows") {
     const inner = new Set<string>();
     def.subs = (Array.isArray(subs) ? subs : []).map((x) => cleanField(x, inner, sec, true)).filter((x): x is FieldDef => !!x);

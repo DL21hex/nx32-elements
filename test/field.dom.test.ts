@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import "../src/components/field/index";
 import type { NxField } from "../src/components/field/index";
 
@@ -141,5 +141,51 @@ describe("<nx-field>", () => {
     f.labels = { optional: "Optional" };
     expect(f.querySelector(".nx-field__opt")!.textContent).toBe("Optional");
     expect(f.control).toBe(f.querySelector("input"));
+  });
+
+  it("link-label + link-href: un enlace debajo, después de la ayuda, en otra pestaña; también en lectura", async () => {
+    const f = await mount('<nx-field label="Soporte" hint="PDF o foto" link-label="Descargar formato" link-href="/assets/formato.pdf"><input type="file" name="soporte"></nx-field>');
+    const a = f.querySelector<HTMLAnchorElement>("a.nx-field__link")!;
+    expect(a.getAttribute("href")).toBe("/assets/formato.pdf");
+    expect(a.target).toBe("_blank");
+    expect(a.rel).toBe("noopener noreferrer");
+    expect(a.textContent).toBe("Descargar formato (se abre en otra pestaña)");
+    expect(a.querySelector(".nx-sr-only")!.textContent).toBe(" (se abre en otra pestaña)");
+    // Después de la ayuda, y no es el control del campo.
+    expect(f.lastElementChild).toBe(a);
+    expect(msg(f).compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(f.control).toBe(f.querySelector("input"));
+    // Con un error, el enlace sigue ahí.
+    f.error = "Falta el soporte";
+    expect(f.querySelector("a.nx-field__link")).toBe(a);
+    // En lectura, la ayuda se va y el enlace no.
+    f.text = "acta.pdf";
+    expect(msg(f).textContent).toBe("");
+    expect(f.querySelector("a.nx-field__link")).toBe(a);
+    // El texto del lector de pantalla se configura.
+    f.labels = { newTab: "(opens in a new tab)" };
+    expect(f.querySelector("a.nx-field__link")!.textContent).toBe("Descargar formato (opens in a new tab)");
+    f.linkHref = null;
+    expect(f.querySelector("a.nx-field__link")).toBeNull();
+  });
+
+  it("un enlace a medias o con un href inseguro no se pinta, y se avisa una vez", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const f = await mount('<nx-field label="X" link-label="Abrir" link-href="javascript:alert(1)"><input name="x"></nx-field>');
+    expect(f.querySelector("a")).toBeNull();
+    f.hint = "otra cosa";
+    expect(warn).toHaveBeenCalledTimes(1);
+    f.linkHref = "data:text/html,<b>x</b>";
+    expect(f.querySelector("a")).toBeNull();
+    f.linkLabel = null;
+    f.linkHref = "/a.pdf";
+    expect(f.querySelector("a")).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(4);
+    // El texto es texto, nunca HTML.
+    f.linkLabel = "<img src=x onerror=alert(1)>";
+    const a = f.querySelector("a.nx-field__link")!;
+    expect(a.querySelector("img")).toBeNull();
+    expect(a.textContent).toContain("<img src=x onerror=alert(1)>");
+    warn.mockRestore();
   });
 });

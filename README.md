@@ -52,7 +52,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-recurrence>` + núcleo (ESM); el intérprete de frases y los controles se cargan aparte | ≈ 9,4 KB |
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
-| `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 19,1 KB |
+| `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 20 KB |
 | `nx32-elements.css` (tokens + todos los componentes) | ≈ 70 KB |
 | `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 407 KB |
 
@@ -2598,6 +2598,15 @@ lo escrito no se pierde.
   se carga solo si el esquema los tiene), `date`, `select`, `radio`, `segmented` (radios como
   botones pegados), `checkbox`, `checkboxes`, `readonly` (un valor que no se edita aquí, con
   candado), `rows` y `file`. Nada es una función: todo puede venir del backend (BDUI).
+- **Un enlace bajo el campo (`link`).** `{label: "Descargar formato", href: "/formatos/descarte.pdf"}`:
+  un botón secundario pequeño después de la ayuda, en cualquier tipo de campo (también bajo un
+  `readonly` que trae la nota, o al pie de un grupo `rows`). **Siempre abre en otra pestaña**
+  (`target="_blank"`, `rel="noopener noreferrer"`): no se pierde lo escrito y el router de una SPA no
+  lo intercepta. Se ve también en lectura (la ayuda no) y se va con el campo cuando `when` lo oculta.
+  No es un dato: no sale en `values`, no se valida, no marca `dirty` ni va al borrador. El `href`
+  pasa por `safeHref` y sin `label` no hay enlace (se descarta con un aviso); el lector de pantalla
+  oye «Descargar formato (se abre en otra pestaña)» (`labels.newTab`). En un campo de una fila no se
+  pinta. No ejecuta acciones ni lleva `download`.
 - **Aparecer según otros campos (`when`).** `{tipoContrato: "Término fijo"}`, una lista (alguno
   de), `{not: …}` o `{filled: true}`, por clave. Lo oculto no se valida ni sale en `values`, y un
   campo que depende de uno oculto también se oculta.
@@ -2692,7 +2701,8 @@ o `nx-form-fill` y las devuelve con `fill({prueba: …})` en un campo `readonly`
 sin moverlo, y le pone la etiqueta (`<label for>`, o el nombre del grupo con `role="radiogroup"`),
 «Opcional», el chip de origen y una sola línea debajo (error, aviso con su botón o ayuda), con
 `aria-describedby`, `aria-invalid` y `required`. Lo que la persona cambia borra el error, el aviso y
-el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices`, `.nx-segmented` y
+el origen. Con `text`, se lee. Con `link-label` y `link-href`, un enlace al final (un formato para
+descargar), en otra pestaña y también en lectura. Las clases `.nx-input`, `.nx-check`, `.nx-choices`, `.nx-segmented` y
 `.nx-form-grid` (seis columnas, `span` en cada campo) sirven también sin el elemento.
 
 ```html
@@ -2709,8 +2719,8 @@ el origen. Con `text`, se lee. Las clases `.nx-input`, `.nx-check`, `.nx-choices
 | | |
 |---|---|
 | `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources`, `dirty` (lo que se ve difiere de lo último cargado con `values` o con un `fill()` sin origen; escribir y borrar vuelve a `false`), `markClean()` · `nx-form-change` `{key, value, values}`, `nx-form-dirty` `{dirty}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
-| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes)}` |
-| `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
+| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes), link? ({label, href}: un enlace debajo, en otra pestaña)}` |
+| `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `link-label` + `link-href` (un enlace debajo, en otra pestaña; también con `text`), `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |
 
 ## `<nx-page-header>`

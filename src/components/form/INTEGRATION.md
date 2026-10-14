@@ -5,7 +5,9 @@ con su control (montos y números con `<nx-number>`; listas largas, con `search`
 `<nx-select>`; los dos se cargan aparte, solo si el esquema los usa). Filas (`rows`), un archivo
 (`file`: el valor es el `File`, la app lo sube; `accept` y `maxSize` con la lógica de
 `<nx-doc-capture>`, `capture/logic.ts`; nunca en una fila ni en el borrador), condiciones
-(`when`), lo habitual de una opción (`fills`), llenar desde afuera con origen (`fill`, `undo`),
+(`when`), un enlace bajo el campo (`link`: `{label, href}`, botón secundario siempre en otra
+pestaña, también en lectura; no es un dato), lo habitual de una opción (`fills`), llenar desde
+afuera con origen (`fill`, `undo`),
 validación al salir o al enviar, avisos con arreglo, índice de secciones, pie con lo que falta,
 borrador en el navegador (`draft`) y lectura (`mode="read"`).
 
@@ -25,9 +27,16 @@ texto de lectura), `types.ts`, `form.css` (importa `field.css`), `index.ts`. Pru
 necesita al negocio lo calcula la app y lo devuelve con `fill()` y `hints`. Los textos del esquema
 van siempre como texto (nunca HTML).
 
+`link` llega tal cual en el JSON del campo (`{"link": {"label": "Descargar formato", "href":
+"/formatos/descarte.pdf"}}`). `cleanSections` lo limpia: el `href` pasa por `safeHref` y, sin
+`label` o con un `href` inseguro (`javascript:`, `data:`, vacío), el enlace se descarta con un aviso
+`[nx-form] enlace descartado…` (el campo sigue). En un campo de una fila tampoco se pinta: un enlace
+por fila sería ruido; el de un campo `rows` va al pie del grupo. El campo se lo pasa a su
+`<nx-field>` como `link-label`/`link-href`, y es `<nx-field>` quien lo pinta (`fieldLink`).
+
 ## Peso
 
 | Pieza | Tamaño (min + gzip) | Referencia |
 |---|---|---|
-| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>` y `<nx-select>` con `import()`) | 19,12 KB | 19,25 KB |
-| `dist/form.css` (con `field.css`) | 3,70 KB | 3,75 KB |
+| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>` y `<nx-select>` con `import()`) | 20,04 KB | 20,25 KB |
+| `dist/form.css` (con `field.css`) | 3,88 KB | 4 KB |

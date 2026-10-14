@@ -9,6 +9,8 @@ export interface FieldLabels {
   locked: string;
   /** Para el lector de pantalla, junto al chip de origen sin `source-detail`: «Dato de {source}». */
   source: string;
+  /** Para el lector de pantalla, tras el texto del enlace (`link-label`): «(se abre en otra pestaña)». */
+  newTab: string;
 }
 
 /** Cuántas de las seis columnas de `.nx-form-grid` ocupa el campo. */

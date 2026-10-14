@@ -79,6 +79,15 @@ export const INGRESO: FormSection[] = [
       { key: "eps", label: "EPS", type: "select", required: true, span: 2, options: ["Sura", "Sanitas", "Nueva EPS", "Salud Total", "Compensar", "Coosalud"] },
       { key: "afp", label: "Fondo de pensiones", type: "select", required: true, span: 2, options: ["Porvenir", "Protección", "Colfondos", "Skandia", "Colpensiones"] },
       { key: "cesantias", label: "Fondo de cesantías", type: "select", required: true, span: 2, options: ["Porvenir", "Protección", "Colfondos", "Skandia", "Fondo Nacional del Ahorro"] },
+      // Una nota con su enlace, solo para quien eligió esa EPS: el enlace abre en otra pestaña y no es un dato.
+      {
+        key: "formatoEps",
+        label: "Formato de Salud Total",
+        type: "readonly",
+        when: { eps: "Salud Total" },
+        value: "Si estás afiliado a Salud Total, descarga el formato de descarte, diligéncialo y anéxalo con los demás documentos.",
+        link: { label: "Descargar formato", href: "./formato-descarte.pdf" },
+      },
       { key: "arl", label: "ARL", type: "readonly", span: 3, value: "Sura · póliza de la empresa" },
       { key: "riesgo", label: "Clase de riesgo", type: "segmented", required: true, span: 3, options: ["I", "II", "III", "IV", "V"] },
     ],

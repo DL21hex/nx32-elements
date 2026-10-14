@@ -375,6 +375,9 @@ declare module "solid-js" {
       error: string | undefined;
       warning: string | undefined;
       "source-detail": string | undefined;
+      /** El enlace debajo de un `<nx-field>`: su texto y su dirección. */
+      "link-label": string | undefined;
+      "link-href": string | undefined;
       span: string | undefined;
       /** La dimensión de un `<nx-board-panel>`. */
       dimension: string | undefined;

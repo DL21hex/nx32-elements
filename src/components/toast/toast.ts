@@ -172,6 +172,8 @@ export class NxToaster extends Base {
     const region = urgent ? this.#urgent : this.#polite;
     if (!region || !text) return;
     setTimeout(() => {
+      // El aviso se fue (o la página se cerró) en esos 60 ms: no hay a quién anunciárselo.
+      if (!region.isConnected) return;
       const line = h("span", null, text);
       region.append(line);
       setTimeout(() => line.remove(), SAY_MS);

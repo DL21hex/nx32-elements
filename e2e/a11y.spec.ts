@@ -497,3 +497,14 @@ test("tabla en modo servidor cuyo primer bloque falla: aviso con «Reintentar»,
   await page.emulateMedia({ forcedColors: "active" });
   await audit(page, ["#e2e-fail", "#grid-demo"]);
 });
+
+test("adjudicación, con la recomendación y el detalle de un artículo repartido", async ({ page }) => {
+  await open(page, "#/award");
+  const el = page.locator("#award-demo");
+  await expect(el.locator('tr[data-item="A01"] td[data-rec]').first()).toBeVisible();
+  await expect(el).not.toHaveAttribute("data-busy", /.*/, { timeout: 15_000 });
+  await audit(page, ["#award-demo"]);
+  await el.locator('tr[data-item="A01"] th').click();
+  await expect(el.locator(".nx-award__detail")).toBeVisible();
+  await audit(page, ["#award-demo"]);
+});

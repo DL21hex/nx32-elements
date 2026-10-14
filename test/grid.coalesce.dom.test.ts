@@ -32,7 +32,16 @@ function server(total = 250) {
   const bodies: Body[] = [];
   const aborted: Body[] = [];
   let bare = 0;
+  let inflight = 0;
   const fetch = vi.fn(async (_url: string, init: RequestInit) => {
+    inflight++;
+    try {
+      return await answer(init);
+    } finally {
+      inflight--;
+    }
+  });
+  const answer = async (init: RequestInit) => {
     const q = JSON.parse(String(init.body)) as Body;
     bodies.push(q);
     if (!document.querySelector("nx-grid")?.columns.length) bare++;
@@ -45,9 +54,22 @@ function server(total = 250) {
     const f = (q.filters as { key: string; values: string[] }[]).find((x) => x.key === "prov");
     const rows = f ? all.filter((r) => f.values.includes(r.prov)) : all;
     return new Response(JSON.stringify({ rows: rows.slice(q.offset, q.offset + q.limit), total: rows.length }));
-  });
+  };
   vi.stubGlobal("fetch", fetch);
-  return { fetch, bodies, aborted, bare: () => bare, rows: () => bodies.filter((b) => !b.matrix), matrix: () => bodies.filter((b) => b.matrix) };
+  /** Espera al menos `ms` y, después, a que no quede ninguna petición en camino ni salga otra (una
+   *  espera fija sola fallaba con la máquina cargada: la segunda respuesta llegaba tarde). */
+  const settle = async (ms = 20) => {
+    await sleep(ms);
+    for (let i = 0; i < 500; i++) {
+      const n = bodies.length;
+      if (!inflight) {
+        await sleep(0);
+        await sleep(0);
+        if (!inflight && bodies.length === n) return;
+      } else await sleep(2);
+    }
+  };
+  return { fetch, bodies, aborted, settle, bare: () => bare, rows: () => bodies.filter((b) => !b.matrix), matrix: () => bodies.filter((b) => b.matrix) };
 }
 
 /** Como la conecta una app: el elemento entra al DOM con sus atributos y, en la misma tarea, recibe
@@ -74,7 +96,7 @@ describe("la primera carga es una sola petición", () => {
     await Promise.resolve();
     expect(s.fetch).toHaveBeenCalledTimes(1);
     expect(s.bodies[0]).toMatchObject({ offset: 0, limit: 100, sort: SORT, filters: FILTERS, search: "oc" });
-    await sleep(20);
+    await s.settle(20);
     expect(s.aborted).toEqual([]);
     // Después, la de `client-max` (el conjunto entero cabe): la que se esperaba, no una repetida.
     expect(s.rows().map((b) => b.limit)).toEqual([100, 5001]);
@@ -90,7 +112,7 @@ describe("la primera carga es una sola petición", () => {
     await Promise.resolve();
     expect(s.rows()).toHaveLength(2);
     expect(s.rows()[1]).toMatchObject({ filters: FILTERS });
-    await sleep(20);
+    await s.settle(20);
     expect(s.aborted).toEqual([s.rows()[0]]);
   });
 
@@ -99,10 +121,10 @@ describe("la primera carga es una sola petición", () => {
     const el = connect({ source: "/datos" });
     el.filters = FILTERS;
     el.remove();
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).not.toHaveBeenCalled();
     document.body.append(el);
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     expect(s.rows()[0]).toMatchObject({ offset: 0, filters: FILTERS });
     expect(el.querySelector('[data-r="0"] [data-c="0"]')!.textContent).toBe("OC-1");
@@ -113,7 +135,7 @@ describe("la primera carga es una sola petición", () => {
     const el = connect({ source: "/datos", "client-only": "", "client-max": "1000" });
     el.filters = FILTERS;
     el.sort = SORT;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toEqual([{ offset: 0, limit: 1001, sort: null, filters: [] }]);
     expect(el.mode).toBe("client");
     expect(el.count).toBe(20);
@@ -124,16 +146,16 @@ describe("refresh()", () => {
   it("pide una vez, también si se llama varias veces en la misma tarea", async () => {
     const s = server();
     const el = connect({ source: "/datos" });
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     el.refresh();
     await Promise.resolve();
     expect(s.rows()).toHaveLength(2);
-    await sleep(20);
+    await s.settle(20);
     el.refresh();
     el.refresh();
     el.refresh();
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(3);
     expect(s.aborted).toEqual([]);
   });
@@ -143,12 +165,12 @@ describe("al desplazarse", () => {
   it("los bloques que faltan se piden en el acto, sin volver a pedir el primero", async () => {
     const s = server(1000);
     const el = connect({ source: "/datos" });
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     const box = el.querySelector<HTMLElement>(".nx-grid__scroll")!;
     box.scrollTop = 32 * 450;
     box.dispatchEvent(new Event("scroll"));
-    await sleep(30);
+    await s.settle(30);
     const offsets = s.rows().map((b) => b.offset);
     expect(offsets[0]).toBe(0);
     expect(offsets.slice(1)).toContain(400);
@@ -163,7 +185,7 @@ describe("la matriz con `source`", () => {
     el.filters = FILTERS;
     el.search = "oc";
     expect(s.fetch).not.toHaveBeenCalled();
-    await sleep(20);
+    await s.settle(20);
     expect(s.matrix()).toHaveLength(1);
     expect(s.matrix()[0]).toMatchObject({ limit: 0, filters: FILTERS, search: "oc", matrix: { rows: "prov", cols: "estado" } });
     expect(s.aborted).toEqual([]);
@@ -181,7 +203,7 @@ describe("sin columnas no se pide nada", () => {
   it("la tabla del HTML del servidor espera sus columnas; con ellas, los filtros y el orden, una petición", async () => {
     const s = server();
     const el = ssr('source="/datos" client-max="5000" views-storage="nx-coalesce-ssr" facets-open segments');
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).not.toHaveBeenCalled();
     // Ni un «Cargando…» sin columnas que lo enmarquen.
     expect(el.querySelector(".nx-grid__empty.is-loading")).toBeNull();
@@ -189,7 +211,7 @@ describe("sin columnas no se pide nada", () => {
     el.columns = COLS;
     el.filters = FILTERS;
     el.sort = SORT;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()[0]).toEqual({ offset: 0, limit: 100, sort: SORT, filters: FILTERS });
     // Después, la de `client-max`: el conjunto cabe.
     expect(s.rows().map((b) => b.limit)).toEqual([100, 5001]);
@@ -204,12 +226,12 @@ describe("sin columnas no se pide nada", () => {
     // momento de mejorar el elemento.
     const s = server();
     const el = ssr('source="/datos"');
-    await sleep(20);
+    await s.settle(20);
     el.columns = COLS;
     await Promise.resolve();
     el.filters = FILTERS;
     el.sort = SORT;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(2);
     expect(s.rows()[1]).toMatchObject({ sort: SORT, filters: FILTERS });
     expect(s.bare()).toBe(0);
@@ -223,10 +245,10 @@ describe("sin columnas no se pide nada", () => {
     try {
       const s = server();
       const el = ssr(`source="/datos" views-storage="${KEY}"`);
-      await sleep(20);
+      await s.settle(20);
       expect(s.fetch).not.toHaveBeenCalled();
       el.columns = COLS;
-      await sleep(20);
+      await s.settle(20);
       expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: null, filters: FILTERS }]);
     } finally {
       localStorage.removeItem(KEY);
@@ -237,30 +259,30 @@ describe("sin columnas no se pide nada", () => {
     const s = server();
     const el = ssr('source="/datos"');
     el.refresh();
-    await sleep(20);
+    await s.settle(20);
     el.refresh();
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).not.toHaveBeenCalled();
     el.columns = COLS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     // Volver a asignar las mismas columnas (un repintado de la app) no vuelve a pedir.
     el.columns = COLS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
   });
 
   it("los filtros que cambian mientras faltan las columnas viajan cuando llegan", async () => {
     const s = server();
     const el = connect({ source: "/datos" });
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     el.columns = [];
     el.filters = FILTERS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     el.columns = COLS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toHaveLength(2);
     expect(s.rows()[1]).toMatchObject({ filters: FILTERS });
     expect(s.bare()).toBe(0);
@@ -271,30 +293,30 @@ describe("sin columnas no se pide nada", () => {
     const el = ssr("");
     el.columns = COLS;
     el.filters = FILTERS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).not.toHaveBeenCalled();
     el.source = "/datos";
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: null, filters: FILTERS }]);
   });
 
   it("client-only y la matriz tampoco piden sin columnas", async () => {
     const s = server(40);
     const only = ssr('source="/datos" client-only client-max="1000"');
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).not.toHaveBeenCalled();
     only.columns = COLS;
     only.filters = FILTERS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.rows()).toEqual([{ offset: 0, limit: 1001, sort: null, filters: [] }]);
     expect(only.count).toBe(20);
     s.bodies.length = 0;
     const mx = ssr(`source="/datos" matrix='{"rows":"prov","cols":"estado"}' layout="matrix"`);
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).toHaveBeenCalledTimes(1);
     mx.columns = COLS;
     mx.filters = FILTERS;
-    await sleep(20);
+    await s.settle(20);
     expect(s.matrix()).toHaveLength(1);
     expect(s.matrix()[0]).toMatchObject({ limit: 0, filters: FILTERS });
     expect(s.bare()).toBe(0);
@@ -335,7 +357,7 @@ describe("la vista predeterminada gana a los filtros de arranque", () => {
     el.sort = SORT;
     document.body.append(el);
     expect(el.activeView).toBe("a");
-    await sleep(30);
+    await s.settle(30);
     applied(el, s);
   });
 
@@ -349,7 +371,7 @@ describe("la vista predeterminada gana a los filtros de arranque", () => {
     // Todavía no se aplicó: `activeView` no la nombra.
     expect(el.activeView).toBeNull();
     expect(el.filters).toEqual(START);
-    await sleep(30);
+    await s.settle(30);
     applied(el, s);
   });
 
@@ -360,7 +382,7 @@ describe("la vista predeterminada gana a los filtros de arranque", () => {
     el.filters = START;
     el.sort = SORT;
     el.columns = COLS;
-    await sleep(30);
+    await s.settle(30);
     applied(el, s);
   });
 
@@ -368,13 +390,13 @@ describe("la vista predeterminada gana a los filtros de arranque", () => {
     save();
     const s = server();
     const el = ssr(`source="/datos" views-storage="${KEY}"`);
-    await sleep(20);
+    await s.settle(20);
     expect(s.fetch).not.toHaveBeenCalled();
     expect(el.activeView).toBeNull();
     el.columns = COLS;
     el.filters = START;
     el.sort = SORT;
-    await sleep(30);
+    await s.settle(30);
     applied(el, s);
   });
 
@@ -390,7 +412,7 @@ describe("la vista predeterminada gana a los filtros de arranque", () => {
       expect(el.activeView).toBe("a");
       el.filters = URL_FILTERS;
     });
-    await sleep(30);
+    await s.settle(30);
     expect(el.activeView).toBe("a");
     expect(el.filters).toEqual(URL_FILTERS);
     expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: VIEW_SORT, filters: URL_FILTERS }]);
@@ -403,7 +425,7 @@ describe("la vista predeterminada gana a los filtros de arranque", () => {
     const el = ssr(`source="/datos" views-storage="${KEY}"`);
     el.columns = COLS;
     expect(el.applyView("b")).toBe(true);
-    await sleep(30);
+    await s.settle(30);
     expect(el.activeView).toBe("b");
     expect(s.rows()).toEqual([{ offset: 0, limit: 100, sort: null, filters: START }]);
   });

@@ -74,6 +74,14 @@
   inválida en un reparto no se lee como «todo»; una cotización retirada devuelve el artículo a la
   sugerencia; `advice` acepta texto JSON también por propiedad. `key` incluye precios y total.
 
+- **`<nx-award>` en el navegador:** pruebas de Playwright (Chromium y Firefox) para el reparto a
+  mano, el foco que se queda en el campo de cantidad, el clic dentro del detalle, el teclado y el
+  doble clic al generar; y axe con el detalle abierto.
+- **`<nx-toast>`:** el anuncio para el lector de pantalla (60 ms después) ya no se intenta si el
+  aviso ya no está en la página (una prueba lo veía como error suelto al cerrarse).
+- **Pruebas:** `grid.coalesce` esperaba un tiempo fijo a dos respuestas y fallaba con la máquina
+  cargada; ahora espera a que no quede ninguna petición en camino.
+
 ### Migrar `<nx-award>` desde 0.20
 
 - `value` es una lista `[{item, supplier, qty?}]` (antes `{artículo: proveedor}`), y ahora también

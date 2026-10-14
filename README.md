@@ -23,7 +23,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-keytips>` + núcleo (ESM) | ≈ 4,5 KB |
 | `<nx-guard>` + núcleo (ESM) | ≈ 9,6 KB |
 | `<nx-handoff>` + QR + núcleo (ESM); el lado celular, ≈ 5 KB, se carga con `side="phone"` | ≈ 9,5 KB |
-| `<nx-award>` + núcleo (ESM) | ≈ 20,3 KB |
+| `<nx-award>` + núcleo (ESM) | ≈ 20,6 KB |
 | `<nx-account>` + núcleo (ESM), con «Ver como»; el panel, ≈ 3,2 KB, se carga aparte | ≈ 10,5 KB |
 | `<nx-launcher>` + núcleo (ESM) | ≈ 9,9 KB |
 | `<nx-timeline>` + festivos + núcleo (ESM) | ≈ 7,4 KB |

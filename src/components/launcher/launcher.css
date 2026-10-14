@@ -96,16 +96,21 @@ nx-launcher input {
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--nx-muted-foreground);
-  transition: opacity var(--nx-motion-base) var(--nx-ease-out);
+  transition: color var(--nx-motion-base) var(--nx-ease-out);
 }
 /* El punto y el filete del título son de la compacta. */
 .nx-launcher__dot,
 .nx-launcher__rule {
   display: none;
 }
-/* Una sección sin nada que coincida apaga también su título. */
+/* Una sección sin nada que coincida apaga también su título: con el color terciario (sigue
+   legible, 4,5:1), no con opacidad, que lo dejaba en 1,9:1. Lo decorativo sí se desvanece. */
 .nx-launcher__section.is-dim > .nx-launcher__heading {
-  opacity: 0.4;
+  color: var(--nx-text-tertiary);
+  & .nx-launcher__dot,
+  & .nx-launcher__rule {
+    opacity: 0.4;
+  }
 }
 
 /* Secciones que comparten fila (`pack`): una rejilla común, y cada sección toma sus columnas con
@@ -648,8 +653,10 @@ nx-launcher [data-accent="neutral"] {
 nx-launcher[density="compact"] {
   --_min: var(--nx-launcher-min, 190px);
 
+  /* Solo entre filas: las columnas de secciones que comparten fila (`pack`) usan el mismo `--_gap`
+     que las tarjetas, o el subgrid quedaba corrido y las tarjetas del medio, más anchas. */
   & .nx-launcher__nav {
-    gap: 28px;
+    row-gap: 28px;
   }
   & .nx-launcher__heading {
     display: flex;

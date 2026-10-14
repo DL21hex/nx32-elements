@@ -82,6 +82,17 @@
 - **Pruebas:** `grid.coalesce` esperaba un tiempo fijo a dos respuestas y fallaba con la máquina
   cargada; ahora espera a que no quede ninguna petición en camino.
 
+- **`<nx-launcher density="compact" pack>`: las tarjetas de secciones que comparten fila miden lo
+  mismo.** La separación compacta (28 px) pisaba también la de las columnas, que el subgrid comparte
+  con las tarjetas (`--nx-launcher-gap`): la rejilla interna quedaba corrida y las del medio salían
+  16 px más anchas. Ahora los 28 px son solo entre filas.
+- **`<nx-launcher>`: el título de una sección sin coincidencias se lee.** Al filtrar escribiendo se
+  atenuaba con opacidad (contraste 1,9:1); ahora pasa al color terciario (4,5:1) y solo el punto y
+  el filete se desvanecen.
+- **`<nx-sidemenu>`: el panel del flotante se recorre con el teclado.** Lo que se desplazaba era un
+  `div` sin nada enfocable (axe: `scrollable-region-focusable`); ahora se desplaza el `listbox` que
+  maneja el buscador, y las utilidades del pie quedan pegadas abajo (`sticky`), siempre a la vista.
+
 ### Migrar `<nx-award>` desde 0.20
 
 - `value` es una lista `[{item, supplier, qty?}]` (antes `{artículo: proveedor}`), y ahora también

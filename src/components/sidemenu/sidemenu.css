@@ -381,7 +381,9 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
   flex-direction: column;
   min-block-size: 0;
 }
-.nx-panel__scroll {
+/* El que se desplaza es el `listbox` (el buscador lo maneja con las flechas): una zona desplazable
+   sin nada enfocable adentro no se podía recorrer con el teclado (axe, scrollable-region-focusable). */
+.nx-panel__list {
   max-block-size: min(60vh, 440px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -473,6 +475,9 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
   }
 }
 .nx-panel__utils {
+  /* Pegadas abajo mientras la lista se desplaza: siempre a la vista, como antes. */
+  position: sticky;
+  inset-block-end: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -480,6 +485,7 @@ nx-sidemenu[collapsed]:not([collapsed="false"], [popover]) {
   margin-block-start: 6px;
   padding: 8px 4px 2px;
   border-block-start: 1px solid var(--nx-border-subtle);
+  background: var(--nx-card);
 }
 .nx-panel__chip {
   gap: 6px;
@@ -568,7 +574,7 @@ html:has(nx-sidemenu:popover-open) {
   flex-direction: column;
   min-block-size: 100%;
 
-  & .nx-panel__scroll {
+  & .nx-panel__list {
     max-block-size: none;
   }
 }

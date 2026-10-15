@@ -57,6 +57,7 @@ const registry = new Map<string, Entry>(
     Heatmap: "heatmap",
     Parts: "parts",
     Phases: "phases",
+    Flow: "flow",
     Alerts: "alerts",
     Insights: "insights",
     Actions: "actions",

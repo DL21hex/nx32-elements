@@ -60,6 +60,7 @@ const entries = {
   "heatmap": "src/components/heatmap/heatmap.css",
   "parts": "src/components/parts/parts.css",
   "phases": "src/components/phases/phases.css",
+  "flow": "src/components/flow/flow.css",
   "alerts": "src/components/alerts/alerts.css",
   "insights": "src/components/insights/insights.css",
   "actions": "src/components/actions/actions.css",

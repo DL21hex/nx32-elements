@@ -35,6 +35,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-heatmap>` + núcleo (ESM) | ≈ 6 KB |
 | `<nx-parts>` + núcleo (ESM) | ≈ 4,6 KB |
 | `<nx-phases>` + núcleo (ESM) | ≈ 5,4 KB |
+| `<nx-flow>` + núcleo (ESM) | ≈ 12,8 KB |
 | `<nx-alerts>` + núcleo (ESM) | ≈ 3,5 KB |
 | `<nx-insights>` + núcleo (ESM) | ≈ 3,3 KB |
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
@@ -909,7 +910,7 @@ lee lo que trae la fila, no `Object`.
 | | |
 |---|---|
 | Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `timeout` (ms; 30.000), `label` (el `aria-label` de la tabla; sin él, `heading`), `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
-| Métodos | `clearFilters()`, `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
+| Métodos | `clearFilters()`, `applyFilters(filtros)` (como si los pusiera la persona: emite `nx-grid-filter`; el setter `filters` no emite), `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns` (`{columns, hidden, widths}`: la persona cambió las columnas visibles o un ancho, o `removeColumn()`), `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-truncated` (`{shown, total}`: `client-only` recortó lo que mandó el origen), `nx-grid-layout` (`{layout, matrix}`) |
 
@@ -2321,6 +2322,71 @@ no filtran) y `period-dimension` (una barra o un punto filtran su periodo).
 | `<nx-alerts>` | `items` (`[{id, severity, title, text?, meta?, action?: {label, href?, newTab?, filter?}}]`), `sort` (`severity`, `none`), `limit` (6), `empty`, `labels` · `nx-alerts-action` `{item}` (cancelable) · `sortAlerts`, `severityOf` |
 | `<nx-insights>` | `items` (`[{id, text, tone?, icon?, action?}]`), `empty`, `labels` · `nx-insights-action` `{item}` (cancelable) · `emphasis` |
 | Núcleo de gráficos | `src/core/chart.ts` (interno, lo comparten los gráficos): `chartValue`, `shareText`, `niceTicks`, `slotOf`, `foldOthers`, `markAttrs`, `filterSpec`, `tipContent`, `ChartTip` |
+
+## `<nx-flow>`
+
+**El flujo del día, un punto por elemento.** Cada viaje (o caso, o pedido) es un punto que avanza
+por las etapas sobre un riel; el color dice cuánto lleva en su etapa contra el límite. Arriba, una
+frase dice dónde se atasca; abajo, la línea del día deja mirar cualquier hora o repetirlo entero.
+
+- **Un elemento está en la etapa más avanzada cuya hora ya pasó.** Las horas no tienen que venir en
+  orden ni completas (un hito que no se registró no detiene a nadie), así que la suma de las etapas
+  es siempre el total. La etapa `end` es la salida: sus puntos van en gris y no cuentan en la cola.
+- **El punto es siempre el mismo nodo.** Con datos nuevos (un refresco cada 45 s), los que cambiaron
+  de etapa viajan hasta la nueva (`transform`); los demás no se tocan. Los que más llevan van primero
+  (arriba a la izquierda). El tamaño del punto se ajusta a la etapa activa más llena; lo que no cabe
+  se cuenta como «+N».
+- **Color = tiempo en la etapa.** A tiempo, ámbar desde el 75 % del `limit` (o desde `warn`), rojo
+  pasado el límite. Un aviso propio del elemento (`flag`, «Inspección con un “No”») es un anillo rojo.
+- **Lo que importa, dicho.** La etapa (no final) con más elementos pasados del límite lleva «Se
+  acumula aquí» y la frase lo cuenta: «Se acumula en En finca: 54 viajes, 31 llevan más de 2 h. En la
+  última hora entraron 6 y salieron 6.» El riel dice cuántos salieron de cada etapa en la última hora
+  (por transición real: quien se salta un hito sale de la etapa donde estaba). Cada etapa dice su
+  mediana y el cambio frente a hace una hora.
+- **La línea del día.** La curva de la cola del día (calculada con un barrido, no un flujo por
+  muestra); arrastrarla o usar las flechas mueve los puntos a esa hora («Viendo las 09:40 · Volver a
+  ahora»), y «Repetir el día» la recorre en unos 20 s. Los datos nuevos no la interrumpen.
+- **Elegir.** Tocar una etapa la marca y emite `nx-flow-stage` (para filtrar la lista de al lado).
+  Tocar un punto muestra su franja (quién es, «Abrir», «Cerrar») y sus horas bajo cada etapa, en la
+  misma columna, con lo que tardó en cada una; emite `nx-flow-item`. «Abrir» va a `href` o emite
+  `nx-flow-open`. Escape lo suelta.
+- **Con un filtro de la app** (`highlight`, los `id` que pasan): los demás se atenúan y cada etapa
+  dice «12 de 54».
+- **En vivo sin depender del equipo.** `now` es la hora del servidor; el componente sigue el reloj
+  desde ahí (cada 30 s, apagado con la pestaña oculta). Con `end` en el pasado (otro día), se queda
+  en el fin del día y no dice «En vivo». Las horas se escriben en `time-zone`, y una ISO sin desfase
+  («2026-10-14T10:00») se lee en esa zona, no en la del equipo. Una hora antes de 2000 o después de
+  2200 (un 0 o un «0001-01-01» que significa «sin hora», o nanosegundos) no cuenta.
+- **Se puede mover el mismo elemento** a otro contenedor (una app que vuelve a montar la página en
+  cada refresco): los puntos, lo elegido, la hora que se mira y una repetición a medias siguen.
+- **Se lee sin verlo.** Cada etapa es un botón con su resumen («En finca: 54 viajes, 31 pasan del
+  límite de 2 h, mediana 2 h 25 min»); los puntos son una ayuda a la vista (`aria-hidden`), su lista
+  va en la app. Bajo 760 px de ancho las etapas se apilan y el riel baja por la izquierda.
+
+```html
+<nx-flow heading="Flujo del día" locale="es-CO" time-zone="America/Bogota"
+         now="2026-10-14T20:10:00Z" start="2026-10-14T05:00:00Z" end="2026-10-15T05:00:00Z"></nx-flow>
+<script type="module">
+  const flow = document.querySelector("nx-flow");
+  flow.labels = { item: "viaje|viajes", ended: "despachados hoy" };
+  flow.stages = [
+    { id: "ruta", label: "En ruta a finca", limit: 120 },
+    { id: "finca", label: "En finca, pend. insp. externa", limit: 120 },
+    { id: "puerto", label: "Despachado a puerto", end: true },
+  ];
+  flow.items = [{ id: 84113, label: "SZLU4012039", sub: "KMZ426 · Jair Elles", meta: "Agape · PIN",
+    times: { ruta: "2026-10-14T17:40:00Z", finca: "2026-10-14T19:48:00Z" } }];
+  flow.addEventListener("nx-flow-stage", (e) => filtrarLista(e.detail.stage));
+</script>
+```
+
+| | |
+|---|---|
+| Props | `stages` (`[{id, label, note?, limit?, warn?, end?}]`, minutos; `warn` sin `limit` solo pone ámbar), `items` (`[{id, label, sub?, meta?, flag? (texto o true), href?, times: {[etapa]: ISO o ms}}]`), `highlight` (`id[]` o `null`), `heading` (`""` lo quita), `heading-level` (2), `now`, `start`, `end`, `stage`, `selected`, `time-zone`, `locale`, `labels` (`FLOW_LABELS`; `item: "viaje\|viajes"`) |
+| Eventos | `nx-flow-stage` `{stage}` · `nx-flow-item` `{id, item}` · `nx-flow-open` `{id, item}` |
+| Métodos | `live()` (vuelve a la hora de ahora) · `at` (la hora que se mira, o `null`) |
+| Lógica sin DOM | `cleanStages`, `prepareItems`, `snapshot`, `stageAt`, `toneOf`, `bottleneck`, `queueCurve`, `dotScale`, `fmtDuration`, `hourTicks`, `flowStageOf` (la etapa de un elemento, para que la lista de al lado use el mismo criterio) |
+| CSS | `--nx-flow-ok` (punto a tiempo), `--nx-flow-done` (terminado), `--nx-flow-move` (duración del viaje) |
 
 ## `<nx-cards>`
 

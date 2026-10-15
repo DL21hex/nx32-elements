@@ -1,5 +1,34 @@
 # Registro de cambios
 
+## 0.24.0 — 2026-10-14
+
+- **`<nx-flow>` (nuevo): el flujo del día, un punto por elemento.** Para un tablero que vive
+  abierto (los viajes de contenedores de MSC: en ruta, en finca, inspecciones, cierre, patio,
+  puerto). `stages` en orden (`limit`/`warn` en minutos, `end` para la salida) e `items` con la hora
+  de cada etapa (`times`, ISO o milisegundos); el componente deduce el resto: en qué etapa va cada
+  uno (la más avanzada cuya hora ya pasó, aunque falten hitos), cuánto lleva, el color (ámbar desde
+  el 75 %, rojo pasado el límite), cuántos salieron y entraron en la última hora (por transición
+  real), la etapa que se atasca («Se acumula aquí» y una frase arriba), la mediana por etapa y la
+  curva de la cola. Cada punto es un nodo persistente que viaja con `transform` cuando cambia de
+  etapa: con un refresco cada 45 s solo se mueven y repintan los que cambiaron (las posiciones y
+  clases se escriben solo si cambian; una medida por pintado). La línea del día deja mirar otra
+  hora o «Repetir el día» (~20 s) sin que los datos nuevos lo interrumpan. `highlight` atenúa lo que
+  un filtro de la app deja fuera («12 de 54»); `stage` y `selected` con sus eventos
+  `nx-flow-stage`, `nx-flow-item` y `nx-flow-open`; la franja del elemento elegido pone sus horas
+  bajo cada etapa. `now` (hora del servidor) y un reloj de 30 s que se apaga con la pestaña oculta
+  o al desconectar; con `end` pasado, se queda en el fin del día. Se puede mover el mismo elemento
+  a otro contenedor sin perder lo elegido ni volver a crear los puntos. Con más de 1.500 puntos o
+  con «menos movimiento», se colocan sin animar. Una ISO sin desfase se lee en `time-zone`, y una
+  hora antes de 2000 o después de 2200 (un centinela de «sin hora») no cuenta. Revisado a fondo
+  antes de salir: una repetición cortada por un mover no queda congelada, la franja del elegido y
+  sus celdas no se rehacen si no cambian, con `highlight` los resaltados van primero si la etapa no
+  cabe, Escape no cierra el diálogo que lo contiene, las marcas de hora siguen el cambio de hora, y
+  las rayas del riel se mueven con `transform`. Bajo 760 px las etapas se apilan. BDUI `Flow`,
+  `<Flow>` en `nx32-elements/solid/flow`. ≈ 12,8 KB gzip con el núcleo.
+- **`<nx-grid>`: `applyFilters(filtros)`.** Pone los filtros como si los hubiera puesto la persona:
+  emite `nx-grid-filter`, así la app que los recuerda (o un `<nx-flow>` al lado, que atenúa lo que la
+  tabla deja fuera) se entera. El setter `filters` sigue sin emitir.
+
 ## 0.23.0 — 2026-10-14
 
 - **`<nx-form>`: un enlace bajo un campo (`link`).** `{"link": {"label": "Descargar formato",

@@ -49,6 +49,7 @@
 @import "../components/heatmap/heatmap.css";
 @import "../components/parts/parts.css";
 @import "../components/phases/phases.css";
+@import "../components/flow/flow.css";
 @import "../components/alerts/alerts.css";
 @import "../components/insights/insights.css";
 @import "../components/actions/actions.css";

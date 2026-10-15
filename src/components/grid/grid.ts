@@ -880,6 +880,15 @@ export class NxGrid extends Base {
     this.#mxDrill = null;
     this.#setFilters(validFilters(v), false);
   }
+  /**
+   * Pone los filtros como si los hubiera puesto la persona: emite `nx-grid-filter`, así la app que
+   * los recuerda (o un `<nx-flow>` al lado que sigue a la tabla) se entera. El setter `filters` no
+   * emite: es para quien ya sabe lo que asignó.
+   */
+  applyFilters(v: GridFilter[] | null | undefined): void {
+    this.#mxDrill = null;
+    this.#setFilters(validFilters(v), true);
+  }
   /** Buscar en la tabla, por palabras: quedan las filas en las que CADA palabra (separadas por
    *  espacios, en cualquier orden) aparece en alguna columna visible, sin tildes ni mayúsculas (con
    *  `accents="exact"`, con sus tildes): «jose martinez» encuentra «JOSE LUIS MARTINEZ». Se suma a

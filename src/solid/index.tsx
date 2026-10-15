@@ -61,6 +61,7 @@ export * from "./bars";
 export * from "./heatmap";
 export * from "./parts";
 export * from "./phases";
+export * from "./flow";
 export * from "./alerts";
 export * from "./insights";
 export * from "./actions";

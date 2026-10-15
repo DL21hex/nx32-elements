@@ -116,6 +116,8 @@ import type { HeatColumn, HeatmapLabels, HeatmapSelectDetail, HeatRow } from "..
 import type { NxParts } from "../components/parts/parts";
 import type { PartItem, PartsLabels, PartsSelectDetail } from "../components/parts/types";
 import type { NxPhases } from "../components/phases/phases";
+import type { NxFlow } from "../components/flow/flow";
+import type { FlowItem, FlowItemDetail, FlowLabels, FlowOpenDetail, FlowStage, FlowStageDetail } from "../components/flow/types";
 import type { Phase, PhasesLabels } from "../components/phases/types";
 import type { NxAlerts } from "../components/alerts/alerts";
 import type { AlertItem, AlertsActionDetail, AlertsLabels } from "../components/alerts/types";
@@ -172,7 +174,7 @@ declare module "solid-js" {
       outputs: WhatIfMetric[] | undefined;
       inputs: WhatIfInput[] | undefined;
       me: PresenceUser | ChecklistPerson | null | undefined;
-      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | null | undefined;
+      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | FlowItem[] | null | undefined;
       tabs: TabItem[] | null | undefined;
       /** `<nx-page-header>`: las cifras y los enlaces bajo el título. */
       kpis: PageHeaderKpi[] | null | undefined;
@@ -182,7 +184,7 @@ declare module "solid-js" {
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | undefined;
       schema: CaptureSchemaItem[] | undefined;
       suggestions: string[] | undefined;
       context: unknown;
@@ -209,6 +211,9 @@ declare module "solid-js" {
       filters: GridFilter[] | BoardFilters | undefined;
       dimensions: BoardDimension[] | undefined;
       phases: Phase[] | undefined;
+      /** `<nx-flow>`: las etapas y los `id` que siguen a un filtro. */
+      stages: FlowStage[] | undefined;
+      highlight: (string | number)[] | null | undefined;
       ticks: number[] | undefined;
       sort: GridSort | null | undefined;
       search: string | undefined;
@@ -324,6 +329,11 @@ declare module "solid-js" {
       filename: string | undefined;
       height: string | undefined;
       locale: string | undefined;
+      /** `<nx-flow>`: la hora del servidor, la etapa y el elemento elegidos, la zona horaria. */
+      now: string | undefined;
+      stage: string | undefined;
+      selected: string | undefined;
+      "time-zone": string | undefined;
       heading: string | undefined;
       /** El subtítulo de nx-page-header. */
       subheading: string | undefined;
@@ -494,6 +504,9 @@ declare module "solid-js" {
       "nx-bars-select": CustomEvent<BarsSelectDetail>;
       "nx-heatmap-select": CustomEvent<HeatmapSelectDetail>;
       "nx-parts-select": CustomEvent<PartsSelectDetail>;
+      "nx-flow-stage": CustomEvent<FlowStageDetail>;
+      "nx-flow-item": CustomEvent<FlowItemDetail>;
+      "nx-flow-open": CustomEvent<FlowOpenDetail>;
       "nx-alerts-action": CustomEvent<AlertsActionDetail>;
       "nx-insights-action": CustomEvent<InsightsActionDetail>;
       "nx-actions-action": CustomEvent<ActionsActionDetail>;
@@ -636,6 +649,7 @@ declare module "solid-js" {
       "nx-heatmap": HTMLAttributes<NxHeatmap>;
       "nx-parts": HTMLAttributes<NxParts>;
       "nx-phases": HTMLAttributes<NxPhases>;
+      "nx-flow": HTMLAttributes<NxFlow> & { heading?: string };
       "nx-alerts": HTMLAttributes<NxAlerts>;
       "nx-insights": HTMLAttributes<NxInsights>;
       "nx-actions": HTMLAttributes<NxActions>;

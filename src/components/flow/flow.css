@@ -1,0 +1,726 @@
+/* <nx-flow>: un punto por elemento sobre las etapas del día. Las etapas son columnas alineadas fila
+   por fila (subgrid); los puntos viven en una capa encima y viajan con `transform`. Bajo 760 px
+   las etapas se apilan y el riel baja por la izquierda. El tooltip es `.nx-chart-tip`. */
+nx-flow {
+  position: relative;
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.nx-flow__root {
+  --nx-flow-move: 900ms;
+  --nx-flow-ok: color-mix(in oklab, var(--nx-primary) 70%, var(--nx-card));
+  --nx-flow-done: var(--nx-border-strong);
+  container-type: inline-size;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
+}
+.nx-flow__root.is-playing {
+  --nx-flow-move: 300ms;
+}
+.nx-flow__root.is-scrubbing {
+  --nx-flow-move: 220ms;
+}
+
+/* ---------------------------------------------------------------- arriba: título, frase, totales */
+.nx-flow__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding: 14px 18px 12px;
+  border-block-end: 1px solid var(--nx-border-subtle);
+}
+.nx-flow__say {
+  flex: 1 1 380px;
+  min-inline-size: 0;
+}
+.nx-flow__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.nx-flow__heading {
+  margin: 0;
+  color: var(--nx-text-tertiary);
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nx-flow__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px 1px 7px;
+  border-radius: 999px;
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+  font-size: 12px;
+  font-weight: 600;
+  & > i {
+    inline-size: 7px;
+    block-size: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: nx-flow-pulse 2s ease-in-out infinite;
+  }
+  &.is-past {
+    background: var(--nx-warning-soft);
+    color: var(--nx-warning-ink);
+    & > i {
+      border-radius: 2px;
+      animation: none;
+    }
+  }
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-flow__back {
+  padding: 0 0 0 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  &[hidden] {
+    display: none;
+  }
+}
+@keyframes nx-flow-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.nx-flow__insight {
+  margin: 5px 0 0;
+  max-inline-size: 80ch;
+  color: var(--nx-muted-foreground);
+  font-size: 14.5px;
+  text-wrap: pretty;
+}
+.nx-flow__totals {
+  display: flex;
+  gap: 22px;
+}
+.nx-flow__total {
+  display: grid;
+  justify-items: end;
+  & > b {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  & > span {
+    color: var(--nx-text-tertiary);
+    font-size: 12px;
+  }
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- etapas */
+.nx-flow__stations {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--nx-flow-n, 8), minmax(0, 1fr));
+  grid-template-rows: repeat(6, auto);
+  padding: 16px 8px 10px;
+}
+.nx-flow__st {
+  position: relative;
+  display: grid;
+  grid-row: span 6;
+  grid-template-rows: subgrid;
+  align-content: start;
+  padding: 0 12px 12px;
+  border-radius: var(--nx-radius-md);
+  & > :not(.nx-flow__hit) {
+    position: relative;
+    pointer-events: none;
+  }
+  &:hover {
+    background: var(--nx-hover);
+  }
+  &.is-neck {
+    background: linear-gradient(to bottom, var(--nx-warning-soft), transparent 75%);
+  }
+  &.is-on {
+    background: var(--nx-primary-soft);
+  }
+}
+/* El botón cubre la etapa entera; lo que se ve va encima sin recibir el clic. */
+.nx-flow__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  cursor: pointer;
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: -2px;
+  }
+}
+.nx-flow__rail {
+  display: flex;
+  align-items: center;
+  block-size: 24px;
+  margin-inline: -12px;
+  padding-inline-start: 12px;
+}
+.nx-flow__node {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border: 1.5px solid var(--nx-border-strong);
+  border-radius: 50%;
+  background: var(--nx-card);
+  color: var(--nx-muted-foreground);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nx-flow__st.is-end .nx-flow__node {
+  border-radius: 6px;
+}
+.nx-flow__st.is-on .nx-flow__node {
+  border-color: var(--nx-foreground);
+  background: var(--nx-foreground);
+  color: var(--nx-card);
+}
+.nx-flow__line {
+  position: relative;
+  flex: 1;
+  block-size: 2px;
+  margin-inline-start: 6px;
+  background: var(--nx-border);
+}
+/* Las rayas que corren: una tira más larga que la línea que se desplaza con `transform` (se
+   compone en la GPU; animar `background-position` repintaría la línea todo el día). */
+.nx-flow__dash {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 -22px;
+    background: repeating-linear-gradient(90deg, color-mix(in oklab, var(--nx-primary) 60%, transparent) 0 6px, transparent 6px 11px);
+    opacity: 0;
+  }
+}
+.nx-flow__line.is-flowing {
+  background: none;
+  & .nx-flow__dash::before {
+    opacity: 1;
+    animation: nx-flow-run var(--nx-flow-speed, 2s) linear infinite;
+  }
+}
+@keyframes nx-flow-run {
+  to {
+    transform: translateX(22px);
+  }
+}
+.nx-flow__rate {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-card);
+  color: var(--nx-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.nx-flow__label-box {
+  margin-block-start: 10px;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.nx-flow__st.is-on .nx-flow__label-box {
+  color: var(--nx-foreground);
+}
+.nx-flow__num {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin-block-start: 6px;
+  & > b {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  & > b.is-zero {
+    color: var(--nx-text-tertiary);
+    font-weight: 500;
+  }
+}
+.nx-flow__of,
+.nx-flow__delta {
+  color: var(--nx-text-tertiary);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.nx-flow__meta-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-block-size: 1.45em;
+  margin-block-start: 3px;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+}
+.nx-flow__tag {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning-ink);
+  font-size: 11px;
+  font-weight: 650;
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-flow__well {
+  display: block;
+  margin-block-start: 12px;
+}
+.nx-flow__more {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: -16px;
+  color: var(--nx-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  &[hidden] {
+    display: none;
+  }
+}
+
+/* El elemento elegido: sus horas bajo cada etapa, en la misma columna. */
+.nx-flow__cell {
+  margin-block-start: 12px;
+  padding-block-start: 8px;
+  border-block-start: 1px dashed var(--nx-border-strong);
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  & > b {
+    display: block;
+    color: var(--nx-foreground);
+    font-size: 13px;
+    font-weight: 650;
+  }
+  &.is-now > b {
+    color: var(--nx-primary-ink);
+  }
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-flow__spent.is-near {
+  color: var(--nx-warning-ink);
+  font-weight: 600;
+}
+.nx-flow__spent.is-over {
+  color: var(--nx-danger);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- los puntos */
+.nx-flow__dots {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.nx-flow__dot {
+  position: absolute;
+  inset: 0 auto auto 0;
+  inline-size: var(--nx-flow-dot, 9px);
+  block-size: var(--nx-flow-dot, 9px);
+  border-radius: 50%;
+  background: var(--nx-flow-ok);
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    transform var(--nx-flow-move) cubic-bezier(0.55, 0, 0.25, 1),
+    background-color 400ms,
+    opacity 400ms,
+    box-shadow 200ms,
+    inline-size 300ms,
+    block-size 300ms;
+  /* Un área de toque más grande que el punto. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+  }
+  &.is-near {
+    background: var(--nx-warning);
+  }
+  &.is-over {
+    background: var(--nx-danger);
+  }
+  &.is-done {
+    background: var(--nx-flow-done);
+  }
+  &.is-flag {
+    box-shadow: 0 0 0 1.5px var(--nx-card), 0 0 0 3px var(--nx-danger);
+  }
+  &.is-ghost,
+  &.is-over-cap {
+    opacity: 0;
+    pointer-events: none;
+  }
+  &.is-dim {
+    opacity: 0.16;
+  }
+  &.is-focus {
+    box-shadow: 0 0 0 2px var(--nx-card), 0 0 0 4px var(--nx-foreground);
+    z-index: 2;
+  }
+  &.is-sel {
+    box-shadow: 0 0 0 2px var(--nx-card), 0 0 0 4px var(--nx-primary);
+    z-index: 3;
+  }
+  &:hover {
+    box-shadow: 0 0 0 2px var(--nx-card), 0 0 0 3.5px var(--nx-foreground);
+    z-index: 4;
+  }
+}
+.nx-flow__root.is-instant .nx-flow__dot,
+.nx-flow__root.is-crowded .nx-flow__dot {
+  transition: background-color 200ms, opacity 200ms;
+}
+
+/* ---------------------------------------------------------------- el elemento elegido */
+.nx-flow__trip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0 16px 6px;
+  padding: 8px 12px;
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-primary-soft);
+  font-size: 13px;
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-flow__trip-label {
+  font-family: var(--nx-font-mono);
+  font-weight: 700;
+}
+.nx-flow__trip-meta,
+.nx-flow__trip-stage {
+  color: var(--nx-muted-foreground);
+}
+.nx-flow__trip-flag {
+  color: var(--nx-danger);
+  font-weight: 600;
+}
+.nx-flow__trip-actions {
+  display: flex;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+.nx-flow__open,
+.nx-flow__close {
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: none;
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  &:hover {
+    background: var(--nx-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 1px;
+  }
+}
+
+/* ---------------------------------------------------------------- la línea del día */
+.nx-flow__time {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px 22px;
+  border-block-start: 1px solid var(--nx-border-subtle);
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-flow__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 10px;
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 999px;
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  &::before {
+    content: "";
+    inline-size: 0;
+    block-size: 0;
+    border-block: 5px solid transparent;
+    border-inline-start: 8px solid currentColor;
+  }
+  &.is-playing::before {
+    inline-size: 3px;
+    block-size: 10px;
+    border: 0;
+    border-inline: 3px solid currentColor;
+    box-sizing: content-box;
+  }
+  &:hover {
+    background: var(--nx-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 2px;
+  }
+}
+.nx-flow__scrub {
+  position: relative;
+  block-size: 40px;
+}
+.nx-flow__curve {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.nx-flow__area {
+  fill: var(--nx-primary-soft);
+}
+.nx-flow__stroke {
+  fill: none;
+  stroke: var(--nx-primary);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.nx-flow__cursor {
+  position: absolute;
+  inset-block: -3px;
+  inline-size: 2px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--nx-foreground);
+  pointer-events: none;
+}
+.nx-flow__range {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+.nx-flow__scrub:has(.nx-flow__range:focus-visible) {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.nx-flow__hours {
+  position: absolute;
+  inset: auto 0 -16px;
+  block-size: 12px;
+  color: var(--nx-text-tertiary);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  & > span {
+    position: absolute;
+    transform: translateX(-50%);
+  }
+}
+.nx-flow__clock {
+  display: grid;
+  justify-items: end;
+  line-height: 1.15;
+  & > b {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  & > span {
+    color: var(--nx-text-tertiary);
+    font-size: 11.5px;
+  }
+}
+.nx-flow__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 0 18px 14px;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+}
+.nx-flow__sw {
+  display: inline-block;
+  inline-size: 9px;
+  block-size: 9px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  vertical-align: -0.5px;
+  background: var(--nx-flow-ok);
+  &.is-near {
+    background: var(--nx-warning);
+  }
+  &.is-over {
+    background: var(--nx-danger);
+  }
+  &.is-done {
+    background: var(--nx-flow-done);
+  }
+  &.is-flag {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--nx-danger);
+  }
+}
+.nx-flow__empty {
+  margin: 0;
+  padding: 18px;
+  color: var(--nx-muted-foreground);
+  &[hidden] {
+    display: none;
+  }
+}
+.nx-flow__root.is-empty > :not(.nx-flow__empty) {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- angosto: las etapas se apilan */
+@container (max-width: 760px) {
+  .nx-flow__stations {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    padding: 10px 6px 6px;
+  }
+  .nx-flow__st {
+    grid-row: auto;
+    grid-template-rows: none;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    column-gap: 12px;
+    padding: 8px 10px 10px;
+  }
+  .nx-flow__rail {
+    grid-row: 1 / span 5;
+    grid-column: 1;
+    flex-direction: column;
+    align-self: stretch;
+    block-size: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .nx-flow__line {
+    flex: 1;
+    inline-size: 2px;
+    block-size: auto;
+    min-block-size: 20px;
+    margin: 6px 0 -10px;
+  }
+  .nx-flow__dash::before {
+    inset: -22px 0 0;
+    background: repeating-linear-gradient(180deg, color-mix(in oklab, var(--nx-primary) 60%, transparent) 0 6px, transparent 6px 11px);
+  }
+  .nx-flow__line.is-flowing .nx-flow__dash::before {
+    animation-name: nx-flow-run-down;
+  }
+  .nx-flow__rate {
+    inset-block: auto 4px;
+    inset-inline-start: 6px;
+    transform: none;
+  }
+  .nx-flow__label-box {
+    grid-column: 2;
+    margin-block-start: 2px;
+  }
+  .nx-flow__num {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    justify-content: end;
+    margin-block-start: 0;
+  }
+  .nx-flow__meta-box,
+  .nx-flow__well,
+  .nx-flow__cell {
+    grid-column: 2 / span 2;
+  }
+  .nx-flow__well {
+    margin-block-start: 8px;
+  }
+  .nx-flow__time {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .nx-flow__clock {
+    display: none;
+  }
+  .nx-flow__totals {
+    gap: 16px;
+  }
+}
+@keyframes nx-flow-run-down {
+  to {
+    transform: translateY(22px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-flow__dot {
+    transition: background-color 200ms, opacity 200ms;
+  }
+  .nx-flow__line.is-flowing .nx-flow__dash::before,
+  .nx-flow__live > i {
+    animation: none;
+  }
+}

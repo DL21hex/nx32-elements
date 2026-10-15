@@ -2762,6 +2762,26 @@ app.post("/encuestas/clima", async (req, res) =&gt; {
         </template>
 
         <!-- ================================================================ Inicio del empleado -->
+        <template id="page-flow">
+          <p class="eyebrow">Componentes</p>
+          <h1>Flujo del día <code class="tag">&lt;nx-flow&gt;</code></h1>
+          <p class="lead">
+            Un punto por viaje sobre las etapas del día. El color dice cuánto lleva en su etapa contra el límite (ámbar desde el
+            75 %, rojo pasado). La etapa que se atasca lo dice arriba. El reloj de la demo corre un minuto cada 3 s y llegan datos
+            nuevos: los puntos que cambian de etapa viajan. Arrastra la línea del día o usa «Repetir el día»; toca una etapa o un
+            punto. 120 viajes inventados del 14 de octubre de 2026.
+          </p>
+          <label class="sel-tip" for="flow-q">Buscar (atenúa con <code>highlight</code>): <input id="flow-q" type="search" placeholder="contenedor, placa, conductor, finca…"></label>
+          <nx-flow id="flow-demo" locale="es-CO" time-zone="America/Bogota"></nx-flow>
+          <ol class="stage__log btn-events" id="flow-log"></ol>
+
+          <h2>Uso</h2>
+          <pre><code>&lt;nx-flow heading="Flujo del día" now="2026-10-14T20:10:00Z" start="2026-10-14T05:00:00Z" end="2026-10-15T05:00:00Z"
+         time-zone="America/Bogota" locale="es-CO"&gt;&lt;/nx-flow&gt;
+flow.stages = [{ id: "ruta", label: "En ruta a finca", limit: 120 }, …, { id: "puerto", label: "Despachado a puerto", end: true }];
+flow.items = [{ id: 84113, label: "SZLU4012039", sub: "KMZ426 · Jair Elles", times: { ruta: "2026-10-14T17:40:00Z", finca: … } }];
+flow.addEventListener("nx-flow-stage", (e) =&gt; filtrarLista(e.detail.stage));</code></pre>
+        </template>
         <template id="page-board">
           <p class="eyebrow">Componentes</p>
           <h1>Tablero BI <code class="tag">&lt;nx-board&gt;</code> <code class="tag">&lt;nx-bars&gt;</code> <code class="tag">&lt;nx-heatmap&gt;</code></h1>

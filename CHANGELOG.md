@@ -1,5 +1,32 @@
 # Registro de cambios
 
+## 0.25.0 — 2026-10-19
+
+- **`<nx-tasks>` (nuevo): lo que tengo que hacer, para cualquier empleado y en el celular.** Una
+  tarea se anota en una línea («Llamar a Laura mañana, urgente»), se cierra con un toque y se
+  deshace. Mientras se escribe, «Entendí:» dice el título, para quién, la fecha y si es urgente, y
+  cada parte se quita con su ×; las fechas las lee el lector de `<nx-intent>` y `@` abre la lista de
+  personas de `people-source` (la de `<nx-thread>`); «para Laura» cuenta solo con una Laura. Con
+  `voice`, un botón de `<nx-voice>` escribe en el campo. Las tareas van por fecha («Vencidas», «Hoy»,
+  «Próximos días», «Más adelante», «Sin fecha»; las urgentes primero, el rojo solo para lo
+  vencido) y, debajo, lo que otros módulos esperan (`links`, con su acción) y lo que se pidió a
+  otros (`requests`, con su avance y quién falta). Nada espera al servidor, como `<nx-kanban>`: cada
+  cambio se ve al instante con «Deshacer» durante `undo` ms (también <kbd>Ctrl</kbd>+<kbd>Z</kbd>), y
+  solo al terminar —o al salir del DOM o cerrarse la página— sale `nx-tasks-commit`; la app contesta
+  `settle(key, {id, href} | {error})`. Marcar una tarea que todavía se crea espera a su creación, y
+  lo que la app vuelve a mandar no borra lo pendiente ni lo escrito. `nx-tasks-open` y
+  `nx-tasks-options` (cancelables) dejan a la app navegar con su router o abrir su formulario. BDUI
+  `Tasks`, `<Tasks>` en `nx32-elements/solid/tasks`. ≈ 13,8 KB gzip con el núcleo; la lista del `@`
+  (≈ 15,9 KB con el chunk de tasks) y el dictado se cargan al usarlos.
+- **`<nx-intent>`: `findDateSpan(texto, hoy)`.** La fecha que lee `findDate` y dónde está en el
+  texto, para quien tiene que quitarla (el título de una tarea). `findDate` es la misma función sin
+  el lugar: lee igual.
+- **`<nx-voice>`: `layout="button"`.** Solo el botón, con el estado en su `title`, para quien
+  muestra lo que se oye a su manera (`nx-voice-partial`, `nx-voice-error`).
+- **`<nx-thread>`: la lista de sugerencias sirve también a un `<input>`.** La usa el `@` de
+  `<nx-tasks>` con sus propias clases; la tarjeta de registros entra al DOM la primera vez que se
+  muestra.
+
 ## 0.24.0 — 2026-10-14
 
 - **`<nx-flow>` (nuevo): el flujo del día, un punto por elemento.** Para un tablero que vive

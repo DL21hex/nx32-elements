@@ -60,6 +60,7 @@ export default defineConfig(({ command, mode }) => {
           "jobs": "src/components/jobs/index.ts",
           "recurrence": "src/components/recurrence/index.ts",
           "checklist": "src/components/checklist/index.ts",
+          "tasks": "src/components/tasks/index.ts",
           "thread": "src/components/thread/index.ts",
           "voice": "src/components/voice/index.ts",
           "review": "src/components/review/index.ts",

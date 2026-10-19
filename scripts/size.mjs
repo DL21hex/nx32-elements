@@ -111,6 +111,9 @@ const BUDGET = [
   ["dist/jobs.js", 9.25 * 1024, "jobs + núcleo (ESM; el panel y nxToast con import())"],
   // El chunk del panel importa el de jobs (ya cargado en la página): se mide todo lo que baja la página.
   [lazy("jobs-panel"), 11.25 * 1024, "nx-jobs con su panel (se trae al apuntar a la píldora o al abrirla)"],
+  ["dist/tasks.js", 14 * 1024, "tasks + núcleo (ESM; la lista de personas y el dictado con import())"],
+  // El chunk de la lista importa el de tasks (ya cargado en la página): se mide todo lo que baja la página.
+  [lazy("tasks-pick"), 16.25 * 1024, "nx-tasks con su lista de personas del @ (al entrar al campo con people-source)"],
   ["dist/bdui.js", 2.5 * 1024, "adaptador BDUI (el registro crece con cada componente)"],
   ["dist/solid/index.jsx", 0.75 * 1024, "adaptador Solid, índice (solo reexporta los de cada componente)"],
   ["dist/solid/grid.jsx", 1 * 1024, "adaptador Solid de grid (JSX; importa el componente de dist/, no lo copia)"],
@@ -180,6 +183,7 @@ const BUDGET = [
   ["dist/checklist.css", 3 * 1024, "checklist (CSS)"],
   ["dist/recurrence.css", 1.5 * 1024, "recurrence (CSS)"],
   ["dist/jobs.css", 2.25 * 1024, "jobs (CSS)"],
+  ["dist/tasks.css", 3.25 * 1024, "tasks (CSS)"],
   ["dist/nx32-elements.css", null, "todo el CSS (informativo)"],
   ["dist/nx32-elements.iife.js", null, "todo-en-uno + íconos (informativo)"],
   ["dist/icons/lucide.js", null, "catálogo Lucide completo (informativo: la app se queda con los que importa)"],

@@ -106,6 +106,8 @@ import type { NxRecurrence } from "../components/recurrence/recurrence";
 import type { RecurrenceChangeDetail, RecurrenceErrorDetail, RecurrenceHolidayMode, RecurrenceLabels, RecurrenceRule, RecurrenceValue, RecurrenceValueFormat } from "../components/recurrence/types";
 import type { NxJobs } from "../components/jobs/jobs";
 import type { Job, JobEvent, JobResult, JobSpec, JobStatus, JobsErrorDetail, JobsLabels } from "../components/jobs/types";
+import type { NxTasks } from "../components/tasks/tasks";
+import type { TaskItem, TaskLink, TaskRequest, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksOptionsDetail, TasksUndoDetail } from "../components/tasks/types";
 import type { NxBoard } from "../components/board/board";
 import type { NxBoardPanel } from "../components/board/panel";
 import type { BoardChangeDetail, BoardDimension, BoardFilters, BoardLabels } from "../components/board/types";
@@ -174,17 +176,19 @@ declare module "solid-js" {
       outputs: WhatIfMetric[] | undefined;
       inputs: WhatIfInput[] | undefined;
       me: PresenceUser | ChecklistPerson | null | undefined;
-      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | FlowItem[] | null | undefined;
+      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | FlowItem[] | TaskItem[] | null | undefined;
       tabs: TabItem[] | null | undefined;
       /** `<nx-page-header>`: las cifras y los enlaces bajo el título. */
       kpis: PageHeaderKpi[] | null | undefined;
-      links: PageHeaderLink[] | null | undefined;
+      links: PageHeaderLink[] | TaskLink[] | null | undefined;
+      /** `<nx-tasks>`: lo que se pidió a otros. */
+      requests: TaskRequest[] | null | undefined;
       units: OrgUnit[] | null | undefined;
       people: OrgPerson[] | null | undefined;
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | Partial<TasksLabels> | undefined;
       schema: CaptureSchemaItem[] | undefined;
       suggestions: string[] | undefined;
       context: unknown;
@@ -250,6 +254,10 @@ declare module "solid-js" {
       poll: string | undefined;
       presence: string | undefined;
       "people-source": string | undefined;
+      /** `<nx-tasks>`: «Más opciones» y el enlace del pie. */
+      "options-href": string | undefined;
+      "more-href": string | undefined;
+      "more-label": string | undefined;
       "refs-source": string | undefined;
       engine: VoiceEngine | undefined;
       "max-seconds": string | undefined;
@@ -460,8 +468,14 @@ declare module "solid-js" {
       "no-group": boolean;
       "client-only": boolean;
       loading: boolean;
+      /** `<nx-tasks voice>`: el botón de dictado. */
+      voice: boolean;
     }
     interface CustomEvents {
+      "nx-tasks-commit": CustomEvent<TasksCommitDetail>;
+      "nx-tasks-undo": CustomEvent<TasksUndoDetail>;
+      "nx-tasks-open": CustomEvent<TasksOpenDetail>;
+      "nx-tasks-options": CustomEvent<TasksOptionsDetail>;
       "nx-jobs-change": CustomEvent<{ jobs: Job[] }>;
       "nx-jobs-done": CustomEvent<{ job: Job }>;
       "nx-jobs-error": CustomEvent<JobsErrorDetail>;
@@ -618,6 +632,7 @@ declare module "solid-js" {
       "nx-form-cancel": CustomEvent<Record<string, never>>;
     }
     interface IntrinsicElements {
+      "nx-tasks": HTMLAttributes<NxTasks>;
       "nx-jobs": HTMLAttributes<NxJobs>;
       "nx-recurrence": HTMLAttributes<NxRecurrence>;
       "nx-checklist": HTMLAttributes<NxChecklist>;

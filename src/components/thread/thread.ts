@@ -791,7 +791,9 @@ export class NxThread extends Base {
           patterns: () => this.#patterns,
           source: (k) => (k === "mention" ? this.peopleSource : this.refsSource),
           avatar: (u) => this.#avatar(u),
-          picked: (ta, p) => {
+          picked: (box, p) => {
+            // Las cajas del hilo son siempre `<textarea>` (el redactor y la edición en su lugar).
+            const ta = box as HTMLTextAreaElement;
             const picks = ta === this.#ta ? this.#picks : this.#editPicks;
             if (!picks.some((x) => x.token === p.token)) picks.push(p);
             if (ta === this.#ta) this.#saveDraft();

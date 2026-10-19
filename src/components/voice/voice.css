@@ -29,6 +29,13 @@ nx-voice {
   align-items: center;
   gap: 12px;
 }
+/* Solo el botón: quien lo pone muestra lo que se oye (nx-voice-partial) a su manera. */
+nx-voice[layout="button"] {
+  display: inline-block;
+  & .nx-voice__body {
+    display: none;
+  }
+}
 nx-voice[layout="stacked"] .nx-voice__row {
   flex-direction: column;
   align-items: flex-start;

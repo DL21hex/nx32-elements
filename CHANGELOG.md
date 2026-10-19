@@ -1,5 +1,26 @@
 # Registro de cambios
 
+## 0.26.0 — 2026-10-19
+
+- **`<nx-grid>`: en el celular, una lista (`narrow`).** Cuando el componente mide menos de 480 px,
+  cada fila se pinta como un renglón de dos líneas: el título arriba (con su círculo si la columna
+  lleva `avatar`), dos datos debajo separados por «·», y a la derecha un estado o un monto y, debajo,
+  un dato con su punto. El renglón mide 60 px fijos: la virtualización es la misma y se pintan menos
+  nodos que en la tabla (cinco datos por fila, no todas las columnas). Cada columna dice su lugar con
+  `list` (`"title"`, `"meta"` —hasta dos—, `"end"`, `"end-meta"`); si ninguna lo trae, la tabla
+  elige: la columna fija, la del avatar o la del enlace como título, el primer estado y el primer
+  punto a la derecha, y las dos primeras columnas de texto debajo. Un toque abre la fila
+  (`nx-grid-open`; con `href`, el renglón es el enlace); con `selectable`, el círculo es la casilla
+  y, con algo marcado, tocar una fila la marca. Sin cabecera, la barra trae «Ordenar por» y la flecha
+  del sentido; los grupos son renglones con sus subtotales que se pliegan al tocarlos, y las acciones
+  de fila van al final del renglón. La lista no edita, no marca rangos ni pega (lo que se editaba en
+  la tabla se guarda al pasar a lista) y no muestra Deshacer ni Rehacer. Teclado: flechas, Re Pág/Av
+  Pág, Inicio y Fin; Enter abre, Espacio marca. Vuelve a ser tabla desde 496 px (el margen evita que
+  cambie una y otra vez en el borde) y la fila de arriba sigue arriba al cambiar. `narrow="table"`
+  la deja como tabla, para las que se llenan celda por celda; `data-list` en el componente dice cuál
+  se ve. La tabla de escritorio no cambia. Etiquetas nuevas `sortBy`, `noSort`, `sortAsc` y
+  `sortDesc`; tipos `GridNarrow` y `GridListSlot`. ≈ 1,8 KB gzip más de JS y 0,5 KB de CSS.
+
 ## 0.25.0 — 2026-10-19
 
 - **`<nx-tasks>` (nuevo): lo que tengo que hacer, para cualquier empleado y en el celular.** Una

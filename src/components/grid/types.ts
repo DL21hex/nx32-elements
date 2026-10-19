@@ -86,7 +86,19 @@ export interface GridColumn {
   /** `timeline`: las horas que abarca la línea, `["04:00", "23:00"]` por defecto. Lo que cae
    *  fuera queda en el borde. */
   hours?: [string, string];
+  /** En la lista (`narrow`, cuando la tabla mide menos de 480 px), el lugar de la columna en su
+   *  renglón: `title` (arriba, el nombre), `meta` (debajo, hasta dos, separadas por «·»), `end`
+   *  (arriba a la derecha: un estado, un monto) o `end-meta` (debajo a la derecha). Si ninguna
+   *  columna lo trae, la tabla elige (ver `narrow`); si alguna lo trae, solo van esas. */
+  list?: GridListSlot;
 }
+
+/** El lugar de una columna en el renglón de la lista (`GridColumn.list`). */
+export type GridListSlot = "title" | "meta" | "end" | "end-meta";
+
+/** Qué hace la tabla cuando mide menos de 480 px: se pinta como lista (`list`, por omisión) o
+ *  sigue siendo tabla (`table`: para las que se llenan celda por celda). */
+export type GridNarrow = "list" | "table";
 
 /** Una acción de fila: un botón (o un enlace) en la columna de acciones, fija a la derecha. */
 export interface GridAction {
@@ -143,6 +155,13 @@ export interface GridLabels {
   filters: string;
   groupBy: string;
   noGroup: string;
+  /** En la lista (sin cabecera): el selector del orden, «Ordenar por {col}». */
+  sortBy: string;
+  /** La primera opción del selector del orden: las filas como llegan. */
+  noSort: string;
+  /** El botón del sentido del orden. */
+  sortAsc: string;
+  sortDesc: string;
   export: string;
   exporting: string;
   exported: string;

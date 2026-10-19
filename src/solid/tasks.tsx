@@ -3,9 +3,9 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/tasks/index";
 import type { NxTasks } from "../components/tasks/tasks";
-import type { TaskDraft, TaskItem, TaskLink, TaskRequest, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksOptionsDetail, TasksPerson, TasksSettleResult, TasksUndoDetail } from "../components/tasks/types";
+import type { TaskDraft, TaskItem, TaskLink, TaskRequest, TasksCapture, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksOptionsDetail, TasksPerson, TasksSettleResult, TasksUndoDetail, TasksUnderstand } from "../components/tasks/types";
 
-export type { NxTasks, TaskDraft, TaskItem, TaskLink, TaskRequest, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksOptionsDetail, TasksPerson, TasksSettleResult, TasksUndoDetail };
+export type { NxTasks, TaskDraft, TaskItem, TaskLink, TaskRequest, TasksCapture, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksOptionsDetail, TasksPerson, TasksSettleResult, TasksUndoDetail, TasksUnderstand };
 
 /**
  * `settle(key, resultado)` se llama sobre el elemento: con `ref` (`let tareas!: NxTasks;
@@ -34,6 +34,10 @@ export interface TasksProps extends Omit<JSX.HTMLAttributes<NxTasks>, "children"
   voice?: boolean;
   /** Milisegundos para deshacer (7000); 0 registra al instante. */
   undo?: number;
+  /** `form`: «Siguiente» lleva lo escrito al formulario de la app (`onOptions`) en vez de crear. */
+  capture?: TasksCapture;
+  /** `mentions`: sólo se entiende el «@nombre»; la fecha y «urgente» quedan en el título. */
+  understand?: TasksUnderstand;
   locale?: string;
   labels?: Partial<TasksLabels>;
   /** Un cambio que ya no se puede deshacer: guárdelo y conteste con `settle(e.detail.key, …)`. */
@@ -41,14 +45,15 @@ export interface TasksProps extends Omit<JSX.HTMLAttributes<NxTasks>, "children"
   onUndo?: (e: CustomEvent<TasksUndoDetail>) => void;
   /** Cancelable: no se sigue el enlace (una tarea, algo de otro módulo o lo pedido). */
   onOpen?: (e: CustomEvent<TasksOpenDetail>) => void;
-  /** «Más opciones», cancelable: no se va a `optionsHref` (p. ej. para abrir un cajón con el borrador). */
+  /** «Más opciones» (y «Siguiente» con `capture="form"`), cancelable: no se va a `optionsHref` (p. ej.
+   *  para abrir un cajón con el borrador; con `form`, cancelarlo vacía el campo). */
   onOptions?: (e: CustomEvent<TasksOptionsDetail>) => void;
   /** Sin hijos: el componente pinta todo su contenido. */
   children?: never;
 }
 
 export function Tasks(props: TasksProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["items", "links", "requests", "heading", "headingLevel", "today", "peopleSource", "optionsHref", "moreHref", "moreLabel", "voice", "undo", "locale", "labels", "onCommit", "onUndo", "onOpen", "onOptions", "children"]);
+  const [local, rest] = splitProps(props, ["items", "links", "requests", "heading", "headingLevel", "today", "peopleSource", "optionsHref", "moreHref", "moreLabel", "voice", "undo", "capture", "understand", "locale", "labels", "onCommit", "onUndo", "onOpen", "onOptions", "children"]);
   return (
     <nx-tasks
       {...rest}
@@ -65,6 +70,8 @@ export function Tasks(props: TasksProps): JSX.Element {
       attr:more-label={local.moreLabel}
       attr:undo={local.undo === undefined ? undefined : String(local.undo)}
       attr:locale={local.locale}
+      attr:capture={local.capture}
+      attr:understand={local.understand}
       bool:voice={!!local.voice}
       on:nx-tasks-commit={(e) => e.target === e.currentTarget && local.onCommit?.(e)}
       on:nx-tasks-undo={(e) => e.target === e.currentTarget && local.onUndo?.(e)}

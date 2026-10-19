@@ -144,3 +144,23 @@ test("vacío: el campo y una línea (con axe)", async ({ page }) => {
   await expect(empty.locator('[data-group="soon"] .nx-tasks__row')).toHaveCount(1);
   await expect(empty.locator(".nx-tasks__empty")).toHaveCount(0);
 });
+
+test("con el formulario de la app: sólo el @, «Siguiente» lleva lo escrito y no crea nada (con axe)", async ({ page }) => {
+  const form = page.locator("#tasks-form");
+  const field = form.locator(".nx-tasks__input");
+  await expect(form.locator(".nx-tasks__add")).toHaveText("Siguiente");
+  await expect(form.locator(".nx-tasks__opts")).toBeHidden();
+  await expect(form.locator(".nx-tasks__hint")).toBeHidden();
+  await field.click();
+  await field.pressSequentially("Revisar el contrato mañana urgente @and");
+  await expect(form.getByRole("option", { name: /Andrés Pérez/ })).toBeVisible();
+  await page.keyboard.press("Enter");
+  // Sólo para quién: la fecha y «urgente» quedan en el título.
+  await expect(form.locator(".nx-tasks__read .nx-tasks__chip")).toHaveText(["Andrés Pérez"]);
+  await audit(page, "#tasks-form");
+  const before = await form.locator(".nx-tasks__row").count();
+  await page.keyboard.press("Enter");
+  await expect(field).toHaveValue("");
+  await expect(page.locator("#tasks-log li").first()).toContainText('nx-tasks-options → {"title":"Revisar el contrato mañana urgente","urgent":false,"people":[{"id":"u3"');
+  await expect(form.locator(".nx-tasks__row")).toHaveCount(before);
+});

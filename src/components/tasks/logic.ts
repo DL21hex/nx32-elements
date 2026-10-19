@@ -120,6 +120,8 @@ export interface TaskParseOptions {
   /** Lo que la persona quitó de lo entendido: queda en el título. */
   keepDate?: boolean;
   keepUrgent?: boolean;
+  /** Sólo el «@» (`understand="mentions"`): la fecha, «urgente» y «para Nombre» quedan en el título. */
+  mentionsOnly?: boolean;
   /** Para la mayúscula del comienzo. */
   locale?: string;
 }
@@ -201,7 +203,7 @@ export function parseTask(text: string, opts: TaskParseOptions = {}): TaskParse 
 
   // La fecha, con lo que va pegado antes («para el viernes»).
   let due: string | undefined;
-  if (!opts.keepDate) {
+  if (!opts.keepDate && !opts.mentionsOnly) {
     const span = findDateSpan(` ${f} `, today);
     if (span && span.day !== null) {
       let a = span.start - 1;
@@ -217,7 +219,7 @@ export function parseTask(text: string, opts: TaskParseOptions = {}): TaskParse 
 
   // «urgente».
   let urgent = false;
-  if (!opts.keepUrgent) {
+  if (!opts.keepUrgent && !opts.mentionsOnly) {
     const m = /(?:^| )(urgente(?:mente)?)(?= |$)/.exec(f);
     if (m) {
       let a = m.index + m[0].length - m[1].length;
@@ -231,7 +233,7 @@ export function parseTask(text: string, opts: TaskParseOptions = {}): TaskParse 
   // «para Nombre»: el último que parezca un nombre.
   let ask: string | undefined;
   let para: { at: number; words: [number, number][] } | null = null;
-  for (const m of f.matchAll(/(?:^| )para +([a-z]{2,})(?: +([a-z]{2,}))?(?= |$)/g)) {
+  for (const m of opts.mentionsOnly ? [] : f.matchAll(/(?:^| )para +([a-z]{2,})(?: +([a-z]{2,}))?(?= |$)/g)) {
     const at = m.index + (m[0].startsWith(" ") ? 1 : 0);
     const w1 = m.index + m[0].indexOf(m[1], at - m.index + 4);
     if (NOT_A_NAME.has(m[1])) continue;

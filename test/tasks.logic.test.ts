@@ -131,6 +131,16 @@ describe("parseTask: una tarea en una línea", () => {
     expect(paraKey(["laura", "gomez"])).toBe("laura gomez");
   });
 
+  it("sólo el @ (`mentionsOnly`): la fecha, «urgente» y «para Nombre» quedan en el título", () => {
+    expect(parse("Llamar a Laura mañana urgente", { mentionsOnly: true })).toEqual({ title: "Llamar a Laura mañana urgente", urgent: false, people: [] });
+    expect(parse("Revisar el contrato @Laura Gómez el viernes", { people: [LAURA], mentionsOnly: true })).toEqual({
+      title: "Revisar el contrato el viernes",
+      urgent: false,
+      people: [LAURA],
+    });
+    expect(parse("Enviar informe para Laura", { mentionsOnly: true })).toEqual({ title: "Enviar informe para Laura", urgent: false, people: [] });
+  });
+
   it("el texto nunca se interpreta: un título con marcas queda tal cual", () => {
     // (Con su mayúscula: es la primera letra.)
     expect(parse("<img src=x onerror=alert(1)> mañana").title).toBe("<Img src=x onerror=alert(1)>");

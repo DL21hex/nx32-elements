@@ -90,10 +90,17 @@ export type TasksOpenDetail =
   | { kind: "link"; item: TaskLink }
   | { kind: "request"; item: TaskRequest };
 
-/** El detalle de `nx-tasks-options` (cancelable: no se va a `options-href`). */
+/** El detalle de `nx-tasks-options` (cancelable: no se va a `options-href`). Sale con «Más opciones»
+ *  y, con `capture="form"`, con «Siguiente» (Enter): si la app lo cancela, el campo se vacía. */
 export interface TasksOptionsDetail {
   draft: TaskDraft;
 }
+
+/** Qué hace «Agregar»: crear ahí mismo (`quick`) o llevar lo escrito al formulario de la app (`form`). */
+export type TasksCapture = "quick" | "form";
+
+/** Qué se entiende de lo escrito: todo (`all`) o sólo el «@nombre» (`mentions`). */
+export type TasksUnderstand = "all" | "mentions";
 
 /** Lo que la app contesta a un `nx-tasks-commit`: el `id` (y `href`) definitivo de lo creado, o el
  *  error que se le muestra a la persona (el cambio se revierte). */
@@ -115,10 +122,12 @@ export interface TasksLabels {
   /** El campo de captura. */
   placeholder: string;
   add: string;
+  /** El botón de la captura con `capture="form"`: lleva lo escrito al formulario completo. */
+  next: string;
   options: string;
   /** «Entendí:» antes de lo que se leyó. */
   understood: string;
-  /** La pista bajo el campo vacío. */
+  /** La pista bajo el campo vacío (vacía, no se pinta). */
   hint: string;
   /** Se intentó agregar algo sin título («urgente mañana»). */
   needTitle: string;

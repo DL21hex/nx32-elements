@@ -23,7 +23,7 @@ import { clampDelay } from "../../core/time";
 import { dateText, withParams } from "../intent/logic";
 import type { ThreadPicker } from "../thread/thread-pick";
 import { cleanTaskItems, cleanTaskLinks, cleanTaskRequests, fill, groupTasks, paraKey, parseTask, plural, requestSummary, taskCounts, taskDueText, taskNames, type ParaMatch, type TaskParse } from "./logic";
-import type { TaskDraft, TaskGroupId, TaskItem, TaskLink, TaskRequest, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksPerson, TasksSettleResult } from "./types";
+import type { TaskDraft, TaskGroupId, TaskItem, TaskLink, TaskRequest, TasksCapture, TasksCommitDetail, TasksLabels, TasksOpenDetail, TasksPerson, TasksSettleResult, TasksUnderstand } from "./types";
 
 export const TASKS_LABELS: TasksLabels = {
   heading: "Tus pendientes",
@@ -34,6 +34,7 @@ export const TASKS_LABELS: TasksLabels = {
   countAsked: "1 pedida por ti|{n} pedidas por ti",
   placeholder: "¿Qué tienes que hacer?",
   add: "Agregar",
+  next: "Siguiente",
   options: "Más opciones",
   understood: "Entendí:",
   hint: "Escribe y presiona Enter. Entiendo «mañana», «el viernes», «@nombre» y «urgente».",
@@ -150,7 +151,7 @@ export class NxTasks extends Base {
   declare moreHref: string | null;
   declare moreLabel: string | null;
   declare locale: string | null;
-  static observedAttributes = ["items", "links", "requests", "labels", "heading", "heading-level", "today", "people-source", "options-href", "more-href", "more-label", "voice", "undo", "locale"];
+  static observedAttributes = ["items", "links", "requests", "labels", "heading", "heading-level", "today", "people-source", "options-href", "more-href", "more-label", "voice", "undo", "locale", "capture", "understand"];
 
   #uid = `nx-tasks${++uid}`;
   #items: TaskItem[] = [];
@@ -261,6 +262,28 @@ export class NxTasks extends Base {
   }
   set voice(v: boolean) {
     this.toggleAttribute("voice", !!v);
+  }
+  /**
+   * Qué hace «Agregar»: `quick` (lo de siempre) crea la tarea ahí mismo, con «Deshacer»; `form` lleva
+   * lo escrito al formulario completo de la app (`nx-tasks-options`, el botón dice `labels.next`) y no
+   * crea nada: la app lo guarda desde su formulario. Con `form` no hay «Más opciones» aparte.
+   */
+  get capture(): TasksCapture {
+    return this.getAttribute("capture") === "form" ? "form" : "quick";
+  }
+  set capture(v: TasksCapture | null | undefined) {
+    setAttr(this, "capture", v === "form" ? "form" : null);
+  }
+  /**
+   * Qué se entiende de lo escrito: `all` (lo de siempre) lee la fecha, «urgente», «para Nombre» y el
+   * «@»; `mentions` sólo el «@nombre» —lo demás queda en el título tal cual— y bajo el campo sólo se
+   * dice para quién.
+   */
+  get understand(): TasksUnderstand {
+    return this.getAttribute("understand") === "mentions" ? "mentions" : "all";
+  }
+  set understand(v: TasksUnderstand | null | undefined) {
+    setAttr(this, "understand", v === "mentions" ? "mentions" : null);
   }
 
   /**
@@ -374,7 +397,8 @@ export class NxTasks extends Base {
 
     this.#form.addEventListener("submit", (e) => {
       e.preventDefault();
-      this.#create();
+      if (this.capture === "form") this.#toForm();
+      else this.#create();
     });
     this.#input.addEventListener("input", () => this.#typed());
     this.#input.addEventListener("focus", () => this.#withPicker(() => {}));
@@ -410,10 +434,10 @@ export class NxTasks extends Base {
     this.#date.textContent = dateText(this.#today(), this.#locale());
     this.#input.placeholder = L.placeholder;
     this.#input.setAttribute("aria-label", L.placeholder);
-    this.#add.textContent = L.add;
+    this.#add.textContent = this.capture === "form" ? L.next : L.add;
     this.#hint.textContent = L.hint;
     this.#opts.textContent = L.options;
-    this.#opts.hidden = !safeHref(this.optionsHref);
+    this.#opts.hidden = this.capture === "form" || !safeHref(this.optionsHref);
     this.#undoBtn.textContent = L.undo;
     this.#closeBtn.setAttribute("aria-label", L.dismiss);
   }
@@ -650,7 +674,8 @@ export class NxTasks extends Base {
     // Las personas del «@» cuyo nombre ya no está en el texto se olvidan.
     this.#known = this.#known.filter((p) => text.includes(`@${p.name}`));
     if (!text.trim()) this.#keepDate = this.#keepUrgent = false;
-    const d = (this.#draft = parseTask(text, { today: this.#today(), people: this.#known, resolved: this.#resolved, keepDate: this.#keepDate, keepUrgent: this.#keepUrgent, locale: this.#locale() }));
+    const mentions = this.understand === "mentions";
+    const d = (this.#draft = parseTask(text, { today: this.#today(), people: this.#known, resolved: this.#resolved, keepDate: this.#keepDate, keepUrgent: this.#keepUrgent, mentionsOnly: mentions, locale: this.#locale() }));
     if (d.ask) this.#askPara(d.ask);
     // «Más opciones» lleva lo escrito.
     const opt = safeHref(this.optionsHref);
@@ -662,9 +687,10 @@ export class NxTasks extends Base {
       this.#hint.hidden = true;
       return;
     }
-    const show = !!text.trim();
+    // Con `understand="mentions"` bajo el campo sólo va para quién, y sólo si se nombró a alguien.
+    const show = !!text.trim() && (!mentions || d.people.length > 0);
     this.#read.hidden = !show && !this.#needTitle;
-    this.#hint.hidden = show || this.#needTitle;
+    this.#hint.hidden = !!text.trim() || this.#needTitle || !L.hint;
     if (!show) {
       this.#read.replaceChildren(this.#needTitle ? h("span", { class: "nx-tasks__need" }, L.needTitle) : "");
       return;
@@ -676,9 +702,8 @@ export class NxTasks extends Base {
         label,
         remove ? h("button", { type: "button", class: "nx-tasks__x", "data-act": remove.act, "data-value": remove.value ?? null, "aria-label": fill(L.remove, { name: remove.name }) }, glyph(X)) : null,
       );
-    const parts: (Node | string)[] = [h("span", { class: "nx-tasks__k" }, L.understood)];
-    if (d.title) parts.push(chip("title", d.title));
-    else parts.push(h("span", { class: "nx-tasks__need" }, L.needTitle));
+    // Con `mentions` sólo las personas (y aquí siempre hay alguna: sin ellas no se muestra nada).
+    const parts: (Node | string)[] = mentions ? [] : [h("span", { class: "nx-tasks__k" }, L.understood), d.title ? chip("title", d.title) : h("span", { class: "nx-tasks__need" }, L.needTitle)];
     if (d.people.length) {
       const [pre, post = ""] = L.forPeople.split("{names}");
       const who = h("span", { class: "nx-tasks__for" }, pre);
@@ -690,9 +715,11 @@ export class NxTasks extends Base {
       if (d.people.length > 1) who.append(h("span", { class: "nx-tasks__each" }, ` · ${L.each}`));
       parts.push(who);
     } else parts.push(chip("me", L.forMe));
-    const due = taskDueText(d.due, this.#today(), this.#locale(), L);
-    parts.push(due ? chip("due", upper(due.text), { name: upper(due.text), act: "date" }) : chip("none", L.noDate));
-    if (d.urgent) parts.push(chip("urgent", L.urgent, { name: L.urgent, act: "urgent" }));
+    if (!mentions) {
+      const due = taskDueText(d.due, this.#today(), this.#locale(), L);
+      parts.push(due ? chip("due", upper(due.text), { name: upper(due.text), act: "date" }) : chip("none", L.noDate));
+      if (d.urgent) parts.push(chip("urgent", L.urgent, { name: L.urgent, act: "urgent" }));
+    }
     this.#read.replaceChildren(...parts);
   }
 
@@ -803,6 +830,23 @@ export class NxTasks extends Base {
       row.classList.add("nx-tasks__new");
       row.addEventListener("animationend", () => row.classList.remove("nx-tasks__new"), { once: true });
     }
+  }
+
+  /**
+   * `capture="form"`: lo escrito va al formulario completo de la app (`nx-tasks-options`, con lo
+   * entendido). Si la app lo atiende (cancela el evento), el campo se vacía: lo escrito ya está en su
+   * formulario. Si nadie lo atiende, se va a `options-href` con lo escrito, como «Más opciones». No
+   * crea nada aquí: sin título también se abre (el formulario lo pide).
+   */
+  #toForm(): void {
+    this.#paintRead();
+    const draft = this.#draftDetail();
+    if (!emit(this, "nx-tasks-options", { draft }, true)) {
+      this.#clearDraft();
+      return;
+    }
+    const opt = safeHref(this.optionsHref);
+    if (opt) location.assign(this.#input.value.trim() ? withParams(opt, this.#params(draft)) : opt);
   }
 
   #clearDraft(): void {

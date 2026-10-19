@@ -1,5 +1,19 @@
 # Registro de cambios
 
+## 0.27.0 — 2026-10-19
+
+- **`<nx-tasks>`: la línea puede alimentar el formulario de la app (`capture="form"`) y entender
+  sólo el `@` (`understand="mentions"`).** Con `capture="form"` el botón dice «Siguiente»
+  (`labels.next`) y <kbd>Enter</kbd> no crea nada: emite `nx-tasks-options` (cancelable) con lo
+  escrito y las personas, para que la app abra su formulario completo con eso y se guarde desde
+  ahí; si la app atiende el evento, el campo se vacía, y si no, se va a `options-href` con lo
+  escrito. «Más opciones» ya no se ofrece aparte, y sin título también abre (el formulario lo pide).
+  Con `understand="mentions"` sólo se lee el `@nombre` (`parseTask(…, {mentionsOnly})`): la fecha,
+  «urgente» y «para Nombre» quedan en el título tal cual, y bajo el campo sólo se dice para quién, y
+  sólo si se nombró a alguien. Un `labels.hint` vacío no pinta la explicación bajo el campo. Tipos
+  `TasksCapture` y `TasksUnderstand`; `<Tasks capture understand>` en Solid. Lo de siempre no
+  cambia. ≈ 0,2 KB gzip más (`tasks.js` 14,0 KB).
+
 ## 0.26.0 — 2026-10-19
 
 - **`<nx-grid>`: en el celular, una lista (`narrow`).** Cuando el componente mide menos de 480 px,

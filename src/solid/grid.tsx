@@ -3,7 +3,7 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/grid/index";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView, GridViewLabels } from "../components/grid/types";
+import type { GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridNarrow, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView, GridViewLabels } from "../components/grid/types";
 import type { GridFilterDetail } from "./jsx";
 
 export type { NxGrid, GridAccents, GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView, GridViewLabels };
@@ -47,6 +47,8 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
   accents?: GridAccents;
   /** La barra de desplazamiento horizontal también arriba de la tabla (solo si no cabe a lo ancho). Viene encendida: `false` la quita. */
   topScrollbar?: boolean;
+  /** Por debajo de 480 px: `"list"` (por omisión) la pinta como lista; `"table"` la deja como tabla. */
+  narrow?: GridNarrow;
   /** Atajos: tarjetas con un filtro y su conteo sobre la tabla (con `heading`, botones junto al
    *  título; con `menu`, en «Vistas» → «Seguimiento»). */
   presets?: GridPreset[];
@@ -99,7 +101,7 @@ export interface GridProps extends Omit<JSX.HTMLAttributes<NxGrid>, "onChange" |
 }
 
 export function Grid(props: GridProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "clientOnly", "timeout", "label", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "noGroup", "accents", "topScrollbar", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onTruncated", "onExport", "children"]);
+  const [local, rest] = splitProps(props, ["columns", "rows", "view", "views", "viewsStorage", "onViews", "source", "clientMax", "clientOnly", "timeout", "label", "filters", "sort", "search", "groupBy", "rowKey", "facetsOpen", "segments", "noGroup", "accents", "topScrollbar", "narrow", "presets", "heading", "headingLevel", "headingIcon", "actions", "height", "filename", "locale", "labels", "matrix", "layout", "onLayout", "onFilter", "onChange", "onColumns", "selectable", "selected", "onSelection", "onOpen", "onAction", "onError", "onTruncated", "onExport", "children"]);
   // Solo los eventos de esta tabla: no los que suben de otro componente puesto como hijo (`slot="bulk"`).
   const own = <E extends Event>(fn: ((e: E) => void) | undefined) => (e: E) => e.target === e.currentTarget && fn?.(e);
   return (
@@ -138,6 +140,7 @@ export function Grid(props: GridProps): JSX.Element {
       bool:segments={!!local.segments}
       bool:no-group={!!local.noGroup}
       attr:top-scrollbar={local.topScrollbar === false ? "false" : undefined}
+      attr:narrow={local.narrow === "table" ? "table" : undefined}
       on:nx-grid-filter={own((e) => local.onFilter?.(e))}
       on:nx-grid-change={own((e) => local.onChange?.(e))}
       on:nx-grid-columns={own((e) => local.onColumns?.(e))}

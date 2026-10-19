@@ -64,12 +64,16 @@ import { clockTime, isTime, nextStep, readTime, sequenceMarks, sequences, sequen
 import type { FilterHost, FilterKind, FilterPanel } from "./grid-filter";
 import type { MatrixConfig, MatrixHost, MatrixUI, MatrixView } from "./grid-matrix";
 import type { ViewsHost, ViewsUI } from "./grid-views";
-import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridMatrix, GridMatrixCell, GridMatrixLabels, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridTruncatedDetail, GridView, GridViewLabels } from "./types";
+import type { GridAccents, GridAction, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridDateRel, GridErrorDetail, GridExportDetail, GridFilter, GridHistogram, GridLabels, GridLayout, GridLayoutDetail, GridListSlot, GridMatrix, GridMatrixCell, GridMatrixLabels, GridNarrow, GridPage, GridPreset, GridRow, GridSavedView, GridSort, GridTone, GridTruncatedDetail, GridView, GridViewLabels } from "./types";
 
 export const GRID_LABELS: GridLabels = {
   filters: "Filtros",
   groupBy: "Agrupar por {col}",
   noGroup: "Sin agrupar",
+  sortBy: "Ordenar por {col}",
+  noSort: "Sin ordenar",
+  sortAsc: "Orden ascendente",
+  sortDesc: "Orden descendente",
   export: "Exportar",
   exporting: "Exportando…",
   exported: "Se exportaron {n} filas",
@@ -191,6 +195,7 @@ const UNDO = '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"
 const REDO = '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>';
 const BOOKMARK = '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>';
 const COLUMNS = '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>';
+const CHECK = '<path d="M20 6 9 17l-5-5"/>';
 /** Límites del ancho que la persona elige para una columna (px). */
 const MIN_W = 60;
 const MAX_W = 800;
@@ -201,6 +206,14 @@ const SERVER_WAIT = 250;
 const HISTORY = 100;
 
 const ROW_H = 32;
+/** El alto de un renglón de la lista (`narrow`): dos líneas. Fijo, como el de la tabla: la
+ *  virtualización es la misma. El CSS lo repite (`.nx-grid__lrow`). */
+const LIST_H = 60;
+/** La tabla se pinta como lista cuando el componente mide menos de esto (px), y vuelve a ser tabla
+ *  desde `LIST_OUT`: el margen evita que cambie una y otra vez justo en el borde. */
+const LIST_IN = 480;
+const LIST_OUT = 496;
+const LIST_SLOTS = new Set<GridListSlot>(["title", "meta", "end", "end-meta"]);
 const OVERSCAN = 8;
 const BLOCK = 100;
 /** Bloques del servidor que se guardan: al pasar de esto se sueltan los más lejanos a la vista
@@ -250,6 +263,8 @@ const WIDTH: Record<string, number> = { text: 180, number: 110, money: 140, date
 const OPS = new Set(["in", "notIn", "range", "contains"]);
 
 type Item = { g: GridGroup } | { r: GridRow };
+/** Las columnas del renglón de la lista (ver `#listSlots`). */
+type ListSlots = { title: GridColumn; meta: GridColumn[]; end?: GridColumn; endMeta?: GridColumn };
 type Pos = { r: number; c: number };
 /** Una edición en curso: la posición (para moverse al terminar) y la fila misma, por su objeto y su
  *  id: si mientras tanto cambian los datos, los filtros o el orden, el campo sigue a esa fila (ver
@@ -387,6 +402,7 @@ function cleanColumn(c: unknown): GridColumn | null {
   if (x.hours !== undefined && !(Array.isArray(x.hours) && x.hours.length === 2 && x.hours.every(isTime) && x.hours[0] < x.hours[1])) fix.hours = undefined;
   for (const k of ["editable", "link", "histogram", "facet", "newTab", "hidden", "sticky", "dot"]) if (x[k] !== undefined && typeof x[k] !== "boolean") fix[k] = !!x[k];
   if (x.avatar !== undefined && typeof x.avatar !== "boolean" && x.avatar !== "neutral") fix.avatar = !!x.avatar;
+  if (x.list !== undefined && !LIST_SLOTS.has(x.list as GridListSlot)) fix.list = undefined;
   if (!Object.keys(fix).length) return c as GridColumn;
   const out: Record<string, unknown> = { ...x, ...fix };
   for (const k of Object.keys(fix)) if (fix[k] === undefined) delete out[k];
@@ -545,7 +561,7 @@ export class NxGrid extends Base {
    *  el título (`heading`); sin los dos, la tabla no tiene nombre: una tabla que es la página y cuyo
    *  título pone la cabecera (`segments`) lo trae aquí («Empleados»). */
   declare label: string | null;
-  static observedAttributes = ["label", "timeout", "columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "client-only", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group"];
+  static observedAttributes = ["label", "timeout", "columns", "rows", "filters", "labels", "presets", "actions", "source", "client-max", "client-only", "group-by", "facets-open", "height", "heading", "heading-icon", "heading-level", "segments", "locale", "selectable", "views-storage", "top-scrollbar", "row-key", "accents", "matrix", "layout", "no-group", "narrow"];
 
   #uid = `nx-grid${++uid}`;
   #labels: GridLabels = GRID_LABELS;
@@ -709,6 +725,10 @@ export class NxGrid extends Base {
   /** El campo de la edición pasa de la fila vieja a la repintada (su `blur` no la termina). */
   #moving = false;
   #win = { start: -1, end: -1 };
+  /** Pintada como lista (`narrow`): ver `#fitList`. */
+  #list = false;
+  /** Qué columna va en cada lugar del renglón de la lista, para el juego de columnas `for`. */
+  #slots: { for: GridColumn[]; s: ListSlots | null } | null = null;
   #raf = 0;
   /** El pie se recalcula solo si cambió el rango o esto (datos, textos, grupos). */
   #footDirty = true;
@@ -725,6 +745,10 @@ export class NxGrid extends Base {
   #colsBtn?: HTMLButtonElement;
   #facetBtn?: HTMLButtonElement;
   #groupSel?: HTMLSelectElement;
+  /** «Ordenar por» y el sentido: en la lista, que no tiene cabecera. */
+  #sortSel?: HTMLSelectElement;
+  #sortDir?: HTMLButtonElement;
+  #sortKey = "";
   #exportBtn?: HTMLButtonElement;
   #undoBtn?: HTMLButtonElement;
   #redoBtn?: HTMLButtonElement;
@@ -976,6 +1000,16 @@ export class NxGrid extends Base {
   set layout(v: GridLayout | null | undefined) {
     this.#attr("layout", v === "matrix" ? "matrix" : null);
   }
+  /** Cuando la tabla mide menos de 480 px (un celular, una columna angosta): `list` (por omisión)
+   *  la pinta como lista, un renglón de dos líneas por fila con las columnas de `list` (o las que
+   *  elige la tabla), que se abre con un toque; `table` la deja como tabla, para las que se llenan
+   *  celda por celda. Vuelve a ser tabla desde 496 px. El atributo `data-list` dice cuál se ve. */
+  get narrow(): GridNarrow {
+    return this.getAttribute("narrow") === "table" ? "table" : "list";
+  }
+  set narrow(v: GridNarrow | null | undefined) {
+    this.#attr("narrow", v === "table" ? "table" : null);
+  }
   get groupBy(): string {
     return this.getAttribute("group-by") ?? "";
   }
@@ -1143,6 +1177,11 @@ export class NxGrid extends Base {
     this.#syncColumns();
     this.#paintAll();
   }
+  /** El alto de una fila: el de la tabla o el del renglón de la lista. */
+  get #rowH(): number {
+    return this.#list ? LIST_H : ROW_H;
+  }
+
   get #server(): boolean {
     return !this.#local && !!this.#url("source");
   }
@@ -1510,9 +1549,16 @@ export class NxGrid extends Base {
     const first = !this.#built;
     if (first) this.#build();
     if (typeof ResizeObserver !== "undefined" && !this.#ro) {
-      this.#ro = new ResizeObserver(() => this.#soon());
+      this.#ro = new ResizeObserver(() => {
+        this.#fitList();
+        this.#soon();
+      });
       this.#ro.observe(this.#scroll!);
+      // El modo (tabla o lista) sale del ancho del componente, no del de la tabla.
+      this.#ro.observe(this);
     }
+    // Antes del primer pintado: una tabla que abre en un celular no se pinta primero como tabla.
+    this.#fitList(!first);
     addEventListener("storage", this.#onStorage);
     // La vista de inicio se aplica antes del primer cálculo: la tabla no parpadea sin ella.
     if (first) this.#bootViews();
@@ -1640,7 +1686,8 @@ export class NxGrid extends Base {
       // En el siguiente frame (ya visible y maquetada) toma la posición de la tabla.
       this.#synced.clear();
       requestAnimationFrame(() => this.#follow(this.#scroll!, this.#hbar!));
-    } else if (name === "locale" || name === "selectable") this.#dataChanged(name === "selectable");
+    } else if (name === "narrow") this.#fitList();
+    else if (name === "locale" || name === "selectable") this.#dataChanged(name === "selectable");
     else if (name === "layout") {
       // Lo editado en la tabla (en su lugar, sin otra lista) cuenta al volver a la matriz.
       this.#mxFor = { rows: null, key: "" };
@@ -2621,6 +2668,19 @@ export class NxGrid extends Base {
     // contiene la tabla no los cuenta como «cambios sin guardar»).
     this.#groupSel = h("select", { class: "nx-grid__btn nx-grid__group", "data-nx-ephemeral": "", "data-table-only": "" });
     this.#groupSel.addEventListener("change", () => (this.groupBy = this.#groupSel!.value));
+    // «Ordenar por» y el sentido: solo en la lista (en la tabla se ordena desde la cabecera).
+    this.#sortSel = h("select", { class: "nx-grid__btn nx-grid__sortby", "data-nx-ephemeral": "", "data-table-only": "", hidden: true });
+    this.#sortSel.addEventListener("change", () => {
+      const key = this.#sortSel!.value;
+      this.#sort = key ? { key, dir: this.#sort?.key === key ? this.#sort.dir : 1 } : null;
+      this.#refilter(true, "order");
+    });
+    this.#sortDir = h("button", { type: "button", class: "nx-grid__btn nx-grid__sortdir", "data-table-only": "", hidden: true }, glyph(ARROW));
+    this.#sortDir.addEventListener("click", () => {
+      if (!this.#sort) return;
+      this.#sort = { key: this.#sort.key, dir: this.#sort.dir === 1 ? -1 : 1 };
+      this.#refilter(true, "order");
+    });
     this.#exportBtn = h("button", { type: "button", class: "nx-grid__btn" }, glyph(DOWNLOAD), h("span"));
     // Mientras exporta (en modo servidor pide todas las filas, puede tardar), el botón gira y no
     // atiende otro clic. No se usa `disabled`: sacaría el foco del botón al teclado.
@@ -2653,11 +2713,12 @@ export class NxGrid extends Base {
           this.#paintChrome();
         });
     });
-    this.#undoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon", "data-table-only": "" }, glyph(UNDO));
-    this.#redoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon", "data-table-only": "" }, glyph(REDO));
+    // `data-cells`: de la edición en la celda; la lista no los muestra.
+    this.#undoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon", "data-table-only": "", "data-cells": "" }, glyph(UNDO));
+    this.#redoBtn = h("button", { type: "button", class: "nx-grid__btn nx-grid__icon", "data-table-only": "", "data-cells": "" }, glyph(REDO));
     this.#undoBtn.addEventListener("click", () => this.undo());
     this.#redoBtn.addEventListener("click", () => this.redo());
-    this.#saveNote = h("span", { class: "nx-grid__save-note", hidden: true, "data-table-only": "" });
+    this.#saveNote = h("span", { class: "nx-grid__save-note", hidden: true, "data-table-only": "", "data-cells": "" });
     // Buscar en la tabla: mientras se escribe (un momento después de la última tecla), o con Enter.
     const input = (this.#searchInput = h("input", { type: "search", class: "nx-grid__search-input", autocomplete: "off", spellcheck: "false", enterkeyhint: "search" }));
     const clear = (this.#searchClear = h("button", { type: "button", class: "nx-grid__search-clear", hidden: true }, glyph(X)));
@@ -2690,7 +2751,7 @@ export class NxGrid extends Base {
       const to = (e.target as Element).closest<HTMLElement>("[data-layout]")?.dataset.layout;
       if (to && to !== this.layout) this.#setLayout(to as GridLayout);
     });
-    const bar = h("div", { class: "nx-grid__bar" }, this.#layoutBar, this.#viewsBtn, search, this.#facetBtn, this.#groupSel, this.#colsBtn, this.#undoBtn, this.#redoBtn, this.#saveNote, this.#exportBtn);
+    const bar = h("div", { class: "nx-grid__bar" }, this.#layoutBar, this.#viewsBtn, search, this.#facetBtn, this.#groupSel, this.#sortSel, this.#sortDir, this.#colsBtn, this.#undoBtn, this.#redoBtn, this.#saveNote, this.#exportBtn);
 
     this.#selbar = h("div", { class: "nx-grid__selbar", hidden: true }, h("strong"), h("button", { type: "button", class: "nx-grid__clear", "data-pick": "all" }), h("button", { type: "button", class: "nx-grid__clear", "data-pick": "none" }));
     this.#selbar.addEventListener("click", (e) => {
@@ -2829,7 +2890,7 @@ export class NxGrid extends Base {
     // selecciona una palabra en el campo rehacía el campo y borraba lo escrito) ni con el dedo
     // (lo atiende el segundo toque, abajo; si no, se abriría dos veces).
     this.#rowsEl.addEventListener("dblclick", (e) => {
-      if (!this.#editing && !this.#touch && this.#posOf(e.target) && !this.#startEdit()) this.#openRow();
+      if (!this.#list && !this.#editing && !this.#touch && this.#posOf(e.target) && !this.#startEdit()) this.#openRow();
     });
     this.#rowsEl.addEventListener("click", (e) => {
       const t = e.target as Element;
@@ -2846,6 +2907,7 @@ export class NxGrid extends Base {
         if (act.tagName !== "A" && a && it && "r" in it) this.#runAction(r, a);
         return;
       }
+      if (this.#list) return this.#listClick(e as MouseEvent);
       const p = this.#posOf(t);
       // La celda con `href` es un enlace: lo sigue el navegador (o el router de la app).
       if (t.closest("a.nx-grid__link")) return;
@@ -2890,7 +2952,7 @@ export class NxGrid extends Base {
     const cols = this.#columns;
     const off = this.selectable ? 1 : 0;
     const acts = this.#actions.length ? 1 : 0;
-    this.#scroll!.setAttribute("aria-colcount", String(cols.length + off + acts));
+    this.#scroll!.setAttribute("aria-colcount", String(this.#colCount()));
     const steps = new Set(this.#sequenceSteps().flat());
     this.#ths = cols.map((c, ci) => {
       // Un paso lleva debajo cuántas filas lo tienen; la línea de un proceso, sus horas.
@@ -2960,6 +3022,7 @@ export class NxGrid extends Base {
       this.#groupSel!.replaceChildren(h("option", { value: "" }, L.noGroup), ...groupable.map((c) => h("option", { value: c.key }, this.#fmt(L.groupBy, { col: c.label }))));
     }
     this.#groupSel!.value = groupable.some((c) => c.key === this.groupBy) ? this.groupBy : "";
+    this.#paintSortBy();
     this.#exportBtn!.lastElementChild!.textContent = this.#exportBtn!.hasAttribute("aria-busy") ? L.exporting : L.export;
     // Sin `views-storage` también, si hay atajos de menú («Seguimiento»).
     this.#viewsBtn!.hidden = !this.viewsStorage && !this.#presets.some((p) => p.menu);
@@ -3035,6 +3098,29 @@ export class NxGrid extends Base {
     this.#paintLayout();
     this.#panel?.refresh();
     this.#viewsUI?.refresh();
+  }
+
+  /** «Ordenar por» y su sentido, en la lista: las columnas a la vista y «Sin ordenar». El sentido
+   *  (una flecha que se voltea) solo con un orden puesto. */
+  #paintSortBy(): void {
+    const L = this.#labels;
+    const sel = this.#sortSel!;
+    const dir = this.#sortDir!;
+    const cols = this.#columns;
+    sel.hidden = !this.#list || !cols.length;
+    sel.setAttribute("aria-label", this.#fmt(L.sortBy, { col: "" }).trim());
+    const key = JSON.stringify([L.noSort, L.sortBy, cols.map((c) => [c.key, c.label])]);
+    if (key !== this.#sortKey) {
+      this.#sortKey = key;
+      sel.replaceChildren(h("option", { value: "" }, L.noSort), ...cols.map((c) => h("option", { value: c.key }, this.#fmt(L.sortBy, { col: c.label }))));
+    }
+    const on = !!this.#sort && cols.some((c) => c.key === this.#sort!.key);
+    sel.value = on ? this.#sort!.key : "";
+    dir.hidden = sel.hidden || !on;
+    const down = this.#sort?.dir === -1;
+    dir.dataset.dir = down ? "desc" : "asc";
+    dir.setAttribute("aria-label", down ? L.sortDesc : L.sortAsc);
+    dir.title = down ? L.sortDesc : L.sortAsc;
   }
 
   // ---------------------------------------------------------------- matriz
@@ -3612,6 +3698,46 @@ export class NxGrid extends Base {
     });
   }
 
+  /** Tabla o lista según el ancho del componente (`narrow`): por debajo de `LIST_IN` px, lista; de
+   *  vuelta a tabla desde `LIST_OUT`. Sin ancho (oculta, aún sin maquetar) no cambia: se decide
+   *  cuando el observador de tamaño la vea. `paint`: falso antes del primer pintado. */
+  #fitList(paint = true): void {
+    if (!this.#built) return;
+    let on = false;
+    if (this.narrow === "list") {
+      const w = this.getBoundingClientRect().width;
+      if (!w) return;
+      on = w < (this.#list ? LIST_OUT : LIST_IN);
+    }
+    if (on !== this.#list) this.#setList(on, paint);
+  }
+
+  /** Pasa a lista o a tabla. Lo que se editaba se guarda (la lista no edita), el rango vuelve a una
+   *  celda y la fila que estaba arriba sigue arriba. */
+  #setList(on: boolean, paint: boolean): void {
+    this.#settle();
+    const s = this.#scroll!;
+    const first = Math.floor((s.scrollTop * this.#ratio()) / this.#rowH);
+    this.#list = on;
+    this.toggleAttribute("data-list", on);
+    this.#dragging = false;
+    this.#anchor = this.#act;
+    this.#scroll!.setAttribute("aria-colcount", String(this.#colCount()));
+    if (!paint) return;
+    this.#win = { start: -1, end: -1 };
+    this.#footDirty = true;
+    this.#paintChrome();
+    this.#paintRows(true);
+    s.scrollTop = (first * this.#rowH) / this.#ratio();
+    this.#paintRows();
+  }
+
+  /** Las columnas de la tabla para el lector de pantalla: en la lista, el renglón (y las acciones). */
+  #colCount(): number {
+    const acts = this.#actions.length ? 1 : 0;
+    return this.#list ? 1 + acts : this.#columns.length + (this.selectable ? 1 : 0) + acts;
+  }
+
   /** Pinta solo las filas visibles (y unas de margen). Mientras se edita, la fila de la edición se
    *  queda en su nodo (el campo tiene el foco) y las demás siguen al desplazamiento; si la persona la
    *  saca de la vista, la edición se guarda (sin mover la celda activa). Si hay que rehacer todas
@@ -3620,11 +3746,12 @@ export class NxGrid extends Base {
     if (!this.#built) return;
     const s = this.#scroll!;
     const n = this.#count();
-    this.#body!.style.blockSize = `${Math.min(n * ROW_H, MAX_H)}px`;
+    const rh = this.#rowH;
+    this.#body!.style.blockSize = `${Math.min(n * rh, MAX_H)}px`;
     const vh = s.clientHeight || 420;
     let top = s.scrollTop * this.#ratio();
-    let start = Math.max(0, Math.floor(top / ROW_H) - OVERSCAN);
-    let end = Math.min(n, Math.ceil((top + vh) / ROW_H) + OVERSCAN);
+    let start = Math.max(0, Math.floor(top / rh) - OVERSCAN);
+    let end = Math.min(n, Math.ceil((top + vh) / rh) + OVERSCAN);
     const box = this.#rowsEl!;
     const old = this.#win;
     const ed = this.#editing;
@@ -3636,8 +3763,8 @@ export class NxGrid extends Base {
       if (ed.r < start || ed.r >= end) {
         this.#scrollTo(ed.r);
         top = s.scrollTop * this.#ratio();
-        start = Math.max(0, Math.floor(top / ROW_H) - OVERSCAN);
-        end = Math.min(n, Math.ceil((top + vh) / ROW_H) + OVERSCAN);
+        start = Math.max(0, Math.floor(top / rh) - OVERSCAN);
+        end = Math.min(n, Math.ceil((top + vh) / rh) + OVERSCAN);
       }
     }
     if (ed && (ed.r < start || ed.r >= end)) return this.#endEdit(true, 0, 0, false);
@@ -3647,7 +3774,7 @@ export class NxGrid extends Base {
       for (let b = Math.floor(start / BLOCK); b <= Math.floor(Math.max(start, end - 1) / BLOCK); b++) void this.#load(b);
     }
     // Con el alto escalado (ver `MAX_H`) las filas se corren en cada cuadro, no solo al cambiar la ventana.
-    box.style.insetBlockStart = `${start * ROW_H - (top - s.scrollTop)}px`;
+    box.style.insetBlockStart = `${start * rh - (top - s.scrollTop)}px`;
     const kids = [...box.children] as HTMLElement[];
     if (!force && start === old.start && end === old.end && !kids.some((el) => this.#stale(el))) return;
     this.#win = { start, end };
@@ -3685,7 +3812,7 @@ export class NxGrid extends Base {
   /** Píxeles de la tabla por píxel de desplazamiento: 1, salvo que todas las filas pasen de `MAX_H`;
    *  entonces el recorrido del scroll cubre las n filas (la última se alcanza). */
   #ratio(): number {
-    const extra = this.#count() * ROW_H - MAX_H;
+    const extra = this.#count() * this.#rowH - MAX_H;
     if (extra <= 0) return 1;
     const range = this.#scroll!.scrollHeight - this.#scroll!.clientHeight;
     return range > 0 ? 1 + extra / range : 1;
@@ -3697,6 +3824,7 @@ export class NxGrid extends Base {
   }
 
   #rowEl(i: number): HTMLElement {
+    if (this.#list) return this.#listRowEl(i);
     const cols = this.#columns;
     const u = this.#uid;
     const it = this.#itemAt(i);
@@ -3794,6 +3922,114 @@ export class NxGrid extends Base {
     );
     if (this.#actions.length) row.append(this.#actionsCell(r, cols.length + 1 + off));
     return row;
+  }
+
+  /** Qué columna va en cada lugar del renglón de la lista. Si alguna columna trae `list`, solo esas
+   *  (en `meta`, las dos primeras; sin `title`, la primera columna). Si ninguna, las elige la
+   *  tabla: el título es la primera fija (`sticky`), la del avatar o del enlace, o la primera de
+   *  texto; a la derecha, el primer estado (o columna con tonos) y el primer punto (`dot`); debajo,
+   *  las dos primeras columnas de texto que quedan. Solo columnas a la vista (no las escondidas). */
+  #listSlots(): ListSlots | null {
+    const cols = this.#columns;
+    if (this.#slots?.for === cols) return this.#slots.s;
+    let s: ListSlots | null = null;
+    if (cols.length) {
+      const by = (k: GridListSlot) => cols.filter((c) => c.list === k);
+      if (cols.some((c) => c.list)) {
+        const title = by("title")[0] ?? cols[0];
+        s = { title, meta: by("meta").filter((c) => c !== title).slice(0, 2), end: by("end")[0], endMeta: by("end-meta")[0] };
+      } else {
+        const toned = (c: GridColumn) => colType(c) === "status" || !!c.options?.some((o) => o.tone);
+        const title = cols.find((c) => c.sticky) ?? cols.find((c) => c.avatar || c.link || c.href) ?? cols.find((c) => colType(c) === "text") ?? cols[0];
+        const end = cols.find((c) => c !== title && toned(c));
+        const endMeta = cols.find((c) => c !== title && c !== end && c.dot);
+        const meta = cols.filter((c) => c !== title && c !== end && c !== endMeta && colType(c) === "text" && !c.dot && !toned(c)).slice(0, 2);
+        s = { title, meta, end, endMeta };
+      }
+    }
+    this.#slots = { for: cols, s };
+    return s;
+  }
+
+  /** Un renglón de la lista: el título arriba y dos datos debajo, un estado y un dato a la derecha.
+   *  Una sola celda (la fila se recorre y se abre entera; `data-to` la extiende a todas las columnas
+   *  para que la celda activa sea siempre ella). Con `avatar` en el título, su círculo a la
+   *  izquierda; con `selectable`, ese círculo es la casilla. Con `href`, el renglón es el enlace. */
+  #listRowEl(i: number): HTMLElement {
+    const it = this.#itemAt(i);
+    const S = this.#listSlots();
+    const row = h("div", { role: "row", class: "nx-grid__row nx-grid__lrow", "aria-rowindex": i + 2, "data-r": i });
+    const cell = h("div", { role: "gridcell", class: "nx-grid__cell nx-grid__litem", id: `${this.#uid}-${i}-l`, "aria-colindex": 1, "data-c": 0, "data-to": Math.max(0, this.#columns.length - 1) });
+    row.append(cell);
+    if (!it || !S) {
+      row.classList.add("is-loading");
+      return row;
+    }
+    if ("g" in it) {
+      const g = it.g;
+      row.classList.add("nx-grid__row--group");
+      row.setAttribute("aria-expanded", String(!this.#collapsed.has(g.key)));
+      // Debajo, los subtotales de las dos primeras columnas numéricas (en la tabla van bajo su columna).
+      const sums = this.#columns
+        .filter(isNumeric)
+        .slice(0, 2)
+        .map((c) => `${c.label} ${formatCell(g.sums[c.key] ?? 0, c, this.#loc)}`)
+        .join(" · ");
+      cell.append(glyph("chevron", "nx-grid__chev"), h("span", { class: "nx-grid__g-label" }, g.label), h("span", { class: "nx-grid__g-n" }, this.#loc.number(g.rows.length)), ...(sums ? [h("span", { class: "nx-grid__g-sums" }, sums)] : []));
+      return row;
+    }
+    const r = it.r;
+    const id = this.#ids.get(r) ?? "";
+    const t = S.title;
+    const text = formatCell(r[t.key], t, this.#loc);
+    const face = !!t.avatar && !!text;
+    if (face || this.selectable) {
+      // El tono del avatar sale del texto, como en la celda: la misma persona, siempre el mismo color.
+      const hue = [...text].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
+      const lead = h("span", { class: `nx-grid__lav${face ? "" : " is-blank"}`, ...(t.avatar === "neutral" ? { "data-tone": "neutral" } : face ? { style: `--_h:${hue}` } : {}), "aria-hidden": this.selectable ? null : "true" }, face ? h("span", { class: "nx-grid__lav-i", "aria-hidden": "true" }, avatarInitials(t, r, text)) : null);
+      if (this.selectable && id) {
+        const on = this.#picked.has(id);
+        lead.append(h("input", { type: "checkbox", "data-pick": "", "data-nx-ephemeral": "", checked: on, tabindex: -1, "aria-label": this.#labels.selectRow }), glyph(CHECK, "nx-grid__lav-check"));
+        row.classList.toggle("is-picked", on);
+        row.setAttribute("aria-selected", String(on));
+      }
+      cell.append(lead);
+    }
+    const link = this.#listHref(r, S);
+    const main = link
+      ? h("a", { class: "nx-grid__lmain nx-grid__link", href: link.url, tabindex: -1, draggable: "false", ...(link.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {}) })
+      : h("span", { class: "nx-grid__lmain" });
+    const meta = S.meta.map((c) => formatCell(r[c.key], c, this.#loc)).filter(Boolean);
+    main.append(
+      h("span", { class: "nx-grid__lt" }, text),
+      ...(S.end ? [h("span", { class: "nx-grid__le" }, ...this.#listValue(S.end, r))] : []),
+      h("span", { class: "nx-grid__lm" }, meta.join(" · ")),
+      ...(S.endMeta ? [h("span", { class: "nx-grid__lem" }, ...this.#listValue(S.endMeta, r))] : []),
+    );
+    cell.append(main);
+    if (this.#actions.length) row.append(this.#actionsCell(r, 2));
+    return row;
+  }
+
+  /** El valor de una columna en el renglón: con su punto o en su píldora, como en la celda. */
+  #listValue(c: GridColumn, r: GridRow): (Node | string)[] {
+    const v = r[c.key];
+    const text = formatCell(v, c, this.#loc);
+    if (!text) return [];
+    const tone = c.options?.find((o) => o.value === String(v))?.tone;
+    if (c.dot) return [...dotEl(dotOf(c, String(v))), text];
+    if (colType(c) === "status" || tone) return [h("span", { class: "nx-grid__pill", "data-tone": tone ?? "neutral" }, text)];
+    return [text];
+  }
+
+  /** La dirección del renglón: la del título si es `href`, si no la de la primera columna `href`
+   *  con una dirección segura en la fila (la misma que seguiría Enter en la tabla). */
+  #listHref(r: GridRow, S: ListSlots): { url: string; newTab: boolean } | null {
+    for (const c of [S.title, ...this.#columns]) {
+      const url = c.href ? safeHref(r[c.href]) : undefined;
+      if (url) return { url, newTab: !!c.newTab };
+    }
+    return null;
   }
 
   /** Los procesos (`sequence`) de las columnas: se calculan una vez por juego de columnas. */
@@ -4230,6 +4466,8 @@ export class NxGrid extends Base {
     const cell = (target as Element | null)?.closest?.<HTMLElement>("[data-c]");
     const row = cell?.parentElement;
     if (!cell || !row?.dataset.r) return null;
+    // En la lista, la fila entera es una celda: la columna activa es la del título.
+    if (this.#list) return { r: Number(row.dataset.r), c: Math.max(0, this.#columns.indexOf(this.#listSlots()?.title as GridColumn)) };
     return { r: Number(row.dataset.r), c: Number(cell.dataset.c) };
   }
 
@@ -4265,9 +4503,15 @@ export class NxGrid extends Base {
     const had = document.activeElement === this.#scroll;
     this.#scroll!.focus({ preventScroll: true });
     const it = this.#itemAt(p.r);
-    if (it && "g" in it && (e.target as Element).closest(".nx-grid__chev, .nx-grid__g-label")) {
+    // En la lista, el renglón del grupo se pliega tocándolo en cualquier parte.
+    if (it && "g" in it && (this.#list || (e.target as Element).closest(".nx-grid__chev, .nx-grid__g-label"))) {
       this.#act = this.#anchor = p;
       return this.#toggleGroup(p.r);
+    }
+    // En la lista no hay rangos ni segundo toque: el clic abre la fila (ver el `click` de las filas).
+    if (this.#list) {
+      this.#act = this.#anchor = p;
+      return this.#paintSel();
     }
     const { r0, r1, c0, c1 } = this.#range();
     if (this.#touch && had && r0 === p.r && r1 === p.r && c0 === p.c && c1 === p.c) this.#tap = p;
@@ -4304,14 +4548,15 @@ export class NxGrid extends Base {
     const m = this.#columns.length;
     const mod = e.ctrlKey || e.metaKey;
     let { r, c } = this.#act;
-    // ↑ desde la primera fila (o cualquier flecha sin filas) sube a las cabeceras.
-    if (m && !e.altKey && ((e.key === "ArrowUp" && !mod && !e.shiftKey && r === 0) || (!n && e.key.startsWith("Arrow")))) {
+    // ↑ desde la primera fila (o cualquier flecha sin filas) sube a las cabeceras (la lista no tiene).
+    if (m && !this.#list && !e.altKey && ((e.key === "ArrowUp" && !mod && !e.shiftKey && r === 0) || (!n && e.key.startsWith("Arrow")))) {
       e.preventDefault();
       return this.#focusHead(Math.min(c, m - 1));
     }
     if (!n || !m) return;
+    if (this.#list) return this.#onListKey(e, n);
     const it = this.#itemAt(r);
-    const page = Math.max(1, Math.floor((this.#scroll!.clientHeight - this.#head!.offsetHeight) / ROW_H) - 1);
+    const page = Math.max(1, Math.floor((this.#scroll!.clientHeight - this.#head!.offsetHeight) / this.#rowH) - 1);
     // Ctrl+Z deshace; Ctrl+Y o Ctrl+Mayús+Z rehace. (La tabla lo atiende: los avisos de la página no.)
     if (mod && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
       e.preventDefault();
@@ -4407,6 +4652,75 @@ export class NxGrid extends Base {
     this.#moveTo({ r: Math.max(0, Math.min(n - 1, r)), c: Math.max(0, Math.min(m - 1, c)) }, e.shiftKey);
   }
 
+  /** El teclado en la lista (una sola parada de Tab, como la tabla): ↑/↓, Re Pág/Av Pág, Inicio y
+   *  Fin recorren las filas; Enter abre la fila (o pliega su grupo); Espacio la marca (con
+   *  `selectable`) o pliega el grupo; la tecla de menú abre el de la fila. Sin rangos, sin edición
+   *  ni borrado: la lista no tiene celdas. */
+  #onListKey(e: KeyboardEvent, n: number): void {
+    const mod = e.ctrlKey || e.metaKey;
+    let r = this.#act.r;
+    const it = this.#itemAt(r);
+    const page = Math.max(1, Math.floor(this.#scroll!.clientHeight / LIST_H) - 1);
+    if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+      e.preventDefault();
+      const rect = this.#cell(this.#act)?.getBoundingClientRect();
+      if (this.#menuFor(this.#act)) void this.#cellMenu(this.#act, rect?.left ?? 0, rect?.bottom ?? 0);
+      return;
+    }
+    switch (e.key) {
+      case "ArrowDown":
+        r = mod ? n - 1 : r + 1;
+        break;
+      case "ArrowUp":
+        r = mod ? 0 : r - 1;
+        break;
+      case "PageDown":
+        r += page;
+        break;
+      case "PageUp":
+        r -= page;
+        break;
+      case "Home":
+        r = 0;
+        break;
+      case "End":
+        r = n - 1;
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (it && "g" in it) return this.#toggleGroup(r);
+        if (e.key === "Enter") return this.#openRow();
+        if (this.selectable && it) this.#pick(r, !this.#picked.has(this.#ids.get(it.r) ?? ""), e.shiftKey);
+        return;
+      default:
+        return;
+    }
+    e.preventDefault();
+    this.#moveTo({ r: Math.max(0, Math.min(n - 1, r)), c: this.#act.c }, false);
+  }
+
+  /** Un clic (o un toque) en la lista abre la fila: emite `nx-grid-open` o, si el renglón es un
+   *  enlace, lo sigue el navegador. Con algo seleccionado, la marca o desmarca, como en el correo
+   *  del celular. El segundo clic de un doble clic no la abre otra vez. */
+  #listClick(e: MouseEvent): void {
+    const t = e.target as Element;
+    const p = this.#posOf(t);
+    const it = p ? this.#itemAt(p.r) : null;
+    if (!p || !it || "g" in it) return;
+    if (this.selectable && this.#picked.size) {
+      e.preventDefault();
+      return this.#pick(p.r, !this.#picked.has(this.#ids.get(it.r) ?? ""), e.shiftKey);
+    }
+    if (e.detail > 1) {
+      if (t.closest("a")) e.preventDefault();
+      return;
+    }
+    if (t.closest("a.nx-grid__link")) return;
+    this.#act = this.#anchor = p;
+    this.#openRow();
+  }
+
   /** Marca o desmarca la fila `r`; con Mayús, todo el tramo desde la última marcada. */
   #pick(r: number, on: boolean, range: boolean): void {
     const from = range && this.#lastPick >= 0 ? Math.min(this.#lastPick, r) : r;
@@ -4499,11 +4813,12 @@ export class NxGrid extends Base {
   #scrollTo(r: number): void {
     const s = this.#scroll!;
     const k = this.#ratio();
-    const top = r * ROW_H;
+    const rh = this.#rowH;
+    const top = r * rh;
     const at = s.scrollTop * k;
     const vh = s.clientHeight - this.#head!.offsetHeight;
     if (top < at) s.scrollTop = top / k;
-    else if (vh > 0 && top + ROW_H > at + vh) s.scrollTop = (top + ROW_H - vh) / k;
+    else if (vh > 0 && top + rh > at + vh) s.scrollTop = (top + rh - vh) / k;
   }
 
   #cell(p: Pos): HTMLElement | null {
@@ -4516,7 +4831,8 @@ export class NxGrid extends Base {
     const { r, c } = this.#act;
     const it = this.#itemAt(r);
     const col = this.#columns[c];
-    if (!it || "g" in it || !col?.editable) return false;
+    // La lista no edita: la fila se abre y se edita donde la app la muestre.
+    if (this.#list || !it || "g" in it || !col?.editable) return false;
     this.#anchor = this.#act;
     this.#reveal();
     this.#paintSel();
@@ -5188,7 +5504,8 @@ export class NxGrid extends Base {
 
   /** Pega TSV desde la celda activa; un solo valor sobre un rango lo llena entero (como Excel). */
   #paste(e: ClipboardEvent): void {
-    if (this.#editing) return;
+    // En la lista no se pega: escribiría en columnas que no se ven.
+    if (this.#editing || this.#list) return;
     const text = e.clipboardData?.getData("text/plain");
     if (!text) return;
     e.preventDefault();

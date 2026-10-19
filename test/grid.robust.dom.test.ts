@@ -74,7 +74,7 @@ describe("modo servidor: la selección no alcanza filas de otra consulta", () =>
 });
 
 describe("reconexión", () => {
-  it("moverla en el DOM no vuelve a pedir los datos y vuelve a observar su tamaño", async () => {
+  it("moverla en el DOM no vuelve a pedir los datos y vuelve a observar su tamaño (la tabla y el componente)", async () => {
     const observed: Element[] = [];
     const disconnected: number[] = [];
     vi.stubGlobal(
@@ -93,13 +93,14 @@ describe("reconexión", () => {
     const el = mount('source="/datos"');
     await sleep(20);
     const calls = fetch.mock.calls.length;
-    expect(observed).toHaveLength(1);
+    // La tabla (las filas a la vista) y el componente (tabla o lista, `narrow`).
+    expect(observed).toEqual([el.querySelector(".nx-grid__scroll"), el]);
     const box = document.createElement("div");
     document.body.append(box);
     box.append(el); // desconectar y conectar
     await sleep(20);
     expect(disconnected).toHaveLength(1);
-    expect(observed).toHaveLength(2);
+    expect(observed).toHaveLength(4);
     expect(fetch.mock.calls.length).toBe(calls);
     expect(el.querySelector('[data-r="0"] [data-c="0"]')!.textContent).toBe("OC-0");
   });

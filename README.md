@@ -835,6 +835,26 @@ grid.addEventListener("nx-grid-error", (e) => {
   lleva una línea más marcada, donde las demás pasan por debajo. El teclado no deja la celda activa
   tapada. Una etiqueta de grupo que ocupa varias columnas no se fija, y todas fijas es ninguna. Si
   la tabla mide menos de 640 px no se fija nada: taparía casi todo.
+- **En el celular, una lista (`narrow`).** Cuando el componente mide menos de 480 px, cada fila es
+  un renglón de dos líneas: el título arriba (con su círculo si la columna lleva `avatar`), dos
+  datos debajo separados por «·», y a la derecha un estado o un monto y, debajo, un dato con su
+  punto. El renglón mide 60 px fijos, así que la virtualización es la misma y hay menos nodos que en
+  la tabla (cinco datos por fila, no todas las columnas). Qué columna va en cada lugar lo dice `list`
+  en la columna: `"title"`, `"meta"` (hasta dos), `"end"` o `"end-meta"`; si alguna lo trae, van
+  solo esas. Si ninguna, la tabla elige: el título es la columna fija (`sticky`), la del avatar o
+  la del enlace, o la primera de texto; a la derecha, el primer estado (o columna con tonos) y el
+  primer punto (`dot`); debajo, las dos primeras columnas de texto que quedan. Solo cuentan las
+  columnas a la vista. Un toque abre la fila (`nx-grid-open`); con `href`, el renglón es el enlace.
+  Con `selectable`, el círculo es la casilla y, con algo marcado, tocar una fila la marca (como en
+  el correo del celular). Sin cabecera, se ordena con «Ordenar por» y su flecha en la barra; los
+  filtros siguen en «Filtros», la búsqueda y los chips, y el grupo es un renglón con sus subtotales
+  que se pliega tocándolo. La lista no edita, no marca rangos ni pega (lo que se editaba en la tabla
+  se guarda al pasar a lista) y no muestra Deshacer ni Rehacer; las acciones de fila van al final
+  del renglón. Teclado: ↑/↓, Re Pág/Av Pág, Inicio y Fin; Enter abre, Espacio marca. Vuelve a ser
+  tabla desde 496 px (el margen evita que cambie una y otra vez justo en el borde) y la fila de
+  arriba sigue arriba al cambiar. `narrow="table"` (también en Solid y BDUI) la deja como tabla,
+  para las que se llenan celda por celda; el atributo `data-list` dice cuál se ve. La matriz no
+  cambia.
 - **Acciones de fila (`actions`).** Botones en una columna fija a la derecha, opaca, que no se
   filtra, no se busca, no se exporta y no está en «Columnas». Cada acción tiene `key` y `label`;
   con `icon` (del registro) queda solo el ícono, con su nombre en `aria-label` y `title`; `tone:
@@ -910,7 +930,7 @@ lee lo que trae la fila, no `Object`.
 
 | | |
 |---|---|
-| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `timeout` (ms; 30.000), `label` (el `aria-label` de la tabla; sin él, `heading`), `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
+| Propiedades / atributos | `columns`, `rows`, `source`, `client-max`, `client-only`, `timeout` (ms; 30.000), `label` (el `aria-label` de la tabla; sin él, `heading`), `filters`, `presets`, `sort`, `search`, `view`, `views-storage`, `views`, `group-by`, `no-group`, `facets-open`, `top-scrollbar`, `narrow` (`list` / `table`), `accents`, `actions`, `height` (px o `fill`), `heading`, `heading-icon`, `heading-level`, `matrix`, `layout`, `row-key`, `filename`, `locale`, `selectable`, `selected`, `labels` |
 | Métodos | `clearFilters()`, `applyFilters(filtros)` (como si los pusiera la persona: emite `nx-grid-filter`; el setter `filters` no emite), `openFilter(key)`, `applyView(id)`, `activeView`, `exportXlsx()`, `removeColumn(key)`, `refresh()`, `patchRow(fila)` → si quedó exacto, `removeRow(id)` → si quedó exacto, `undo()`, `redo()`, `canUndo`, `canRedo`, `save(changes, promesa)` → si se guardó, `pendingSaves` |
 | Solo lectura | `count` (cuántas filas pasan), `selectedRows`, `mode` (`client` / `server`), `shownIds`: los `id` (según `row-key`) de las filas que pasan la búsqueda y los filtros, en el orden en que se ven (agrupada, grupo por grupo, también las de un grupo plegado). Para el «anterior / siguiente» de una ficha abierta desde una fila (`<nx-dialog nav>`) sin repetir los filtros ni el orden en la app. Con `source`, solo los de las filas ya cargadas, en ese orden |
 | Eventos | `nx-grid-filter`, `nx-grid-change` (cancelable), `nx-grid-columns` (`{columns, hidden, widths}`: la persona cambió las columnas visibles o un ancho, o `removeColumn()`), `nx-grid-selection`, `nx-grid-open`, `nx-grid-action` (`{action, id, row}`), `nx-grid-views`, `nx-grid-export` (`{ok, count, filename, layout, error?}`), `nx-grid-error` (`{offset, limit, error, status, message, body, attempt, retrying}`, con `source`), `nx-grid-truncated` (`{shown, total}`: `client-only` recortó lo que mandó el origen), `nx-grid-layout` (`{layout, matrix}`) |

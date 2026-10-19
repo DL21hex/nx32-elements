@@ -12,7 +12,7 @@ import type { AiActionDetail, AiDoneDetail, AiEvent, AiFeedbackDetail, AiLabels 
 import type { NxDocCapture } from "../components/capture/doc-capture";
 import type { CaptureEvent, CaptureLabels, CaptureSchemaItem, CaptureSubmitDetail, CaptureValues } from "../components/capture/types";
 import type { NxGrid } from "../components/grid/grid";
-import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView } from "../components/grid/types";
+import type { GridAction, GridActionDetail, GridChange, GridChangeSource, GridColumn, GridColumnsDetail, GridErrorDetail, GridExportDetail, GridFilter, GridLabels, GridLayoutDetail, GridMatrix, GridPreset, GridRow, GridSavedView, GridSort, GridTruncatedDetail, GridView, GridNarrow } from "../components/grid/types";
 import type { NxDialog } from "../components/dialog/dialog";
 import type { CloseReason, DialogAction, DialogActionDetail, DialogBadge, DialogCloseDetail, DialogLabels, DialogMode, DialogNavDetail, DialogSize } from "../components/dialog/types";
 import type { NxBadge } from "../components/badge/badge";
@@ -310,6 +310,8 @@ declare module "solid-js" {
       debounce: string | undefined;
       /** `<nx-grid timeout>`, `<nx-select source timeout>`, `<nx-import timeout>`: plazo de cada petición, en ms. */
       timeout: string | undefined;
+      /** `<nx-grid narrow="table">`: por debajo de 480 px sigue siendo tabla (sin él, lista). */
+      narrow: GridNarrow | undefined;
       idle: string | undefined;
       channel: string | undefined;
       active: string | undefined;

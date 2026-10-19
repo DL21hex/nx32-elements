@@ -1,0 +1,1352 @@
+<title>Modo lista de nx-grid</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Distribución: banco de pruebas (controles + un teléfono que se estira) a la izquierda y notas a la
+   derecha; en una pantalla angosta el teléfono ocupa el ancho y las notas van debajo.
+   Dentro del teléfono, la vista Empleados con el aspecto de nx32-elements: la tabla de hoy y, por
+   debajo de 480 px, la misma tabla pintada como lista. */
+:root {
+  color-scheme: light dark;
+  --h: 215;
+  --canvas: light-dark(oklch(0.972 0.004 250), oklch(0.155 0.012 var(--h)));
+  --card: light-dark(oklch(1 0 0), oklch(0.205 0.012 var(--h)));
+  --sunk: light-dark(oklch(0.962 0.004 250), oklch(0.185 0.012 var(--h)));
+  --pop: light-dark(oklch(1 0 0), oklch(0.235 0.013 var(--h)));
+  --line-soft: light-dark(oklch(0.93 0.004 250), oklch(1 0 0 / 0.07));
+  --line: light-dark(oklch(0.89 0.005 250), oklch(1 0 0 / 0.12));
+  --fg: light-dark(oklch(0.2 0.008 250), oklch(0.955 0.003 250));
+  --fg-2: light-dark(oklch(0.44 0.01 250), oklch(0.76 0.006 250));
+  --fg-3: light-dark(oklch(0.51 0.01 250), oklch(0.66 0.007 250));
+  --fg-4: light-dark(oklch(0.66 0.008 250), oklch(0.53 0.007 250));
+  --accent: light-dark(oklch(0.52 0.12 var(--h)), oklch(0.74 0.09 var(--h)));
+  --accent-ink: light-dark(oklch(0.46 0.12 var(--h)), oklch(0.8 0.085 var(--h)));
+  --accent-soft: light-dark(oklch(0.52 0.12 var(--h) / 0.09), oklch(0.74 0.09 var(--h) / 0.15));
+  --accent-line: light-dark(oklch(0.52 0.12 var(--h) / 0.4), oklch(0.74 0.09 var(--h) / 0.45));
+  --on-accent: light-dark(oklch(1 0 0), oklch(0.18 0.02 var(--h)));
+  --hover: light-dark(oklch(0.2 0.01 250 / 0.045), oklch(1 0 0 / 0.055));
+  --press: light-dark(oklch(0.2 0.01 250 / 0.085), oklch(1 0 0 / 0.1));
+  --picked: light-dark(oklch(0.96 0.025 var(--h)), oklch(0.255 0.03 var(--h)));
+  --ring: light-dark(oklch(0.52 0.12 var(--h) / 0.6), oklch(0.74 0.09 var(--h) / 0.7));
+  --ok: light-dark(oklch(0.56 0.13 150), oklch(0.74 0.14 150));
+  --ok-ink: light-dark(oklch(0.43 0.11 150), oklch(0.82 0.12 150));
+  --ok-soft: light-dark(oklch(0.56 0.13 150 / 0.12), oklch(0.74 0.14 150 / 0.15));
+  --info: light-dark(oklch(0.6 0.13 250), oklch(0.72 0.11 250));
+  --info-ink: light-dark(oklch(0.46 0.13 250), oklch(0.82 0.09 250));
+  --info-soft: light-dark(oklch(0.6 0.13 250 / 0.12), oklch(0.72 0.11 250 / 0.16));
+  --warn: light-dark(oklch(0.72 0.15 70), oklch(0.8 0.14 78));
+  --warn-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --warn-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
+  --purple: light-dark(oklch(0.58 0.14 300), oklch(0.72 0.12 300));
+  --backdrop: light-dark(oklch(0.2 0.01 250 / 0.3), oklch(0 0 0 / 0.5));
+  --bezel: light-dark(oklch(0.23 0.008 250), oklch(0.09 0.005 250));
+  --bezel-line: light-dark(oklch(0.36 0.008 250), oklch(0.3 0.01 250));
+  --shadow-pop: 0 1px 2px light-dark(oklch(0.2 0.02 250 / 0.08), oklch(0 0 0 / 0.3)),
+    0 12px 32px -6px light-dark(oklch(0.2 0.02 250 / 0.22), oklch(0 0 0 / 0.6));
+  --shadow-device: 0 40px 70px -30px light-dark(oklch(0.2 0.02 250 / 0.45), oklch(0 0 0 / 0.8));
+  --font: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --row-list: 60px;
+  --row-table: 32px;
+}
+/* El tema se decide en <body>: el visor de artefactos maneja el `data-theme` de la raíz. Los tokens
+   usan light-dark(), que se resuelve con el color-scheme que hereda cada elemento. */
+body { color-scheme: light dark; }
+:root[data-theme="dark"] body { color-scheme: dark; }
+:root[data-theme="light"] body { color-scheme: light; }
+:root body[data-scheme="dark"] { color-scheme: dark; }
+:root body[data-scheme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--canvas);
+  color: var(--fg);
+  font: 14px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+code, pre { font-family: var(--mono); font-size: 12.5px; }
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ la página de la maqueta */
+.page { max-width: 1240px; margin: 0 auto; display: grid; gap: 24px; }
+.top { display: grid; gap: 6px; max-width: 760px; }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3); }
+.top h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; }
+.lede { margin: 0; color: var(--fg-2); font-size: 15px; max-width: 64ch; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 32px; align-items: start; }
+@media (max-width: 1060px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { display: grid; gap: 14px; justify-items: center; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 18px; }
+.ctl { display: flex; align-items: center; gap: 8px; }
+.ctl-l { font-size: 12.5px; color: var(--fg-3); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--hover); }
+.seg button {
+  height: 28px; padding: 0 11px; border: 0; border-radius: 7px; background: none; color: var(--fg-2);
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px oklch(0.2 0.02 250 / 0.12); }
+.ico {
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--card); color: var(--fg-2);
+}
+.ico:hover { color: var(--fg); }
+.readout { margin: -4px 0 0; font-size: 12.5px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.readout b { color: var(--fg); font-weight: 600; }
+
+.device-wrap { display: flex; align-items: center; gap: 10px; max-width: 100%; }
+.device {
+  padding: 10px; border-radius: 42px; background: var(--bezel);
+  box-shadow: 0 0 0 1px var(--bezel-line), var(--shadow-device);
+}
+.grip {
+  width: 10px; height: 72px; padding: 0; border: 0; border-radius: 5px; background: var(--line);
+  cursor: ew-resize; touch-action: none; flex: none;
+}
+.grip:hover, .grip:focus-visible { background: var(--fg-4); }
+
+/* ------------------------------------------------------------------ la pantalla del teléfono */
+.screen {
+  container: screen / inline-size;
+  position: relative; width: var(--w, 390px); height: 760px; overflow: hidden;
+  display: flex; flex-direction: column; border-radius: 32px; background: var(--canvas);
+}
+.status {
+  display: flex; align-items: center; justify-content: space-between; height: 30px; flex: none;
+  padding: 0 26px 0 30px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.battery { width: 24px; height: 11px; border-radius: 3px; border: 1.5px solid currentColor; padding: 1px; opacity: 0.85; }
+.battery::before { content: ""; display: block; width: 70%; height: 100%; border-radius: 1px; background: currentColor; }
+.app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ph { display: flex; align-items: center; gap: 10px; padding: 6px 12px 10px; flex: none; }
+.ph-menu { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 9px; background: none; color: var(--fg-2); }
+.ph-menu:hover { background: var(--hover); }
+.ph-t { display: grid; line-height: 1.2; min-width: 0; }
+.ph-mod { font-size: 12px; color: var(--fg-3); }
+.ph h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+
+/* ------------------------------------------------------------------ nx-grid */
+.grid { container: grid / inline-size; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 8px; }
+.search {
+  display: flex; align-items: center; gap: 8px; flex: 1 1 220px; min-width: 0; height: 36px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: text;
+}
+.search .i { color: var(--fg-3); }
+.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; font-size: 14px; }
+.search input::placeholder { color: var(--fg-3); }
+.search:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.btn {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); font-size: 13.5px; font-weight: 500; white-space: nowrap;
+}
+.btn:hover { background: color-mix(in oklch, var(--card), var(--fg) 4%); }
+.btn.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+.badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 650;
+}
+/* Como hoy por debajo de 480 px: la barra queda en íconos (el nombre sigue para el lector de pantalla). */
+@container grid (width < 480px) {
+  .search { flex-basis: 100%; }
+  .bar .btn { min-width: 40px; padding: 0 10px; }
+  .bar .btn > .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .bar .btn .badge { position: absolute; top: -6px; right: -6px; }
+}
+
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 30px; padding: 0 14px 8px; font-size: 13px; color: var(--fg-2); }
+.meta b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.meta .dim { color: var(--fg-3); }
+.lnk { border: 0; background: none; padding: 0; color: var(--accent-ink); font-size: 13px; font-weight: 500; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 4px 0 10px; border-radius: 14px; max-width: 100%;
+  background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-ink); font-size: 12.5px; font-weight: 500;
+}
+.chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip button { display: grid; place-items: center; width: 22px; height: 22px; flex: none; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; }
+.chip button:hover { background: var(--accent-soft); }
+.chip .i { width: 13px; height: 13px; }
+
+.scroller {
+  position: relative; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain;
+  border-top: 1px solid var(--line); background: var(--card); scrollbar-width: thin;
+}
+.grid[data-layout="list"] .scroller { overflow-x: hidden; }
+.tbody { position: relative; }
+.rows { position: absolute; top: 0; left: 0; width: 100%; will-change: transform; }
+.grid[data-layout="table"] .tbody, .grid[data-layout="table"] .rows { width: var(--tw); }
+.empty { display: grid; justify-items: center; gap: 8px; padding: 48px 20px; color: var(--fg-3); text-align: center; }
+
+/* Píldoras y puntos, como en la tabla de hoy. */
+.pill {
+  --_bg: var(--hover); --_fg: var(--fg-2);
+  display: inline-block; max-width: 100%; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-radius: 10px; background: var(--_bg); color: var(--_fg); font-size: 12px; font-weight: 500; line-height: 20px; vertical-align: middle;
+}
+.pill[data-tone="ok"] { --_bg: var(--ok-soft); --_fg: var(--ok-ink); }
+.pill[data-tone="info"] { --_bg: var(--info-soft); --_fg: var(--info-ink); }
+.pill[data-tone="warn"] { --_bg: var(--warn-soft); --_fg: var(--warn-ink); }
+.dot { display: inline-block; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--_d, var(--fg-4)); vertical-align: 1px; }
+.dot[data-k="0"], .dot[data-tone="ok"] { --_d: var(--ok); }
+.dot[data-k="1"], .dot[data-tone="info"] { --_d: var(--info); }
+.dot[data-k="2"] { --_d: var(--purple); }
+.dot[data-k="3"], .dot[data-tone="warn"] { --_d: var(--warn); }
+.dotv { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.doc .t { color: var(--fg-4); font-size: 12px; font-weight: 500; }
+
+/* ------------------------------------------------------------------ la tabla de hoy (32 px por fila) */
+.thead, .trow { display: grid; grid-template-columns: var(--cols); width: var(--tw); }
+.thead { position: sticky; top: 0; z-index: 3; height: 36px; border-bottom: 1px solid var(--line); background: var(--card); }
+.th { display: flex; align-items: center; min-width: 0; background: var(--card); border-left: 1px solid var(--line-soft); }
+.th button {
+  display: flex; align-items: center; gap: 4px; width: 100%; height: 100%; padding: 0 10px; border: 0; background: none;
+  font-size: 13px; font-weight: 600; text-align: left; white-space: nowrap; overflow: hidden;
+}
+.th button:hover { background: var(--hover); }
+.th.num button { justify-content: flex-end; }
+.th .i { width: 13px; height: 13px; color: var(--fg-3); }
+.trow { height: var(--row-table); }
+.td {
+  display: block; min-width: 0; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  line-height: calc(var(--row-table) - 1px); border-bottom: 1px solid var(--line-soft); border-left: 1px solid var(--line-soft);
+  background: var(--card); font-size: 13.5px;
+}
+.td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.th.chk, .td.chk { display: grid; place-items: center; padding: 0; border-left: 0; }
+.chk input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.trow:hover .td { background: color-mix(in oklch, var(--card), var(--fg) 3%); }
+.trow.is-picked .td { background: var(--picked); }
+.tav {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 8px; border-radius: 50%; vertical-align: middle;
+  background: light-dark(oklch(0.93 0.05 var(--hue)), oklch(0.36 0.07 var(--hue)));
+  color: light-dark(oklch(0.42 0.12 var(--hue)), oklch(0.88 0.07 var(--hue)));
+  font-size: 9.5px; font-weight: 650; line-height: 1;
+}
+.tname { padding: 0; border: 0; background: none; font-weight: 500; color: var(--fg); }
+.tname:hover { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
+/* La columna fija solo se fija desde 640 px, como hoy (más angosta taparía casi todo). */
+.grid.is-wide .chk { position: sticky; left: 0; z-index: 1; }
+.grid.is-wide .stk { position: sticky; left: 40px; z-index: 1; box-shadow: 1px 0 0 var(--line); }
+.tgrp { width: var(--tw); height: var(--row-table); background: var(--sunk); border-bottom: 1px solid var(--line); }
+.tgrp-btn {
+  position: sticky; left: 0; display: inline-flex; align-items: center; gap: 8px; height: 100%; max-width: 100cqw;
+  padding: 0 12px; border: 0; background: none; font-size: 13px; white-space: nowrap;
+}
+.tgrp-btn b { font-weight: 600; }
+.tgrp-btn .dim { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ la lista (60 px por fila) */
+.lrow {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; height: var(--row-list);
+  padding-left: 12px; border-bottom: 1px solid var(--line-soft); background: var(--card);
+}
+.lrow.is-picked { background: var(--picked); }
+.lav {
+  display: grid; place-items: center; width: 36px; height: 36px; margin: 0 2px; padding: 0; border: 0; border-radius: 50%;
+  background: light-dark(oklch(0.93 0.05 var(--hue)), oklch(0.36 0.07 var(--hue)));
+  color: light-dark(oklch(0.42 0.12 var(--hue)), oklch(0.88 0.07 var(--hue)));
+  font-size: 12px; font-weight: 650; letter-spacing: 0.02em; transition: background-color 120ms ease;
+}
+.lrow.is-picked .lav { background: var(--accent); color: var(--on-accent); }
+.lav .i { width: 18px; height: 18px; stroke-width: 2.4; }
+.lmain {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 20px 18px; column-gap: 12px; row-gap: 2px;
+  align-content: center; height: 100%; min-width: 0; padding: 0 16px 0 10px; border: 0; background: none; text-align: left;
+}
+.lmain:active { background: var(--press); }
+@media (hover: hover) and (pointer: fine) { .lmain:hover { background: var(--hover); } }
+.lt, .lm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lt { grid-area: 1 / 1; font-size: 14.5px; font-weight: 550; line-height: 20px; }
+.le { grid-area: 1 / 2; justify-self: end; max-width: 120px; line-height: 20px; }
+.lm { grid-area: 2 / 1; font-size: 13px; line-height: 18px; color: var(--fg-2); }
+.lm .sep { margin: 0 2px; color: var(--fg-4); }
+.lem { grid-area: 2 / 2; justify-self: end; font-size: 12.5px; line-height: 18px; color: var(--fg-3); white-space: nowrap; }
+.lgrp-btn {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-rows: 20px 18px; column-gap: 8px; row-gap: 2px;
+  align-content: center; width: 100%; height: var(--row-list); padding: 0 16px 0 14px; border: 0; border-bottom: 1px solid var(--line);
+  background: var(--sunk); text-align: left;
+}
+.lgrp-btn .chev { grid-area: 1 / 1; align-self: center; color: var(--fg-3); }
+.lgrp-btn b { grid-area: 1 / 2; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lgrp-btn .gn { grid-area: 1 / 3; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lgrp-btn .gs { grid-area: 2 / 2 / 3 / 4; font-size: 12.5px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.chev { transition: rotate 150ms ease; }
+[aria-expanded="false"] > .chev { rotate: -90deg; }
+
+/* ------------------------------------------------------------------ hojas (desde abajo) */
+.scrim { position: absolute; inset: 0; z-index: 30; background: var(--backdrop); animation: fade 180ms ease; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 31; display: flex; flex-direction: column; max-height: 86%;
+  border-radius: 16px 16px 0 0; background: var(--pop); box-shadow: var(--shadow-pop);
+  padding-bottom: env(safe-area-inset-bottom, 0px); animation: rise 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sheet::before { content: ""; flex: none; width: 36px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--line); }
+@container screen (width >= 600px) {
+  .sheet { left: 50%; right: auto; bottom: 16px; width: 480px; translate: -50% 0; border-radius: 16px; }
+  .sheet::before { display: none; }
+}
+@keyframes rise { from { transform: translateY(40%); opacity: 0; } }
+@keyframes fade { from { opacity: 0; } }
+.sh-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px 12px 16px; border-bottom: 1px solid var(--line-soft); }
+.sh-head h3 { flex: 1; min-width: 0; margin: 0; font-size: 16px; font-weight: 600; }
+.sh-x { display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: 50%; background: var(--hover); color: var(--fg-2); }
+.sh-body { flex: 1; min-height: 0; overflow: auto; padding: 6px 16px 16px; overscroll-behavior: contain; }
+.sh-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line-soft); }
+.b {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--card); font-size: 14px; font-weight: 550;
+}
+.b.primary { flex: 1; border-color: transparent; background: var(--accent); color: var(--on-accent); }
+.b.grow { flex: 1; }
+.sh-foot .seg { flex: 1; }
+.sh-foot .seg button { flex: 1; height: 36px; }
+.saved { flex-basis: 100%; margin: 0; font-size: 12.5px; color: var(--ok-ink); }
+
+.facet { margin: 0; padding: 12px 0 10px; border: 0; border-bottom: 1px solid var(--line-soft); }
+.facet:last-child { border-bottom: 0; }
+.facet legend { padding: 0; margin-bottom: 4px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3); }
+.opt { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; cursor: pointer; }
+.opt input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--accent); }
+.opt .ot { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt small { color: var(--fg-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.opt.is-zero:not(:has(input:checked)) { opacity: 0.5; }
+
+.fhead { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.fav { width: 44px; height: 44px; margin: 0; font-size: 14px; cursor: default; }
+.fhead h3 { flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fwho { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.fsub { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg-3); }
+.fields { display: grid; margin: 0; }
+.fld { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 44px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+.fld:last-child { border-bottom: 0; }
+.fld dt { font-size: 12.5px; color: var(--fg-3); }
+.fld dd { margin: 0; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.fld input, .fld select {
+  width: 100%; height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); font-size: 16px;
+}
+.fld input:focus, .fld select:focus { outline: 0; border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fld .edit-mark { color: var(--accent-ink); font-size: 11.5px; font-weight: 500; margin-left: 4px; }
+
+.toast {
+  position: absolute; left: 50%; bottom: 18px; z-index: 40; translate: -50% 0; width: max-content; max-width: calc(100% - 32px);
+  padding: 10px 14px; border-radius: 10px; background: var(--fg); color: var(--canvas); font-size: 13px;
+  box-shadow: var(--shadow-pop); animation: fade 160ms ease;
+}
+
+/* ------------------------------------------------------------------ notas */
+.notes { display: grid; gap: 4px; min-width: 0; }
+.notes section { display: grid; gap: 10px; padding: 18px 0; border-top: 1px solid var(--line); }
+.notes section:first-child { border-top: 0; padding-top: 0; }
+.notes h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.notes p { margin: 0; color: var(--fg-2); }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--fg-2); }
+.notes li::marker { color: var(--fg-4); }
+.notes b { color: var(--fg); font-weight: 600; }
+.notes code { padding: 1px 5px; border-radius: 5px; background: var(--hover); color: var(--fg); font-size: 12px; }
+.notes pre { margin: 0; padding: 12px 14px; overflow-x: auto; border-radius: 10px; background: var(--sunk); border: 1px solid var(--line-soft); line-height: 1.55; }
+.notes pre code { padding: 0; background: none; font-size: 12px; }
+.notes pre .c { color: var(--fg-3); }
+.anat { padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); overflow: hidden; }
+.anat .lrow { border-bottom: 0; padding-left: 4px; }
+.anat [data-slot] { outline: 1.5px dashed var(--accent-line); outline-offset: 1px; border-radius: 3px; }
+.legend { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+.legend dt code { font-size: 11.5px; }
+.legend dd { margin: 0; color: var(--fg-2); }
+.notes .seg { justify-self: start; }
+.perf { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.perf th, .perf td { padding: 7px 0; text-align: right; border-bottom: 1px solid var(--line-soft); }
+.perf th:first-child, .perf td:first-child { text-align: left; }
+.perf thead th { font-size: 12px; font-weight: 500; color: var(--fg-3); }
+.perf td b { font-weight: 600; }
+.perf tr.is-on td:first-child::after { content: " · en pantalla"; color: var(--fg-3); font-size: 12px; }
+.changes { display: grid; gap: 8px; margin: 0; }
+.changes div { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 12px; }
+.changes dt { font-weight: 600; font-size: 13px; }
+.changes dd { margin: 0; color: var(--fg-2); font-size: 13.5px; }
+
+/* ------------------------------------------------------------------ pantallas angostas */
+@media (max-width: 640px) {
+  body { padding-block: 16px 32px; }
+  .top h1 { font-size: 22px; }
+  .wide-only, .grip, .status { display: none !important; }
+  .device-wrap { width: 100%; }
+  .device { width: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+  .screen { width: 100%; height: min(720px, calc(100svh - 120px)); min-height: 480px; border-radius: 14px; border: 1px solid var(--line); }
+  .changes div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-funnel" viewBox="0 0 24 24"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
+  <symbol id="i-group" viewBox="0 0 24 24"><path d="M21 12h-8"/><path d="M21 6H8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+  <symbol id="i-views" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+  <symbol id="i-export" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <p class="eyebrow">Maqueta · nx32-elements</p>
+    <h1>Modo lista de nx-grid</h1>
+    <p class="lede">La misma tabla se pinta como lista cuando el componente mide menos de 480 px. Los datos, los filtros, el orden y la selección son los mismos; solo cambia cómo se dibuja cada fila. Son 9.704 personas inventadas.</p>
+  </header>
+
+  <div class="layout">
+    <div class="stage" id="stage">
+      <div class="controls">
+        <div class="ctl">
+          <span class="ctl-l" id="l-pref">Modo</span>
+          <div class="seg" role="group" aria-labelledby="l-pref" id="pref-seg">
+            <button type="button" data-pref="auto" aria-pressed="true">Automático</button>
+            <button type="button" data-pref="table" aria-pressed="false">Tabla</button>
+            <button type="button" data-pref="list" aria-pressed="false">Lista</button>
+          </div>
+        </div>
+        <div class="ctl wide-only">
+          <span class="ctl-l" id="l-w">Ancho</span>
+          <div class="seg" role="group" aria-labelledby="l-w" id="w-seg">
+            <button type="button" data-w="360" aria-pressed="false">360</button>
+            <button type="button" data-w="390" aria-pressed="true">390</button>
+            <button type="button" data-w="430" aria-pressed="false">430</button>
+            <button type="button" data-w="600" aria-pressed="false">600</button>
+            <button type="button" data-w="768" aria-pressed="false">768</button>
+          </div>
+        </div>
+        <button type="button" class="ico" id="theme-btn" aria-label="Usar tema oscuro"><svg class="i"><use href="#i-moon"/></svg></button>
+      </div>
+      <p class="readout" id="readout" aria-live="polite"></p>
+
+      <div class="device-wrap">
+        <div class="device">
+          <div class="screen" id="screen">
+            <div class="status" aria-hidden="true"><span>9:41</span><span class="battery"></span></div>
+            <div class="app" id="app">
+              <header class="ph">
+                <button type="button" class="ph-menu" id="menu-btn" aria-label="Abrir el menú"><svg class="i"><use href="#i-menu"/></svg></button>
+                <div class="ph-t"><span class="ph-mod">Talento Humano</span><h2>Empleados</h2></div>
+              </header>
+              <div class="grid" id="grid" data-layout="list">
+                <div class="bar">
+                  <label class="search"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg><span class="sr">Buscar en la tabla</span><input id="q" type="search" placeholder="Buscar en la tabla" autocomplete="off" spellcheck="false"></label>
+                  <button type="button" class="btn" id="b-filters" aria-haspopup="dialog"><svg class="i" aria-hidden="true"><use href="#i-funnel"/></svg><span class="lbl">Filtros</span><span class="badge" id="f-badge" hidden></span></button>
+                  <button type="button" class="btn" id="b-sort" aria-haspopup="dialog"><svg class="i" aria-hidden="true"><use href="#i-sort"/></svg><span class="lbl">Ordenar</span></button>
+                  <button type="button" class="btn" id="b-group" aria-haspopup="dialog"><svg class="i" aria-hidden="true"><use href="#i-group"/></svg><span class="lbl">Agrupar</span></button>
+                  <button type="button" class="btn" id="b-views"><svg class="i" aria-hidden="true"><use href="#i-views"/></svg><span class="lbl">Vistas</span></button>
+                  <button type="button" class="btn" id="b-export"><svg class="i" aria-hidden="true"><use href="#i-export"/></svg><span class="lbl">Exportar</span></button>
+                </div>
+                <div class="meta" id="meta" aria-live="polite"></div>
+                <div class="scroller" id="scroller" aria-label="Empleados" tabindex="-1">
+                  <div class="thead" id="thead" role="row" hidden></div>
+                  <div class="tbody" id="tbody"><div class="rows" id="rows"></div></div>
+                  <div class="empty" id="empty" hidden><span>Nada coincide con la búsqueda o los filtros.</span><button type="button" class="lnk" data-act="clear-all">Quitar búsqueda y filtros</button></div>
+                </div>
+              </div>
+            </div>
+            <div class="scrim" id="scrim" hidden></div>
+            <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+              <div class="sh-head" id="sheet-head"></div>
+              <div class="sh-body" id="sheet-body"></div>
+              <div class="sh-foot" id="sheet-foot"></div>
+            </section>
+            <div class="toast" id="toast" role="status" hidden></div>
+          </div>
+        </div>
+        <button type="button" class="grip wide-only" id="grip" aria-label="Ancho del teléfono: arrastra o usa las flechas"></button>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <section>
+        <h2>Qué ves</h2>
+        <ul>
+          <li>Con menos de <b>480 px</b> de ancho, cada persona es un renglón de 60 px. Arrastra el borde del teléfono o elige un ancho para ver el cambio.</li>
+          <li>Tocar una fila abre su ficha, con todas las columnas. Tocar el círculo la selecciona; con algo seleccionado, tocar una fila también selecciona.</li>
+          <li>La búsqueda, los filtros, el orden, los grupos y la selección son los mismos en los dos modos. Al cambiar de modo no se pierde nada y la fila de arriba sigue arriba.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>La fila</h2>
+        <div class="anat" id="anat" inert></div>
+        <dl class="legend" id="legend"></dl>
+        <div class="seg" role="group" aria-label="Cómo se eligen las columnas de la fila" id="slots-seg">
+          <button type="button" data-slots="list" aria-pressed="true">Elegidas con <code>list</code></button>
+          <button type="button" data-slots="auto" aria-pressed="false">Automático</button>
+        </div>
+        <p id="slots-hint"></p>
+      </section>
+
+      <section>
+        <h2>Rendimiento</h2>
+        <table class="perf">
+          <thead><tr><th scope="col">Modo</th><th scope="col">Filas en el DOM</th><th scope="col">Elementos</th></tr></thead>
+          <tbody>
+            <tr id="perf-list"><td>Lista · 60 px</td><td>—</td><td>—</td></tr>
+            <tr id="perf-table"><td>Tabla · 32 px</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p id="perf-note">Las dos virtualizan igual: solo existen las filas a la vista y 8 de margen arriba y abajo. En la lista caben menos filas (son más altas) y cada una lleva 5 datos en vez de 10 columnas. Cifras de esta maqueta con el alto de esta pantalla; se recalculan al filtrar y al desplazarse.</p>
+      </section>
+
+      <section>
+        <h2>Qué cambia en lista</h2>
+        <dl class="changes">
+          <div><dt>Editar</dt><dd>En la ficha, con el mismo guardado de la celda. Prueba «Editar» en una ficha: Sede y Jefe inmediato son editables.</dd></div>
+          <div><dt>Ordenar</dt><dd>Con el botón «Ordenar», porque en lista no hay cabecera.</dd></div>
+          <div><dt>Filtro por columna</dt><dd>No hay embudo; quedan «Filtros», la búsqueda y los chips.</dd></div>
+          <div><dt>Solo en tabla</dt><dd>Rangos de celdas, copiar como tabla, ancho de columnas, la barra de arriba y la matriz.</dd></div>
+          <div><dt>Tablas de captura</dt><dd>Las que se llenan celda por celda (las horas de Empacadoras) se quedan en tabla con <code>narrow="table"</code>.</dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <h2>API propuesta</h2>
+        <pre><code>&lt;nx-grid&gt;                 <span class="c">&lt;!-- angosta: lista --&gt;</span>
+&lt;nx-grid narrow="table"&gt;  <span class="c">&lt;!-- siempre tabla --&gt;</span>
+
+columns: [
+  { key: "nombre",   label: "Nombre", avatar: true,
+    sticky: true,    list: "title" },
+  { key: "cargo",    label: "Cargo",    list: "meta" },
+  { key: "area",     label: "Área",     list: "meta" },
+  { key: "estado",   label: "Estado",   type: "status",
+    list: "end" },
+  { key: "contrato", label: "Contrato", dot: true,
+    list: "end-meta" },
+  …
+]</code></pre>
+        <p>En automático pasa a lista por debajo de 480 px y vuelve a tabla desde 496 px: el margen evita que parpadee en el borde. Tocar la fila hace lo mismo que el enlace del nombre hoy (<code>nx-grid-open</code> o su <code>href</code>); aquí abre una ficha de muestra.</p>
+      </section>
+
+      <section>
+        <h2>Qué toca en el componente</h2>
+        <ul>
+          <li>El alto de fila deja de ser fijo (32) y pasa a ser de cada tabla (32 o 60). La virtualización no cambia.</li>
+          <li>Un pintado aparte para la fila de lista; el de la tabla no se toca.</li>
+          <li>En lista se apagan la edición en la celda, los rangos y la cabecera, y aparece «Ordenar».</li>
+          <li>El cambio de modo usa el observador de tamaño que ya existe.</li>
+          <li>Peso estimado: 1–2 KB gzip sobre los 41 KB del grid.</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</div>
+<template id="tpl"></template>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const root = document.documentElement;
+  const body = document.body;
+
+  // ---------------------------------------------------------------- datos de ejemplo (semilla fija)
+  let seed = 9704;
+  const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const weighted = (w) => {
+    let x = rnd() * w.reduce((s, v) => s + v, 0);
+    for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return i; }
+    return w.length - 1;
+  };
+
+  const NOM_M = ["Andrés", "Carlos", "Luis", "Jorge", "Juan", "José", "Miguel", "Diego", "Camilo", "Santiago", "Felipe", "Hernán", "Óscar", "Wilson", "Jhon", "Edwin", "Fabián", "Rafael", "Elkin", "Yeison", "Alexánder", "Ciro", "Gael", "Aníbal"];
+  const NOM_F = ["María", "Ana", "Luz", "Diana", "Paola", "Sandra", "Yuliana", "Carolina", "Daniela", "Laura", "Natalia", "Gloria", "Martha", "Leidy", "Yenny", "Viviana", "Angélica", "Claudia", "Erika", "Marcela", "Gilma", "Celia"];
+  const SEG_M = ["Andrés", "Eduardo", "José", "Antonio", "Enrique", "Javier", "Alberto", "Fernando", "Manuel", "David", "Luis", "Rafael"];
+  const SEG_F = ["Isabel", "Andrea", "Lucía", "Elena", "Patricia", "Fernanda", "Alejandra", "Marcela", "Cristina", "Milena", "Rosa", "Sofía"];
+  const APE = ["Ortega", "Salas", "Parra", "Castaño", "Arias", "Echeverri", "Bedoya", "Navas", "Tobón", "Restrepo", "Zuluaga", "Bernal", "Jaramillo", "Delgado", "Cifuentes", "Hoyos", "Londoño", "Salazar", "Serna", "Escobar", "Cabrera", "Montoya", "Quintero", "Valencia", "Galeano", "Osorio", "Mesa", "Uribe", "Franco", "Acosta", "Vélez", "Gómez", "Rodríguez", "Martínez", "Pérez", "Torres", "Rojas", "Moreno", "Mejía", "Pertuz", "Mendoza", "Ospina", "Cárdenas", "Barrios", "Polo", "Ariza", "Fontalvo", "Charris", "Cantillo", "De la Hoz"];
+  // Cada cargo va en masculino y femenino; `lead` es el cargo de quien coordina el área.
+  const AREAS = [
+    { name: "Cosecha", w: 34, base: 1, spread: 0.22, cargos: [["Operario de cosecha", "Operaria de cosecha"], ["Cortero", "Cortera"], ["Coteador", "Coteadora"]], lead: ["Supervisor de campo", "Supervisora de campo"] },
+    { name: "Empaque", w: 28, base: 1, spread: 0.2, cargos: [["Operario de empaque", "Operaria de empaque"], ["Seleccionador", "Seleccionadora"], ["Paletizador", "Paletizadora"]], lead: ["Coordinador de empaque", "Coordinadora de empaque"] },
+    { name: "Labores agrícolas", w: 16, base: 1, spread: 0.2, cargos: [["Operario de labores agrícolas", "Operaria de labores agrícolas"], ["Fumigador", "Fumigadora"], ["Deshijador", "Deshijadora"]], lead: ["Supervisor de labores", "Supervisora de labores"] },
+    { name: "Mantenimiento", w: 7, base: 1.3, spread: 0.8, cargos: [["Técnico de mantenimiento", "Técnica de mantenimiento"], ["Electricista", "Electricista"], ["Soldador", "Soldadora"], ["Mecánico", "Mecánica"]], lead: ["Jefe de mantenimiento", "Jefa de mantenimiento"] },
+    { name: "Transporte", w: 6, base: 1.2, spread: 0.6, cargos: [["Conductor", "Conductora"], ["Auxiliar de despachos", "Auxiliar de despachos"]], lead: ["Coordinador de flota", "Coordinadora de flota"] },
+    { name: "Administración", w: 6, base: 1.5, spread: 1.6, cargos: [["Auxiliar administrativo", "Auxiliar administrativa"], ["Analista contable", "Analista contable"], ["Tesorero", "Tesorera"]], lead: ["Jefe administrativo", "Jefa administrativa"] },
+    { name: "Talento Humano", w: 3, base: 1.6, spread: 1.6, cargos: [["Analista de nómina", "Analista de nómina"], ["Auxiliar de talento humano", "Auxiliar de talento humano"], ["Psicólogo de selección", "Psicóloga de selección"]], lead: ["Coordinador de SST", "Coordinadora de SST"] },
+  ];
+  const FINCAS = ["Finca La Ceiba", "Finca El Palmar", "Finca San Rafael", "Finca Las Brisas"];
+  const SEDES = [...FINCAS, "Planta Empaque Norte", "Oficina Central"];
+  const CONTRATOS = ["Indefinido", "Término fijo", "Obra o labor", "Aprendizaje"];
+  const ESTADOS = ["Activo", "Vacaciones", "Incapacidad", "Retirado"];
+  const TONE = { Activo: "ok", Vacaciones: "info", Incapacidad: "warn", Retirado: "neutral" };
+  const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const SMMLV = 1423500;
+  const TOTAL = 9704;
+
+  // El mismo tono del avatar que usa la tabla: sale del texto (la misma persona, el mismo color).
+  const hueOf = (s) => [...s].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
+  const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  function person(female) {
+    const n1 = pick(female ? NOM_F : NOM_M);
+    const n2 = pick(female ? SEG_F : SEG_M);
+    const a1 = pick(APE);
+    let a2 = pick(APE);
+    if (a2 === a1) a2 = pick(APE);
+    return { nombre: `${n1} ${n2} ${a1} ${a2}`, ini: (n1[0] + a1[0]).toUpperCase() };
+  }
+  function sedeFor(area) {
+    if (area === "Administración" || area === "Talento Humano") return rnd() < 0.8 ? "Oficina Central" : pick(FINCAS);
+    if (area === "Empaque") return rnd() < 0.7 ? "Planta Empaque Norte" : pick(FINCAS);
+    if (area === "Transporte") return rnd() < 0.5 ? "Planta Empaque Norte" : pick(FINCAS);
+    return pick(FINCAS);
+  }
+  const textOf = (r) => norm([r.nombre, r.doc, r.cargo, r.area, r.sede, r.jefe || "sin asignar"].join(" "));
+
+  const JEFES = Array.from({ length: 48 }, () => person(rnd() < 0.4).nombre);
+  const DATA = [];
+  for (let id = 0; id < TOTAL; id++) {
+    const female = rnd() < 0.44;
+    const p = person(female);
+    const area = AREAS[weighted(AREAS.map((a) => a.w))];
+    const ci = weighted([42, 34, 20, 4]);
+    const lead = rnd() < 0.05;
+    const pair = ci === 3 ? ["Aprendiz SENA", "Aprendiz SENA"] : lead ? area.lead : pick(area.cargos);
+    const years = Math.floor(rnd() * rnd() * 20);
+    const days = years * 365 + Math.floor(rnd() * 365);
+    const ingreso = new Date(Date.UTC(2026, 9, 1) - days * 864e5).toISOString().slice(0, 10);
+    // Aprendiz en etapa productiva: apoyo de sostenimiento del 75 % del mínimo.
+    const factor = ci === 3 ? 0.75 : lead ? 2.4 + rnd() * 2 : area.base + rnd() * area.spread;
+    const salario = Math.round((factor * SMMLV) / 500) * 500;
+    const doc = years > 12 || rnd() < 0.3 ? String(10000000 + Math.floor(rnd() * 89999999)) : String(1000000000 + Math.floor(rnd() * 130000000));
+    const r = {
+      id, nombre: p.nombre, ini: p.ini, hue: hueOf(p.nombre), doc, cargo: pair[female ? 1 : 0], area: area.name,
+      sede: sedeFor(area.name), jefe: rnd() < 0.93 ? pick(JEFES) : null, contrato: CONTRATOS[ci],
+      estado: ESTADOS[weighted([88, 5, 4, 3])], ingreso, salario, _t: "",
+    };
+    r._t = textOf(r);
+    DATA.push(r);
+  }
+
+  // ---------------------------------------------------------------- columnas (como las declara la app)
+  const COLS = [
+    { key: "nombre", label: "Nombre", width: 250, avatar: true, sticky: true, link: true, list: "title" },
+    { key: "doc", label: "Documento", width: 140 },
+    { key: "cargo", label: "Cargo", width: 230, list: "meta" },
+    { key: "area", label: "Área", width: 150, list: "meta" },
+    { key: "sede", label: "Sede", width: 180, editable: true },
+    { key: "jefe", label: "Jefe inmediato", width: 250, editable: true },
+    { key: "contrato", label: "Contrato", width: 140, dot: true, list: "end-meta" },
+    { key: "estado", label: "Estado", width: 120, type: "status", list: "end" },
+    { key: "ingreso", label: "Ingreso", width: 120, type: "date" },
+    { key: "salario", label: "Salario", width: 130, type: "money" },
+  ];
+  const COL = Object.fromEntries(COLS.map((c) => [c.key, c]));
+  const FACETS = ["estado", "contrato", "area", "sede"];
+  const GROUPS = ["area", "sede", "contrato", "estado"];
+  const ORDER = { estado: ESTADOS, contrato: CONTRATOS, sede: SEDES };
+  const optionsOf = (key) => ORDER[key] || [...new Set(DATA.map((r) => r[key]))].sort((a, b) => coll.compare(a, b));
+
+  // ---------------------------------------------------------------- formato
+  const nf = new Intl.NumberFormat("es-CO");
+  const coll = new Intl.Collator("es", { sensitivity: "base" });
+  const n0 = (v) => nf.format(v);
+  const money = (v) => "$ " + nf.format(v);
+  const dateFmt = (iso) => { const [y, m, d] = iso.split("-"); return `${+d} ${MESES[+m - 1]} ${y}`; };
+  const docNum = (d) => d.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+  const icon = (name, cls = "") => `<svg class="i ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const people = (n) => `${n0(n)} ${n === 1 ? "empleado" : "empleados"}`;
+
+  function text(c, r) {
+    const v = r[c.key];
+    if (v == null || v === "") return c.key === "jefe" ? "Sin asignar" : "";
+    if (c.type === "money") return money(v);
+    if (c.type === "date") return dateFmt(v);
+    if (c.key === "doc") return "CC " + docNum(v);
+    return String(v);
+  }
+  function dotHTML(key, v) {
+    if (key === "estado") return `<i class="dot" data-tone="${TONE[v]}"></i>`;
+    if (key === "contrato") return `<i class="dot" data-k="${CONTRATOS.indexOf(v)}"></i>`;
+    return "";
+  }
+  /** El valor como se ve en la celda: píldora para el estado, punto para el contrato. */
+  function rich(c, r) {
+    const v = r[c.key];
+    if (c.key === "jefe" && !v) return `<span class="pill" data-tone="warn">Sin asignar</span>`;
+    if (c.type === "status") return `<span class="pill" data-tone="${TONE[v]}">${esc(v)}</span>`;
+    if (c.dot) return `<span class="dotv">${dotHTML(c.key, v)}${esc(v)}</span>`;
+    if (c.key === "doc") return `<span class="doc"><span class="t">CC</span> ${esc(docNum(v))}</span>`;
+    return esc(text(c, r));
+  }
+
+  // ---------------------------------------------------------------- estado de la tabla
+  const state = {
+    q: "",
+    f: Object.fromEntries(FACETS.map((k) => [k, new Set()])),
+    sort: { key: "nombre", dir: 1 },
+    group: "",
+    collapsed: new Set(),
+    picked: new Set(),
+  };
+  let base = DATA, view = DATA, items = [];
+  let sortedCache = null, sortedKey = "";
+
+  function comparator({ key, dir }) {
+    const c = COL[key];
+    const tie = (a, b) => coll.compare(a.nombre, b.nombre);
+    if (c.type === "money") return (a, b) => dir * (a[key] - b[key]) || tie(a, b);
+    if (ORDER[key] && key !== "sede") return (a, b) => dir * (ORDER[key].indexOf(a[key]) - ORDER[key].indexOf(b[key])) || tie(a, b);
+    return (a, b) => {
+      const x = a[key], y = b[key];
+      if (x == null || y == null) return x == null ? (y == null ? tie(a, b) : 1) : -1;
+      return dir * (c.type === "date" ? (x < y ? -1 : x > y ? 1 : 0) : coll.compare(x, y)) || tie(a, b);
+    };
+  }
+  function sorted() {
+    const k = state.sort.key + ":" + state.sort.dir;
+    if (!sortedCache || sortedKey !== k) { sortedCache = DATA.slice().sort(comparator(state.sort)); sortedKey = k; }
+    return sortedCache;
+  }
+  const passes = (r, skip) => FACETS.every((k) => k === skip || !state.f[k].size || state.f[k].has(r[k]));
+  const activeFilters = () => FACETS.reduce((s, k) => s + state.f[k].size, 0);
+
+  function compute() {
+    // «1.045.678» encuentra el documento 1045678: los puntos de miles no cuentan.
+    const q = norm(state.q.trim()).replace(/(\d)\.(?=\d)/g, "$1");
+    const src = sorted();
+    base = q ? src.filter((r) => r._t.includes(q)) : src;
+    view = activeFilters() ? base.filter((r) => passes(r, null)) : base;
+    items = [];
+    if (!state.group) { for (const r of view) items.push({ r }); return; }
+    const m = new Map();
+    for (const r of view) {
+      const k = r[state.group];
+      let g = m.get(k);
+      if (!g) m.set(k, (g = { key: k, rows: [], sum: 0 }));
+      g.rows.push(r);
+      g.sum += r.salario;
+    }
+    const opts = optionsOf(state.group);
+    const groups = [...m.values()].sort((a, b) => opts.indexOf(a.key) - opts.indexOf(b.key));
+    for (const g of groups) {
+      items.push({ g });
+      if (!state.collapsed.has(g.key)) for (const r of g.rows) items.push({ r });
+    }
+  }
+  function facetCounts(key) {
+    const m = new Map();
+    for (const r of base) if (passes(r, key)) m.set(r[key], (m.get(r[key]) || 0) + 1);
+    return m;
+  }
+
+  // ---------------------------------------------------------------- modo y columnas de la fila
+  const OVER = 8;
+  const LIST_IN = 480;   // por debajo, lista
+  const LIST_OUT = 496;  // desde aquí vuelve a tabla (el margen evita que parpadee en el borde)
+  let pref = "auto";
+  let mode = "list";
+  let decided = false;
+  let slotMode = "list";
+  const rowH = (m = mode) => (m === "list" ? 60 : 32);
+
+  /** Qué columna va en cada lugar de la fila. Con `list` las elige la app; sin él, la tabla. */
+  function slots() {
+    if (slotMode === "list") {
+      const by = (s) => COLS.filter((c) => c.list === s);
+      return { title: by("title")[0], meta: by("meta").slice(0, 2), end: by("end")[0], endMeta: by("end-meta")[0] };
+    }
+    const title = COLS.find((c) => c.sticky) || COLS.find((c) => c.avatar || c.link) || COLS[0];
+    const end = COLS.find((c) => c.type === "status");
+    const endMeta = COLS.find((c) => c.dot && c !== end);
+    const used = new Set([title, end, endMeta]);
+    const meta = COLS.filter((c) => !used.has(c) && !c.type && !c.dot).slice(0, 2);
+    return { title, meta, end, endMeta };
+  }
+  let S = slots();
+
+  // ---------------------------------------------------------------- pintado
+  const gridEl = $("grid"), scroller = $("scroller"), theadEl = $("thead"), tbodyEl = $("tbody"), rowsEl = $("rows");
+  const emptyEl = $("empty"), metaEl = $("meta"), appEl = $("app"), screenEl = $("screen");
+  const sortBtn = $("b-sort"), filtersBtn = $("b-filters"), groupBtn = $("b-group");
+  const tpl = $("tpl");
+
+  const colsTemplate = "40px " + COLS.map((c) => c.width + "px").join(" ");
+  const tableWidth = 40 + COLS.reduce((s, c) => s + c.width, 0);
+  gridEl.style.setProperty("--cols", colsTemplate);
+  gridEl.style.setProperty("--tw", tableWidth + "px");
+
+  function listRow(i, it) {
+    if (it.g) {
+      const open = !state.collapsed.has(it.g.key);
+      return `<div class="lgrp" role="listitem" data-r="${i}"><button type="button" class="lgrp-btn" data-g="${esc(it.g.key)}" aria-expanded="${open}">${icon("chev", "chev")}<b>${esc(it.g.key)}</b><span class="gn">${n0(it.g.rows.length)}</span><span class="gs">Salarios ${money(it.g.sum)}</span></button></div>`;
+    }
+    const r = it.r;
+    const on = state.picked.has(r.id);
+    const meta = S.meta.map((c) => esc(text(c, r))).filter(Boolean).join('<span class="sep"> · </span>');
+    return `<div class="lrow${on ? " is-picked" : ""}" role="listitem" data-r="${i}">` +
+      `<button type="button" class="lav" data-pick="${r.id}" aria-pressed="${on}" aria-label="Seleccionar a ${esc(r.nombre)}" style="--hue:${r.hue}">${on ? icon("check") : r.ini}</button>` +
+      `<button type="button" class="lmain" data-open="${r.id}">` +
+      `<span class="lt" data-slot="title">${esc(text(S.title, r))}</span>` +
+      (S.end ? `<span class="le" data-slot="end">${rich(S.end, r)}</span>` : "") +
+      `<span class="lm" data-slot="meta">${meta}</span>` +
+      (S.endMeta ? `<span class="lem" data-slot="end-meta">${rich(S.endMeta, r)}</span>` : "") +
+      `</button></div>`;
+  }
+  function tableRow(i, it) {
+    if (it.g) {
+      const open = !state.collapsed.has(it.g.key);
+      return `<div class="tgrp" data-r="${i}"><button type="button" class="tgrp-btn" data-g="${esc(it.g.key)}" aria-expanded="${open}">${icon("chev", "chev")}<b>${esc(it.g.key)}</b><span class="dim">${n0(it.g.rows.length)} · Salarios ${money(it.g.sum)}</span></button></div>`;
+    }
+    const r = it.r;
+    const on = state.picked.has(r.id);
+    const cells = COLS.map((c) => {
+      const inner = c.avatar
+        ? `<span class="tav" style="--hue:${r.hue}" aria-hidden="true">${r.ini}</span><button type="button" class="tname" data-open="${r.id}">${esc(r.nombre)}</button>`
+        : rich(c, r);
+      return `<span class="td${c.type === "money" ? " num" : ""}${c.sticky ? " stk" : ""}" role="gridcell">${inner}</span>`;
+    }).join("");
+    return `<div class="trow${on ? " is-picked" : ""}" role="row" data-r="${i}"><span class="td chk" role="gridcell"><input type="checkbox" data-pick="${r.id}" aria-label="Seleccionar a ${esc(r.nombre)}"${on ? " checked" : ""}></span>${cells}</div>`;
+  }
+  const rowHTML = (m, i) => (m === "list" ? listRow(i, items[i]) : tableRow(i, items[i]));
+
+  function headHTML() {
+    let all = view.length > 0, some = false;
+    for (const r of view) { if (state.picked.has(r.id)) some = true; else all = false; if (some && !all) break; }
+    return `<span class="th chk" role="columnheader"><input type="checkbox" id="pick-all" aria-label="Seleccionar todas"${all ? " checked" : ""} data-some="${some && !all}"></span>` +
+      COLS.map((c) => {
+        const on = state.sort.key === c.key;
+        const sort = on ? (state.sort.dir === 1 ? "ascending" : "descending") : "none";
+        return `<span class="th${c.sticky ? " stk" : ""}${c.type === "money" ? " num" : ""}" role="columnheader" aria-sort="${sort}"><button type="button" data-sort="${c.key}">${esc(c.label)}${on ? icon(state.sort.dir === 1 ? "up" : "down") : ""}</button></span>`;
+      }).join("");
+  }
+  function paintHead() {
+    theadEl.hidden = mode !== "table";
+    if (mode !== "table") { theadEl.innerHTML = ""; return; }
+    theadEl.innerHTML = headHTML();
+    const pa = $("pick-all");
+    pa.indeterminate = pa.dataset.some === "true";
+  }
+
+  let win = { start: -1, end: -1 };
+  function windowFor(m, top) {
+    const H = rowH(m);
+    const vh = scroller.clientHeight || 560;
+    return { start: Math.max(0, Math.floor(top / H) - OVER), end: Math.min(items.length, Math.ceil((top + vh) / H) + OVER) };
+  }
+  function paint(force = false) {
+    const H = rowH();
+    tbodyEl.style.height = items.length * H + "px";
+    emptyEl.hidden = items.length > 0;
+    const { start, end } = windowFor(mode, scroller.scrollTop);
+    if (!force && start === win.start && end === win.end) return;
+    win = { start, end };
+    rowsEl.style.transform = `translateY(${start * H}px)`;
+    let html = "";
+    for (let i = start; i < end; i++) html += rowHTML(mode, i);
+    rowsEl.innerHTML = html;
+    measureSoon();
+  }
+  let rafId = 0;
+  scroller.addEventListener("scroll", () => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = 0; paint(); });
+  }, { passive: true });
+
+  function paintMeta() {
+    const nf_ = activeFilters();
+    filtersBtn.classList.toggle("on", nf_ > 0);
+    $("f-badge").hidden = !nf_;
+    $("f-badge").textContent = nf_;
+    groupBtn.classList.toggle("on", !!state.group);
+    const s = state.sort, c = COL[s.key];
+    const lab = dirLabels(c)[s.dir === 1 ? 0 : 1];
+    sortBtn.classList.toggle("on", !(s.key === "nombre" && s.dir === 1));
+    if (state.picked.size) {
+      const n = state.picked.size;
+      metaEl.innerHTML = `<span><b>${n0(n)}</b> ${n === 1 ? "seleccionado" : "seleccionados"}</span>` +
+        (n < view.length ? `<button type="button" class="lnk" data-act="pick-view">Seleccionar los ${n0(view.length)}</button>` : "") +
+        `<button type="button" class="lnk" data-act="clear-pick">Quitar selección</button>`;
+      return;
+    }
+    const chips = FACETS.filter((k) => state.f[k].size).map((k) => {
+      const v = [...state.f[k]];
+      const txt = `${COL[k].label}: ${v[0]}${v.length > 1 ? ` +${v.length - 1}` : ""}`;
+      return `<span class="chip"><span>${esc(txt)}</span><button type="button" data-unf="${k}" aria-label="Quitar el filtro ${esc(txt)}">${icon("x")}</button></span>`;
+    }).join("");
+    metaEl.innerHTML = `<span><b>${n0(view.length)}</b> ${view.length === 1 ? "empleado" : "empleados"} <span class="dim">· Por ${esc(c.label.toLowerCase())}, ${esc(lab.toLowerCase())}</span></span>` +
+      chips + (chips ? `<button type="button" class="lnk" data-act="clear-filters">Quitar filtros</button>` : "");
+  }
+  function dirLabels(c) {
+    if (c.type === "money") return ["Menor primero", "Mayor primero"];
+    if (c.type === "date") return ["Más antiguos", "Más recientes"];
+    if (ORDER[c.key] && c.key !== "sede") return ["En su orden", "Al revés"];
+    return ["A–Z", "Z–A"];
+  }
+  const defaultDir = (c) => (c.type === "money" || c.type === "date" ? -1 : 1);
+
+  function refresh(toTop = false) {
+    compute();
+    paintMeta();
+    paintHead();
+    if (toTop) scroller.scrollTop = 0;
+    paint(true);
+  }
+
+  // ---------------------------------------------------------------- cambio de modo
+  function setMode(m) {
+    if (m === mode && decided) return;
+    const first = Math.floor(scroller.scrollTop / rowH());
+    mode = m;
+    decided = true;
+    gridEl.dataset.layout = m;
+    scroller.setAttribute("role", m === "table" ? "grid" : "list");
+    sortBtn.hidden = m !== "list";
+    paintHead();
+    paint(true);
+    // La fila que estaba arriba sigue arriba.
+    scroller.scrollTop = first * rowH();
+    paint();
+    paintReadout();
+  }
+  function decide() {
+    const w = gridEl.clientWidth;
+    if (!w) return;
+    gridEl.classList.toggle("is-wide", w >= 640);
+    let next;
+    if (pref !== "auto") next = pref;
+    else if (!decided) next = w < LIST_IN ? "list" : "table";
+    else if (mode === "table" && w < LIST_IN) next = "list";
+    else if (mode === "list" && w >= LIST_OUT) next = "table";
+    else next = mode;
+    if (next !== mode || !decided) setMode(next);
+    else paint();
+    paintReadout();
+  }
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(decide).observe(gridEl);
+
+  function paintReadout() {
+    const w = Math.round(gridEl.clientWidth || W);
+    const name = mode === "list" ? "lista" : "tabla";
+    const why = pref === "auto" ? "" : pref === "table" ? ' (narrow="table")' : " (forzada en la maqueta)";
+    $("readout").innerHTML = `${n0(w)} px de ancho · se ve como <b>${name}</b>${esc(why)}`;
+  }
+
+  // ---------------------------------------------------------------- rendimiento (medido en vivo)
+  let measureTimer = 0;
+  function measureSoon() {
+    clearTimeout(measureTimer);
+    measureTimer = setTimeout(measure, 120);
+  }
+  /** Filas y elementos que tendría cada modo en este momento, con la misma fila arriba. */
+  function countFor(m) {
+    const first = Math.floor(scroller.scrollTop / rowH());
+    const { start, end } = windowFor(m, first * rowH(m));
+    let html = "";
+    for (let i = start; i < end; i++) html += rowHTML(m, i);
+    tpl.innerHTML = html + (m === "table" ? `<div>${headHTML()}</div>` : "");
+    const nodes = tpl.content.querySelectorAll("*").length;
+    tpl.innerHTML = "";
+    return { rows: end - start, nodes };
+  }
+  function measure() {
+    const out = {};
+    for (const m of ["list", "table"]) {
+      const { rows, nodes } = countFor(m);
+      out[m] = nodes;
+      const tr = $("perf-" + m);
+      tr.classList.toggle("is-on", m === mode);
+      tr.children[1].textContent = n0(rows);
+      tr.children[2].innerHTML = `<b>${n0(nodes)}</b>`;
+    }
+  }
+
+  // ---------------------------------------------------------------- filas: abrir, seleccionar, grupos
+  rowsEl.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target.closest("[data-g], [data-pick], [data-open]") : null;
+    if (!t) return;
+    if (t.dataset.g !== undefined) {
+      const k = t.dataset.g;
+      if (state.collapsed.has(k)) state.collapsed.delete(k); else state.collapsed.add(k);
+      compute();
+      paint(true);
+      rowsEl.querySelector(`[data-g="${CSS.escape(k)}"]`)?.focus({ preventScroll: true });
+      return;
+    }
+    if (t.dataset.pick !== undefined) return togglePick(+t.dataset.pick, t);
+    const id = +t.dataset.open;
+    // Con algo seleccionado, tocar la fila también selecciona (como en el correo del teléfono).
+    if (state.picked.size && mode === "list") return togglePick(id, t);
+    openFicha(id, t);
+  });
+  function togglePick(id, from) {
+    if (state.picked.has(id)) state.picked.delete(id); else state.picked.add(id);
+    paintMeta();
+    paintHead();
+    paint(true);
+    const sel = from?.dataset.pick !== undefined ? `[data-pick="${id}"]` : `[data-open="${id}"]`;
+    rowsEl.querySelector(sel)?.focus({ preventScroll: true });
+  }
+
+  theadEl.addEventListener("click", (e) => {
+    const b = e.target instanceof Element ? e.target.closest("[data-sort]") : null;
+    if (!b) return;
+    const c = COL[b.dataset.sort];
+    state.sort = state.sort.key === c.key ? { key: c.key, dir: -state.sort.dir } : { key: c.key, dir: defaultDir(c) };
+    refresh();
+    theadEl.querySelector(`[data-sort="${c.key}"]`)?.focus({ preventScroll: true });
+  });
+  theadEl.addEventListener("change", (e) => {
+    if (!(e.target instanceof HTMLInputElement) || e.target.id !== "pick-all") return;
+    if (e.target.checked) for (const r of view) state.picked.add(r.id);
+    else for (const r of view) state.picked.delete(r.id);
+    paintMeta();
+    paintHead();
+    paint(true);
+    $("pick-all")?.focus({ preventScroll: true });
+  });
+
+  metaEl.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target.closest("[data-act], [data-unf]") : null;
+    if (!t) return;
+    if (t.dataset.unf) { state.f[t.dataset.unf].clear(); return refresh(true); }
+    act(t.dataset.act);
+  });
+  emptyEl.addEventListener("click", (e) => {
+    if (e.target instanceof Element && e.target.closest("[data-act]")) act("clear-all");
+  });
+  function act(a) {
+    if (a === "clear-filters") { for (const k of FACETS) state.f[k].clear(); refresh(true); }
+    else if (a === "clear-all") { for (const k of FACETS) state.f[k].clear(); state.q = ""; $("q").value = ""; refresh(true); }
+    else if (a === "pick-view") { for (const r of view) state.picked.add(r.id); paintMeta(); paintHead(); paint(true); }
+    else if (a === "clear-pick") { state.picked.clear(); paintMeta(); paintHead(); paint(true); }
+  }
+
+  $("q").addEventListener("input", (e) => { state.q = e.target.value; refresh(true); });
+
+  // ---------------------------------------------------------------- hojas: filtros, ordenar, agrupar, ficha
+  const sheetEl = $("sheet"), scrimEl = $("scrim"), headEl = $("sheet-head"), bodyEl = $("sheet-body"), footEl = $("sheet-foot");
+  let kind = null, opener = null, fichaId = -1, editing = false, savedNote = false;
+  const closeBtn = `<button type="button" class="sh-x" data-act="close" aria-label="Cerrar">${icon("x")}</button>`;
+
+  function openSheet(k, from) {
+    kind = k;
+    opener = from || document.activeElement;
+    editing = false;
+    savedNote = false;
+    renderSheet();
+    scrimEl.hidden = false;
+    sheetEl.hidden = false;
+    appEl.inert = true;
+    bodyEl.scrollTop = 0;
+    const first = sheetEl.querySelector("[autofocus]") || bodyEl.querySelector("input, select, button") || sheetEl.querySelector("button");
+    first?.focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    if (!kind) return;
+    const was = kind;
+    kind = null;
+    sheetEl.hidden = true;
+    scrimEl.hidden = true;
+    appEl.inert = false;
+    let back = opener && opener.isConnected ? opener : null;
+    if (!back && was === "ficha") back = rowsEl.querySelector(`[data-open="${fichaId}"]`);
+    (back || scroller).focus({ preventScroll: true });
+  }
+  scrimEl.addEventListener("click", closeSheet);
+
+  function renderSheet() {
+    if (kind === "filters") renderFilters();
+    else if (kind === "sort") renderSort();
+    else if (kind === "group") renderGroup();
+    else if (kind === "ficha") renderFicha();
+  }
+
+  function renderFilters() {
+    headEl.innerHTML = `<h3 id="sheet-title">Filtros</h3>` + (activeFilters() ? `<button type="button" class="lnk" data-act="clear-filters">Quitar todo</button>` : "") + closeBtn;
+    bodyEl.innerHTML = FACETS.map((k) => {
+      const counts = facetCounts(k);
+      return `<fieldset class="facet"><legend>${esc(COL[k].label)}</legend>` + optionsOf(k).map((v) => {
+        const n = counts.get(v) || 0;
+        return `<label class="opt${n ? "" : " is-zero"}"><input type="checkbox" data-f="${k}" value="${esc(v)}"${state.f[k].has(v) ? " checked" : ""}>${dotHTML(k, v)}<span class="ot">${esc(v)}</span><small>${n0(n)}</small></label>`;
+      }).join("") + `</fieldset>`;
+    }).join("");
+    footEl.innerHTML = `<button type="button" class="b primary" data-act="close">Ver ${people(view.length)}</button>`;
+  }
+  /** Al marcar una opción no se rehace la hoja (se perdería el foco y el desplazamiento): solo cifras. */
+  function updateFilterCounts() {
+    const counts = Object.fromEntries(FACETS.map((k) => [k, facetCounts(k)]));
+    for (const input of bodyEl.querySelectorAll("input[data-f]")) {
+      const n = counts[input.dataset.f].get(input.value) || 0;
+      const label = input.closest(".opt");
+      label.classList.toggle("is-zero", !n);
+      label.querySelector("small").textContent = n0(n);
+    }
+    footEl.querySelector(".primary").textContent = `Ver ${people(view.length)}`;
+    const head = headEl.querySelector('[data-act="clear-filters"]');
+    if (!!head !== !!activeFilters()) {
+      headEl.innerHTML = `<h3 id="sheet-title">Filtros</h3>` + (activeFilters() ? `<button type="button" class="lnk" data-act="clear-filters">Quitar todo</button>` : "") + closeBtn;
+    }
+  }
+
+  function renderSort() {
+    const c = COL[state.sort.key];
+    headEl.innerHTML = `<h3 id="sheet-title">Ordenar</h3>` + closeBtn;
+    bodyEl.innerHTML = `<div role="radiogroup" aria-labelledby="sheet-title">` + COLS.map((col) =>
+      `<label class="opt"><input type="radio" name="sort-by" value="${col.key}"${col.key === c.key ? " checked" : ""}><span class="ot">${esc(col.label)}</span></label>`).join("") + `</div>`;
+    renderSortFoot();
+  }
+  function renderSortFoot() {
+    const c = COL[state.sort.key];
+    const labs = dirLabels(c);
+    footEl.innerHTML = `<div class="seg" role="group" aria-label="Sentido">` +
+      labs.map((l, i) => `<button type="button" data-dir="${i ? -1 : 1}" aria-pressed="${state.sort.dir === (i ? -1 : 1)}">${esc(l)}</button>`).join("") +
+      `</div><button type="button" class="b primary" data-act="close">Listo</button>`;
+  }
+
+  function renderGroup() {
+    headEl.innerHTML = `<h3 id="sheet-title">Agrupar</h3>` + closeBtn;
+    bodyEl.innerHTML = `<div role="radiogroup" aria-labelledby="sheet-title">` +
+      [["", "Sin agrupar"], ...GROUPS.map((k) => [k, COL[k].label])].map(([k, l]) =>
+        `<label class="opt"><input type="radio" name="group-by" value="${k}"${state.group === k ? " checked" : ""}><span class="ot">${esc(l)}</span></label>`).join("") + `</div>`;
+    footEl.innerHTML = `<p class="saved" style="color:var(--fg-3);margin:0">Cada grupo muestra cuántas personas tiene y la suma de salarios. Tocar un grupo lo pliega.</p>`;
+  }
+
+  function renderFicha() {
+    const r = DATA[fichaId];
+    headEl.innerHTML = `<div class="fhead"><span class="lav fav" style="--hue:${r.hue}" aria-hidden="true">${r.ini}</span>` +
+      `<div class="fwho"><h3 id="sheet-title">${esc(r.nombre)}</h3><span class="fsub">${esc(text(COL.doc, r))} ${rich(COL.estado, r)}</span></div></div>` + closeBtn;
+    bodyEl.innerHTML = `<dl class="fields">` + COLS.filter((c) => c.key !== "nombre").map((c) => {
+      let dd;
+      if (editing && c.key === "sede") {
+        dd = `<select id="ed-sede" aria-label="Sede">${SEDES.map((s) => `<option${s === r.sede ? " selected" : ""}>${esc(s)}</option>`).join("")}</select>`;
+      } else if (editing && c.key === "jefe") {
+        dd = `<input id="ed-jefe" list="jefes" value="${esc(r.jefe || "")}" placeholder="Sin asignar" aria-label="Jefe inmediato" autocomplete="off"><datalist id="jefes">${JEFES.map((j) => `<option value="${esc(j)}"></option>`).join("")}</datalist>`;
+      } else dd = rich(c, r);
+      return `<div class="fld"><dt>${esc(c.label)}${c.editable && !editing ? '<span class="edit-mark">· editable</span>' : ""}</dt><dd>${dd}</dd></div>`;
+    }).join("") + `</dl>`;
+    footEl.innerHTML = editing
+      ? `<button type="button" class="b grow" data-act="cancel-edit">Cancelar</button><button type="button" class="b primary" data-act="save">Guardar</button>`
+      : `<button type="button" class="b grow" data-act="edit">${icon("pencil")}Editar</button>` + (savedNote ? `<p class="saved" role="status">Guardado. La fila ya lo muestra.</p>` : "");
+  }
+  function openFicha(id, from) {
+    fichaId = id;
+    openSheet("ficha", from);
+  }
+
+  sheetEl.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target.closest("[data-act], [data-dir]") : null;
+    if (!t) return;
+    if (t.dataset.dir) {
+      state.sort = { key: state.sort.key, dir: +t.dataset.dir };
+      refresh();
+      renderSortFoot();
+      footEl.querySelector(`[data-dir="${t.dataset.dir}"]`)?.focus();
+      return;
+    }
+    const a = t.dataset.act;
+    if (a === "close") closeSheet();
+    else if (a === "clear-filters") {
+      for (const k of FACETS) state.f[k].clear();
+      refresh(true);
+      renderFilters();
+      bodyEl.querySelector("input")?.focus();
+    } else if (a === "edit") {
+      editing = true;
+      savedNote = false;
+      renderFicha();
+      $("ed-sede")?.focus();
+    } else if (a === "cancel-edit") {
+      editing = false;
+      renderFicha();
+      footEl.querySelector('[data-act="edit"]')?.focus();
+    } else if (a === "save") {
+      const r = DATA[fichaId];
+      const sede = $("ed-sede").value;
+      const jefe = $("ed-jefe").value.trim().replace(/\s+/g, " ");
+      if (sede !== r.sede || (jefe || null) !== r.jefe) {
+        r.sede = sede;
+        r.jefe = jefe || null;
+        r._t = textOf(r);
+        sortedCache = null;
+        refresh();
+        savedNote = true;
+      }
+      editing = false;
+      renderFicha();
+      footEl.querySelector('[data-act="edit"]')?.focus();
+    }
+  });
+  sheetEl.addEventListener("change", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement)) return;
+    if (t.dataset.f) {
+      const set = state.f[t.dataset.f];
+      if (t.checked) set.add(t.value); else set.delete(t.value);
+      refresh(true);
+      updateFilterCounts();
+    } else if (t.name === "sort-by") {
+      const c = COL[t.value];
+      state.sort = { key: c.key, dir: defaultDir(c) };
+      refresh(true);
+      renderSortFoot();
+    } else if (t.name === "group-by") {
+      state.group = t.value;
+      state.collapsed.clear();
+      refresh(true);
+      closeSheet();
+    }
+  });
+  sheetEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.id === "ed-jefe") {
+      e.preventDefault();
+      footEl.querySelector('[data-act="save"]')?.click();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const f = [...sheetEl.querySelectorAll("button, input, select")].filter((el) => !el.disabled && el.offsetParent !== null);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && kind) { e.preventDefault(); closeSheet(); }
+  });
+
+  filtersBtn.addEventListener("click", () => openSheet("filters", filtersBtn));
+  sortBtn.addEventListener("click", () => openSheet("sort", sortBtn));
+  groupBtn.addEventListener("click", () => openSheet("group", groupBtn));
+
+  const toastEl = $("toast");
+  let toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2600);
+  }
+  $("b-views").addEventListener("click", () => toast("Vistas funciona igual que en la tabla (no está en la maqueta)."));
+  $("b-export").addEventListener("click", () => toast("Exporta lo filtrado a Excel, igual que en la tabla (no está en la maqueta)."));
+  $("menu-btn").addEventListener("click", () => toast("El menú de nx32 (no está en la maqueta)."));
+
+  // ---------------------------------------------------------------- controles de la maqueta
+  const stage = $("stage");
+  let W = 390;
+  function applyWidth(w) {
+    const max = Math.max(320, (stage.clientWidth || 1200) - 48);
+    W = Math.round(Math.min(Math.max(w, 320), 900, max));
+    screenEl.style.setProperty("--w", W + "px");
+    for (const b of $("w-seg").children) b.setAttribute("aria-pressed", String(+b.dataset.w === W));
+  }
+  $("w-seg").addEventListener("click", (e) => {
+    const b = e.target instanceof Element ? e.target.closest("[data-w]") : null;
+    if (b) applyWidth(+b.dataset.w);
+  });
+  const grip = $("grip");
+  grip.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    const x0 = e.clientX, w0 = W;
+    // El teléfono está centrado: el borde se mueve la mitad de lo que crece.
+    const move = (ev) => applyWidth(w0 + (ev.clientX - x0) * 2);
+    const up = () => {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+      grip.removeEventListener("pointercancel", up);
+    };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+    grip.addEventListener("pointercancel", up);
+  });
+  grip.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      applyWidth(W + (e.key === "ArrowRight" ? 10 : -10) * (e.shiftKey ? 5 : 1));
+    }
+  });
+  addEventListener("resize", () => applyWidth(W));
+
+  $("pref-seg").addEventListener("click", (e) => {
+    const b = e.target instanceof Element ? e.target.closest("[data-pref]") : null;
+    if (!b) return;
+    pref = b.dataset.pref;
+    for (const x of $("pref-seg").children) x.setAttribute("aria-pressed", String(x === b));
+    if (pref !== "auto") setMode(pref);
+    else decide();
+    paintReadout();
+    measureSoon();
+  });
+
+  const anatSample = DATA.find((r) => r.estado === "Activo" && r.contrato === "Indefinido" && r.area === "Talento Humano") || DATA[0];
+  function paintAnatomy() {
+    S = slots();
+    $("anat").innerHTML = listRow(0, { r: anatSample });
+    const names = (cs) => cs.map((c) => c.label).join(" · ") || "—";
+    $("legend").innerHTML =
+      `<dt><code>title</code></dt><dd>${esc(names([S.title]))}</dd>` +
+      `<dt><code>meta</code></dt><dd>${esc(names(S.meta))}</dd>` +
+      `<dt><code>end</code></dt><dd>${esc(S.end ? S.end.label : "—")}</dd>` +
+      `<dt><code>end-meta</code></dt><dd>${esc(S.endMeta ? S.endMeta.label : "—")}</dd>`;
+    $("slots-hint").textContent = slotMode === "list"
+      ? "La app dice qué columna va en cada lugar con list en la columna. Como mucho dos en meta."
+      : "Sin list, la tabla elige sola: el título es la columna fija (sticky) o la del avatar; a la derecha, el primer estado y el primer punto; abajo, las dos primeras columnas de texto que quedan (aquí Documento y Cargo).";
+  }
+  $("slots-seg").addEventListener("click", (e) => {
+    const b = e.target instanceof Element ? e.target.closest("[data-slots]") : null;
+    if (!b) return;
+    slotMode = b.dataset.slots;
+    for (const x of $("slots-seg").children) x.setAttribute("aria-pressed", String(x === b));
+    paintAnatomy();
+    paint(true);
+  });
+
+  // Tema: se decide en <body> (ver la nota del CSS).
+  const themeBtn = $("theme-btn");
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const isDark = () => {
+    const s = body.dataset.scheme || root.dataset.theme;
+    return s ? s === "dark" : mq.matches;
+  };
+  function paintThemeBtn() {
+    const dark = isDark();
+    themeBtn.innerHTML = icon(dark ? "sun" : "moon");
+    themeBtn.setAttribute("aria-label", dark ? "Usar tema claro" : "Usar tema oscuro");
+  }
+  themeBtn.addEventListener("click", () => { body.dataset.scheme = isDark() ? "light" : "dark"; paintThemeBtn(); });
+  mq.addEventListener?.("change", paintThemeBtn);
+  new MutationObserver(paintThemeBtn).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+
+  // ---------------------------------------------------------------- arranque
+  applyWidth(390);
+  paintThemeBtn();
+  paintAnatomy();
+  compute();
+  paintMeta();
+  // El modo sale del ancho; sin medida (oculto, o en happy-dom) arranca en lista.
+  decide();
+  if (!decided) setMode(mode);
+  measure();
+  // Para revisar la maqueta sin navegador (happy-dom): el estado a la vista.
+  window.__lista = { state, get mode() { return mode; }, get items() { return items; }, get view() { return view; }, setMode, refresh, measure, countFor };
+})();
+</script>

@@ -6,8 +6,10 @@
 /** Quién reconoce la voz. `auto`: el del navegador si lo hay; si no, el servidor (`endpoint`). */
 export type VoiceEngine = "auto" | "browser" | "server";
 
-/** Dónde va la transcripción: al lado del botón (`inline`) o debajo (`stacked`). */
-export type VoiceLayout = "inline" | "stacked";
+/** Dónde va la transcripción: al lado del botón (`inline`), debajo (`stacked`) o en ningún lado
+ *  (`button`: solo el botón, con el estado en su `title`; quien lo pone muestra lo que oye con
+ *  `nx-voice-partial` y `nx-voice-error`, como el campo de captura de `<nx-tasks>`). */
+export type VoiceLayout = "inline" | "stacked" | "button";
 
 /** En qué está. `unavailable`: ni el navegador ni el servidor sirven (el botón no aparece). */
 export type VoiceState = "idle" | "asking" | "listening" | "processing" | "error" | "unavailable";

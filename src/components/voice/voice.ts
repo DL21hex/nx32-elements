@@ -136,7 +136,8 @@ export class NxVoice extends Base {
   declare engine: string | null;
   /** Atajo de página («Alt+V»): empieza y termina de dictar sin tocar el botón. */
   declare hotkey: string | null;
-  /** `inline` (por defecto) o `stacked`: la transcripción al lado o debajo del botón. */
+  /** `inline` (por defecto), `stacked` o `button`: la transcripción al lado o debajo del botón, o
+   *  solo el botón (el estado va en su `title`). */
   declare layout: string | null;
   declare locale: string | null;
   /** Mantener para hablar: escucha mientras se mantiene el botón (o la barra espaciadora). */
@@ -620,6 +621,9 @@ export class NxVoice extends Base {
     if (keys) btn.setAttribute("aria-keyshortcuts", keys);
     else btn.removeAttribute("aria-keyshortcuts");
     status.textContent = st === "error" ? L[MESSAGE[this.#err ?? "failed"]] : st === "idle" || st === "unavailable" ? `${this.hold ? L.hold : L.tap}${keys ? ` (${keys})` : ""}` : L[st];
+    // Solo el botón: lo que diría la línea de estado queda en su `title`.
+    if (this.getAttribute("layout") === "button") btn.title = status.textContent;
+    else btn.removeAttribute("title");
     fin.textContent = this.#final;
     mid.textContent = this.#interim;
     text.hidden = !this.#final && !this.#interim;

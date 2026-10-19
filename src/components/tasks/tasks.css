@@ -1,0 +1,822 @@
+/*
+ * <nx-tasks>. Variables propias:
+ *   --nx-tasks-undo: lo que dura la raya de la barra de estado (la pone el componente con `undo`).
+ *
+ * Calmo: listas sobre la tarjeta con divisiones tenues, una sola jerarquía tipográfica (el título
+ * de cada tarea manda; la fecha y quién la pidió van debajo, en pequeño) y el rojo solo para lo
+ * vencido. Lo que se toca mide al menos 44 px; las filas, 56. Bajo 520 px los botones del campo de
+ * captura se apilan a todo el ancho.
+ */
+
+nx-tasks {
+  display: block;
+  container-type: inline-size;
+}
+
+.nx-tasks {
+  color: var(--nx-foreground);
+  font: 400 14px/1.45 var(--nx-font-sans);
+
+  & :where(ul) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  & :where(button) {
+    font: inherit;
+    color: inherit;
+  }
+  & :where(p) {
+    margin: 0;
+  }
+  & [hidden] {
+    display: none !important;
+  }
+  & :focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------------------------------------------------------------- cabecera */
+
+.nx-tasks__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-block-end: 14px;
+}
+.nx-tasks__heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.nx-tasks__date {
+  margin-block-start: 2px;
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+.nx-tasks__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  & li {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--nx-hover);
+    color: var(--nx-muted-foreground);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  & [data-k="late"] {
+    background: var(--nx-danger-soft);
+    color: var(--nx-danger);
+  }
+  & [data-k="today"] {
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+  }
+}
+
+/* ---------------------------------------------------------------- captura */
+
+.nx-tasks__capture {
+  margin-block-end: 22px;
+}
+.nx-tasks__entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nx-tasks__field {
+  position: relative;
+  flex: 1;
+  min-inline-size: 0;
+}
+.nx-tasks__input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 15px;
+  box-shadow: var(--nx-shadow-card);
+  transition:
+    border-color var(--nx-motion-fast),
+    box-shadow var(--nx-motion-fast);
+  &::placeholder {
+    color: var(--nx-muted-foreground);
+    opacity: 1;
+  }
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+  &:focus {
+    border-color: var(--nx-primary-border);
+  }
+  &:focus-visible {
+    outline-offset: 1px;
+  }
+}
+.nx-tasks__btns {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.nx-tasks__voice {
+  display: inline-flex;
+  --nx-voice-size: 48px;
+  &:has(nx-voice[data-state="unavailable"]) {
+    display: none;
+  }
+}
+.nx-tasks__add {
+  block-size: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-primary);
+  color: var(--nx-primary-foreground);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--nx-motion-fast);
+  &:hover {
+    background: color-mix(in oklch, var(--nx-primary), var(--nx-foreground) 12%);
+  }
+  &:active {
+    translate: 0 1px;
+  }
+}
+.nx-tasks__under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-block-size: 30px;
+  margin-block-start: 8px;
+  padding-inline: 2px;
+}
+.nx-tasks__read {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+}
+.nx-tasks__hint {
+  flex: 1;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+}
+.nx-tasks__k {
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+}
+.nx-tasks__need,
+.nx-tasks__listen {
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+  font-style: italic;
+}
+.nx-tasks__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-inline-size: 100%;
+  min-block-size: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--nx-hover);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  &:has(.nx-tasks__x) {
+    padding-inline-end: 2px;
+  }
+  &[data-kind="title"] {
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+    font-weight: 600;
+  }
+  &[data-kind="me"],
+  &[data-kind="none"] {
+    background: none;
+    box-shadow: inset 0 0 0 1px var(--nx-border);
+    color: var(--nx-muted-foreground);
+  }
+  &[data-kind="urgent"] {
+    background: var(--nx-warning-soft);
+    color: var(--nx-warning-ink);
+    font-weight: 600;
+  }
+}
+.nx-tasks__for {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.nx-tasks__each {
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+}
+.nx-tasks__x {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  &:hover {
+    background: color-mix(in oklch, currentColor 12%, transparent);
+    opacity: 1;
+  }
+  /* El toque alcanza más que el dibujo. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -8px -2px;
+  }
+  & .nx-glyph {
+    inline-size: 12px;
+    block-size: 12px;
+  }
+}
+.nx-tasks__opts {
+  position: relative;
+  margin-inline-start: auto;
+  color: var(--nx-primary-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  /* El toque alcanza más que el texto (a lo alto: a lo ancho haría desbordar el borde). */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -12px 0;
+  }
+}
+
+/* La lista del «@» (la de <nx-thread>, abierta hacia abajo). */
+.nx-tasks__pick {
+  position: absolute;
+  inset: calc(100% + 4px) auto auto 0;
+  z-index: 10;
+  inline-size: min(320px, 100%);
+  max-block-size: 280px;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-popover);
+  box-shadow: var(--nx-shadow-popover);
+  list-style: none;
+  & li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-block-size: 44px;
+    padding: 4px 8px;
+    border-radius: var(--nx-radius-md);
+    cursor: pointer;
+  }
+  & [aria-selected="true"] {
+    background: var(--nx-nav-active-bg);
+  }
+  & strong,
+  & small {
+    display: block;
+  }
+  & strong {
+    font-weight: 600;
+  }
+  & small {
+    color: var(--nx-muted-foreground);
+    font-size: 12px;
+  }
+}
+.nx-tasks__av {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: light-dark(oklch(0.93 0.04 var(--h)), oklch(0.38 0.07 var(--h)));
+  color: light-dark(oklch(0.38 0.1 var(--h)), oklch(0.93 0.04 var(--h)));
+  font-size: 10.5px;
+  font-weight: 650;
+  & img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+}
+
+/* ---------------------------------------------------------------- grupos y filas */
+
+.nx-tasks__body {
+  display: grid;
+  gap: 22px;
+}
+.nx-tasks__gh {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding-inline: 4px;
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  [data-group="late"] > & {
+    color: var(--nx-danger);
+  }
+}
+.nx-tasks__n {
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+.nx-tasks__list {
+  overflow: clip;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
+  & > li + li {
+    border-block-start: 1px solid var(--nx-border-subtle);
+  }
+}
+.nx-tasks__row {
+  display: flex;
+  align-items: center;
+  gap: 2px 8px;
+  box-sizing: border-box;
+  min-block-size: 56px;
+  padding: 6px 14px 6px 6px;
+  transition: background-color var(--nx-motion-fast);
+  &:hover {
+    background: var(--nx-hover);
+  }
+}
+.nx-tasks__new {
+  animation: nx-tasks-in 320ms var(--nx-ease-out);
+}
+@keyframes nx-tasks-in {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+    background: var(--nx-primary-soft);
+  }
+}
+.nx-tasks__ghost {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* El botón redondo: 44 px de toque, un círculo de 24 que se llena. */
+.nx-tasks__check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  & .nx-glyph {
+    inline-size: 24px;
+    block-size: 24px;
+    padding: 4px;
+    box-sizing: border-box;
+    border: 1.75px solid var(--nx-border-strong);
+    border-radius: 50%;
+    color: transparent;
+    transition:
+      background-color var(--nx-motion-fast),
+      border-color var(--nx-motion-fast),
+      color var(--nx-motion-fast),
+      scale var(--nx-motion-fast);
+  }
+  & svg {
+    stroke-width: 3.2;
+  }
+  &:hover .nx-glyph {
+    border-color: var(--nx-primary);
+    color: color-mix(in oklch, var(--nx-primary) 55%, transparent);
+  }
+  &:active .nx-glyph {
+    scale: 0.88;
+  }
+  &[aria-pressed="true"] .nx-glyph {
+    border-color: var(--nx-primary);
+    background: var(--nx-primary);
+    color: var(--nx-primary-foreground);
+  }
+  &:focus-visible {
+    outline-offset: -4px;
+  }
+  /* Todavía creándose: el círculo punteado. */
+  [data-pending] > & .nx-glyph {
+    border-style: dashed;
+  }
+}
+.nx-tasks__main {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-inline-size: 0;
+  padding-block: 4px;
+}
+.nx-tasks__title {
+  color: var(--nx-foreground);
+  font-weight: 550;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  [data-done] & {
+    color: var(--nx-muted-foreground);
+    font-weight: 450;
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in oklch, currentColor 45%, transparent);
+  }
+}
+a.nx-tasks__title:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.nx-tasks__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+  /* El punto va con lo que sigue: al partirse la línea, no queda colgando al final. */
+  & > * + *::before {
+    content: "·";
+    content: "·" / "";
+    margin-inline-end: 6px;
+    color: var(--nx-muted-foreground);
+    font-weight: 400;
+    opacity: 0.7;
+  }
+}
+.nx-tasks__due {
+  font-variant-numeric: tabular-nums;
+  &[data-tone="late"] {
+    color: var(--nx-danger);
+    font-weight: 600;
+  }
+  &[data-tone="today"] {
+    color: var(--nx-primary-ink);
+    font-weight: 600;
+  }
+}
+.nx-tasks__pill,
+.nx-tasks__kind {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--nx-hover);
+  color: var(--nx-muted-foreground);
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: nowrap;
+  &[data-tone="warning"] {
+    background: var(--nx-warning-soft);
+    color: var(--nx-warning-ink);
+  }
+  &[data-tone="info"] {
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+  }
+}
+
+/* Lo que espera en otros módulos y lo pedido: un círculo tenue a la izquierda, a la altura de la casilla. */
+.nx-tasks__lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  color: var(--nx-muted-foreground);
+  & .nx-glyph {
+    inline-size: 30px;
+    block-size: 30px;
+    padding: 7px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: var(--nx-hover);
+  }
+  & svg {
+    stroke-width: 2.2;
+  }
+  &[data-tone="warning"] .nx-glyph {
+    background: var(--nx-warning-soft);
+    color: var(--nx-warning-ink);
+  }
+  &[data-tone="info"] .nx-glyph {
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+  }
+}
+.nx-tasks__row--link {
+  flex-wrap: wrap;
+}
+.nx-tasks__row--link > .nx-tasks__main {
+  flex: 1 1 180px;
+}
+/* La etiqueta va en la línea del título, y el título sigue a su lado (o debajo, si no cabe). */
+.nx-tasks__line {
+  min-inline-size: 0;
+  & .nx-tasks__kind {
+    display: inline-block;
+    margin-inline-end: 6px;
+    vertical-align: 1px;
+  }
+}
+.nx-tasks__go {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  min-block-size: 34px;
+  margin-inline-start: auto;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--nx-primary-soft);
+  color: var(--nx-primary-ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--nx-motion-fast);
+  &:hover {
+    background: color-mix(in oklch, var(--nx-primary-soft), var(--nx-primary) 12%);
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -5px -2px;
+  }
+}
+.nx-tasks__progress {
+  display: block;
+  max-inline-size: 240px;
+  block-size: 4px;
+  margin-block: 6px 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--nx-border-subtle);
+  & > span {
+    display: block;
+    inline-size: var(--p, 0%);
+    block-size: 100%;
+    border-radius: inherit;
+    background: var(--nx-primary);
+  }
+  [data-all] & > span {
+    background: var(--nx-success);
+  }
+  [data-tone="late"] & > span {
+    background: var(--nx-danger);
+  }
+}
+
+/* Hechas hoy: plegadas al final. */
+.nx-tasks__done > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  inline-size: fit-content;
+  min-block-size: 44px;
+  padding-inline: 4px 10px;
+  border-radius: var(--nx-radius-md);
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  &::-webkit-details-marker {
+    display: none;
+  }
+  &::before {
+    content: "";
+    inline-size: 14px;
+    block-size: 14px;
+    background: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: rotate var(--nx-motion-fast);
+  }
+  &:hover {
+    color: var(--nx-foreground);
+  }
+}
+.nx-tasks__done[open] > summary::before {
+  rotate: 90deg;
+}
+.nx-tasks__done > ul {
+  margin-block-start: 4px;
+}
+
+.nx-tasks__empty {
+  padding: 18px 16px;
+  border: 1px dashed var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  color: var(--nx-muted-foreground);
+  text-align: center;
+}
+.nx-tasks__foot {
+  margin-block-start: 18px;
+  padding-inline: 4px;
+}
+.nx-tasks__more {
+  position: relative;
+  color: var(--nx-primary-ink);
+  font-weight: 600;
+  text-decoration: none;
+  &::after {
+    content: " →";
+  }
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -12px 0;
+  }
+}
+
+/* ---------------------------------------------------------------- la barra de estado */
+
+/* Siempre en el árbol (el lector de pantalla oye su `role="status"`); se ve solo con un aviso, pegada
+   al borde de abajo de la pantalla mientras la lista está a la vista. */
+.nx-tasks__bar {
+  position: sticky;
+  inset-block-end: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px 10px;
+  block-size: 0;
+  overflow: hidden;
+  border-radius: var(--nx-radius-lg);
+  &[data-open] {
+    block-size: auto;
+    min-block-size: 48px;
+    margin-block-start: 16px;
+    padding: 6px 6px 6px 16px;
+    background: var(--nx-foreground);
+    color: var(--nx-background);
+    box-shadow: var(--nx-shadow-popover);
+    animation: nx-tasks-bar 200ms var(--nx-ease-out);
+  }
+  &[data-error] {
+    background: var(--nx-danger);
+    color: var(--nx-danger-foreground);
+  }
+}
+@keyframes nx-tasks-bar {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+.nx-tasks__say {
+  flex: 1;
+  min-inline-size: 0;
+  padding-block: 6px;
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+.nx-tasks__undo,
+.nx-tasks__close {
+  position: relative;
+  flex: none;
+  min-block-size: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in oklch, currentColor 14%, transparent);
+  color: inherit;
+  cursor: pointer;
+  &:hover {
+    background: color-mix(in oklch, currentColor 22%, transparent);
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+  &:focus-visible {
+    outline-color: currentColor;
+  }
+}
+.nx-tasks__undo {
+  padding: 0 16px;
+  font-weight: 650;
+}
+.nx-tasks__close {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  padding: 0;
+}
+.nx-tasks__clock {
+  position: absolute;
+  inset: auto 0 0;
+  block-size: 2px;
+  background: currentColor;
+  opacity: 0.35;
+  transform-origin: 0 50%;
+  animation: nx-tasks-clock var(--nx-tasks-undo, 7s) linear forwards;
+  [data-paused] > & {
+    animation-play-state: paused;
+  }
+}
+@keyframes nx-tasks-clock {
+  to {
+    scale: 0 1;
+  }
+}
+
+/* ---------------------------------------------------------------- angosto (el celular) */
+
+@container (max-width: 519.98px) {
+  .nx-tasks__entry {
+    flex-wrap: wrap;
+  }
+  .nx-tasks__field {
+    flex-basis: 100%;
+  }
+  .nx-tasks__btns {
+    flex: 1 1 100%;
+  }
+  .nx-tasks__add {
+    flex: 1;
+  }
+  .nx-tasks__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .nx-tasks__row {
+    padding-inline-end: 10px;
+  }
+  /* Lo entendido y la ayuda a todo lo ancho: «Más opciones» baja a su propio renglón en vez de
+     quedar en medio de los chips. */
+  .nx-tasks__read,
+  .nx-tasks__hint {
+    flex-basis: 100%;
+  }
+  .nx-tasks__opts {
+    margin-inline-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-tasks__new,
+  .nx-tasks__bar[data-open] {
+    animation: none;
+  }
+  .nx-tasks__clock {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -214,6 +214,17 @@ describe("el botón", () => {
     expect(b.disabled).toBe(true);
   });
 
+  it("layout=\"button\": solo el botón, con el estado en su title (lo usa <nx-tasks>)", () => {
+    browser();
+    const el = mount('layout="button"');
+    expect(btn(el).title).toBe("Toca para dictar");
+    el.hotkey = "alt+v";
+    expect(btn(el).title).toBe("Toca para dictar (Alt+V)");
+    el.removeAttribute("layout");
+    el.hotkey = null;
+    expect(btn(el).hasAttribute("title")).toBe(false);
+  });
+
   it("labels (propiedad y atributo JSON; uno inválido no rompe)", () => {
     browser();
     const el = mount(`labels='{"dictate":"Hablar","tap":"Toca y habla","otro":1,"stop":5}'`);

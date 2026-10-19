@@ -34,6 +34,7 @@ const entries = {
   "jobs": "src/components/jobs/jobs.css",
   "recurrence": "src/components/recurrence/recurrence.css",
   "checklist": "src/components/checklist/checklist.css",
+  "tasks": "src/components/tasks/tasks.css",
   "thread": "src/components/thread/thread.css",
   "voice": "src/components/voice/voice.css",
   "review": "src/components/review/review.css",

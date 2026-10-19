@@ -30,6 +30,8 @@ import "./pages/jobs.css";
 import { mountRecurrenceDemo } from "./demo-recurrence";
 import { mountChecklistDemo } from "./demo-checklist";
 import "./pages/checklist.css";
+import { mountTasksDemo } from "./demo-tasks";
+import "./pages/tasks.css";
 import { mountThreadDemo } from "./demo-thread";
 import "./pages/thread.css";
 import { mountVoiceDemo } from "./demo-voice";
@@ -213,6 +215,7 @@ const NAV: MenuItem[] = [
       { id: "presence", label: "Presencia", href: "#/presence", icon: "users" },
       { id: "award", label: "Adjudicación", href: "#/award", icon: "scale" },
       { id: "checklist", label: "Procedimientos", href: "#/checklist", icon: "clipboard-check" },
+      { id: "tasks", label: "Pendientes", href: "#/tasks", icon: "list-checks" },
       { id: "planner", label: "Agenda de recursos", href: "#/planner", icon: "calendar-range" },
     ],
   },
@@ -281,6 +284,7 @@ const PAGES: Record<string, { template: string; mount?: (root: HTMLElement) => v
   "#/voice": { template: "page-voice", mount: mountVoiceDemo },
   "#/thread": { template: "page-thread", mount: mountThreadDemo },
   "#/checklist": { template: "page-checklist", mount: mountChecklistDemo },
+  "#/tasks": { template: "page-tasks", mount: mountTasksDemo },
   "#/recurrence": { template: "page-recurrence", mount: mountRecurrenceDemo },
   "#/jobs": { template: "page-jobs", mount: mountJobsDemo },
   "#/th": { template: "page-th", mount: mountHrDemo },

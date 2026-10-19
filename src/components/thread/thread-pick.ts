@@ -6,24 +6,34 @@
  * La caja sigue siendo un `textbox` (ARIA no admite `combobox` en un `<textarea>`), con el patrón
  * del combobox: `aria-autocomplete="list"`, `aria-controls` y `aria-activedescendant` a la opción
  * resaltada; ↑/↓ recorren, Enter o Tab eligen, Esc cierra. El foco nunca sale de la caja.
+ *
+ * `<nx-tasks>` usa la misma lista para el `@` de su campo de captura (un `<input>`): sus clases
+ * llevan el prefijo del anfitrión (`prefix`) y `picked` recibe también la persona elegida.
  */
 import { h, safeEndpoint } from "../../core/dom";
 import { cleanPerson, cleanRef, findTrigger, threadPick, type ThreadPick, type ThreadTrigger } from "./logic";
 import type { ThreadLabels, ThreadPerson, ThreadRef, ThreadUser } from "./types";
 
+/** La caja donde se escribe: el `<textarea>` del hilo o el `<input>` de una tarea. */
+export type ThreadPickBox = HTMLTextAreaElement | HTMLInputElement;
+
 /** Lo que el hilo le presta a la lista (sus campos privados no se ven desde aquí). */
 export interface ThreadPickHost {
   readonly el: HTMLElement;
   readonly uid: string;
+  /** Prefijo de las clases de la lista y la tarjeta («nx-thread» si no se da: `nx-thread__pick`). */
+  readonly prefix?: string;
   /** Registros conocidos: la lista los suma al elegir y la tarjeta al consultarlos. */
   readonly refs: Map<string, ThreadRef>;
-  labels(): ThreadLabels;
+  /** Los nombres de las dos listas (lo único de los textos que usa). */
+  labels(): Pick<ThreadLabels, "people" | "refs">;
   patterns(): readonly RegExp[];
   /** `people-source` y `refs-source`, tal como vienen (se validan aquí). */
   source(kind: "mention" | "ref"): string | null;
   avatar(u: ThreadUser): HTMLElement;
-  /** Se eligió una sugerencia: el hilo guarda la mención (o referencia) del borrador. */
-  picked(ta: HTMLTextAreaElement, p: ThreadPick): void;
+  /** Se eligió una sugerencia: el hilo guarda la mención (o referencia) del borrador. `item` es la
+   *  persona (o el registro) tal como llegó, ya validado. */
+  picked(ta: ThreadPickBox, p: ThreadPick, item: ThreadPerson | ThreadRef): void;
   /** Se supo a dónde lleva un registro: su ficha puede pasar a ser enlace. */
   learned(): void;
 }
@@ -31,10 +41,10 @@ export interface ThreadPickHost {
 /** Espera entre teclas antes de preguntarle al servidor. */
 const DEBOUNCE = 150;
 type Item = ThreadPerson | ThreadRef;
-type Open = ThreadTrigger & { ta: HTMLTextAreaElement; items: Item[]; i: number };
+type Open = ThreadTrigger & { ta: ThreadPickBox; items: Item[]; i: number };
 
-/** Una lista JSON (`[...]` o `{items: [...]}`) de una fuente de sugerencias (`?q=`). */
-async function fetchList(src: string, q: string, signal: AbortSignal): Promise<unknown[]> {
+/** Una lista JSON (`[...]` o `{items: [...]}`) de una fuente de sugerencias (`?q=`), hasta 50. */
+export async function fetchList(src: string, q: string, signal: AbortSignal): Promise<unknown[]> {
   const res = await fetch(`${src}${src.includes("?") ? "&" : "?"}q=${encodeURIComponent(q)}`, { headers: { Accept: "application/json" }, credentials: "same-origin", signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = (await res.json()) as unknown;
@@ -53,9 +63,10 @@ export class ThreadPicker {
 
   constructor(readonly host: ThreadPickHost) {
     const id = host.uid;
-    this.list = h("ul", { class: "nx-thread__pick", role: "listbox", id: `${id}-l`, hidden: true });
-    this.card = h("div", { class: "nx-thread__card", role: "tooltip", id: `${id}-c`, hidden: true });
-    host.el.append(this.card);
+    const cls = host.prefix ?? "nx-thread";
+    this.list = h("ul", { class: `${cls}__pick`, role: "listbox", id: `${id}-l`, hidden: true });
+    // La tarjeta entra al DOM la primera vez que se muestra: quien solo menciona personas no la lleva.
+    this.card = h("div", { class: `${cls}__card`, role: "tooltip", id: `${id}-c`, hidden: true });
     // La lista no se lleva el foco de la caja.
     this.list.addEventListener("pointerdown", (e) => e.preventDefault());
     this.list.addEventListener("click", (e) => {
@@ -65,7 +76,7 @@ export class ThreadPicker {
   }
 
   /** Lo que se escribe: si justo antes del cursor hay `@algo`, `#algo` o un código, se busca. */
-  input(ta: HTMLTextAreaElement): void {
+  input(ta: ThreadPickBox): void {
     const t = findTrigger(ta.value, ta.selectionStart ?? ta.value.length, this.host.patterns());
     const src = t && safeEndpoint(this.host.source(t.kind));
     if (!t || !src) return this.close();
@@ -77,7 +88,7 @@ export class ThreadPicker {
   }
 
   /** Las teclas de la lista. `true` si la tecla era suya. */
-  key(e: KeyboardEvent, ta: HTMLTextAreaElement): boolean {
+  key(e: KeyboardEvent, ta: ThreadPickBox): boolean {
     const o = this.#open;
     const n = o?.ta === ta ? o.items.length : 0;
     if (!n || e.isComposing) return false;
@@ -168,7 +179,7 @@ export class ThreadPicker {
     ta.value = head + ta.value.slice(caret).replace(/^ /, "");
     ta.setSelectionRange(head.length, head.length);
     this.close();
-    this.host.picked(ta, p);
+    this.host.picked(ta, p, it);
     ta.focus();
   }
 
@@ -178,6 +189,7 @@ export class ThreadPicker {
     const { refs } = this.host;
     const id = a.dataset.id!;
     const card = this.card;
+    if (!card.isConnected) this.host.el.append(card);
     const label = a.textContent ?? "";
     const paint = () => {
       const r = refs.get(id);

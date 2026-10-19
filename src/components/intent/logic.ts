@@ -50,12 +50,37 @@ export function scoreIntent(t: string, intent: IntentDef): number {
  * hoy), «el 14», «14 de octubre (de 2026)», «14/10» o «2026-10-14». El día entero o `null`.
  */
 export function findDate(t: string, today: number): number | null {
-  if (/ pasado manana /.test(t)) return today + 2;
-  const noMorning = t.replace(/ (en|por|de) la manana /g, " ");
-  if (/ manana /.test(noMorning)) return today + 1;
-  if (/ hoy /.test(t)) return today;
+  return findDateSpan(t, today)?.day ?? null;
+}
+
+/** Dónde dice la fecha: `[start, end)` en el texto, y el día (`null` si no existe: «31/02»). */
+export interface DateSpan {
+  day: number | null;
+  start: number;
+  end: number;
+}
+
+/**
+ * `findDate` con el lugar de lo que leyó, para quien tiene que quitarlo del texto (el título de una
+ * tarea en `<nx-tasks>`): en `" llamar a laura manana "`, «manana» va de 16 a 22. Lee lo mismo y en
+ * el mismo orden que `findDate`, que es esta misma función sin el lugar.
+ */
+export function findDateSpan(t: string, today: number): DateSpan | null {
+  // « hoy »: la palabra es lo de adentro de los dos espacios.
+  const word = (re: RegExp, s: string, day: number): DateSpan | null => {
+    const m = re.exec(s);
+    return m ? { day, start: m.index + 1, end: m.index + m[0].length - 1 } : null;
+  };
+  // «(no un dígito)14/10»: lo leído empieza en la cifra.
+  const digits = (m: RegExpExecArray, day: number | null): DateSpan => ({ day, start: m.index + Math.max(0, m[0].search(/\d/)), end: m.index + m[0].length });
+  const after = word(/ pasado manana /, t, today + 2);
+  if (after) return after;
+  // Del mismo largo que `t`: las posiciones siguen valiendo.
+  const noMorning = t.replace(/ (en|por|de) la manana /g, (m) => " ".repeat(m.length));
+  const next = word(/ manana /, noMorning, today + 1) ?? word(/ hoy /, t, today);
+  if (next) return next;
   const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(t);
-  if (iso) return validDay(+iso[1], +iso[2], +iso[3]);
+  if (iso) return digits(iso, validDay(+iso[1], +iso[2], +iso[3]));
   const [ty, tm] = ymd(today);
   const named = new RegExp(`(?:^|[^0-9])(\\d{1,2}) de (${[...MONTHS, ...Object.keys(MONTH_ALIASES)].join("|")})(?: de (\\d{4}))?`).exec(t);
   if (named) {
@@ -63,7 +88,7 @@ export function findDate(t: string, today: number): number | null {
     let y = named[3] ? +named[3] : ty;
     let d = validDay(y, m, +named[1]);
     if (!named[3] && d !== null && d < today) d = validDay((y = ty + 1), m, +named[1]);
-    return d;
+    return digits(named, d);
   }
   const slash = /(?:^|[^0-9])(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?![0-9])/.exec(t);
   if (slash) {
@@ -71,20 +96,20 @@ export function findDate(t: string, today: number): number | null {
     if (y < 100) y += 2000;
     let d = validDay(y, +slash[2], +slash[1]);
     if (!slash[3] && d !== null && d < today) d = validDay(ty + 1, +slash[2], +slash[1]);
-    return d;
+    return digits(slash, d);
   }
   const wd = new RegExp(` (${WEEKDAYS.join("|")}) `).exec(t);
   if (wd) {
     const target = WEEKDAYS.indexOf(wd[1]);
     let d = today + 1;
     while (jsDay(d) !== target) d++;
-    return d;
+    return { day: d, start: wd.index + 1, end: wd.index + wd[0].length - 1 };
   }
   const bare = / el (\d{1,2}) /.exec(t);
   if (bare) {
     let d = validDay(ty, tm, +bare[1]);
     if (d === null || d < today) d = validDay(tm === 12 ? ty + 1 : ty, tm === 12 ? 1 : tm + 1, +bare[1]);
-    return d;
+    return { day: d, start: bare.index + 1, end: bare.index + bare[0].length - 1 };
   }
   return null;
 }

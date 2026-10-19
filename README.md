@@ -52,6 +52,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-checklist>` + núcleo (ESM); los campos de evidencia, el resumen y la firma se cargan aparte | ≈ 12,1 KB |
 | `<nx-recurrence>` + núcleo (ESM); el intérprete de frases y los controles se cargan aparte | ≈ 9,4 KB |
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
+| `<nx-tasks>` + lector de fechas + núcleo (ESM); la lista del `@` y el dictado se cargan aparte | ≈ 13,9 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
 | `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 20 KB |
 | `nx32-elements.css` (tokens + todos los componentes) | ≈ 70 KB |
@@ -2176,7 +2177,7 @@ después el mejor puente corto de cada mes.
 
 | | |
 |---|---|
-| `<nx-intent>` | `intents`, `examples`, `placeholder`, `today`, `currency`, `hotkey`, `value`, `locale`, `labels` · `match`, `focus()`, `clear()`, `submit()` · `nx-intent-change` `{text, match}`, `nx-intent-submit` `{text, id, intent, params, href, newTab}` (cancelable) · `understandIntent`, `findDate`, `findMonth`, `findTime`, `findAmount`, `withParams` |
+| `<nx-intent>` | `intents`, `examples`, `placeholder`, `today`, `currency`, `hotkey`, `value`, `locale`, `labels` · `match`, `focus()`, `clear()`, `submit()` · `nx-intent-change` `{text, match}`, `nx-intent-submit` `{text, id, intent, params, href, newTab}` (cancelable) · `understandIntent`, `findDate`, `findDateSpan` (la fecha y dónde está: la usa `<nx-tasks>`), `findMonth`, `findTime`, `findAmount`, `withParams` |
 | `<nx-stats>` | `items` (`[{id?, label, value, format?, currency?, note?, badge?, trend?, goal?, delta?, meter?, ring?, href?, newTab?}]`; `delta`: `{value, format?, label?, polarity?}`), `layout`, `locale`, `labels` · `nx-stats-select` `{item, href}` (cancelable) |
 | `<nx-timeline>` | `lanes`, `items`, `legend` (`[{mark, label}]`), `holidays`, `start`, `end`, `today`, `heading`, `heading-level`, `summary`, `highlight`, `locale`, `labels` · `focusItem(id?)`, `scrollToDay(iso?)` · `nx-timeline-select` `{item, href, newTab}` (cancelable; `newTab` en una marca abre su enlace en otra pestaña) · CSS `--nx-timeline-bars`/`-ranges`/`-points`/`-axis` (altos), `--nx-timeline-month`, `--nx-timeline-label` |
 | `<nx-tracker>` | `items` (`[{id, title, subtitle?, icon?, eyebrow?, status?, steps?, days?, href?, actions?}]`), `holidays`, `workdays`, `empty`, `heading-level`, `locale`, `labels` · `nx-tracker-select` `{item, action, href}` (cancelable) |
@@ -3068,7 +3069,7 @@ catorce para Ferretería El Tornillo, entrega el viernes» y el formulario se ll
 
 | | |
 |---|---|
-| Propiedades / atributos | `for`, `endpoint`, `engine` (`auto`, `browser`, `server`), `hold`, `hotkey`, `max-seconds` (30), `silence` (ms, 2000), `commands` (`"false"` las apaga), `layout` (`inline`, `stacked`), `locale`, `labels`, `disabled` · solo lectura: `state` (`idle`, `asking`, `listening`, `processing`, `error`, `unavailable`), `supported`, `text` |
+| Propiedades / atributos | `for`, `endpoint`, `engine` (`auto`, `browser`, `server`), `hold`, `hotkey`, `max-seconds` (30), `silence` (ms, 2000), `commands` (`"false"` las apaga), `layout` (`inline`, `stacked`, `button`: solo el botón, con el estado en su `title`), `locale`, `labels`, `disabled` · solo lectura: `state` (`idle`, `asking`, `listening`, `processing`, `error`, `unavailable`), `supported`, `text` |
 | Métodos | `start()`, `stop()`, `cancel()` |
 | Eventos | `nx-voice-start`, `nx-voice-partial` `{text}`, `nx-voice-text` `{text, confidence, final}` (cancelable), `nx-voice-end` `{text, canceled}`, `nx-voice-error` `{code, message}` (`not-allowed`, `no-speech`, `network`, `no-mic`, `server`, `failed`), `nx-voice-unavailable` |
 | Funciones | `applyDictation(valor, inicio, fin, dicho, {orders?, last?})` → `{value, caret, range}`, `parseDictation(dicho)`, `pickVoiceMime(isTypeSupported)`, `parseVoiceLine(línea)`, `voiceFileName(tipo)`, `parseVoiceHotkey("Alt+V")`, `voiceHotkeyMatches(atajo, evento)`, `speechTranscript(resultados)`, `voiceLevel(bytes)`, `voiceErrorCode(error)`, `VOICE_LABELS`, `VOICE_MIMES` |
@@ -3232,6 +3233,61 @@ trabajo vive en el servidor y una píldora discreta en la barra dice cómo va.
 | Eventos | `nx-jobs-change` `{jobs}`, `nx-jobs-done` `{job}` (terminado, fallido o cancelado), `nx-jobs-error` `{action, message, id?, status?}`, `nx-open-change` `{open}` |
 | Protocolo | `GET {endpoint}?active=1` → `[{id, type, title, status, stage?, done?, total?, startedAt, finishedAt?, by?, result?}]` · `POST {endpoint}` · `GET {endpoint}/{id}` · `POST {endpoint}/{id}/cancel` · `POST {endpoint}/{id}/retry` · stream `{id, status?, stage?, done?, total?, result?, seq?}` |
 | Funciones | `jobPace()`, `jobLeft()`, `jobsDuration()`, `mergeJob()`, `splitJobs()`, `cleanJob(s)()`, `isJobActive()`, `jobFraction()`, `jobsFraction()`, `jobsBackoff()`, `jobsRetryAfter()`, `jobsPollDelay()`, `jobUrl()`, `readJobsMemo()` |
+
+## `<nx-tasks>`
+
+**Lo que tengo que hacer.** Para cualquier empleado, casi siempre en el celular: una tarea se anota
+en una línea, se cierra con un toque y se deshace. Debajo, lo que otros módulos esperan de quien
+mira (una firma, una aprobación) y lo que él les pidió a otros, con quién falta.
+
+- **Capturar en una línea**: «Llamar a Laura mañana, urgente». Mientras se escribe, «Entendí:» dice el
+  título, para quién, la fecha y si es urgente; lo reconocido sale del título y lo que queda
+  colgando al final («a», «para», «el», «de», comas) también. Las fechas las lee el mismo lector de
+  `<nx-intent>` («hoy», «mañana», «pasado mañana», «el viernes», «el 14», «14/10», «14 de octubre»).
+  `@` abre la lista de personas de `people-source` (la de `<nx-thread>`, con teclado), y «para
+  Laura» cuenta solo si hay una sola Laura (si no, queda en el título). Cada parte de lo entendido se
+  quita con su ×. Con `voice`, un botón de dictado (`<nx-voice>`, que solo aparece si el navegador
+  puede) escribe en el campo.
+- **Agregar**: <kbd>Enter</kbd> o «Agregar», al instante. Sin personas es una tarea propia en su
+  grupo; con personas, una fila en «Lo que pediste» (una tarea para cada uno). <kbd>Esc</kbd> borra lo
+  escrito. «Más opciones» (`options-href`) lleva el borrador como parámetros, o lo entrega en
+  `nx-tasks-options` (cancelable) para abrirlo en un cajón.
+- **Por fecha**: «Vencidas», «Hoy», «Próximos días» (6), «Más adelante» y «Sin fecha», cada grupo con
+  las urgentes primero. La fecha va en palabras («venció hace 3 días», «vence hoy», «vence el vie 23
+  oct»), y el rojo es solo para lo vencido. La cabecera trae la fecha larga y solo las cifras que no
+  son cero («1 vencida», «2 para hoy», «3 te esperan», «1 pedida por ti»).
+- **Hecha con un toque**: el círculo (un botón de 44 px con `aria-pressed`) la manda a «Hechas hoy»,
+  plegado al final, de donde se reabre con el mismo botón.
+- **Nada espera al servidor** (como `<nx-kanban>`): cada cambio se ve al instante y la barra de
+  estado (`role="status"`) lo dice con «Deshacer» durante `undo` ms (se detiene si se la mira o se la
+  recorre con el teclado; <kbd>Ctrl</kbd>+<kbd>Z</kbd> también deshace). Al terminar —o si el
+  elemento sale del DOM, o la página se cierra— sale `nx-tasks-commit` con una `key`, y la app
+  contesta `settle(key, …)`: lo creado toma su `id`, y un `{error}` revierte el cambio y lo dice.
+  Marcar algo que todavía se está creando espera a que la creación se confirme. Lo que la app vuelve
+  a mandar por `items` no borra lo pendiente ni lo escrito.
+
+```html
+<nx-tasks id="dia" heading="Tu día" today="2026-10-19" people-source="/api/personas"
+  options-href="/pendientes/nueva" more-href="/pendientes" more-label="Ver todos los pendientes" voice></nx-tasks>
+<script>
+  dia.items = [{ id: "t1", title: "Enviar el informe de cartera", due: "2026-10-16", by: "Laura Gómez" }];
+  dia.links = [{ id: "f1", title: "OC-2291", kind: "Firma", tone: "warning", meta: "Compras · desde ayer", action: "Firmar", href: "/firmas/2291" }];
+  dia.requests = [{ id: "p1", title: "Cotizar estibas", due: "2026-10-18", people: [{ name: "Laura Gómez", done: true }, { name: "Andrés Pérez" }] }];
+  dia.addEventListener("nx-tasks-commit", async (e) => {
+    const res = await fetch("/api/pendientes/cambios", { method: "POST", keepalive: true, body: JSON.stringify(e.detail) });
+    const body = await res.json();
+    dia.settle(e.detail.key, res.ok ? { id: body.id, href: body.href } : { error: body.message });
+  });
+</script>
+```
+
+| | |
+|---|---|
+| Propiedades / atributos | `items` (`{id, title, due?, by?, urgent?, done?, href?}`; el getter devuelve lo que se ve, con lo pendiente), `links` (`{id, title, kind, tone?: "warning"\|"info"\|"neutral", meta?, action, href, newTab?}`), `requests` (`{id, title, due?, people: [{name, done?}], href?}`), `heading`, `heading-level` (2), `today` (`YYYY-MM-DD`, la fecha local si no se da), `people-source`, `options-href`, `more-href`, `more-label`, `voice`, `undo` (ms, 7000; 0 = al instante, sin «Deshacer»), `locale`, `labels` (`TASKS_LABELS`) |
+| Métodos | `settle(key, {id?, href?} \| {error})` → `false` si no hay un cambio enviado con esa `key` |
+| Eventos | `nx-tasks-commit` `{key, type: "create", title, due?, urgent, people}` o `{key, type: "done", id, done}`, `nx-tasks-undo` `{key, type}`, `nx-tasks-open` `{kind: "task"\|"link"\|"request", item}` (cancelable), `nx-tasks-options` `{draft: {title, due?, urgent, people}}` (cancelable) |
+| Protocolo | `people-source?q=` → `[{id, name, detail?, avatar?}]` o `{items: […]}` (el de `<nx-thread>`) · una tarea recién creada tiene como `id` la `key` de su `create` hasta su `settle` (una marca que sale con la página cerrándose lo lleva) · lo confirmado se sostiene hasta que `items`/`requests` lo reflejan |
+| Funciones | `parseTask(texto, {today, people, resolved, keepDate, keepUrgent})`, `taskStrongMatch()`, `groupTasks()`, `taskGroup()`, `taskCounts()`, `taskDueText()`, `taskShortDate()`, `taskRequestSummary()`, `cleanTaskItems()`, `cleanTaskLinks()`, `cleanTaskRequests()`, `TASKS_LABELS`, `TASK_GROUPS` |
 
 ## Desarrollo
 

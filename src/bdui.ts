@@ -79,6 +79,7 @@ const registry = new Map<string, Entry>(
     Checklist: "checklist",
     Recurrence: "recurrence",
     Jobs: "jobs",
+    Tasks: "tasks",
     Button: "button",
   }).map(([name, tag]) => [name, { tag: `nx-${tag}` }]),
 );

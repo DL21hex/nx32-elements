@@ -4487,6 +4487,116 @@ import { PasteFill } from "nx32-elements/solid/paste-fill";
               </div>
             </template>
 
+        <!-- ================================================================ Pendientes -->
+        <template id="page-tasks">
+          <p class="eyebrow">Componentes</p>
+          <h1>Pendientes <code class="tag">&lt;nx-tasks&gt;</code></h1>
+          <p class="lead">
+            Lo que tengo que hacer, para cualquier empleado y casi siempre en el celular: una tarea se anota en una línea
+            («Llamar a Laura mañana, urgente»), se cierra con un toque y se deshace. Debajo, lo que otros módulos esperan de
+            ti (una firma, una aprobación) y lo que tú les pediste a otros, con quién falta.
+          </p>
+
+          <div class="cl-tools" lang="es-CO">
+            <button type="button" role="switch" aria-checked="false" class="cl-switch" data-sim="tasks-reject">
+              <span class="cl-switch__track" aria-hidden="true"></span>
+              <span class="cl-switch__text"><strong>El servidor rechaza el próximo cambio</strong><small>El cambio se revierte y la barra dice por qué.</small></span>
+            </button>
+            <div class="tasks-width" role="group" aria-label="Ancho">
+              <button type="button" class="dlg-plain" data-width="wide" aria-pressed="true">Escritorio</button>
+              <button type="button" class="dlg-plain" data-width="phone" aria-pressed="false">Celular</button>
+              <button type="button" class="dlg-plain" id="tasks-reset">Volver a empezar</button>
+            </div>
+          </div>
+
+          <div class="tasks-stage" data-width="wide">
+            <nx-tasks id="tasks-demo" lang="es-CO" heading="Tu día" people-source="/demo/tasks/personas" options-href="#/tasks"
+              more-href="#/tasks" more-label="Ver todos los pendientes" voice></nx-tasks>
+          </div>
+          <p class="sel-tip">
+            Escribe «Llamar a Laura mañana urgente» y mira «Entendí»; «Revisar el contrato @and» abre la lista de personas, y
+            «Enviar el acta para Daniela el viernes» encuentra a Daniela sola. <kbd>Enter</kbd> agrega; toca el círculo para
+            marcarla hecha y <kbd>Ctrl</kbd>+<kbd>Z</kbd> (o «Deshacer») la devuelve. Con el interruptor encendido, el próximo
+            cambio vuelve atrás con el mensaje del servidor.
+          </p>
+          <p class="stage__loglabel">Eventos</p>
+          <ol class="stage__log btn-events" id="tasks-log"></ol>
+
+          <h2>Sin nada pendiente</h2>
+          <p>Solo el campo de captura y una línea.</p>
+          <div class="tasks-stage tasks-stage--small">
+            <nx-tasks id="tasks-empty" lang="es-CO" heading="Tu día" undo="5000"></nx-tasks>
+          </div>
+
+          <h2>Cómo funciona</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Haces</th><th>Pasa</th></tr></thead>
+              <tbody>
+                <tr><td>Escribes</td><td>Mientras escribes, «Entendí:» dice el título, para quién, la fecha y si es urgente. Lo reconocido sale del título; cada parte se puede quitar con su ×.</td></tr>
+                <tr><td><code>@nombre</code> o «para Nombre»</td><td>La lista de personas de <code>people-source</code> (la de <code>&lt;nx-thread&gt;</code>, con teclado). «para Laura» solo cuenta si hay una sola Laura; si no, queda en el título.</td></tr>
+                <tr><td><kbd>Enter</kbd> o «Agregar»</td><td>Al instante: sin personas, una tarea tuya en su grupo; con personas, «Lo que pediste» con una tarea para cada uno. <kbd>Esc</kbd> borra lo escrito.</td></tr>
+                <tr><td>Tocas el círculo</td><td>Hecha: se va a «Hechas hoy» (plegado al final), de donde se reabre con el mismo botón.</td></tr>
+                <tr><td>La barra de estado</td><td>Cada cambio se puede deshacer mientras corre (7 s; se detiene si la miras o la recorres con el teclado), o con <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</td></tr>
+                <tr><td><code>nx-tasks-commit</code></td><td>Cuando el tiempo termina (o el elemento sale del DOM, o la página se cierra). La app guarda y contesta <code>settle(key, {id, href})</code>, o <code>settle(key, {error})</code> para revertir con el mensaje.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Protocolo</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Pieza</th><th>Forma</th></tr></thead>
+              <tbody>
+                <tr><td><code>items</code></td><td><code>{id, title, due?, by?, urgent?, done?, href?}</code>; <code>due</code> es <code>YYYY-MM-DD</code>, <code>by</code> quién la pidió.</td></tr>
+                <tr><td><code>links</code></td><td><code>{id, title, kind, tone?, meta?, action, href, newTab?}</code>; <code>tone</code>: <code>warning</code>, <code>info</code>, <code>neutral</code>.</td></tr>
+                <tr><td><code>requests</code></td><td><code>{id, title, due?, people: [{name, done?}], href?}</code>.</td></tr>
+                <tr><td><code>people-source</code></td><td><code>GET ?q=</code> → <code>[{id, name, detail?, avatar?}]</code> o <code>{items: […]}</code>, como en <code>&lt;nx-thread&gt;</code>.</td></tr>
+                <tr><td><code>nx-tasks-commit</code></td><td><code>{key, type: "create", title, due?, urgent, people}</code> o <code>{key, type: "done", id, done}</code>.</td></tr>
+                <tr><td><code>settle(key, resultado)</code></td><td><code>{id?, href?}</code>: lo creado toma ese <code>id</code> (hasta entonces su <code>id</code> es la <code>key</code>), y lo que esperaba por él sale. <code>{error}</code>: se revierte y la barra dice el mensaje.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Uso</h2>
+          <div class="tabs" data-tabs>
+            <div role="tablist">
+              <button role="tab" aria-selected="true">HTML</button>
+              <button role="tab" aria-selected="false">SolidJS</button>
+            </div>
+            <pre role="tabpanel"><code>&lt;nx-tasks id="dia" heading="Tu día" people-source="/api/personas"
+  options-href="/pendientes/nueva" more-href="/pendientes" more-label="Ver todos los pendientes" voice&gt;&lt;/nx-tasks&gt;
+
+dia.items = await (await fetch("/api/pendientes")).json();
+dia.addEventListener("nx-tasks-commit", async (e) =&gt; {
+  const res = await fetch("/api/pendientes/cambios", { method: "POST", keepalive: true, body: JSON.stringify(e.detail) });
+  const body = await res.json();
+  dia.settle(e.detail.key, res.ok ? { id: body.id, href: body.href } : { error: body.message });
+});</code></pre>
+            <pre role="tabpanel" hidden><code>import { Tasks, type NxTasks } from "nx32-elements/solid/tasks";
+
+let dia!: NxTasks;
+&lt;Tasks ref={dia} heading="Tu día" items={pendientes()} links={esperan()} requests={pedidas()}
+  peopleSource="/api/personas" moreHref="/pendientes" voice
+  onCommit={async (e) =&gt; dia.settle(e.detail.key, await guardar(e.detail))} /&gt;</code></pre>
+          </div>
+
+          <h2>API</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>items</code>, <code>links</code>, <code>requests</code></td><td>Los datos (JSON). <code>items</code> y <code>requests</code> devuelven lo que se ve, con los cambios que todavía no confirma el servidor.</td></tr>
+                <tr><td><code>heading</code>, <code>heading-level</code>, <code>today</code></td><td>Título (y su nivel, 2; las secciones van uno abajo) y el «hoy» de los grupos (<code>YYYY-MM-DD</code>; la fecha local si no se da).</td></tr>
+                <tr><td><code>people-source</code>, <code>options-href</code>, <code>more-href</code>, <code>more-label</code>, <code>voice</code></td><td>Personas para el <code>@</code>; «Más opciones» (con lo escrito como parámetros); el enlace del pie; el botón de dictado (<code>&lt;nx-voice&gt;</code>, solo si el navegador puede).</td></tr>
+                <tr><td><code>undo</code>, <code>locale</code>, <code>labels</code></td><td>Tiempo para deshacer (7000; 0 = sale al instante), formato de fechas y textos (<code>TASKS_LABELS</code>).</td></tr>
+                <tr><td><code>settle(key, resultado)</code></td><td>La respuesta de la app a cada <code>nx-tasks-commit</code>.</td></tr>
+                <tr><td>Eventos</td><td><code>nx-tasks-commit</code>, <code>nx-tasks-undo</code> <code>{key, type}</code>, <code>nx-tasks-open</code> <code>{kind, item}</code> (cancelable), <code>nx-tasks-options</code> <code>{draft}</code> (cancelable).</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
         <!-- ================================================================ Repeticiones -->
         <template id="page-recurrence">
           <p class="eyebrow">Componentes</p>

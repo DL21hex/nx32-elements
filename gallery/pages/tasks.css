@@ -1,0 +1,29 @@
+/* Galería: la página de <nx-tasks>. */
+
+.tasks-width {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  & [aria-pressed="true"] {
+    border-color: var(--nx-primary-border);
+    background: var(--nx-primary-soft);
+    color: var(--nx-primary-ink);
+  }
+}
+.tasks-stage {
+  max-inline-size: 680px;
+  margin-block: 4px 14px;
+  padding: 20px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-background);
+  transition: max-inline-size var(--nx-motion-base);
+  &[data-width="phone"] {
+    max-inline-size: 390px;
+    padding: 16px 12px;
+  }
+}
+.tasks-stage--small {
+  max-inline-size: 520px;
+}

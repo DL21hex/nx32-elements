@@ -6,7 +6,7 @@
 import type { VoiceEngine, VoiceErrorCode, VoiceHotkey, VoiceLayout } from "./types";
 
 export const cleanVoiceEngine = (v: unknown): VoiceEngine => (v === "browser" || v === "server" ? v : "auto");
-export const cleanVoiceLayout = (v: unknown): VoiceLayout => (v === "stacked" ? v : "inline");
+export const cleanVoiceLayout = (v: unknown): VoiceLayout => (v === "stacked" || v === "button" ? v : "inline");
 
 /** Un número del atributo dentro de `[min, max]`, o `fallback` si no es un número. */
 export function clampVoice(v: unknown, fallback: number, min: number, max: number): number {

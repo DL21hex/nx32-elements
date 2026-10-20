@@ -290,6 +290,80 @@ describe("<nx-tasks>: capturar en una línea", () => {
   });
 });
 
+describe("<nx-tasks>: capturar con el formulario de la app (`capture=\"form\"`)", () => {
+  it("el botón dice «Siguiente», sin «Más opciones»; Enter lleva lo escrito al formulario y no crea nada", () => {
+    const el = mount('capture="form" options-href="/pendientes/nueva"');
+    const ev = events(el);
+    const got: TasksOptionsDetail[] = [];
+    el.addEventListener("nx-tasks-options", (e) => (got.push(e.detail), e.preventDefault()));
+    expect($(el, ".nx-tasks__add").textContent).toBe("Siguiente");
+    type(el, "Llamar a Laura mañana urgente");
+    expect($(el, ".nx-tasks__opts").hidden).toBe(true);
+    enter(el);
+    expect(got).toEqual([{ draft: { title: "Llamar a Laura", due: "2026-10-20", urgent: true, people: [] } }]);
+    // Lo atendió la app: lo escrito ya está en su formulario.
+    expect(input(el).value).toBe("");
+    expect(el.items).toHaveLength(ITEMS.length);
+    expect(ev.commits).toEqual([]);
+    expect(say(el)).toBe("");
+  });
+
+  it("sin título también abre (el formulario lo pide); si la app no lo atiende, lo escrito se queda", () => {
+    const el = mount('capture="form"');
+    const got: TasksOptionsDetail[] = [];
+    el.addEventListener("nx-tasks-options", (e) => got.push(e.detail));
+    enter(el);
+    expect(got).toEqual([{ draft: { title: "", urgent: false, people: [] } }]);
+    expect(el.querySelector(".nx-tasks__need")).toBeNull();
+    type(el, "Ordenar facturas");
+    enter(el);
+    expect(input(el).value).toBe("Ordenar facturas");
+  });
+
+  it("volver a `quick` devuelve «Agregar» y «Más opciones»", () => {
+    const el = mount('capture="form" options-href="/pendientes/nueva"');
+    el.capture = "quick";
+    expect(el.hasAttribute("capture")).toBe(false);
+    expect($(el, ".nx-tasks__add").textContent).toBe("Agregar");
+    expect($(el, ".nx-tasks__opts").hidden).toBe(false);
+  });
+});
+
+describe("<nx-tasks>: entender sólo el «@» (`understand=\"mentions\"`)", () => {
+  it("la fecha y «urgente» quedan en el título; bajo el campo no se dice nada", () => {
+    const el = mount('understand="mentions" capture="form"');
+    const got: TasksOptionsDetail[] = [];
+    el.addEventListener("nx-tasks-options", (e) => (got.push(e.detail), e.preventDefault()));
+    type(el, "Llamar a Laura mañana urgente");
+    expect($(el, ".nx-tasks__read").hidden).toBe(true);
+    expect($(el, ".nx-tasks__hint").hidden).toBe(true);
+    enter(el);
+    expect(got).toEqual([{ draft: { title: "Llamar a Laura mañana urgente", urgent: false, people: [] } }]);
+  });
+
+  it("el «@» sigue: bajo el campo, sólo para quién", async () => {
+    vi.stubGlobal("fetch", async () =>
+      new Response(JSON.stringify({ items: [{ id: "u3", name: "Andrés Pérez", detail: "Comprador" }] }), { headers: { "Content-Type": "application/json" } }),
+    );
+    const el = mount('understand="mentions" people-source="/api/personas"');
+    input(el).focus();
+    type(el, "Revisar el contrato @and");
+    await until(() => el.querySelector(".nx-tasks__pick [role=option]"));
+    key(input(el), "Enter");
+    type(el, `${input(el).value}el viernes`);
+    expect($(el, ".nx-tasks__read").hidden).toBe(false);
+    expect(el.querySelector(".nx-tasks__k")).toBeNull();
+    expect(chips(el)).toEqual(["Andrés Pérez"]);
+    expect($(el, ".nx-tasks__for").textContent).toBe("Para Andrés Pérez");
+  });
+
+  it("sin `labels.hint` no hay explicación bajo el campo", () => {
+    expect(mount().querySelector<HTMLElement>(".nx-tasks__hint")!.hidden).toBe(false);
+    const el = mount(`labels='{"hint":""}'`);
+    expect($(el, ".nx-tasks__hint").hidden).toBe(true);
+  });
+});
+
 describe("<nx-tasks>: dictar", () => {
   it("con `voice`, un <nx-voice> para el campo (solo el botón); lo que oye se ve en «Entendí»", async () => {
     expect(mount().querySelector("nx-voice")).toBeNull();

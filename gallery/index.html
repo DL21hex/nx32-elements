@@ -4528,6 +4528,17 @@ import { PasteFill } from "nx32-elements/solid/paste-fill";
             <nx-tasks id="tasks-empty" lang="es-CO" heading="Tu día" undo="5000"></nx-tasks>
           </div>
 
+          <h2>Con el formulario de la app</h2>
+          <p>
+            <code>capture="form"</code> y <code>understand="mentions"</code>: sólo se entiende el <code>@</code>, «Siguiente» no crea
+            nada y lleva lo escrito al formulario de la app (aquí, al registro de eventos). Sin explicación bajo el campo
+            (<code>labels.hint</code> vacío).
+          </p>
+          <div class="tasks-stage tasks-stage--small">
+            <nx-tasks id="tasks-form" lang="es-CO" heading="Pendientes" people-source="/demo/tasks/personas" capture="form"
+              understand="mentions" labels='{"hint":""}'></nx-tasks>
+          </div>
+
           <h2>Cómo funciona</h2>
           <div class="table-wrap">
             <table>
@@ -4536,6 +4547,7 @@ import { PasteFill } from "nx32-elements/solid/paste-fill";
                 <tr><td>Escribes</td><td>Mientras escribes, «Entendí:» dice el título, para quién, la fecha y si es urgente. Lo reconocido sale del título; cada parte se puede quitar con su ×.</td></tr>
                 <tr><td><code>@nombre</code> o «para Nombre»</td><td>La lista de personas de <code>people-source</code> (la de <code>&lt;nx-thread&gt;</code>, con teclado). «para Laura» solo cuenta si hay una sola Laura; si no, queda en el título.</td></tr>
                 <tr><td><kbd>Enter</kbd> o «Agregar»</td><td>Al instante: sin personas, una tarea tuya en su grupo; con personas, «Lo que pediste» con una tarea para cada uno. <kbd>Esc</kbd> borra lo escrito.</td></tr>
+                <tr><td><kbd>Enter</kbd> o «Siguiente» (<code>capture="form"</code>)</td><td>No crea nada: <code>nx-tasks-options</code> lleva lo escrito y las personas al formulario de la app. Si la app lo atiende, el campo se vacía.</td></tr>
                 <tr><td>Tocas el círculo</td><td>Hecha: se va a «Hechas hoy» (plegado al final), de donde se reabre con el mismo botón.</td></tr>
                 <tr><td>La barra de estado</td><td>Cada cambio se puede deshacer mientras corre (7 s; se detiene si la miras o la recorres con el teclado), o con <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</td></tr>
                 <tr><td><code>nx-tasks-commit</code></td><td>Cuando el tiempo termina (o el elemento sale del DOM, o la página se cierra). La app guarda y contesta <code>settle(key, {id, href})</code>, o <code>settle(key, {error})</code> para revertir con el mensaje.</td></tr>

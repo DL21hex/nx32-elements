@@ -52,7 +52,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-checklist>` + núcleo (ESM); los campos de evidencia, el resumen y la firma se cargan aparte | ≈ 12,1 KB |
 | `<nx-recurrence>` + núcleo (ESM); el intérprete de frases y los controles se cargan aparte | ≈ 9,4 KB |
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
-| `<nx-tasks>` + lector de fechas + núcleo (ESM); la lista del `@` y el dictado se cargan aparte | ≈ 13,9 KB |
+| `<nx-tasks>` + lector de fechas + núcleo (ESM); la lista del `@` y el dictado se cargan aparte | ≈ 14,0 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
 | `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 20 KB |
 | `nx32-elements.css` (tokens + todos los componentes) | ≈ 70 KB |
@@ -3272,6 +3272,13 @@ mira (una firma, una aprobación) y lo que él les pidió a otros, con quién fa
   grupo; con personas, una fila en «Lo que pediste» (una tarea para cada uno). <kbd>Esc</kbd> borra lo
   escrito. «Más opciones» (`options-href`) lleva el borrador como parámetros, o lo entrega en
   `nx-tasks-options` (cancelable) para abrirlo en un cajón.
+- **Con el formulario de la app** (`capture="form"`): el botón dice «Siguiente» y <kbd>Enter</kbd> no
+  crea nada; lleva lo escrito al formulario completo de la app (`nx-tasks-options`, el mismo borrador
+  de «Más opciones», que ya no se ofrece aparte). Si la app cancela el evento, el campo se vacía; si
+  no, se va a `options-href` con lo escrito. Sin título también abre: el formulario lo pide.
+- **Sólo el `@`** (`understand="mentions"`): la fecha, «urgente» y «para Nombre» quedan en el título
+  tal cual, y bajo el campo sólo se dice para quién, y sólo si se nombró a alguien. Con
+  `labels.hint` vacío no hay explicación bajo el campo.
 - **Por fecha**: «Vencidas», «Hoy», «Próximos días» (6), «Más adelante» y «Sin fecha», cada grupo con
   las urgentes primero. La fecha va en palabras («venció hace 3 días», «vence hoy», «vence el vie 23
   oct»), y el rojo es solo para lo vencido. La cabecera trae la fecha larga y solo las cifras que no
@@ -3303,11 +3310,11 @@ mira (una firma, una aprobación) y lo que él les pidió a otros, con quién fa
 
 | | |
 |---|---|
-| Propiedades / atributos | `items` (`{id, title, due?, by?, urgent?, done?, href?}`; el getter devuelve lo que se ve, con lo pendiente), `links` (`{id, title, kind, tone?: "warning"\|"info"\|"neutral", meta?, action, href, newTab?}`), `requests` (`{id, title, due?, people: [{name, done?}], href?}`), `heading`, `heading-level` (2), `today` (`YYYY-MM-DD`, la fecha local si no se da), `people-source`, `options-href`, `more-href`, `more-label`, `voice`, `undo` (ms, 7000; 0 = al instante, sin «Deshacer»), `locale`, `labels` (`TASKS_LABELS`) |
+| Propiedades / atributos | `items` (`{id, title, due?, by?, urgent?, done?, href?}`; el getter devuelve lo que se ve, con lo pendiente), `links` (`{id, title, kind, tone?: "warning"\|"info"\|"neutral", meta?, action, href, newTab?}`), `requests` (`{id, title, due?, people: [{name, done?}], href?}`), `heading`, `heading-level` (2), `today` (`YYYY-MM-DD`, la fecha local si no se da), `people-source`, `options-href`, `more-href`, `more-label`, `voice`, `undo` (ms, 7000; 0 = al instante, sin «Deshacer»), `capture` (`quick` · `form`: «Siguiente» lleva lo escrito a `nx-tasks-options` y no crea nada), `understand` (`all` · `mentions`: sólo el `@`), `locale`, `labels` (`TASKS_LABELS`; `hint` vacío = sin explicación) |
 | Métodos | `settle(key, {id?, href?} \| {error})` → `false` si no hay un cambio enviado con esa `key` |
 | Eventos | `nx-tasks-commit` `{key, type: "create", title, due?, urgent, people}` o `{key, type: "done", id, done}`, `nx-tasks-undo` `{key, type}`, `nx-tasks-open` `{kind: "task"\|"link"\|"request", item}` (cancelable), `nx-tasks-options` `{draft: {title, due?, urgent, people}}` (cancelable) |
 | Protocolo | `people-source?q=` → `[{id, name, detail?, avatar?}]` o `{items: […]}` (el de `<nx-thread>`) · una tarea recién creada tiene como `id` la `key` de su `create` hasta su `settle` (una marca que sale con la página cerrándose lo lleva) · lo confirmado se sostiene hasta que `items`/`requests` lo reflejan |
-| Funciones | `parseTask(texto, {today, people, resolved, keepDate, keepUrgent})`, `taskStrongMatch()`, `groupTasks()`, `taskGroup()`, `taskCounts()`, `taskDueText()`, `taskShortDate()`, `taskRequestSummary()`, `cleanTaskItems()`, `cleanTaskLinks()`, `cleanTaskRequests()`, `TASKS_LABELS`, `TASK_GROUPS` |
+| Funciones | `parseTask(texto, {today, people, resolved, keepDate, keepUrgent, mentionsOnly})`, `taskStrongMatch()`, `groupTasks()`, `taskGroup()`, `taskCounts()`, `taskDueText()`, `taskShortDate()`, `taskRequestSummary()`, `cleanTaskItems()`, `cleanTaskLinks()`, `cleanTaskRequests()`, `TASKS_LABELS`, `TASK_GROUPS` |
 
 ## Desarrollo
 

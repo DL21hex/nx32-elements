@@ -87,11 +87,13 @@ addDemoRoute("/demo/tasks", async (req, out) => {
 export function mountTasksDemo(root: HTMLElement): void {
   const el = root.querySelector<NxTasks>("#tasks-demo")!;
   const empty = root.querySelector<NxTasks>("#tasks-empty")!;
+  const form = root.querySelector<NxTasks>("#tasks-form")!;
   const fill = () => {
     const s = seed();
     el.items = s.items;
     el.links = s.links;
     el.requests = s.requests;
+    form.items = s.items.slice(0, 3);
   };
   fill();
   root.querySelector("#tasks-reset")?.addEventListener("click", fill);
@@ -103,7 +105,7 @@ export function mountTasksDemo(root: HTMLElement): void {
     log.prepend(li);
     while (log.children.length > 8) log.lastElementChild!.remove();
   };
-  for (const t of [el, empty]) {
+  for (const t of [el, empty, form]) {
     t.addEventListener("nx-tasks-commit", async (e) => {
       const d = e.detail;
       add(d.type === "create" ? `nx-tasks-commit → crear «${d.title}»${d.due ? `, vence ${d.due}` : ""}${d.urgent ? ", urgente" : ""}${d.people.length ? `, para ${d.people.map((p) => p.name).join(" y ")}` : ""}` : `nx-tasks-commit → ${d.done ? "hecha" : "reabierta"} ${d.id}`);

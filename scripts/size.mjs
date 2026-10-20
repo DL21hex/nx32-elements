@@ -111,7 +111,7 @@ const BUDGET = [
   ["dist/jobs.js", 9.25 * 1024, "jobs + núcleo (ESM; el panel y nxToast con import())"],
   // El chunk del panel importa el de jobs (ya cargado en la página): se mide todo lo que baja la página.
   [lazy("jobs-panel"), 11.25 * 1024, "nx-jobs con su panel (se trae al apuntar a la píldora o al abrirla)"],
-  ["dist/tasks.js", 14 * 1024, "tasks + núcleo (ESM; la lista de personas y el dictado con import())"],
+  ["dist/tasks.js", 14.25 * 1024, "tasks + núcleo (ESM; la lista de personas y el dictado con import())"],
   // El chunk de la lista importa el de tasks (ya cargado en la página): se mide todo lo que baja la página.
   [lazy("tasks-pick"), 16.25 * 1024, "nx-tasks con su lista de personas del @ (al entrar al campo con people-source)"],
   ["dist/bdui.js", 2.5 * 1024, "adaptador BDUI (el registro crece con cada componente)"],

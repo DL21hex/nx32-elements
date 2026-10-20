@@ -16,8 +16,8 @@
 
 | Pieza | Medido | Límite |
 |---|---|---|
-| `dist/tasks.js` (con el lector de fechas de `<nx-intent>`; la lista y el dictado fuera) | 13,8 KB | 14 KB |
-| `tasks-pick` (la lista de personas del `@`, con el chunk de tasks ya cargado) | 15,9 KB | 16,25 KB |
+| `dist/tasks.js` (con el lector de fechas de `<nx-intent>`; la lista y el dictado fuera) | 14,0 KB | 14,25 KB |
+| `tasks-pick` (la lista de personas del `@`, con el chunk de tasks ya cargado) | 16,1 KB | 16,25 KB |
 | `dist/tasks.css` | 3,2 KB | 3,25 KB |
 
 La lista de personas se pide al entrar al campo si hay `people-source`; el dictado
@@ -49,9 +49,17 @@ la página cerrándose (el elemento lo dice en el README).
 navega con su router (si no, el elemento hace `location.assign`). Un enlace con `newTab` lo abre
 el elemento.
 
+**Con `capture="form"` el elemento no crea nada**: «Siguiente» (o <kbd>Enter</kbd>) emite
+`nx-tasks-options {draft}` y no hay `commit` de creación; la app abre su formulario con el borrador,
+guarda desde ahí y vuelve a mandar `items`. Si cancela el evento, el campo se vacía (lo escrito ya
+está en su formulario). Marcar hecha sigue igual, con «Deshacer» y `commit`.
+
 ## Primer uso: nx32
 
-El inicio de prueba `/core/home/tasks__for_employees` (BDUI `NxTasks`). El adaptador
+La página de Pendientes (`/projects/my_tasks/index__for_all`) y el inicio de prueba
+`/core/home/tasks__for_employees` (BDUI `NxTasks`). Pendientes usa `capture="form"` y
+`understand="mentions"`: lo escrito y las personas del `@` abren el alta de su ficha nativa en un
+cajón, y desde ahí se guarda. El adaptador
 (`frontend/src/components/NxTasks.tsx`) contesta los `commit` con dos rutas de Pendientes
 (crear y `set_done`), manda la `key` como `Idempotency-Key`, navega con el router las tareas, los
 enlaces y «Más opciones», y `people-source` es `/core/users/people__for_all`
@@ -63,6 +71,9 @@ enlaces y «Más opciones», y `people-source` es `/core/users/people__for_all`
   una tarea por persona; quien pidió quiere ver «2 de 3 hechas · falta Andrés».
 - **«para Laura» sólo cuenta con una Laura.** Con dos, adivinar le pediría la tarea a quien no
   era; el texto queda en el título y el `@` resuelve.
+- **`capture="form"` y `understand="mentions"` existen porque la lectura completa no convenció en
+  Pendientes**: quien anota quería ver el formulario con lo escrito antes de guardar, y que «mañana»
+  o «urgente» no desaparecieran del título. El `@` sí: es explícito y no adivina.
 - **El rojo es sólo para lo vencido.** «Hoy» va en el tono principal; lo demás, sin color.
 - **Lo que la app vuelve a mandar no borra lo pendiente ni lo escrito**: una señal que se
   recalcula (Solid) o un refresco no pueden comerse la tarea que se acaba de anotar.

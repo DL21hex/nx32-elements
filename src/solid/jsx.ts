@@ -256,6 +256,9 @@ declare module "solid-js" {
       "people-source": string | undefined;
       /** `<nx-tasks>`: «Más opciones» y el enlace del pie. */
       "options-href": string | undefined;
+      /** `<nx-tasks>`: qué hace «Agregar» y qué se entiende de lo escrito. */
+      capture: "quick" | "form" | undefined;
+      understand: "all" | "mentions" | undefined;
       "more-href": string | undefined;
       "more-label": string | undefined;
       "refs-source": string | undefined;

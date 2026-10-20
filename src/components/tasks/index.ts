@@ -29,6 +29,7 @@ export type {
   TaskLinkTone,
   TaskRequest,
   TaskRequestPerson,
+  TasksCapture,
   TasksCommitDetail,
   TasksLabels,
   TasksOpenDetail,
@@ -36,6 +37,7 @@ export type {
   TasksPerson,
   TasksSettleResult,
   TasksUndoDetail,
+  TasksUnderstand,
 } from "./types";
 
 declare global {

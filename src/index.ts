@@ -57,6 +57,7 @@ export * from "./components/heatmap/index";
 export * from "./components/parts/index";
 export * from "./components/phases/index";
 export * from "./components/flow/index";
+export * from "./components/lanes/index";
 export * from "./components/alerts/index";
 export * from "./components/insights/index";
 export * from "./components/actions/index";

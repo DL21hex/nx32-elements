@@ -79,6 +79,7 @@ export default defineConfig(({ command, mode }) => {
           "parts": "src/components/parts/index.ts",
           "phases": "src/components/phases/index.ts",
           "flow": "src/components/flow/index.ts",
+          "lanes": "src/components/lanes/index.ts",
           "alerts": "src/components/alerts/index.ts",
           "insights": "src/components/insights/index.ts",
           "actions": "src/components/actions/index.ts",

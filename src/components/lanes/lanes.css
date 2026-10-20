@@ -1,0 +1,385 @@
+/* <nx-lanes>: un carril por proceso, sus bandejas sobre un riel y un punto por elemento abierto.
+   Los carriles se reparten el alto que tenga el componente (la pared) o miden lo mínimo. Los puntos
+   viven en una capa por carril y viajan con `transform`. Las letras crecen con el ancho del
+   componente (`cqi`), para leerse de lejos en un televisor. El tooltip es `.nx-chart-tip`. */
+nx-lanes {
+  /* Las variables van en la etiqueta: se pueden cambiar desde ella o desde un ancestro. */
+  --nx-lanes-move: 1100ms;
+  --nx-lanes-fresh: color-mix(in oklab, var(--nx-primary) 45%, var(--nx-card));
+  --nx-lanes-ok: var(--nx-primary);
+  --nx-lanes-warn: var(--nx-warning);
+  --nx-lanes-late: var(--nx-danger);
+  --nx-lanes-rail: var(--nx-border-strong);
+  /* `cqi` se resuelve donde se usa (en el carril): el contenedor es `.nx-lanes__root`. */
+  --nx-lanes-head: clamp(150px, 13cqi, 230px);
+  position: relative;
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.nx-lanes__root {
+  container-type: inline-size;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  padding: 12px 18px 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
+}
+
+/* ---------------------------------------------------------------- arriba: título y leyenda */
+.nx-lanes__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding-block-end: 8px;
+  border-block-end: 1px solid var(--nx-border-subtle);
+}
+.nx-lanes__heading {
+  margin: 0;
+  font-size: clamp(14px, 1.1cqi, 19px);
+  font-weight: 650;
+}
+.nx-lanes__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-inline-start: auto;
+  color: var(--nx-muted-foreground);
+  font-size: clamp(12px, 0.85cqi, 15px);
+  & > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+.nx-lanes__sw {
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 50%;
+  background: var(--nx-lanes-ok);
+  &.is-fresh {
+    background: var(--nx-lanes-fresh);
+  }
+  &.is-warn {
+    background: var(--nx-lanes-warn);
+  }
+  &.is-late {
+    background: var(--nx-lanes-late);
+  }
+  &.is-other {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--nx-lanes-ok);
+  }
+}
+
+/* ---------------------------------------------------------------- los carriles */
+/* Cada carril mide al menos lo suyo (el riel tiene su alto mínimo); si no caben, la lista se desplaza. */
+.nx-lanes__list {
+  flex: 1;
+  display: grid;
+  grid-auto-rows: minmax(auto, 1fr);
+  min-block-size: 0;
+  margin-inline: -18px;
+  overflow-y: auto;
+}
+.nx-lanes__lane {
+  display: grid;
+  grid-template-columns: var(--nx-lanes-head) minmax(0, 1fr);
+  padding-inline: 18px;
+  border-block-end: 1px solid var(--nx-border-subtle);
+  transition: background-color 600ms, box-shadow 600ms;
+  &:last-child {
+    border-block-end: 0;
+  }
+  /* El foco resalta su carril sin apagar los demás: en la pared se leen todos. */
+  &.is-spot {
+    background: linear-gradient(90deg, var(--nx-primary-soft), transparent 75%);
+    box-shadow: inset 3px 0 0 var(--nx-primary);
+  }
+}
+.nx-lanes__head {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-inline-size: 0;
+  padding: 6px 14px 6px 0;
+}
+.nx-lanes__name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-inline-size: 0;
+  & > b {
+    overflow: hidden;
+    font-size: clamp(14px, 1.05cqi, 20px);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.nx-lanes__others {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  color: var(--nx-muted-foreground);
+  font-size: clamp(12px, 0.85cqi, 16px);
+  &::before {
+    content: "";
+    inline-size: 9px;
+    block-size: 9px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px var(--nx-lanes-ok);
+  }
+}
+.nx-lanes__num {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-inline-size: 0;
+}
+.nx-lanes__count {
+  font-size: clamp(22px, 1.65cqi, 32px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.nx-lanes__oldest {
+  overflow: hidden;
+  color: var(--nx-muted-foreground);
+  font-size: clamp(12px, 0.85cqi, 16px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  &.is-late {
+    color: var(--nx-danger);
+    font-weight: 600;
+  }
+}
+
+/* ---------------------------------------------------------------- el riel y las bandejas */
+.nx-lanes__scroll {
+  min-inline-size: 0;
+  overflow: hidden;
+}
+.nx-lanes__track {
+  position: relative;
+  block-size: 100%;
+  min-block-size: var(--nx-lanes-row, 64px);
+}
+/* El riel queda 22 px sobre el borde de abajo (RAIL_BOTTOM en logic.ts): debajo va el nombre. */
+.nx-lanes__rail {
+  position: absolute;
+  inset: auto 0 21px;
+  block-size: 2px;
+  border-radius: 2px;
+  background: var(--nx-lanes-rail);
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: -2px;
+    inset-block-start: -4px;
+    border-block: 5px solid transparent;
+    border-inline-start: 7px solid var(--nx-lanes-rail);
+  }
+}
+.nx-lanes__st {
+  position: absolute;
+  inset-block: 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nx-radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  &:hover {
+    background: var(--nx-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: -2px;
+  }
+}
+.nx-lanes__node {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-end: 18px;
+  box-sizing: border-box;
+  inline-size: 8px;
+  block-size: 8px;
+  margin-inline-start: -4px;
+  border: 2px solid var(--nx-border-strong);
+  border-radius: 50%;
+  background: var(--nx-card);
+}
+.nx-lanes__label {
+  position: absolute;
+  inset-inline: 4px;
+  inset-block-end: 2px;
+  overflow: hidden;
+  color: var(--nx-muted-foreground);
+  font-size: clamp(11.5px, 0.8cqi, 15px);
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-lanes__st.is-late .nx-lanes__label {
+  color: var(--nx-danger);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- los puntos */
+.nx-lanes__dots {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.nx-lanes__more {
+  position: absolute;
+  inset: 0 auto auto 0;
+  color: var(--nx-muted-foreground);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+}
+.nx-lanes__dot {
+  --nx-lanes-c: var(--nx-lanes-ok);
+  position: absolute;
+  inset: 0 auto auto 0;
+  inline-size: var(--nx-lanes-dot, 10px);
+  block-size: var(--nx-lanes-dot, 10px);
+  border-radius: 50%;
+  background: var(--nx-lanes-c);
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    transform var(--nx-lanes-move) cubic-bezier(0.5, 0, 0.2, 1),
+    scale 600ms var(--nx-ease-out, ease-out),
+    opacity 700ms,
+    background-color 800ms,
+    box-shadow 800ms;
+  /* Un área de toque más grande que el punto. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+  }
+  &.is-fresh {
+    --nx-lanes-c: var(--nx-lanes-fresh);
+  }
+  &.is-warn {
+    --nx-lanes-c: var(--nx-lanes-warn);
+  }
+  &.is-late {
+    --nx-lanes-c: var(--nx-lanes-late);
+  }
+  &.is-other {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--nx-lanes-c);
+  }
+  &.is-other:hover {
+    box-shadow: inset 0 0 0 2px var(--nx-lanes-c), 0 0 0 2px var(--nx-card), 0 0 0 3.5px var(--nx-foreground);
+  }
+  /* Lo propio atrasado late, cada uno a su ritmo (`--nx-lanes-delay`). */
+  &.is-pulse::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    animation: nx-lanes-halo 2.6s ease-out infinite;
+    animation-delay: var(--nx-lanes-delay, 0s);
+  }
+  &.is-born {
+    scale: 0;
+    opacity: 0;
+  }
+  &.is-leaving {
+    opacity: 0;
+    pointer-events: none;
+  }
+  &.is-over-cap {
+    opacity: 0;
+    pointer-events: none;
+  }
+  &:hover {
+    box-shadow: 0 0 0 2px var(--nx-card), 0 0 0 3.5px var(--nx-foreground);
+    z-index: 2;
+  }
+}
+@keyframes nx-lanes-halo {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--nx-lanes-late) 40%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+.nx-lanes__root.is-instant .nx-lanes__dot,
+.nx-lanes__root.is-crowded .nx-lanes__dot {
+  transition: background-color 200ms, opacity 200ms;
+}
+.nx-lanes__root.is-crowded .nx-lanes__dot.is-pulse::before {
+  animation: none;
+}
+
+.nx-lanes__tip-sub,
+.nx-lanes__tip-age {
+  margin: 0;
+  color: var(--nx-muted-foreground);
+}
+.nx-lanes__tip-stage {
+  margin: 2px 0 0;
+}
+.nx-lanes__empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--nx-muted-foreground);
+}
+
+/* ---------------------------------------------------------------- angosto: el nombre arriba, el riel se desplaza
+   600 px de contenido ≈ 640 px del componente (la raíz tiene 18 px de relleno a cada lado). */
+@container (max-width: 600px) {
+  .nx-lanes__lane {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nx-lanes__head {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0 0;
+  }
+  .nx-lanes__scroll {
+    overflow-x: auto;
+  }
+  .nx-lanes__track {
+    min-inline-size: calc(var(--nx-lanes-n, 3) * 92px);
+    block-size: var(--nx-lanes-row, 64px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-lanes__dot {
+    transition: background-color 200ms, opacity 200ms;
+  }
+  .nx-lanes__dot.is-pulse::before {
+    animation: none;
+  }
+}

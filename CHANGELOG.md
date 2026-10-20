@@ -1,5 +1,20 @@
 # Registro de cambios
 
+## 0.28.0 — 2026-10-20
+
+- **`<nx-lanes>` (nuevo): lo abierto de varios procesos, un punto por elemento, para un monitor en
+  la pared.** Cada proceso es un carril con sus bandejas en orden sobre un riel; cada elemento
+  abierto es un punto parado en su bandeja, con el color de cuánto lleva sin moverse (`bands`, por
+  defecto 0 a 2, 3 a 5, 6 a 10 y más de 10 días; lo propio atrasado late). Una bandeja `other`
+  espera a otro (el jefe, la EPS): punto hueco que no cuenta como propio. Con datos nuevos, el punto
+  que cambió de bandeja viaja, el que llega crece en su sitio y el que se va corre hasta la punta;
+  `nx-lanes-change` cuenta lo que pasó, para un registro. `spotlight` resalta un carril sin apagar
+  los demás y `cycle` lo rota por los que tienen atrasados; `nx-lanes-spotlight` da sus cifras para
+  una tarjeta «En foco». Llena el alto que le den y sus letras crecen con el ancho, para leerse de
+  lejos. Cada bandeja es un botón (`nx-lanes-stage`) o un enlace (`href`) con su resumen. Lógica
+  pura exportada (`prepare`, `summarize`, `rankLanes`, `diffPlaces`…), envoltorio `<Lanes>` en
+  Solid, registro BDUI `Lanes` y página «Carriles» en la galería. ≈ 9 KB gzip con el núcleo.
+
 ## 0.27.1 — 2026-10-19
 
 - **`<nx-grid>` en el celular (la lista de 0.26.0), revisada en un teléfono de verdad.**

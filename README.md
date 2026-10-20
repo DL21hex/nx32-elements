@@ -36,6 +36,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-parts>` + núcleo (ESM) | ≈ 4,6 KB |
 | `<nx-phases>` + núcleo (ESM) | ≈ 5,4 KB |
 | `<nx-flow>` + núcleo (ESM) | ≈ 12,8 KB |
+| `<nx-lanes>` + núcleo (ESM) | ≈ 9 KB |
 | `<nx-alerts>` + núcleo (ESM) | ≈ 3,5 KB |
 | `<nx-insights>` + núcleo (ESM) | ≈ 3,3 KB |
 | `<nx-cards>` + núcleo (ESM) | ≈ 10,8 KB |
@@ -2414,6 +2415,69 @@ frase dice dónde se atasca; abajo, la línea del día deja mirar cualquier hora
 | Métodos | `live()` (vuelve a la hora de ahora) · `at` (la hora que se mira, o `null`) |
 | Lógica sin DOM | `cleanStages`, `prepareItems`, `snapshot`, `stageAt`, `toneOf`, `bottleneck`, `queueCurve`, `dotScale`, `fmtDuration`, `hourTicks`, `flowStageOf` (la etapa de un elemento, para que la lista de al lado use el mismo criterio) |
 | CSS | `--nx-flow-ok` (punto a tiempo), `--nx-flow-done` (terminado), `--nx-flow-move` (duración del viaje) |
+
+## `<nx-lanes>`
+
+**Lo abierto de varios procesos, un punto por elemento, para un monitor en la pared.** Cada proceso
+es un carril con sus bandejas en el orden del trámite, sobre un riel; cada elemento abierto (una
+solicitud, un caso) es un punto parado en su bandeja. El color es cuánto lleva sin moverse.
+
+- **Lo que se ve de lejos.** Los tramos de `bands` (por defecto `[2, 5, 10]`: 0 a 2 días, 3 a 5, 6 a
+  10, más de 10) dan el color: los primeros en el acento, el penúltimo ámbar, el último rojo. Lo
+  propio en el último tramo late suavemente (cada punto a su ritmo). El nombre de una bandeja con
+  atrasados va en rojo, y bajo el número del carril va lo más viejo («la más vieja 12 d»).
+- **Lo propio y lo de otros, separados.** Una bandeja con `other: true` espera a otro (el jefe, la
+  EPS): sus puntos son huecos, no cuentan en el número del carril ni en lo atrasado, y van aparte
+  junto al nombre (○ 10).
+- **El punto es siempre el mismo nodo.** Con `items` nuevos, el que cambió de bandeja viaja hasta la
+  nueva, el que llega crece en su sitio y el que se va corre hasta la punta del riel y se apaga; los
+  demás no se tocan (tampoco al cambiar `bands`, `labels` o el idioma). `nx-lanes-change` cuenta lo
+  que pasó (`moved`, `added`, `removed`) para un registro al lado. La primera carga con carriles y
+  elementos no lo emite (lleguen antes o después de montar), y cambiar `lanes` tampoco: solo
+  `items` mueve, cierra o abre. Un elemento que cambia de carril cuenta como salir de uno y llegar
+  al otro. Con edades fraccionarias y cortes enteros, el tramo sale de los días cumplidos.
+- **Un carril en foco.** `spotlight` lo resalta (un fondo y una barra) sin apagar los demás. Con
+  `cycle` (segundos, mínimo 3) el foco rota solo por los carriles con atrasados, el de más primero;
+  si nadie tiene atrasados, por los que tienen algo propio. `nx-lanes-spotlight` da sus cifras
+  (lo propio, lo de otros, lo atrasado, cada tramo, lo más viejo y la bandeja que se atasca) cada
+  vez que cambia el carril o lo que dice, para pintar una tarjeta «En foco» con lo que ya existe.
+  El reloj se apaga con la pestaña oculta.
+- **Llena lo que le den.** Con alto (`style="height: 100%"` en una pared) los carriles se reparten el
+  alto y los puntos se ajustan para que siempre quepan dos filas; sin alto, cada carril mide
+  `--nx-lanes-row` (64 px); si no caben en el alto, la lista se desplaza. Lo que no cabe en una
+  bandeja se cuenta como «+N» (antes de la pila si después no cabe). Las letras crecen con el ancho
+  del componente, para leerse de lejos en un televisor. Bajo ~640 px el nombre va encima y el riel
+  se desplaza de lado. En `dir="rtl"` el riel corre de derecha a izquierda.
+- **Se lee sin verlo.** Cada carril es un grupo con su resumen («Vacaciones: 3 solicitudes») y cada
+  bandeja un botón («Revisar: 2 solicitudes, 1 con más de 10 días») que emite `nx-lanes-stage`, o un
+  enlace si trae `href`. Los puntos son una ayuda a la vista (`aria-hidden`), con su globo (`label`,
+  `sub`, cuánto lleva) y `nx-lanes-item` al tocarlos. En una pared, `label` puede ser el número de
+  la solicitud en vez del nombre de la persona.
+
+```html
+<nx-lanes cycle="12" locale="es-CO" style="height: 100%"></nx-lanes>
+<script type="module">
+  const lanes = document.querySelector("nx-lanes");
+  lanes.labels = { item: "solicitud|solicitudes", oldest: "la más vieja {age}" };
+  lanes.lanes = [
+    { id: "vac", label: "Vacaciones", stages: [
+      { id: "jefe", label: "Jefe", other: true },
+      { id: "rev", label: "Revisar", href: "/vacaciones/revisar" },
+      { id: "eje", label: "Ejecutar" },
+    ] },
+  ];
+  lanes.items = [{ id: 4821, label: "#4821", lane: "vac", stage: "rev", age: 12 }];
+  lanes.addEventListener("nx-lanes-change", (e) => registrar(e.detail));
+  lanes.addEventListener("nx-lanes-spotlight", (e) => pintarFoco(e.detail));
+</script>
+```
+
+| | |
+|---|---|
+| Props | `lanes` (`[{id, label, stages: [{id, label, other?, href?}]}]`), `items` (`[{id, lane, stage, age, label?, sub?}]`, `age` en la unidad de `labels.unit`), `bands` (a lo sumo tres cortes; `[]`: un solo color), `heading` (sin él, solo la leyenda), `heading-level` (2), `spotlight` (`id` del carril), `cycle` (segundos), `locale`, `labels` (`LANES_LABELS`; `item: "solicitud\|solicitudes"`, `oldest: "la más vieja {age}"`, `unit: "día\|días"`) |
+| Eventos | `nx-lanes-stage` `{lane, stage}` · `nx-lanes-item` `{id, item}` · `nx-lanes-change` `{moved: [{id, lane, from, to}], added, removed: [{id, lane, stage}]}` · `nx-lanes-spotlight` `{lane, label, index, total, own, other, late, tones, oldest, jam}` |
+| Lógica sin DOM | `cleanLanes`, `cleanBands`, `bandOf`, `toneNames`, `bandLabels`, `prepare`, `summarize`, `rankLanes` (el orden del foco), `jamOf`, `placesOf`, `diffPlaces`, `dotSize`, `stackOf`, `slotOf` |
+| CSS | `--nx-lanes-fresh`, `--nx-lanes-ok`, `--nx-lanes-warn`, `--nx-lanes-late` (los tramos), `--nx-lanes-rail`, `--nx-lanes-head` (ancho del nombre), `--nx-lanes-row` (alto mínimo de un carril), `--nx-lanes-move` (duración del viaje) |
 
 ## `<nx-cards>`
 

@@ -1,0 +1,711 @@
+<title>Mascota del portal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Tokens de nx32-elements (src/styles/tokens.css), recortados a lo que usa la maqueta.
+   Composición: a la izquierda, los momentos que se pueden disparar y las reglas que se están
+   cumpliendo; a la derecha, el portal del empleado con la mascota viviendo en él. Debajo, las tres
+   intensidades, el orden de turno, lo que manda el backend y las poses que hay que dibujar.
+   La mascota es un sustituto: se cambia por la de la empresa sin tocar nada más (un SVG por pose). */
+:root {
+  color-scheme: light dark;
+  --_h: 262; --_c: 0.19; --_l: 0.54; --_ld: 0.72; --_n: 260; --_t: 1;
+  --nx-canvas: light-dark(oklch(0.985 calc(0.002 * var(--_t)) var(--_n)), oklch(0.165 calc(0.004 * var(--_t)) var(--_n)));
+  --nx-card: light-dark(oklch(1 0 0), oklch(0.225 calc(0.005 * var(--_t)) var(--_n)));
+  --nx-popover: light-dark(oklch(1 0 0), oklch(0.235 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-border-subtle: light-dark(oklch(0.925 calc(0.004 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.07));
+  --nx-border: light-dark(oklch(0.885 calc(0.005 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.11));
+  --nx-border-strong: light-dark(oklch(0.82 calc(0.006 * var(--_t)) var(--_n)), oklch(1 0 0 / 0.17));
+  --nx-foreground: light-dark(oklch(0.2 calc(0.008 * var(--_t)) var(--_n)), oklch(0.955 calc(0.003 * var(--_t)) var(--_n)));
+  --nx-muted-foreground: light-dark(oklch(0.44 calc(0.01 * var(--_t)) var(--_n)), oklch(0.76 calc(0.006 * var(--_t)) var(--_n)));
+  --nx-text-tertiary: light-dark(oklch(0.51 calc(0.01 * var(--_t)) var(--_n)), oklch(0.64 calc(0.007 * var(--_t)) var(--_n)));
+  --nx-primary: light-dark(oklch(var(--_l) var(--_c) var(--_h)), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h)));
+  --nx-primary-ink: light-dark(oklch(calc(var(--_l) - 0.07) var(--_c) var(--_h)), oklch(calc(var(--_ld) + 0.05) calc(var(--_c) * 0.7) var(--_h)));
+  --nx-primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.17 calc(var(--_c) * 0.1) var(--_h)));
+  --nx-primary-soft: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.1), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.15));
+  --nx-primary-border: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.35), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.4));
+  --nx-hover: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.05), oklch(1 0 0 / 0.06));
+  --nx-ring: light-dark(oklch(var(--_l) var(--_c) var(--_h) / 0.6), oklch(var(--_ld) calc(var(--_c) * 0.74) var(--_h) / 0.7));
+  --nx-backdrop: light-dark(oklch(0.2 calc(0.01 * var(--_t)) var(--_n) / 0.45), oklch(0 0 0 / 0.65));
+  --nx-success: light-dark(oklch(0.49 0.13 150), oklch(0.74 0.14 150));
+  --nx-success-soft: light-dark(oklch(0.55 0.14 150 / 0.12), oklch(0.74 0.14 150 / 0.16));
+  --nx-warning-ink: light-dark(oklch(0.5 0.12 60), oklch(0.84 0.13 80));
+  --nx-warning-soft: light-dark(oklch(0.75 0.15 70 / 0.16), oklch(0.8 0.14 78 / 0.15));
+  --nx-shadow-popover: 0 1px 2px light-dark(rgb(15 20 30 / 0.06), rgb(0 0 0 / 0.3)),
+    0 10px 30px -4px light-dark(rgb(15 20 30 / 0.16), rgb(0 0 0 / 0.55));
+  --nx-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --nx-radius-md: 7px; --nx-radius-lg: 10px;
+  --nx-motion-fast: 140ms; --nx-motion-base: 220ms;
+  --nx-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Nuevos: el color de la mascota (el de la marca, por defecto) y sus mejillas. */
+  --mascot-body: light-dark(oklch(0.62 0.17 262), oklch(0.7 0.14 262));
+  --mascot-belly: light-dark(oklch(0.93 0.04 262), oklch(0.86 0.05 262));
+  --mascot-ink: oklch(0.22 0.03 262);
+  --mascot-cheek: oklch(0.75 0.13 15 / 0.7);
+  --confetti-1: oklch(0.7 0.17 262); --confetti-2: oklch(0.78 0.15 80); --confetti-3: oklch(0.7 0.15 15); --confetti-4: oklch(0.72 0.14 160);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--nx-canvas); color: var(--nx-foreground); font: 14px/1.5 var(--nx-font-sans); -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--nx-ring); outline-offset: 2px; }
+p { margin: 0; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.page { max-width: 1180px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 36px 80px; display: grid; gap: 56px; }
+.eyebrow { font: 12px/1.3 var(--nx-font-mono); color: var(--nx-primary-ink); letter-spacing: 0.02em; }
+h1 { font-size: clamp(26px, 3.6vw, 34px); line-height: 1.12; font-weight: 650; letter-spacing: -0.015em; margin-top: 6px; }
+h2 { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+.lead { color: var(--nx-muted-foreground); font-size: 15px; max-width: 64ch; margin-top: 10px; }
+.lead b { color: var(--nx-foreground); font-weight: 600; }
+.sec-head { display: grid; gap: 6px; margin-bottom: 18px; }
+.sec-head p { color: var(--nx-muted-foreground); max-width: 66ch; }
+
+/* ---------- Banco de pruebas: momentos a la izquierda, portal a la derecha ---------- */
+.lab { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 960px) { .lab { grid-template-columns: 300px minmax(0, 1fr); align-items: start; } }
+.panel { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 14px; padding: 14px; display: grid; gap: 14px; }
+.panel h3 { font-size: 12px; font-weight: 600; color: var(--nx-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; }
+.moments { display: grid; gap: 6px; }
+.moment { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; padding: 8px 10px 8px 8px; border: 1px solid var(--nx-border-subtle); border-radius: var(--nx-radius-lg); background: transparent; transition: background var(--nx-motion-fast), border-color var(--nx-motion-fast); }
+.moment:hover { background: var(--nx-hover); border-color: var(--nx-border); }
+.moment[aria-pressed="true"] { border-color: var(--nx-primary-border); background: var(--nx-primary-soft); }
+.moment__ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--nx-hover); color: var(--nx-primary-ink); }
+.moment__t { font-weight: 600; font-size: 13.5px; display: block; }
+.moment__s { font-size: 12px; color: var(--nx-text-tertiary); display: block; }
+.fmt { font: 11px/1 var(--nx-font-mono); padding: 4px 6px; border-radius: 5px; background: var(--nx-hover); color: var(--nx-muted-foreground); white-space: nowrap; }
+.fmt--tarjeta { background: var(--nx-warning-soft); color: var(--nx-warning-ink); }
+.fmt--fiesta { background: var(--nx-success-soft); color: var(--nx-success); }
+.sw { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--nx-muted-foreground); cursor: pointer; }
+.sw input { appearance: none; flex: none; width: 34px; height: 20px; border-radius: 999px; background: var(--nx-border); position: relative; margin: 1px 0 0; cursor: pointer; transition: background var(--nx-motion-fast); }
+.sw input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--nx-card); box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform var(--nx-motion-base) var(--nx-ease-out); }
+.sw input:checked { background: var(--nx-primary); }
+.sw input:checked::after { transform: translateX(14px); }
+.sw b { color: var(--nx-foreground); font-weight: 600; display: block; }
+.log { display: grid; gap: 6px; font-size: 12.5px; color: var(--nx-muted-foreground); max-height: 168px; overflow: auto; }
+.log li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; }
+.log time { font: 11.5px/1.5 var(--nx-font-mono); color: var(--nx-text-tertiary); }
+.log ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.log .empty { color: var(--nx-text-tertiary); }
+
+/* ---------- El portal ---------- */
+.app { position: relative; background: var(--nx-canvas); border: 1px solid var(--nx-border); border-radius: 16px; overflow: hidden; min-height: 600px; box-shadow: 0 30px 60px -40px light-dark(rgb(15 20 30 / 0.4), rgb(0 0 0 / 0.8)); isolation: isolate; }
+.app__bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--nx-border-subtle); background: var(--nx-card); }
+.brand__mark { width: 28px; height: 28px; border-radius: 8px; background: var(--nx-primary); color: var(--nx-primary-foreground); display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+.app__bar .name { font-weight: 600; font-size: 13.5px; margin-right: auto; }
+.bell { position: relative; width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; display: grid; place-items: center; color: var(--nx-muted-foreground); }
+.bell:hover { background: var(--nx-hover); }
+.bell .dot { position: absolute; top: 6px; right: 6px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 999px; background: var(--nx-primary); color: var(--nx-primary-foreground); font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--nx-primary-soft); color: var(--nx-primary-ink); font-weight: 650; font-size: 11.5px; flex: none; }
+.app__body { padding: 22px 20px 140px; display: grid; gap: 16px; }
+.hello h2 { font-size: 22px; }
+.hello p { color: var(--nx-muted-foreground); margin-top: 4px; }
+.feed { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.tile { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 12px; padding: 14px; display: grid; gap: 4px; align-content: start; }
+.tile .k { font-size: 12px; color: var(--nx-text-tertiary); }
+.tile .v { font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+.tile .s { font-size: 12.5px; color: var(--nx-muted-foreground); }
+.form-mock { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.form-mock[hidden] { display: none; }
+.form-mock .row { display: grid; gap: 4px; }
+.form-mock label { font-size: 12px; color: var(--nx-muted-foreground); }
+.form-mock .inp { height: 34px; border: 1px solid var(--nx-border); border-radius: var(--nx-radius-md); padding: 0 10px; display: flex; align-items: center; font-size: 13px; }
+.form-mock .inp.is-focus { border-color: var(--nx-primary-border); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.caret { display: inline-block; width: 1px; height: 15px; background: var(--nx-foreground); margin-left: 1px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Tarjeta de la mascota dentro del inicio (intensidad media) */
+.mcard { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; background: var(--nx-primary-soft); border: 1px solid var(--nx-primary-border); animation: rise 380ms var(--nx-ease-out); }
+.mcard[hidden] { display: none; }
+.mcard .mascot { width: 64px; height: 64px; }
+.mcard h3 { font-size: 15px; font-weight: 650; }
+.mcard p { font-size: 13px; color: var(--nx-muted-foreground); margin-top: 2px; }
+.mcard .acts { margin-top: 10px; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* ---------- La mascota en la esquina (asomo) ---------- */
+.dock { position: absolute; right: 14px; bottom: 0; display: flex; align-items: flex-end; gap: 4px; z-index: 5; pointer-events: none; }
+.dock > * { pointer-events: auto; }
+.dock .mascot { width: 96px; height: 96px; transform: translateY(100%); transition: transform 520ms var(--nx-ease-out); cursor: pointer; flex: none; }
+.dock.is-in .mascot { transform: translateY(14%); }
+.dock.is-nap .mascot { transform: translateY(52%); }
+.bubble { position: relative; width: min(330px, calc(100vw - 150px)); margin-bottom: 70px; background: var(--nx-popover); border: 1px solid var(--nx-border); border-radius: 16px 16px 4px 16px; box-shadow: var(--nx-shadow-popover); padding: 14px 14px 12px; display: grid; gap: 10px; transform-origin: 100% 100%; animation: pop 320ms var(--nx-ease-out); }
+.bubble[hidden] { display: none; }
+@keyframes pop { from { opacity: 0; transform: scale(0.9) translateY(6px); } }
+.bubble__x { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: var(--nx-text-tertiary); display: grid; place-items: center; }
+.bubble__x:hover { background: var(--nx-hover); color: var(--nx-foreground); }
+.bubble__who { font: 11.5px/1.2 var(--nx-font-mono); color: var(--nx-primary-ink); }
+.bubble h3 { font-size: 15px; font-weight: 650; padding-right: 22px; line-height: 1.3; }
+.bubble p { font-size: 13px; color: var(--nx-muted-foreground); }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn { height: 32px; padding: 0 12px; border-radius: var(--nx-radius-md); border: 1px solid var(--nx-border); background: var(--nx-card); font-size: 13px; font-weight: 550; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--nx-border-strong); background: var(--nx-hover); }
+.btn--primary { background: var(--nx-primary); border-color: transparent; color: var(--nx-primary-foreground); }
+.btn--primary:hover { background: var(--nx-primary-ink); border-color: transparent; }
+.btn--ghost { border-color: transparent; background: transparent; color: var(--nx-muted-foreground); }
+.btn--ghost:hover { color: var(--nx-foreground); }
+.faces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.face { aspect-ratio: 1; max-width: 100%; border: 1px solid var(--nx-border); border-radius: 10px; background: transparent; font-size: 22px; display: grid; place-items: center; transition: transform var(--nx-motion-fast), border-color var(--nx-motion-fast), background var(--nx-motion-fast); }
+.face:hover { transform: translateY(-2px); border-color: var(--nx-primary-border); background: var(--nx-primary-soft); }
+.face span { font-size: 0; }
+.scale-l { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--nx-text-tertiary); }
+.choices { display: grid; gap: 6px; }
+.choice { text-align: left; display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 9px; background: transparent; font-size: 13px; }
+.choice:hover { border-color: var(--nx-primary-border); background: var(--nx-primary-soft); }
+.choice kbd { font: 11px/1 var(--nx-font-mono); width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid var(--nx-border); border-radius: 5px; color: var(--nx-text-tertiary); }
+.nums { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.nums button { height: 36px; border: 1px solid var(--nx-border); border-radius: 8px; background: transparent; font-weight: 600; }
+.nums button:hover { border-color: var(--nx-primary-border); background: var(--nx-primary-soft); }
+textarea.txt { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--nx-border); border-radius: 9px; padding: 8px 10px; background: transparent; font-size: 13px; }
+textarea.txt:focus { outline: none; border-color: var(--nx-primary-border); box-shadow: 0 0 0 3px var(--nx-primary-soft); }
+.prog { display: flex; align-items: center; gap: 8px; font: 11.5px/1 var(--nx-font-mono); color: var(--nx-text-tertiary); }
+.prog i { flex: 1; height: 4px; border-radius: 99px; background: var(--nx-border-subtle); overflow: hidden; }
+.prog i b { display: block; height: 100%; background: var(--nx-primary); transition: width var(--nx-motion-base) var(--nx-ease-out); }
+.res { display: grid; gap: 6px; }
+.res div { display: grid; grid-template-columns: 92px minmax(0, 1fr) 34px; align-items: center; gap: 8px; font-size: 12.5px; }
+.res i { height: 8px; border-radius: 99px; background: var(--nx-border-subtle); overflow: hidden; }
+.res i b { display: block; height: 100%; background: var(--nx-text-tertiary); border-radius: 99px; }
+.res .me i b { background: var(--nx-primary); }
+.res .me span:first-child { font-weight: 650; color: var(--nx-primary-ink); }
+.res span:last-child { text-align: right; color: var(--nx-text-tertiary); }
+.note { font-size: 12px; color: var(--nx-text-tertiary); display: flex; gap: 6px; align-items: center; }
+
+/* Chip de espera: la mascota tiene algo pero no interrumpe */
+.waiting { position: absolute; right: 16px; bottom: 16px; z-index: 4; display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 999px; background: var(--nx-popover); border: 1px solid var(--nx-border); box-shadow: var(--nx-shadow-popover); font-size: 12.5px; color: var(--nx-muted-foreground); animation: rise 300ms var(--nx-ease-out); }
+.waiting[hidden] { display: none; }
+.waiting .mascot { width: 30px; height: 30px; }
+.waiting b { color: var(--nx-foreground); }
+
+/* Aviso breve, como nxToast */
+.toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 6; background: var(--nx-foreground); color: var(--nx-canvas); padding: 8px 14px; border-radius: 10px; font-size: 13px; box-shadow: var(--nx-shadow-popover); white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; animation: rise 260ms var(--nx-ease-out); }
+.toast[hidden] { display: none; }
+
+/* ---------- Celebración (intensidad alta) ---------- */
+.party { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: 20px; background: var(--nx-backdrop); animation: fade 300ms var(--nx-ease-out); }
+.party[hidden] { display: none; }
+@keyframes fade { from { opacity: 0; } }
+.party canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.party__card { position: relative; width: min(440px, 100%); background: var(--nx-popover); border-radius: 20px; box-shadow: var(--nx-shadow-popover); padding: 0 22px 20px; display: grid; gap: 14px; text-align: center; animation: pop 460ms var(--nx-ease-out); }
+.party__card .mascot { width: 132px; height: 132px; margin: -66px auto -6px; }
+.party__card h2 { font-size: 24px; }
+.party__card > p { color: var(--nx-muted-foreground); }
+.gift { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; text-align: left; align-items: center; padding: 12px; border-radius: 12px; background: var(--nx-success-soft); }
+.gift__ico { width: 38px; height: 38px; border-radius: 10px; background: var(--nx-card); display: grid; place-items: center; color: var(--nx-success); }
+.gift b { display: block; font-size: 13.5px; }
+.gift span { font-size: 12.5px; color: var(--nx-muted-foreground); }
+.wishes { display: grid; gap: 8px; text-align: left; }
+.wish { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; font-size: 13px; }
+.wish .avatar { width: 28px; height: 28px; font-size: 10.5px; }
+.wish b { font-weight: 600; }
+.wish p { color: var(--nx-muted-foreground); }
+.wishes .more { font-size: 12.5px; color: var(--nx-text-tertiary); padding-left: 38px; }
+.party .acts { justify-content: center; }
+
+/* ---------- La mascota (sustituto) ---------- */
+.mascot { display: block; overflow: visible; }
+.mascot .body { fill: var(--mascot-body); }
+.mascot .belly { fill: var(--mascot-belly); }
+.mascot .ink { fill: var(--mascot-ink); }
+.mascot .line { fill: none; stroke: var(--mascot-ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.mascot .arm { fill: none; stroke: var(--mascot-body); stroke-width: 9; stroke-linecap: round; }
+.mascot .cheek { fill: var(--mascot-cheek); }
+.mascot .hat { fill: var(--confetti-2); }
+.mascot .hat-dot { fill: var(--confetti-3); }
+.mascot .mark { fill: var(--nx-primary-ink); font: 700 22px/1 var(--nx-font-sans); }
+.mascot .zz { fill: var(--nx-text-tertiary); font: 700 14px/1 var(--nx-font-sans); }
+.mascot [data-only] { display: none; }
+.mascot[data-pose="hola"] [data-only~="hola"],
+.mascot[data-pose="pregunta"] [data-only~="pregunta"],
+.mascot[data-pose="celebra"] [data-only~="celebra"],
+.mascot[data-pose="piensa"] [data-only~="piensa"],
+.mascot[data-pose="duerme"] [data-only~="duerme"] { display: inline; }
+.mascot .eyes { transform-box: fill-box; transform-origin: center; animation: wink 4.5s infinite; }
+@keyframes wink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+.mascot .wave { transform-box: view-box; transform-origin: 82px 62px; animation: wave 1.2s ease-in-out infinite; }
+@keyframes wave { 50% { transform: rotate(-22deg); } }
+.mascot[data-pose="pregunta"] .rig { transform-box: view-box; transform-origin: 60px 100px; transform: rotate(-7deg); transition: transform 300ms; }
+.mascot[data-pose="celebra"] .rig { transform-box: view-box; animation: hop 0.9s var(--nx-ease-out) infinite; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-7px); } }
+.mascot[data-pose="duerme"] .zz { animation: zz 2.4s ease-in-out infinite; }
+@keyframes zz { 0% { opacity: 0; transform: translate(0, 4px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, -8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .mascot *, .mascot .rig, .bubble, .mcard, .party, .party__card, .dock .mascot { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Secciones de explicación ---------- */
+.levels { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.level { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 14px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.level__top { display: flex; align-items: center; gap: 8px; }
+.level h3 { font-size: 15px; }
+.level p { color: var(--nx-muted-foreground); font-size: 13.5px; }
+.level dl { margin: 4px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 12.5px; }
+.level dt { color: var(--nx-text-tertiary); }
+.level dd { margin: 0; }
+.meter { display: flex; gap: 3px; margin-left: auto; }
+.meter i { width: 14px; height: 5px; border-radius: 3px; background: var(--nx-border); }
+.meter i.on { background: var(--nx-primary); }
+
+.rules { display: grid; gap: 10px 28px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin: 0; padding: 0; list-style: none; }
+.rules li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-top: 1px solid var(--nx-border-subtle); }
+.rules li svg { color: var(--nx-primary-ink); margin-top: 2px; }
+.rules b { display: block; font-weight: 600; }
+.rules span { color: var(--nx-muted-foreground); font-size: 13.5px; }
+
+.split { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
+.queue { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; counter-reset: q; }
+.queue li { counter-increment: q; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 10px; font-size: 13.5px; }
+.queue li::before { content: counter(q); font: 600 12px/1 var(--nx-font-mono); color: var(--nx-primary-ink); width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; background: var(--nx-primary-soft); }
+.queue small { color: var(--nx-text-tertiary); font-size: 12px; display: block; }
+pre.code { margin: 0; padding: 16px; border-radius: 12px; background: var(--nx-card); border: 1px solid var(--nx-border-subtle); font: 12.5px/1.6 var(--nx-font-mono); overflow-x: auto; color: var(--nx-muted-foreground); }
+pre.code .k { color: var(--nx-primary-ink); }
+pre.code .s { color: var(--nx-foreground); }
+pre.code .c { color: var(--nx-text-tertiary); font-style: italic; }
+
+.poses { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.pose { background: var(--nx-card); border: 1px solid var(--nx-border-subtle); border-radius: 14px; padding: 14px 12px 12px; display: grid; justify-items: center; gap: 6px; text-align: center; }
+.pose .mascot { width: 88px; height: 88px; }
+.pose b { font-size: 13.5px; }
+.pose span { font-size: 12px; color: var(--nx-muted-foreground); }
+
+@media (max-width: 560px) {
+  .app__body { padding: 18px 14px 150px; }
+  .dock { right: 4px; }
+  .dock .mascot { width: 74px; height: 74px; }
+  .bubble { width: calc(100vw - 32px - 70px - 20px); margin-bottom: 56px; }
+}
+</style>
+
+<!-- La mascota: un solo SVG con todas las poses; data-pose elige cuál se ve. Para usar la de la
+     empresa se reemplaza este símbolo por sus dibujos, uno por pose, con los mismos nombres. -->
+<template id="mascot-tpl">
+  <svg class="mascot" viewBox="0 0 120 120" aria-hidden="true" data-pose="hola">
+    <g class="rig">
+      <g data-only="celebra"><path class="hat" d="M46 22 60 -6 74 22Z"/><circle class="hat-dot" cx="60" cy="-6" r="5"/></g>
+      <path class="arm" d="M30 74 18 84" data-only="hola pregunta piensa duerme"/>
+      <path class="arm" d="M90 74 102 84" data-only="pregunta duerme"/>
+      <path class="arm wave" d="M90 70 104 50" data-only="hola"/>
+      <path class="arm" d="M30 66 14 44" data-only="celebra"/>
+      <path class="arm" d="M90 66 106 44" data-only="celebra"/>
+      <path class="arm" d="M88 72 78 58" data-only="piensa"/>
+      <path class="body" d="M60 20c24 0 38 20 38 48 0 26-14 40-38 40S22 94 22 68c0-28 14-48 38-48Z"/>
+      <ellipse class="belly" cx="60" cy="84" rx="21" ry="17"/>
+      <circle class="body" cx="60" cy="16" r="4"/><path class="line" d="M60 20v-4" style="stroke: var(--mascot-body)"/>
+      <g class="eyes" data-only="hola pregunta celebra"><ellipse class="ink" cx="48" cy="56" rx="4.6" ry="6"/><ellipse class="ink" cx="72" cy="56" rx="4.6" ry="6"/><circle cx="49.5" cy="53.5" r="1.6" fill="#fff"/><circle cx="73.5" cy="53.5" r="1.6" fill="#fff"/></g>
+      <g data-only="piensa"><ellipse class="ink" cx="50" cy="52" rx="4.2" ry="5.4"/><ellipse class="ink" cx="74" cy="52" rx="4.2" ry="5.4"/></g>
+      <g data-only="duerme"><path class="line" d="M43 58q5 4 10 0"/><path class="line" d="M67 58q5 4 10 0"/></g>
+      <ellipse class="cheek" cx="39" cy="67" rx="5" ry="3"/><ellipse class="cheek" cx="81" cy="67" rx="5" ry="3"/>
+      <path class="line" d="M53 68q7 6 14 0" data-only="hola"/>
+      <path class="ink" d="M50 66q10 13 20 0Z" data-only="celebra"/>
+      <path class="line" d="M55 70h10" data-only="pregunta piensa"/>
+      <path class="line" d="M57 69q3 2 6 0" data-only="duerme"/>
+      <text class="mark" x="96" y="30" data-only="pregunta">?</text>
+      <g data-only="piensa"><circle class="belly" cx="94" cy="34" r="3"/><circle class="belly" cx="102" cy="24" r="4.5"/><circle class="belly" cx="110" cy="10" r="7"/></g>
+      <text class="zz" x="90" y="30" data-only="duerme">z</text>
+    </g>
+  </svg>
+</template>
+
+<main class="page">
+  <header>
+    <p class="eyebrow">nx32-elements · propuesta · nxMascot()</p>
+    <h1>La mascota como la voz amable del portal</h1>
+    <p class="lead">Una sola figura que avisa lo que importa: pedir una calificación, invitar a una encuesta, felicitar un cumpleaños. Habla poco, nunca interrumpe un trámite a medias y siempre se puede callar. <b>Prueba los momentos de la izquierda</b> y mira cómo cambia su intensidad. La mascota dibujada es un sustituto: se reemplaza por la tuya con una imagen por pose.</p>
+  </header>
+
+  <!-- ===================== Banco de pruebas ===================== -->
+  <section class="lab" aria-label="Pruébalo">
+    <aside class="panel">
+      <h3>Momentos</h3>
+      <div class="moments" id="moments"></div>
+      <h3>Contexto del usuario</h3>
+      <label class="sw"><input type="checkbox" id="busy"><span><b>Estoy llenando un formulario</b>La mascota espera: guarda el momento y lo muestra al terminar.</span></label>
+      <label class="sw"><input type="checkbox" id="mute"><span><b>Silenciar la mascota</b>Se duerme en la esquina. Lo importante llega a la campana.</span></label>
+      <h3>Lo que pasó</h3>
+      <div class="log"><ol id="log"><li class="empty">Dispara un momento para ver la bitácora.</li></ol></div>
+    </aside>
+
+    <div class="app" id="app">
+      <div class="app__bar">
+        <span class="brand__mark">NX</span><span class="name">Portal del empleado</span>
+        <button class="bell" id="bell" type="button" aria-label="Notificaciones"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="dot" id="bell-n" hidden>0</span></button>
+        <span class="avatar">AR</span>
+      </div>
+      <div class="app__body">
+        <div class="hello"><h2>Buenos días, Ana</h2><p>Martes 20 de octubre · Tienes 2 cosas pendientes</p></div>
+        <div class="mcard" id="mcard" hidden></div>
+        <div class="feed">
+          <div class="tile"><span class="k">Vacaciones disponibles</span><span class="v num">12 días</span><span class="s">Vencen 4 el 31 de diciembre</span></div>
+          <div class="tile"><span class="k">Próximo pago</span><span class="v num">30 oct</span><span class="s">Quincena 2 de octubre</span></div>
+          <div class="tile"><span class="k">Evaluación de desempeño</span><span class="v num">4 de 6</span><span class="s">Cierra el viernes 23</span></div>
+        </div>
+        <div class="form-mock" id="form-mock" hidden aria-hidden="true">
+          <strong style="font-size:14px">Solicitud de permiso</strong>
+          <div class="row"><label>Motivo</label><div class="inp is-focus">Cita médica de mi hijo<span class="caret"></span></div></div>
+          <div class="row"><label>Fecha</label><div class="inp">Jueves 22 de octubre</div></div>
+        </div>
+      </div>
+
+      <div class="dock" id="dock">
+        <div class="bubble" id="bubble" role="dialog" aria-live="polite" aria-labelledby="bubble-t" hidden></div>
+      </div>
+      <button class="waiting" id="waiting" type="button" hidden></button>
+      <div class="toast" id="toast" role="status" hidden></div>
+      <div class="party" id="party" role="dialog" aria-modal="true" aria-labelledby="party-t" hidden><canvas id="confetti"></canvas><div class="party__card" id="party-card"></div></div>
+    </div>
+  </section>
+
+  <!-- ===================== Intensidades ===================== -->
+  <section>
+    <div class="sec-head"><p class="eyebrow">Tres intensidades</p><h2>Cuánto ocupa depende de cuánto importa</h2>
+      <p>El backend no elige dónde aparece la mascota: elige el tipo de momento, y el tipo decide la intensidad. Así nadie convierte una encuesta en una pantalla completa.</p></div>
+    <div class="levels">
+      <article class="level">
+        <div class="level__top"><span class="fmt">asomo</span><span class="meter" aria-label="Intensidad baja"><i class="on"></i><i></i><i></i></span></div>
+        <h3>Se asoma en la esquina</h3>
+        <p>Sube desde el borde con una burbuja. No tapa el contenido ni roba el foco: se puede seguir trabajando y se va sola a los 20 segundos si no se toca.</p>
+        <dl><dt>Para</dt><dd>Calificar un trámite, un consejo, un aniversario</dd><dt>Responde</dt><dd>Ahí mismo, en la burbuja (caras, 1 a 5)</dd><dt>Frecuencia</dt><dd>Máximo 1 por sesión</dd></dl>
+      </article>
+      <article class="level">
+        <div class="level__top"><span class="fmt fmt--tarjeta">tarjeta</span><span class="meter" aria-label="Intensidad media"><i class="on"></i><i class="on"></i><i></i></span></div>
+        <h3>Ocupa un lugar en el inicio</h3>
+        <p>Una tarjeta arriba del inicio, con la mascota a un lado. Se queda hasta que se responde o se descarta, y vuelve a la campana si se pospone.</p>
+        <dl><dt>Para</dt><dd>Encuestas, recordatorios con fecha límite</dd><dt>Responde</dt><dd>Una pregunta a la vez (nx-survey)</dd><dt>Frecuencia</dt><dd>1 visible a la vez</dd></dl>
+      </article>
+      <article class="level">
+        <div class="level__top"><span class="fmt fmt--fiesta">fiesta</span><span class="meter" aria-label="Intensidad alta"><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+        <h3>Celebra en pantalla completa</h3>
+        <p>Confeti y una tarjeta con lo que trae el día: los mensajes del equipo y el beneficio que corresponde. Solo al primer ingreso del día y solo para la persona.</p>
+        <dl><dt>Para</dt><dd>Cumpleaños, aniversarios redondos (1, 5, 10 años)</dd><dt>Responde</dt><dd>Un botón de acción y «Gracias»</dd><dt>Frecuencia</dt><dd>1 vez al año por motivo</dd></dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== Reglas ===================== -->
+  <section>
+    <div class="sec-head"><p class="eyebrow">Cuándo habla y cuándo calla</p><h2>Las reglas que la hacen simpática y no molesta</h2></div>
+    <ul class="rules">
+      <li><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><div><b>Nunca durante un trámite</b><span>Si hay un formulario con cambios, un diálogo abierto o el foco en un campo, el momento espera en un chip y se muestra al terminar.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><b>Una cosa a la vez</b><span>Una burbuja por sesión y una tarjeta visible. Lo demás queda en fila por prioridad.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><div><b>«Ahora no» pospone, no pierde</b><span>Vuelve en 3 días hábiles, o antes de la fecha límite si la tiene. Dos «Ahora no» seguidos y pasa a la campana.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><div><b>«No me lo vuelvas a pedir» se respeta</b><span>Por tipo de momento: quien no quiere calificar trámites sigue recibiendo su felicitación de cumpleaños.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><div><b>Silenciada, lo importante sigue llegando</b><span>Se duerme en la esquina y los momentos con fecha límite pasan a la campana, sin mascota.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5h5"/></svg><div><b>Accesible y sin mareos</b><span>El texto siempre se lee solo; la figura es decorativa para el lector de pantalla. Con «reducir movimiento», no salta ni hay confeti.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg><div><b>Lo personal es privado</b><span>El cumpleaños lo ve la persona; sus compañeros reciben, aparte, la invitación a dejarle un mensaje. Quien no quiere celebrarlo lo apaga en su perfil.</span></div></li>
+      <li><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><div><b>Cada momento rinde cuentas</b><span>Se mide cuántos lo vieron, respondieron, pospusieron o lo apagaron. Un tipo que muchos apagan se revisa.</span></div></li>
+    </ul>
+  </section>
+
+  <!-- ===================== Turno y contrato ===================== -->
+  <section class="split">
+    <div>
+      <div class="sec-head"><p class="eyebrow">El orden de turno</p><h2>Si hay varios, ¿cuál sale primero?</h2><p>Gana el de mayor prioridad; dentro de la misma, el que vence antes.</p></div>
+      <ol class="queue">
+        <li><span>Celebración del día<small>Cumpleaños, aniversario redondo</small></span><span class="fmt fmt--fiesta">fiesta</span></li>
+        <li><span>Recordatorio con fecha límite<small>La evaluación cierra el viernes</small></span><span class="fmt fmt--tarjeta">tarjeta</span></li>
+        <li><span>Encuesta abierta<small>Pulso del trimestre, clima laboral</small></span><span class="fmt fmt--tarjeta">tarjeta</span></li>
+        <li><span>Calificar algo reciente<small>Un trámite cerrado en las últimas 48 horas</small></span><span class="fmt">asomo</span></li>
+        <li><span>Consejo o novedad<small>Lo nuevo que le sirve a esta persona</small></span><span class="fmt">asomo</span></li>
+      </ol>
+    </div>
+    <div>
+      <div class="sec-head"><p class="eyebrow">Lo que manda el backend (BDUI)</p><h2>Un momento es un JSON</h2><p>La app no programa diálogos: recibe momentos y la mascota decide cuándo mostrarlos según las reglas.</p></div>
+<pre class="code"><span class="c">// GET /api/momentos → lista; la mascota los pone en fila</span>
+{
+  <span class="k">"id"</span>: <span class="s">"cal-vac-8812"</span>,
+  <span class="k">"kind"</span>: <span class="s">"rating"</span>,          <span class="c">// rating · survey · celebration · reminder · tip</span>
+  <span class="k">"pose"</span>: <span class="s">"pregunta"</span>,
+  <span class="k">"title"</span>: <span class="s">"¿Cómo te fue con tu solicitud de vacaciones?"</span>,
+  <span class="k">"text"</span>: <span class="s">"La aprobó Laura Gómez ayer."</span>,
+  <span class="k">"rating"</span>: { <span class="k">"style"</span>: <span class="s">"faces"</span>, <span class="k">"askWhyBelow"</span>: 3 },
+  <span class="k">"expires"</span>: <span class="s">"2026-10-22"</span>,
+  <span class="k">"snooze"</span>: <span class="s">"P3D"</span>,
+  <span class="k">"action"</span>: <span class="s">"/api/momentos/cal-vac-8812"</span>  <span class="c">// POST con la respuesta</span>
+}
+
+<span class="c">// En la app, una línea:</span>
+nxMascot({ <span class="k">source</span>: <span class="s">"/api/momentos"</span>, <span class="k">name</span>: <span class="s">"Nexo"</span> });</pre>
+    </div>
+  </section>
+
+  <!-- ===================== Poses ===================== -->
+  <section>
+    <div class="sec-head"><p class="eyebrow">Lo que hay que dibujar</p><h2>Cinco poses de tu mascota</h2>
+      <p>Con estas cinco alcanza para todos los momentos. Cada una en SVG (o PNG transparente de 256 px) mirando hacia la izquierda, porque vive en la esquina derecha.</p></div>
+    <div class="poses" id="poses"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const tpl = $("#mascot-tpl");
+  const mascot = (pose) => { const s = tpl.content.firstElementChild.cloneNode(true); s.dataset.pose = pose; return s; };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const ICON = {
+    star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z"/>',
+    list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+    cake: '<path d="M4 21v-8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8"/><path d="M4 16c2 1 3 1 4 0s3-1 4 0 3 1 4 0 3-1 4 0"/><path d="M2 21h20M12 7v4M12 3v1"/>',
+    medal: '<circle cx="12" cy="14" r="6"/><path d="M8.5 9.2 6 3h4l2 4 2-4h4l-2.5 6.2"/>',
+    bulb: '<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2Z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  };
+  const ico = (n) => `<svg class="i" viewBox="0 0 24 24">${ICON[n]}</svg>`;
+
+  const MOMENTS = [
+    { id: "rating", fmt: "asomo", icon: "star", t: "Calificar un trámite", s: "Tras aprobarse sus vacaciones" },
+    { id: "survey", fmt: "tarjeta", icon: "list", t: "Encuesta de pulso", s: "3 preguntas, 1 minuto" },
+    { id: "birthday", fmt: "fiesta", icon: "cake", t: "Cumpleaños", s: "Primer ingreso del día" },
+    { id: "anniversary", fmt: "asomo", icon: "medal", t: "Aniversario laboral", s: "5 años en la empresa" },
+    { id: "reminder", fmt: "tarjeta", icon: "clock", t: "Recordatorio", s: "La evaluación cierra el viernes" },
+    { id: "tip", fmt: "asomo", icon: "bulb", t: "Novedad", s: "Certificado laboral sin pedirlo" },
+  ];
+  const FMT_CLASS = { asomo: "fmt", tarjeta: "fmt fmt--tarjeta", fiesta: "fmt fmt--fiesta" };
+
+  const dock = $("#dock"), bubble = $("#bubble"), mcard = $("#mcard"), party = $("#party"), card = $("#party-card");
+  const waiting = $("#waiting"), toastEl = $("#toast"), logEl = $("#log"), bellN = $("#bell-n");
+  const dockMascot = mascot("hola");
+  dock.append(dockMascot);
+  let pending = null, bellCount = 0, hideTimer = 0, toastTimer = 0, logged = false;
+
+  // Botones de momentos
+  const list = $("#moments");
+  for (const m of MOMENTS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "moment"; b.dataset.id = m.id; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = `<span class="moment__ico">${ico(m.icon)}</span><span><span class="moment__t">${m.t}</span><span class="moment__s">${m.s}</span></span><span class="${FMT_CLASS[m.fmt]}">${m.fmt}</span>`;
+    b.addEventListener("click", () => trigger(m.id));
+    list.append(b);
+  }
+  const press = (id) => list.querySelectorAll(".moment").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+
+  // Poses
+  const POSES = [["hola", "Saluda", "Novedades y consejos"], ["pregunta", "Pregunta", "Calificar, encuestas"], ["celebra", "Celebra", "Cumpleaños, logros, gracias"], ["piensa", "Piensa", "Recordatorios, esperando"], ["duerme", "Duerme", "Silenciada"]];
+  for (const [p, t, s] of POSES) {
+    const d = document.createElement("div"); d.className = "pose";
+    d.append(mascot(p)); d.insertAdjacentHTML("beforeend", `<b>${t}</b><span>${s}</span>`);
+    $("#poses").append(d);
+  }
+
+  const now = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+  function log(text) {
+    if (!logged) { logEl.innerHTML = ""; logged = true; }
+    const li = document.createElement("li");
+    li.innerHTML = `<time>${now()}</time><span>${esc(text)}</span>`;
+    logEl.prepend(li);
+  }
+  function toast(text) {
+    toastEl.textContent = text; toastEl.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (toastEl.hidden = true), 3200);
+  }
+  function bell(n) { bellCount += n; bellN.textContent = bellCount; bellN.hidden = bellCount === 0; }
+
+  // ---------- Reglas: ¿se puede hablar ahora? ----------
+  const busy = $("#busy"), mute = $("#mute");
+  function trigger(id) {
+    press(id);
+    clearAll();
+    const m = MOMENTS.find((x) => x.id === id);
+    if (mute.checked) {
+      if (id === "reminder" || id === "survey") { bell(1); log(`${m.t}: silenciada, pasó a la campana.`); toast("Lo dejé en la campana"); }
+      else log(`${m.t}: silenciada, no se muestra.`);
+      return;
+    }
+    if (busy.checked && m.fmt !== "tarjeta") {
+      pending = id;
+      waiting.innerHTML = ""; waiting.append(mascot("piensa"));
+      waiting.insertAdjacentHTML("beforeend", `<span><b>Te espero</b> · tengo algo cuando termines</span>`);
+      waiting.hidden = false;
+      log(`${m.t}: estás en un formulario, queda en espera.`);
+      return;
+    }
+    show(id);
+  }
+  busy.addEventListener("change", () => {
+    $("#form-mock").hidden = !busy.checked;
+    if (!busy.checked && pending) { const id = pending; pending = null; waiting.hidden = true; log("Terminaste el formulario: sale lo que esperaba."); setTimeout(() => show(id), 500); }
+  });
+  waiting.addEventListener("click", () => { if (!pending) return; const id = pending; pending = null; waiting.hidden = true; log("Lo abriste desde el chip de espera."); show(id); });
+  mute.addEventListener("change", () => {
+    clearAll();
+    if (mute.checked) { dockMascot.dataset.pose = "duerme"; dock.classList.add("is-nap"); log("Mascota silenciada."); }
+    else { dock.classList.remove("is-nap"); dockMascot.dataset.pose = "hola"; log("Mascota despierta."); }
+  });
+
+  function clearAll() {
+    clearTimeout(hideTimer);
+    bubble.hidden = true; bubble.innerHTML = "";
+    mcard.hidden = true; mcard.innerHTML = "";
+    party.hidden = true; stopConfetti();
+    if (!mute.checked) dock.classList.remove("is-in");
+  }
+  function peek(pose, html, { autoHide = true } = {}) {
+    dockMascot.dataset.pose = pose;
+    dock.classList.add("is-in");
+    bubble.innerHTML = `<button class="bubble__x" type="button" aria-label="Cerrar">${ico("x")}</button><span class="bubble__who">Nexo</span>${html}`;
+    bubble.hidden = false;
+    bubble.querySelector(".bubble__x").addEventListener("click", () => { log("Cerró la burbuja."); hide(); });
+    clearTimeout(hideTimer);
+    if (autoHide) hideTimer = setTimeout(() => { log("Nadie la tocó en 20 s: se fue sola, vuelve otro día."); hide(); }, 20000);
+    bubble.addEventListener("pointerdown", () => clearTimeout(hideTimer), { once: true });
+  }
+  function hide() { clearTimeout(hideTimer); bubble.hidden = true; dock.classList.remove("is-in"); press(null); }
+  function later(what, when) { log(`${what}: «Ahora no», vuelve ${when}.`); toast(`Listo, te lo recuerdo ${when}`); hide(); mcard.hidden = true; }
+  function thanks(title, text) {
+    peek("celebra", `<h3 id="bubble-t">${title}</h3><p>${text}</p>`);
+    clearTimeout(hideTimer); hideTimer = setTimeout(hide, 3500);
+  }
+  bubble.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (b) ACT[b.dataset.act]?.(b); });
+  mcard.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (b) ACT[b.dataset.act]?.(b); });
+  card.addEventListener("click", (e) => { const b = e.target.closest("[data-act]"); if (b) ACT[b.dataset.act]?.(b); });
+  dockMascot.addEventListener("click", () => {
+    if (mute.checked) { toast(bellCount ? `Tienes ${bellCount} en la campana` : "Estoy dormida. Despiértame en Contexto."); return; }
+    if (bubble.hidden) { peek("hola", `<h3 id="bubble-t">¡Hola, Ana!</h3><p>No tengo nada pendiente para ti. Si quieres saber algo, búscalo con Ctrl+K.</p>`); }
+  });
+
+  // ---------- Momentos ----------
+  const SHOW = {
+    rating() {
+      peek("pregunta", `<h3 id="bubble-t">¿Cómo te fue con tu solicitud de vacaciones?</h3><p>La aprobó Laura Gómez ayer, en 3 horas.</p>
+        <div class="faces" role="group" aria-label="Califica de 1 a 5">${["😣", "🙁", "😐", "🙂", "😍"].map((f, i) => `<button class="face" type="button" data-act="rate" data-v="${i + 1}" aria-label="${i + 1} de 5">${f}</button>`).join("")}</div>
+        <div class="scale-l"><span>Muy mal</span><span>Excelente</span></div>
+        <div class="acts"><button class="btn btn--ghost" type="button" data-act="later-rating">Ahora no</button><button class="btn btn--ghost" type="button" data-act="never">No me pidas calificar</button></div>`);
+      log("Calificar: se asoma con la pregunta.");
+    },
+    survey() {
+      mcard.innerHTML = "";
+      mcard.append(mascot("pregunta"));
+      mcard.insertAdjacentHTML("beforeend", `<div><h3>Tengo 3 preguntas sobre el trabajo remoto</h3><p>Es anónimo y toma 1 minuto. Cierra el 31 de octubre · ya respondieron 214 personas.</p>
+        <div class="acts"><button class="btn btn--primary" type="button" data-act="survey-start">Responder</button><button class="btn btn--ghost" type="button" data-act="later-survey">Más tarde</button></div></div>`);
+      mcard.hidden = false;
+      log("Encuesta: tarjeta en el inicio.");
+    },
+    birthday() {
+      card.innerHTML = "";
+      card.append(mascot("celebra"));
+      card.insertAdjacentHTML("beforeend", `<h2 id="party-t">¡Feliz cumpleaños, Ana!</h2><p>De parte de todo el equipo de Operaciones. Que sea un gran año.</p>
+        <div class="gift"><span class="gift__ico">${ico("gift")}</span><span><b>Tienes un día libre por tu cumpleaños</b><span>Úsalo cuando quieras antes del 30 de noviembre.</span></span></div>
+        <div class="wishes">
+          <div class="wish"><span class="avatar">LG</span><div><b>Laura Gómez</b><p>¡Feliz día, Ana! Gracias por sacar adelante el cierre de septiembre.</p></div></div>
+          <div class="wish"><span class="avatar">JP</span><div><b>Julián Pardo</b><p>¡Que lo disfrutes mucho! La torta del viernes va por mi cuenta.</p></div></div>
+          <span class="more">y 11 mensajes más</span>
+        </div>
+        <div class="acts"><button class="btn btn--primary" type="button" data-act="book-day">Agendar mi día libre</button><button class="btn" type="button" data-act="party-close">Gracias</button></div>`);
+      party.hidden = false;
+      startConfetti();
+      card.querySelector("[data-act='book-day']").focus({ preventScroll: true });
+      log("Cumpleaños: celebración en pantalla completa (1 vez al año).");
+    },
+    anniversary() {
+      peek("celebra", `<h3 id="bubble-t">¡Hoy cumples 5 años con nosotros!</h3><p>Entraste el 20 de octubre de 2021 como analista de nómina. Mira todo lo que ha pasado desde entonces.</p>
+        <div class="acts"><button class="btn btn--primary" type="button" data-act="journey">Ver mi recorrido</button><button class="btn btn--ghost" type="button" data-act="close">Gracias</button></div>`);
+      log("Aniversario: se asoma celebrando.");
+    },
+    reminder() {
+      mcard.innerHTML = "";
+      mcard.append(mascot("piensa"));
+      mcard.insertAdjacentHTML("beforeend", `<div><h3>Tu evaluación de desempeño cierra el viernes</h3><p>Te faltan 2 de 6 preguntas. Lo que llevas está guardado.</p>
+        <div class="acts"><button class="btn btn--primary" type="button" data-act="continue">Continuar donde quedé</button><button class="btn btn--ghost" type="button" data-act="later-reminder">Recuérdamelo el jueves</button></div></div>`);
+      mcard.hidden = false;
+      log("Recordatorio: tarjeta con fecha límite.");
+    },
+    tip() {
+      peek("hola", `<h3 id="bubble-t">Ya puedes descargar tu certificado laboral</h3><p>Sin pedírselo a nadie: sale firmado al instante, con o sin salario.</p>
+        <div class="acts"><button class="btn btn--primary" type="button" data-act="show-me">Muéstrame dónde</button><button class="btn btn--ghost" type="button" data-act="close">Entendido</button></div>`);
+      log("Novedad: se asoma saludando.");
+    },
+  };
+  function show(id) { clearAll(); press(id); SHOW[id](); }
+
+  // ---------- Encuesta: una pregunta a la vez dentro de la tarjeta ----------
+  const SURVEY = [
+    { q: "¿Cuántos días a la semana trabajas desde casa?", kind: "choice", opts: ["Ninguno", "1 o 2", "3 o 4", "Todos"] },
+    { q: "¿Qué tan conectado te sientes con tu equipo?", kind: "scale", lo: "Nada", hi: "Mucho" },
+    { q: "¿Qué cambiarías del esquema actual?", kind: "text" },
+  ];
+  const RESULTS = [["Ninguno", 12], ["1 o 2", 41], ["3 o 4", 33], ["Todos", 14]];
+  let sIdx = 0, sAns = [];
+  function surveyStep() {
+    const s = SURVEY[sIdx];
+    const pct = Math.round((sIdx / SURVEY.length) * 100);
+    let body = "";
+    if (s.kind === "choice") body = `<div class="choices">${s.opts.map((o, i) => `<button class="choice" type="button" data-act="s-answer" data-v="${esc(o)}"><kbd>${"ABCD"[i]}</kbd>${esc(o)}</button>`).join("")}</div>`;
+    if (s.kind === "scale") body = `<div class="nums">${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-act="s-answer" data-v="${n}">${n}</button>`).join("")}</div><div class="scale-l"><span>${s.lo}</span><span>${s.hi}</span></div>`;
+    if (s.kind === "text") body = `<textarea class="txt" id="s-text" placeholder="Opcional. Escribe lo que quieras…"></textarea><div class="acts"><button class="btn btn--primary" type="button" data-act="s-answer">Enviar</button><button class="btn btn--ghost" type="button" data-act="s-answer" data-v="">Saltar</button></div>`;
+    mcard.querySelector(".mascot").dataset.pose = "pregunta";
+    mcard.querySelector("div").innerHTML = `<div class="prog"><span>${sIdx + 1} de ${SURVEY.length}</span><i><b style="width:${pct}%"></b></i></div><h3 style="margin-top:8px">${s.q}</h3><div style="margin-top:10px;display:grid;gap:8px">${body}</div>`;
+    mcard.querySelector("button, textarea")?.focus({ preventScroll: true });
+  }
+  function surveyDone() {
+    const mine = sAns[0];
+    mcard.querySelector(".mascot").dataset.pose = "celebra";
+    mcard.querySelector("div").innerHTML = `<h3>¡Gracias, Ana! Así respondieron 215 personas</h3><p>¿Cuántos días a la semana trabajas desde casa?</p>
+      <div class="res" style="margin-top:10px">${RESULTS.map(([o, p]) => { const me = o === mine; const v = me ? p + 1 : p; return `<div class="${me ? "me" : ""}"><span>${o}${me ? " · tú" : ""}</span><i><b style="width:${v}%"></b></i><span class="num">${v}%</span></div>`; }).join("")}</div>
+      <p class="note" style="margin-top:8px">Recursos Humanos publica las conclusiones el 15 de noviembre.</p>
+      <div class="acts"><button class="btn" type="button" data-act="mcard-close">Cerrar</button></div>`;
+  }
+
+  const ACT = {
+    rate(b) {
+      const v = +b.dataset.v;
+      if (v <= 2) {
+        peek("piensa", `<h3 id="bubble-t">Uy, lo siento. ¿Qué falló?</h3><p>Se lo cuento a Talento Humano tal cual, con tu nombre o sin él.</p><textarea class="txt" id="why" placeholder="Por ejemplo: tardó mucho en aprobarse"></textarea><div class="acts"><button class="btn btn--primary" type="button" data-act="why-send">Enviar</button><button class="btn btn--ghost" type="button" data-act="why-skip">Solo la calificación</button></div>`, { autoHide: false });
+        bubble.querySelector("#why").focus({ preventScroll: true });
+        log(`Calificó ${v} de 5: le pide el motivo.`);
+      } else { log(`Calificó ${v} de 5.`); thanks("¡Gracias!", "Se lo cuento a Laura y al equipo de Talento."); }
+    },
+    "why-send"() { log("Envió el motivo."); thanks("Gracias por decírmelo", "Talento Humano lo revisa esta semana."); },
+    "why-skip"() { log("Envió solo la calificación."); thanks("¡Gracias!", "Quedó registrada."); },
+    "later-rating"() { later("Calificar", "el jueves"); },
+    never() { log("Calificar: apagado para este tipo de momento."); toast("No te pediré calificar trámites. Lo cambias en tu perfil."); hide(); },
+    "survey-start"() { sIdx = 0; sAns = []; surveyStep(); log("Encuesta: empezó a responder."); },
+    "s-answer"(b) {
+      const t = $("#s-text");
+      sAns[sIdx] = b.dataset.v ?? (t ? t.value : "");
+      sIdx++;
+      if (sIdx < SURVEY.length) surveyStep(); else { surveyDone(); log("Encuesta: respondida, ve los resultados."); }
+    },
+    "later-survey"() { later("Encuesta", "en 3 días"); },
+    "mcard-close"() { mcard.hidden = true; press(null); },
+    "book-day"() { log("Cumpleaños: abrió la solicitud del día libre."); closeParty(); toast("Abriendo tu solicitud de día libre…"); },
+    "party-close"() { log("Cumpleaños: cerró con «Gracias»."); closeParty(); },
+    journey() { log("Aniversario: abrió su recorrido."); hide(); toast("Abriendo tu recorrido en la empresa…"); },
+    continue() { log("Recordatorio: siguió con la evaluación."); mcard.hidden = true; press(null); toast("Abriendo la pregunta 5 de 6…"); },
+    "later-reminder"() { later("Recordatorio", "el jueves a las 9:00"); },
+    "show-me"() { log("Novedad: pidió que le mostraran."); hide(); toast("Aquí se abriría el recorrido guiado (nxTour)"); },
+    close() { hide(); },
+  };
+  function closeParty() { party.hidden = true; stopConfetti(); press(null); }
+  party.addEventListener("keydown", (e) => { if (e.key === "Escape") closeParty(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !bubble.hidden) hide(); });
+
+  // ---------- Confeti (no corre con «reducir movimiento») ----------
+  const cv = $("#confetti"); let raf = 0;
+  function startConfetti() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = cv.getContext("2d"); const r = cv.getBoundingClientRect(); const dpr = devicePixelRatio || 1;
+    cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.scale(dpr, dpr);
+    const css = getComputedStyle(document.documentElement);
+    const cols = [1, 2, 3, 4].map((i) => css.getPropertyValue(`--confetti-${i}`).trim());
+    const ps = Array.from({ length: 140 }, () => ({ x: Math.random() * r.width, y: -20 - Math.random() * r.height * 0.6, w: 5 + Math.random() * 5, h: 8 + Math.random() * 6, vy: 1.6 + Math.random() * 2.2, vx: -1 + Math.random() * 2, a: Math.random() * 6, va: -0.15 + Math.random() * 0.3, c: cols[Math.floor(Math.random() * cols.length)] }));
+    const t0 = performance.now();
+    const tick = (t) => {
+      ctx.clearRect(0, 0, r.width, r.height);
+      for (const p of ps) { p.y += p.vy; p.x += p.vx + Math.sin((t + p.a * 300) / 500) * 0.6; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.a))); ctx.restore(); }
+      if (t - t0 < 4200) raf = requestAnimationFrame(tick); else ctx.clearRect(0, 0, r.width, r.height);
+    };
+    raf = requestAnimationFrame(tick);
+  }
+  function stopConfetti() { cancelAnimationFrame(raf); const ctx = cv.getContext("2d"); ctx.clearRect(0, 0, cv.width, cv.height); }
+
+  // Estado inicial: la mascota ya se asomó con la calificación, para que la primera vista muestre algo.
+  setTimeout(() => show("rating"), 400);
+})();
+</script>

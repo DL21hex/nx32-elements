@@ -294,3 +294,79 @@ describe("<nx-grid> como lista", () => {
     expect(scroller(el).getAttribute("aria-colcount")).toBe("2");
   });
 });
+
+describe("<nx-grid> en el celular (la lista)", () => {
+  const bar = (el: NxGrid) => el.querySelector<HTMLElement>(".nx-grid__bar")!;
+  const exportBtn = (el: NxGrid) => bar(el).lastElementChild as HTMLElement;
+  const facetBtn = (el: NxGrid) => bar(el).querySelector<HTMLButtonElement>('[aria-controls$="-facets"]')!;
+  const sheet = (el: NxGrid) => el.querySelector<HTMLDialogElement>(".nx-grid__sheet");
+
+  it("sin matriz, Vistas, Exportar ni «Guardar como vista»; en la tabla vuelven", () => {
+    const el = mount({ attrs: { "views-storage": "lista-test", layout: "matrix" } });
+    el.matrix = { rows: "area", cols: "estado" };
+    el.filters = [{ key: "area", op: "in", values: ["Cosecha"] }];
+    expect(el.querySelector<HTMLElement>(".nx-grid__layout")!.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>(".nx-grid__matrix")!.hidden).toBe(true);
+    expect(el.querySelector(".nx-grid__main")!.classList.contains("is-matrix")).toBe(false);
+    expect(el.querySelector<HTMLElement>(".nx-grid__views")!.hidden).toBe(true);
+    expect(exportBtn(el).hidden).toBe(true);
+    expect(el.querySelector("[data-save-view]")).toBeNull();
+    resize(700);
+    expect(el.querySelector<HTMLElement>(".nx-grid__layout")!.hidden).toBe(false);
+    expect(el.querySelector(".nx-grid__main")!.classList.contains("is-matrix")).toBe(true);
+    expect(el.querySelector<HTMLElement>(".nx-grid__views")!.hidden).toBe(false);
+    expect(exportBtn(el).hidden).toBe(false);
+    expect(el.querySelector("[data-save-view]")).not.toBeNull();
+  });
+
+  it("«Filtros» no arranca abierto y se abre como hoja, con «Ver …» para volver a la lista", () => {
+    const el = mount({ attrs: { "facets-open": "" } });
+    expect(el.facetsOpen).toBe(false);
+    expect(sheet(el)?.open ?? false).toBe(false);
+    facetBtn(el).click();
+    const dlg = sheet(el)!;
+    expect(dlg.open).toBe(true);
+    expect(dlg.hasAttribute("autofocus")).toBe(true);
+    expect(dlg.querySelector(".nx-grid__facets")).not.toBeNull();
+    const go = dlg.querySelector<HTMLButtonElement>(".nx-grid__sheet-foot .nx-grid__btn")!;
+    expect(go.textContent).toBe("Ver 300 filas");
+    const box = [...dlg.querySelectorAll<HTMLInputElement>('input[data-key="estado"]')].find((i) => i.dataset.value === "Retirado")!;
+    box.click();
+    expect(el.filters).toEqual([{ key: "estado", op: "in", values: ["Retirado"] }]);
+    expect(dlg.querySelector<HTMLButtonElement>(".nx-grid__sheet-foot .nx-grid__btn")!.textContent).toBe("Ver 30 de 300 filas");
+    go.click();
+    expect(dlg.open).toBe(false);
+    expect(el.facetsOpen).toBe(false);
+    expect(el.querySelector(".nx-grid__main > .nx-grid__facets")).not.toBeNull();
+  });
+
+  it("tocar fuera de la hoja la cierra", () => {
+    const el = mount();
+    facetBtn(el).click();
+    const dlg = sheet(el)!;
+    dlg.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(dlg.open).toBe(false);
+    expect(el.facetsOpen).toBe(false);
+  });
+
+  it("si la tabla se ensancha con la hoja abierta, el panel queda abierto en su lugar", () => {
+    const el = mount();
+    facetBtn(el).click();
+    resize(700);
+    expect(sheet(el)!.open).toBe(false);
+    expect(el.facetsOpen).toBe(true);
+    const aside = el.querySelector<HTMLElement>(".nx-grid__main > .nx-grid__facets")!;
+    expect(aside.hidden).toBe(false);
+  });
+
+  it("a la derecha va un estado de verdad, no un nombre con «Sin asignar» en ámbar", () => {
+    const jefe: GridColumn = { key: "jefe", label: "Jefe", options: [{ value: "Sin asignar", tone: "warning" }] };
+    const rows = ROWS.slice(0, 3).map((r, i) => ({ ...r, jefe: i ? "Ana María Torres" : "Sin asignar" }));
+    const el = mount({ columns: [COLS[0], jefe, COLS[3], COLS[4]], rows });
+    expect(row(el, 1).querySelector(".nx-grid__le")!.textContent).toBe("Activo");
+    expect(row(el, 1).querySelector(".nx-grid__lm")!.textContent).toBe("Ana María Torres");
+    const sin = mount({ columns: [COLS[0], jefe, COLS[3]], rows });
+    expect(row(sin, 0).querySelector(".nx-grid__le")).toBeNull();
+  });
+});
+

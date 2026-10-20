@@ -1,5 +1,22 @@
 # Registro de cambios
 
+## 0.27.1 — 2026-10-19
+
+- **`<nx-grid>` en el celular (la lista de 0.26.0), revisada en un teléfono de verdad.**
+  - **«Filtros» es una hoja desde abajo.** Abierto encima de la tabla, el panel dejaba la lista en
+    una franja (con `height="fill"` nada se desplaza). Ahora es un `<dialog>` modal con el mismo
+    panel, su propio desplazamiento y «Ver N filas» al pie (etiqueta nueva `seeRows`). Se cierra
+    también tocando fuera o con Escape. Nunca arranca abierto en la lista; si la tabla se ensancha
+    con la hoja abierta, el panel queda abierto en su lugar.
+  - **Los atajos como segmentos se desplazan dentro de su barra.** Antes, si no cabían, movían la
+    página entera de lado: su fila no se encogía por debajo del ancho de todos los segmentos.
+  - **La barra queda con lo que se usa en un celular.** La lista no muestra «Tabla | Matriz» (no
+    hay matriz en la lista; al volver a la tabla sigue como estaba), Vistas, Exportar ni «Guardar
+    como vista». «Ordenar por» no pasa del ancho de la barra.
+  - **A la derecha del renglón va un estado de verdad.** La elección automática tomaba una columna
+    de nombres cuya única opción con tono era «Sin asignar» (los jefes de Empleados), y cortaba el
+    nombre de cada persona. Ahora pide un `status` o una lista con tono en cada opción.
+
 ## 0.27.0 — 2026-10-19
 
 - **`<nx-tasks>`: la línea puede alimentar el formulario de la app (`capture="form"`) y entender

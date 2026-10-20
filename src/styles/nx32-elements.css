@@ -50,6 +50,7 @@
 @import "../components/parts/parts.css";
 @import "../components/phases/phases.css";
 @import "../components/flow/flow.css";
+@import "../components/lanes/lanes.css";
 @import "../components/alerts/alerts.css";
 @import "../components/insights/insights.css";
 @import "../components/actions/actions.css";

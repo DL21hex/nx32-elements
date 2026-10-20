@@ -2782,6 +2782,27 @@ flow.stages = [{ id: "ruta", label: "En ruta a finca", limit: 120 }, …, { id: 
 flow.items = [{ id: 84113, label: "SZLU4012039", sub: "KMZ426 · Jair Elles", times: { ruta: "2026-10-14T17:40:00Z", finca: … } }];
 flow.addEventListener("nx-flow-stage", (e) =&gt; filtrarLista(e.detail.stage));</code></pre>
         </template>
+        <template id="page-lanes">
+          <p class="eyebrow">Componentes</p>
+          <h1>Carriles <code class="tag">&lt;nx-lanes&gt;</code></h1>
+          <p class="lead">
+            Lo abierto de varios procesos, un punto por solicitud, para un monitor en la pared. Cada proceso es un carril con sus
+            bandejas en orden; el color es cuánto lleva sin moverse y el punto hueco espera a otro (el jefe, la EPS). Cada 2,5 s
+            algo se mueve: el punto viaja a su nueva bandeja, lo nuevo crece en su sitio y lo cerrado corre a la punta del riel y se apaga. El foco
+            rota cada 10 s por los carriles con atrasos. Datos inventados de Talento Humano.
+          </p>
+          <p class="sel-tip" id="lanes-focus"></p>
+          <nx-lanes id="lanes-demo" locale="es-CO" cycle="10" style="height: 640px"></nx-lanes>
+          <ol class="stage__log btn-events" id="lanes-log"></ol>
+
+          <h2>Uso</h2>
+          <pre><code>&lt;nx-lanes cycle="12" locale="es-CO" style="height: 100%"&gt;&lt;/nx-lanes&gt;
+lanes.labels = { item: "solicitud|solicitudes", oldest: "la más vieja {age}" };
+lanes.lanes = [{ id: "vac", label: "Vacaciones", stages: [{ id: "jefe", label: "Jefe", other: true }, { id: "rev", label: "Revisar", href: "/vac/rev" }] }];
+lanes.items = [{ id: 4821, label: "#4821", lane: "vac", stage: "rev", age: 12 }];   // age: días sin moverse
+lanes.addEventListener("nx-lanes-change", (e) =&gt; registrar(e.detail.moved, e.detail.added, e.detail.removed));
+lanes.addEventListener("nx-lanes-spotlight", (e) =&gt; pintarFoco(e.detail));</code></pre>
+        </template>
         <template id="page-board">
           <p class="eyebrow">Componentes</p>
           <h1>Tablero BI <code class="tag">&lt;nx-board&gt;</code> <code class="tag">&lt;nx-bars&gt;</code> <code class="tag">&lt;nx-heatmap&gt;</code></h1>

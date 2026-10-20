@@ -74,6 +74,7 @@ export const GRID_LABELS: GridLabels = {
   noSort: "Sin ordenar",
   sortAsc: "Orden ascendente",
   sortDesc: "Orden descendente",
+  seeRows: "Ver {rows}",
   export: "Exportar",
   exporting: "Exportando…",
   exported: "Se exportaron {n} filas",
@@ -749,6 +750,10 @@ export class NxGrid extends Base {
   #sortSel?: HTMLSelectElement;
   #sortDir?: HTMLButtonElement;
   #sortKey = "";
+  /** En la lista, «Filtros» es una hoja desde abajo: el diálogo, donde va el panel, y su botón. */
+  #sheet?: HTMLDialogElement;
+  #sheetBody?: HTMLDivElement;
+  #sheetGo?: HTMLButtonElement;
   #exportBtn?: HTMLButtonElement;
   #undoBtn?: HTMLButtonElement;
   #redoBtn?: HTMLButtonElement;
@@ -1599,6 +1604,7 @@ export class NxGrid extends Base {
     this.#raf = 0;
     // Un popover abierto que sale del DOM se oculta sin avisar: el panel se da por cerrado.
     this.#panel?.close();
+    if (this.#sheet?.open) this.#sheet.close();
     this.#viewsUI?.close();
     removeEventListener("storage", this.#onStorage);
     // Nada sigue trabajando para una tabla fuera del DOM: las esperas se cancelan y las peticiones
@@ -3024,8 +3030,10 @@ export class NxGrid extends Base {
     this.#groupSel!.value = groupable.some((c) => c.key === this.groupBy) ? this.groupBy : "";
     this.#paintSortBy();
     this.#exportBtn!.lastElementChild!.textContent = this.#exportBtn!.hasAttribute("aria-busy") ? L.exporting : L.export;
+    // En la lista (un celular) no se exporta ni se guardan vistas: la barra queda con lo que se usa.
+    this.#exportBtn!.hidden = this.#list;
     // Sin `views-storage` también, si hay atajos de menú («Seguimiento»).
-    this.#viewsBtn!.hidden = !this.viewsStorage && !this.#presets.some((p) => p.menu);
+    this.#viewsBtn!.hidden = this.#list || (!this.viewsStorage && !this.#presets.some((p) => p.menu));
     if (!this.#viewsUI) this.#viewsBtn!.lastElementChild!.textContent = L.views;
     this.#colsBtn!.hidden = this.#cols.length < 2;
     this.#colsBtn!.lastElementChild!.textContent = L.columns;
@@ -3045,7 +3053,7 @@ export class NxGrid extends Base {
         return h("span", { class: "nx-grid__chip" }, label, h("button", { type: "button", "data-i": i, "aria-label": `${L.remove}: ${text}` }, glyph(X)));
       }),
       ...(this.#filters.length ? [h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear)] : []),
-      ...(this.viewsStorage && this.#filters.length ? [h("button", { type: "button", class: "nx-grid__save-view", "data-save-view": "" }, L.saveView)] : []),
+      ...(this.viewsStorage && this.#filters.length && !this.#list ? [h("button", { type: "button", class: "nx-grid__save-view", "data-save-view": "" }, L.saveView)] : []),
       // El recorte de `client-only`, bajo el conteo que lo resume: su propio renglón (el aviso de las
       // vistas y el de la exportación lo pisarían).
       ...(!this.#server && this.#truncated ? [h("span", { class: "nx-grid__truncated" }, this.#truncText(this.#truncated))] : []),
@@ -3179,8 +3187,9 @@ export class NxGrid extends Base {
     const L = this.#labels;
     const bar = this.#layoutBar!;
     const cfg = this.#mxConfig();
-    const on = !!cfg && this.getAttribute("layout") === "matrix";
-    bar.hidden = !cfg;
+    // En la lista (un celular) no hay matriz ni su selector; al volver a la tabla, sigue como estaba.
+    const on = !!cfg && this.getAttribute("layout") === "matrix" && !this.#list;
+    bar.hidden = !cfg || this.#list;
     bar.setAttribute("aria-label", L.layout);
     for (const b of bar.querySelectorAll<HTMLElement>("[data-layout]")) {
       const mine = b.dataset.layout === "matrix";
@@ -3608,9 +3617,11 @@ export class NxGrid extends Base {
   #paintFacets(): void {
     const aside = this.#aside!;
     const open = this.facetsOpen && this.#facetList.length > 0;
+    this.#placeFacets(open);
     aside.hidden = !open;
     if (!open) return;
     const L = this.#labels;
+    if (this.#sheetGo) this.#sheetGo.textContent = this.#fmt(L.seeRows, { rows: this.#rowsText() });
     const focused = (document.activeElement as HTMLElement | null)?.closest?.<HTMLElement>("[data-focus]");
     const focusKey = aside.contains(focused ?? null) ? focused!.dataset.focus : undefined;
     // Lo marcado: un `in`, o lo que deja una exclusión («sin Cali», del filtro de la cabecera).
@@ -3670,6 +3681,42 @@ export class NxGrid extends Base {
     }
   }
 
+  /** En la lista, «Filtros» es una hoja desde abajo (un `<dialog>` modal): sobre la lista, con su
+   *  propio desplazamiento, y se cierra con «Ver …», tocando fuera o con Escape. Así la lista no
+   *  queda reducida a una franja bajo el panel. En la tabla, el panel vuelve a su lugar. */
+  #placeFacets(open: boolean): void {
+    const aside = this.#aside!;
+    if (this.#list && open) {
+      const sheet = this.#facetSheet();
+      if (aside.parentElement !== this.#sheetBody) this.#sheetBody!.append(aside);
+      if (!sheet.open && sheet.isConnected) sheet.showModal();
+      return;
+    }
+    if (this.#sheet?.open) this.#sheet.close();
+    if (aside.parentElement !== this.#main) this.#main!.prepend(aside);
+  }
+
+  /** La hoja de «Filtros» de la lista, la primera vez que hace falta. El foco va al propio diálogo
+   *  (`autofocus`): en un celular, caer en el buscador de una faceta abriría el teclado. */
+  #facetSheet(): HTMLDialogElement {
+    if (this.#sheet) return this.#sheet;
+    const go = (this.#sheetGo = h("button", { type: "button", class: "nx-grid__btn is-primary" }));
+    const body = (this.#sheetBody = h("div", { class: "nx-grid__sheet-body" }));
+    const sheet = (this.#sheet = h("dialog", { class: "nx-grid__sheet", autofocus: true, "aria-label": this.#labels.filters, "data-nx-ephemeral": "" }, body, h("div", { class: "nx-grid__sheet-foot" }, go)));
+    go.addEventListener("click", () => sheet.close());
+    // Tocar fuera cierra: en un diálogo modal, el clic en el fondo llega al propio diálogo.
+    sheet.addEventListener("click", (e) => {
+      if (e.target === sheet) sheet.close();
+    });
+    // Cerrada en la lista (el botón, el fondo, Escape), el panel queda cerrado. Al pasar a la tabla se
+    // cierra sin cambiar `facets-open`: el panel sigue abierto a su lado.
+    sheet.addEventListener("close", () => {
+      if (this.#list && this.facetsOpen) this.facetsOpen = false;
+    });
+    this.append(sheet);
+    return sheet;
+  }
+
   /** Lleva el desplazamiento horizontal de `from` a `to`, en proporción a sus recorridos: la barra
    *  de arriba es más ancha que el área visible de la tabla (no tiene su barra vertical ni sus bordes)
    *  y así los dos extremos coinciden, también en RTL (`scrollLeft` negativo). Con la barra apagada no
@@ -3723,6 +3770,12 @@ export class NxGrid extends Base {
     this.#dragging = false;
     this.#anchor = this.#act;
     this.#scroll!.setAttribute("aria-colcount", String(this.#colCount()));
+    // En la lista, «Filtros» es una hoja que se abre con su botón: no queda abierta al llegar.
+    if (on && this.facetsOpen) {
+      this.#quiet = true;
+      this.facetsOpen = false;
+      this.#quiet = false;
+    }
     if (!paint) return;
     this.#win = { start: -1, end: -1 };
     this.#footDirty = true;
@@ -3927,8 +3980,9 @@ export class NxGrid extends Base {
   /** Qué columna va en cada lugar del renglón de la lista. Si alguna columna trae `list`, solo esas
    *  (en `meta`, las dos primeras; sin `title`, la primera columna). Si ninguna, las elige la
    *  tabla: el título es la primera fija (`sticky`), la del avatar o del enlace, o la primera de
-   *  texto; a la derecha, el primer estado (o columna con tonos) y el primer punto (`dot`); debajo,
-   *  las dos primeras columnas de texto que quedan. Solo columnas a la vista (no las escondidas). */
+   *  texto; a la derecha, el primer estado (`status`, o una lista con tono en cada opción) y el
+   *  primer punto (`dot`); debajo, las dos primeras columnas de texto que quedan. Solo columnas a la
+   *  vista (no las escondidas). */
   #listSlots(): ListSlots | null {
     const cols = this.#columns;
     if (this.#slots?.for === cols) return this.#slots.s;
@@ -3939,7 +3993,10 @@ export class NxGrid extends Base {
         const title = by("title")[0] ?? cols[0];
         s = { title, meta: by("meta").filter((c) => c !== title).slice(0, 2), end: by("end")[0], endMeta: by("end-meta")[0] };
       } else {
-        const toned = (c: GridColumn) => colType(c) === "status" || !!c.options?.some((o) => o.tone);
+        // Un estado: `status`, o una lista cerrada con tono en cada opción. Una columna de texto
+        // con una sola opción con tono («Sin asignar» en un jefe) es de nombres, no un estado: a la
+        // derecha cortaría el título.
+        const toned = (c: GridColumn) => colType(c) === "status" || (!!c.options && c.options.length > 1 && c.options.every((o) => o.tone));
         const title = cols.find((c) => c.sticky) ?? cols.find((c) => c.avatar || c.link || c.href) ?? cols.find((c) => colType(c) === "text") ?? cols[0];
         const end = cols.find((c) => c !== title && toned(c));
         const endMeta = cols.find((c) => c !== title && c !== end && c.dot);

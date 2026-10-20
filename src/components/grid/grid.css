@@ -274,6 +274,9 @@ nx-grid .nx-glyph {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 16px;
+  /* Sin esto, el mínimo de la fila es el ancho de todos los segmentos juntos: en un celular empujaba
+     la página entera a lo ancho. Así los segmentos se desplazan dentro de su barra. */
+  min-inline-size: 0;
 }
 .nx-grid__segments {
   display: inline-flex;
@@ -2039,6 +2042,76 @@ nx-grid .nx-grid__lav-check svg {
     font-weight: 400;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+/* «Ordenar por» no pasa del ancho de la barra (un nombre de columna largo): se corta. */
+.nx-grid__sortby {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  text-overflow: ellipsis;
+}
+/* «Filtros» en la lista: una hoja desde abajo, sobre la lista, con su propio desplazamiento. */
+.nx-grid__sheet {
+  inset: auto 0 0;
+  inline-size: 100%;
+  max-inline-size: none;
+  max-block-size: 85dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--nx-card);
+  box-shadow: var(--nx-shadow-popover);
+  color: var(--nx-foreground);
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+    animation: nx-grid-sheet var(--nx-motion-base) var(--nx-ease-out);
+  }
+  &:focus {
+    outline: 0;
+  }
+  &::backdrop {
+    background: var(--nx-backdrop);
+  }
+}
+@keyframes nx-grid-sheet {
+  from {
+    translate: 0 24px;
+    opacity: 0;
+  }
+}
+.nx-grid__sheet-body {
+  flex: 1;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+}
+/* El panel, ya sin su caja: la hoja es la caja. */
+.nx-grid__sheet > .nx-grid__sheet-body > .nx-grid__facets {
+  display: block;
+  inline-size: auto;
+  max-block-size: none;
+  margin: 0;
+  padding: 14px 0 8px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+.nx-grid__sheet-foot {
+  display: flex;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  border-block-start: 1px solid var(--nx-border-subtle);
+
+  & > .nx-grid__btn {
+    flex: 1;
+    block-size: 44px;
+    justify-content: center;
   }
 }
 /* El sentido del orden: la flecha mira hacia arriba (ascendente) o hacia abajo. */

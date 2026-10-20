@@ -161,6 +161,8 @@ test("barra de arriba: aparece si no cabe, va sobre la tabla, la lleva hasta el 
 test("barra de arriba: en una pantalla angosta va entre el panel y la tabla; en RTL llega al final", async ({ page }) => {
   await page.setViewportSize({ width: 560, height: 900 });
   await open(page, "#/grid");
+  // Es la tabla angosta (su barra de arriba), no la lista de un celular (`narrow`, menos de 480 px).
+  await grid(page).evaluate((g) => g.setAttribute("narrow", "table"));
   // Angosta, `facets-open` no abre el panel de arranque (iría encima y empujaría la tabla): lo abre
   // el botón «Filtros», y lo que abre quien mira se queda abierto.
   const toggle = grid(page).locator(".nx-grid__bar .nx-grid__btn[aria-controls]");

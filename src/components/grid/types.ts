@@ -162,6 +162,8 @@ export interface GridLabels {
   /** El botón del sentido del orden. */
   sortAsc: string;
   sortDesc: string;
+  /** En la lista, el botón que cierra la hoja de «Filtros»: «Ver {rows}» (el conteo de la tabla). */
+  seeRows: string;
   export: string;
   exporting: string;
   exported: string;

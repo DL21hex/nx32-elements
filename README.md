@@ -703,6 +703,8 @@ grid.addEventListener("nx-grid-error", (e) => {
   el conteo y en «Todos», la región viva y el evento `nx-grid-truncated` (`{shown, total}`; `total`
   es el del origen, o las filas que llegaron si dice menos). Sin `client-only`, `client-max` sigue
   como antes.
+- **Atajos como segmentos (`segments`, o con `heading`).** Si no caben a lo ancho, se desplazan
+  dentro de su barra: la página no se mueve de lado.
 - **Barra horizontal también arriba.** Una tabla ancha lleva su barra de desplazamiento horizontal
   también encima de las columnas: la propia queda al pie de su caja y había que bajar hasta allá
   para moverla. Viene encendida; `top-scrollbar="false"` (`topScrollbar={false}` en Solid y en BDUI)
@@ -842,19 +844,23 @@ grid.addEventListener("nx-grid-error", (e) => {
   la tabla (cinco datos por fila, no todas las columnas). Qué columna va en cada lugar lo dice `list`
   en la columna: `"title"`, `"meta"` (hasta dos), `"end"` o `"end-meta"`; si alguna lo trae, van
   solo esas. Si ninguna, la tabla elige: el título es la columna fija (`sticky`), la del avatar o
-  la del enlace, o la primera de texto; a la derecha, el primer estado (o columna con tonos) y el
-  primer punto (`dot`); debajo, las dos primeras columnas de texto que quedan. Solo cuentan las
-  columnas a la vista. Un toque abre la fila (`nx-grid-open`); con `href`, el renglón es el enlace.
+  la del enlace, o la primera de texto; a la derecha, el primer estado (`status`, o una lista con
+  tono en cada opción: una columna de nombres con «Sin asignar» en ámbar no cuenta) y el primer
+  punto (`dot`); debajo, las dos primeras columnas de texto que quedan. Solo cuentan las columnas a
+  la vista. Un toque abre la fila (`nx-grid-open`); con `href`, el renglón es el enlace.
   Con `selectable`, el círculo es la casilla y, con algo marcado, tocar una fila la marca (como en
-  el correo del celular). Sin cabecera, se ordena con «Ordenar por» y su flecha en la barra; los
-  filtros siguen en «Filtros», la búsqueda y los chips, y el grupo es un renglón con sus subtotales
-  que se pliega tocándolo. La lista no edita, no marca rangos ni pega (lo que se editaba en la tabla
+  el correo del celular). Sin cabecera, se ordena con «Ordenar por» y su flecha en la barra; el
+  grupo es un renglón con sus subtotales que se pliega tocándolo. «Filtros» se abre como una hoja
+  desde abajo (un `<dialog>` modal, con su propio desplazamiento y «Ver N filas» al pie; también se
+  cierra tocando fuera o con Escape), así la lista no queda reducida a una franja; al pasar a lista
+  el panel se cierra, y si la tabla se ensancha con la hoja abierta, queda abierto en su lugar. La
+  barra queda con lo que se usa en un celular: sin «Tabla | Matriz» (no hay matriz en la lista; al
+  volver a la tabla sigue como estaba), Vistas, Exportar ni «Guardar como vista». La lista no edita, no marca rangos ni pega (lo que se editaba en la tabla
   se guarda al pasar a lista) y no muestra Deshacer ni Rehacer; las acciones de fila van al final
   del renglón. Teclado: ↑/↓, Re Pág/Av Pág, Inicio y Fin; Enter abre, Espacio marca. Vuelve a ser
   tabla desde 496 px (el margen evita que cambie una y otra vez justo en el borde) y la fila de
   arriba sigue arriba al cambiar. `narrow="table"` (también en Solid y BDUI) la deja como tabla,
-  para las que se llenan celda por celda; el atributo `data-list` dice cuál se ve. La matriz no
-  cambia.
+  para las que se llenan celda por celda; el atributo `data-list` dice cuál se ve.
 - **Acciones de fila (`actions`).** Botones en una columna fija a la derecha, opaca, que no se
   filtra, no se busca, no se exporta y no está en «Columnas». Cada acción tiene `key` y `label`;
   con `icon` (del registro) queda solo el ícono, con su nombre en `aria-label` y `title`; `tone:

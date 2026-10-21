@@ -55,7 +55,11 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
 | `<nx-tasks>` + lector de fechas + núcleo (ESM); la lista del `@` y el dictado se cargan aparte | ≈ 14,0 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
-| `<nx-form>` + campo + núcleo (ESM); `<nx-number>` y `<nx-select>` se cargan si el esquema los usa | ≈ 20 KB |
+| `<nx-form>` + campo + núcleo (ESM); `<nx-number>`, `<nx-select>`, `<nx-otp>` y `<nx-password>` se cargan si el esquema los usa | ≈ 21,7 KB |
+| `<nx-otp>` + núcleo (ESM) | ≈ 3,4 KB |
+| `<nx-password>` + núcleo (ESM) | ≈ 6,4 KB |
+| `<nx-entries>` + núcleo (ESM); el panel (`<nx-dialog>`, `<nx-form>`) se carga al abrirlo | ≈ 6,2 KB |
+| `<nx-documents>` + núcleo (ESM); el panel y `<nx-handoff>` se cargan al abrirlo | ≈ 8,4 KB |
 | `nx32-elements.css` (tokens + todos los componentes) | ≈ 70 KB |
 | `nx32-elements.iife.js` todo-en-uno con íconos | ≈ 407 KB |
 
@@ -2731,8 +2735,8 @@ guardar.onclick = async () => {
 | | |
 |---|---|
 | `<nx-dialog>` (ficha) | `avatar`, `badge`, `badge-tone`, `badges` (`[{label, tone?}]`: otras señales después del estado, «Extemporánea»), `nav` (`"prev next"`, `"next"`, `"prev"`, `""`), `actions` (`[{id, label, danger?, disabled?, icon?}]`) · `requestNav(dir)` → si pasó · `nx-dialog-nav` `{dir}` (cancelable; con cambios sin guardar, después de «Descartar»), `nx-dialog-action` `{id}` · pone `--nx-sticky-top` (alto de su cabecera) |
-| `<nx-fields>` | `items` (`[{key?, label, value, wide?, format?, currency?, href?, copy?, mono?, readonly?, input?}]`; `format`: `text`, `number`, `money`, `date`; `input`: `{type?, options?, required?, placeholder?, hint?, rows?}`), `variant` (`grid` / `summary`), `columns` (1–4), `heading`, `action`, `editing`, `errors`, `locale`, `currency`, `labels` · `values`, `validate()`, `focusField(key)`, `reset()` · `nx-fields-action` `{action}` |
-| `<nx-tabs>` | hijos con `data-tab`, `data-value`, `data-count`, `data-errors`, `data-disabled`, o `tabs` (`[{value, label, count?, errors?, disabled?}]`) · `value`, `sticky`, `label`, `labels` · `nx-tabs-change` `{value, previous}` (cancelable) |
+| `<nx-fields>` | `items` (`[{key?, label, value, wide?, format?, currency?, href?, copy?, mono?, readonly?, input?}]`; `format`: `text`, `number`, `money`, `date`; `input`: `{type?, options?, required?, placeholder?, hint?, rows?}`; `verified`, `masked`, `pending`: ver «La página de una persona»), `variant` (`grid` / `summary`), `columns` (1–4), `heading`, `action`, `note`, `note-icon` (`lock` / `info`), `editing`, `errors`, `locale`, `currency`, `labels` · `values`, `validate()`, `focusField(key)`, `reset()` · `nx-fields-action` `{action, key?}`, `nx-fields-pending` `{key, action, item}` |
+| `<nx-tabs>` | hijos con `data-tab`, `data-value`, `data-count`, `data-errors`, `data-disabled`, `data-status`, `data-tone`, `data-icon`, o `tabs` (`[{value, label, count?, errors?, disabled?, status?, tone?, icon?}]`) · `value`, `sticky`, `orientation` (`horizontal` / `vertical`), `label`, `labels` · `nx-tabs-change` `{value, previous}` (cancelable) · CSS `--nx-tabs-side` (232 px), `--nx-tabs-gap` (28 px) |
 | `<nx-notice>` | `tone` (`info`, `success`, `warning`, `danger`), `text`, `action`, `action-href` · `nx-notice-action` `{action}` |
 | `<nx-badge>` | `tone` (`neutral`, `success`, `info`, `warning`, `danger`), `label` (si no va como contenido) |
 | `<nx-actions>` | `items` (`[{id, label, description?, icon?, danger?, disabled?, href?, newTab?, download?}]`), `busy` (el `id` que corre), `labels` (`group`) · `nx-actions-action` `{id, item}` (solo los botones) · BDUI `Actions` |
@@ -2754,7 +2758,11 @@ lo escrito no se pierde.
   `text`, `email`, `tel`, `url`, `textarea`, `number`, `money` y `percent` (son `<nx-number>`, que
   se carga solo si el esquema los tiene), `date`, `select`, `radio`, `segmented` (radios como
   botones pegados), `checkbox`, `checkboxes`, `readonly` (un valor que no se edita aquí, con
-  candado), `rows` y `file`. Nada es una función: todo puede venir del backend (BDUI).
+  candado), `rows`, `file`, `otp` (un código en casillas, `<nx-otp>`; `maxLength` es cuántas) y
+  `password` (`<nx-password>`; con `meter`, `avoid`, `match`, `differs` y `breachEndpoint`, ver «La
+  página de una persona»). Una contraseña o un código no van al borrador, `fill()` no los llena, no
+  se recortan al salir, en lectura se ven como puntos y no van dentro de `rows`. Nada es una
+  función: todo puede venir del backend (BDUI).
 - **Un enlace bajo el campo (`link`).** `{label: "Descargar formato", href: "/formatos/descarte.pdf"}`:
   un botón secundario pequeño después de la ayuda, en cualquier tipo de campo (también bajo un
   `readonly` que trae la nota, o al pie de un grupo `rows`). **Siempre abre en otra pestaña**
@@ -2876,9 +2884,101 @@ descargar), en otra pestaña y también en lectura. Las clases `.nx-input`, `.nx
 | | |
 |---|---|
 | `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources`, `dirty` (lo que se ve difiere de lo último cargado con `values` o con un `fill()` sin origen; escribir y borrar vuelve a `false`), `markClean()` · `nx-form-change` `{key, value, values}`, `nx-form-dirty` `{dirty}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
-| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes), link? ({label, href}: un enlace debajo, en otra pestaña)}` |
+| Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes), link? ({label, href}: un enlace debajo, en otra pestaña), meter?, avoid?, match?, differs?, breachEndpoint? (password)}` |
 | `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `link-label` + `link-href` (un enlace debajo, en otra pestaña; también con `text`), `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |
+
+## La página de una persona: `<nx-entries>`, `<nx-documents>`, `<nx-otp>` y `<nx-password>`
+
+**«Mi perfil»** (o la ficha de un empleado vista por él mismo): sus datos, su familia, su hoja de
+vida, sus documentos y su seguridad. Las piezas de siempre se arman así, y estas cuatro cubren lo que
+faltaba (galería: `#/profile`, la propuesta A de `maquetas/nx-perfil.html`):
+
+- **El índice al lado.** `<nx-tabs orientation="vertical">` con una línea de estado por sección
+  (`data-status`, `data-tone`, `data-icon`): «Falta la talla de calzado», «Faltan 2 · 1 por
+  vencer». Arriba y abajo se mueven; en menos de 640 px vuelve a ser la tira de arriba y el estado
+  queda como un punto (el lector lo sigue diciendo).
+- **Los datos en `<nx-fields>`**, con lo que un perfil necesita: `note` bajo el título («Lo
+  administra Talento Humano»; `note-icon="info"` para una aclaración), `verified` en un dato («✓
+  Verificado»), `masked` (el salario como «••••••••» con «Mostrar»), `pending` (un cambio pedido que
+  todavía no se aplica, debajo del de hoy, con su acción: `nx-fields-pending`) y, al leer, «Falta ·
+  Agregar» en un dato obligatorio vacío (`nx-fields-action` con su `key`).
+- **`<nx-entries>`: registros que se repiten.** Las personas del núcleo familiar, la experiencia,
+  los estudios, los cursos, las sesiones abiertas, las autorizaciones. Cada uno en pocas líneas: la
+  cara (iniciales con el color de la persona, foto o ícono), el título y su píldora, `meta` y
+  `detail`, etiquetas, lo que lo respalda con un visto (`proof`) y un aviso con su acción dentro del
+  registro (`note`). Con `schema` (campos de `<nx-form>`), agregar y editar abren un panel con el
+  formulario; al enviar bien sale `nx-entries-save` y la app asigna `items` (lo nuevo se ilumina).
+  Quitar se confirma en el mismo registro, diciendo qué pasa (`removeText`). `locked` lleva candado
+  y su razón; `readonly`, todo para leer; `layout`: `list`, `cards` o `timeline` (la trayectoria
+  dentro de la empresa).
+- **`<nx-documents>`: los documentos de la persona.** En tarjetas, con su estado calculado con la
+  fecha de hoy (falta, rechazado, vencido, vence en N días, en revisión, vigente) y lo que pide
+  atención primero. El detalle dice qué se leyó, qué se comprobó, quién lo pide y **quién lo ha
+  usado** («Viáticos · VIA-0331 · tiquete a Bogotá»). Subir o reemplazar: el archivo (o la foto del
+  celular con `handoff-endpoint`) sale en `nx-documents-file`, la app lo lee y lo guarda, y el panel
+  muestra cómo quedó. `summaryText` («Falta 1 · 1 por vencer») es el estado de su pestaña. El
+  contrato del servidor que hace que otro módulo tome el documento sin pedirlo otra vez está en
+  `src/components/documents/INTEGRATION.md`.
+- **`<nx-otp>`: el código en casillas.** Se escribe de corrido, se pega o lo llena el celular
+  (`autocomplete="one-time-code"`, entero en la primera casilla); `nx-otp-complete` sale una vez, en
+  el turno siguiente al evento que llenó la última casilla: un error de verificación que la app
+  pinta ahí no lo borra ese mismo `input`. Control de formulario (`name`, `required`).
+- **`<nx-password>`: la contraseña.** El ojo y el aviso de mayúsculas; con `meter`, el medidor de
+  cuatro tramos con su nivel en palabras y las condiciones que se van cumpliendo: el largo
+  (`min-length`, 12), sin el nombre ni el documento (`avoid`), no ser de las más usadas, no aparecer
+  en filtraciones (`breach-endpoint`, por k-anonimato: solo los 5 primeros caracteres del SHA-1
+  salen del navegador) y distinta de la actual (`differs`); `match` para «Repítela». La contraseña no
+  va a ningún atributo, no se repone al volver con «atrás», `nx-password-change` no la trae y BDUI
+  no la acepta en un payload.
+- **El QR de la app autenticadora** sale de `qrMatrix()` y `qrSvgPath()` (`nx32-elements/handoff`).
+
+```html
+<nx-page-header heading="Laura Marcela Gómez Restrepo" subheading="Analista de nómina sénior · Nómina"
+  avatar="Laura Gómez" avatar-action="Cambiar la foto"></nx-page-header>
+<nx-tabs orientation="vertical" label="Secciones del perfil">
+  <section data-tab="Empleado" data-icon="user" data-status="Falta la talla de calzado" data-tone="warning">
+    <nx-fields heading="Contrato" note="Lo administra Talento Humano." items='[{"label":"Salario básico","value":5240000,"format":"money","masked":true,"readonly":true}]'></nx-fields>
+  </section>
+  <section data-tab="Núcleo familiar" data-icon="users">
+    <nx-entries id="familia" heading="Núcleo familiar" add-label="Agregar persona"></nx-entries>
+  </section>
+  <section data-tab="Documentos" data-icon="file-text">
+    <nx-documents id="docs" handoff-endpoint="/api/handoff"></nx-documents>
+  </section>
+  <section data-tab="Seguridad" data-icon="shield">
+    <nx-field label="Contraseña nueva"><nx-password id="nueva" meter avoid='["Laura","1036482117"]' breach-endpoint="/api/pwned/range"></nx-password></nx-field>
+    <nx-field label="Código de la app"><nx-otp id="codigo"></nx-otp></nx-field>
+  </section>
+</nx-tabs>
+```
+
+```js
+familia.schema = [{ key: "nombres", label: "Nombres", required: true }, { key: "nacimiento", label: "Nacimiento", type: "date" }];
+familia.items = [{ id: "sofia", title: "Sofía Pérez Gómez", meta: "Hija · 13 años", avatar: "Sofía Pérez",
+  note: { text: "La caja pide el certificado escolar de 2026.", action: "Subir certificado" }, values: { nombres: "Sofía" } }];
+familia.addEventListener("nx-entries-save", async (e) => {
+  e.preventDefault();                                   // el panel espera al servidor
+  const r = await api.guardarFamiliar(e.detail.id, e.detail.values);
+  if (r.errors) familia.errors = r.errors;
+  else { familia.items = r.items; familia.close(); }
+});
+docs.addEventListener("nx-documents-file", async (e) => {
+  docs.busy = e.detail.id;
+  docs.items = await api.subirDocumento(e.detail.id, e.detail.file);   // el documento leído y guardado
+  docs.busy = null;
+});
+codigo.addEventListener("nx-otp-complete", async (e) => {
+  if (!(await api.verificar(e.detail.value))) { campo.setAttribute("error", "Ese código no coincide"); codigo.clear(); }
+});
+```
+
+| | |
+|---|---|
+| `<nx-entries>` | `items` (`[{id, title, meta?, detail?, avatar?, icon?, badge?, badgeTone?, tags?, proof?, note?: {text, tone?, action?}, locked?, removable?, removeText?, values?}]`), `schema` (campos o secciones de `<nx-form>`), `errors`, `heading`, `heading-level` (3), `add-label`, `empty`, `layout` (`list` / `cards` / `timeline`), `readonly`, `labels` · `edit(id \| null)`, `close()`, `form` · `nx-entries-edit` `{id, item}` (cancelable), `nx-entries-open` `{id, form}`, `nx-entries-save` `{id, item, values, sources}` (cancelable), `nx-entries-remove` `{id, item}` (cancelable), `nx-entries-action` `{id, action, item}` |
+| `<nx-documents>` | `items` (`[{id, name, status?, kind?, thumbnail?, detail?, reason?, expires?, issued?, askedBy?, uses?: [{at, by, purpose?}], fields?: [{label, value}], checks?, addedAt?, addedBy?, note?, href?, replaceable?}]`; `status`: `ok`, `missing`, `review`, `rejected`; `kind`: `id`, `page`, `passport`, `card`, `photo`, `signature`, `stack`, `medical`), `today`, `soon` (60), `accept`, `max-size` (20 MB), `handoff-endpoint`, `busy`, `order` (`status` / `none`), `locale`, `labels` · `open(id)`, `upload(id)`, `close()`, `summary`, `summaryText` · `nx-documents-open`, `nx-documents-upload` (cancelables), `nx-documents-file` `{id, item, file}` (cancelable) · `documentState()`, `documentsSummary()`, `sortDocuments()` |
+| `<nx-otp>` | `value`, `length` (4–8, 6), `kind` (`numeric` / `alphanumeric`), `name`, `required`, `disabled`, `label`, `labels` · `complete`, `clear()`, `focus()` · `nx-otp-change` `{value, complete}`, `nx-otp-complete` `{value}` · `sanitizeOtp()`, `spreadOtp()` |
+| `<nx-password>` | `name`, `required`, `disabled`, `readonly`, `placeholder`, `autocomplete`, `label`, `meter`, `min-length` (12), `avoid`, `match`, `differs`, `breach-endpoint`, `labels` · `value` (solo por código), `rules`, `strength` (0–4) · `nx-password-change` `{strength, ok, rules}` · `passwordRules()`, `passwordStrength()`, `isCommon()`, `hasPersonal()`, `breachCount()`, `sha1Hex()` |
 
 ## `<nx-page-header>`
 
@@ -2915,14 +3015,18 @@ tabla que es el contenido pinta sus atajos sin título propio (`<nx-grid segment
   Un `<dl>` con el valor arriba y la etiqueta abajo; un número sale con el locale; `tone`
   (`neutral`, `info`, `success`, `warning`, `danger`) colorea solo el cambio, que nunca se parte. En
   el celular van de a dos. Las dos listas aceptan JSON en el atributo.
+- **La página de una persona** (`avatar`): su nombre (las iniciales, con un color que sale del
+  nombre) o la dirección de su foto, más grande y en lugar de `heading-icon`, a la izquierda del
+  título y del subtítulo. Con `avatar-action` («Cambiar la foto») lleva un botón que avisa con
+  `nx-page-header-avatar`.
 - El orden en pantalla: la ruta; el título y las acciones; los enlaces; las cifras; la navegación.
 - El velo del acento es del contenedor de la página (`data-nx-page`), no de la cabecera.
 
 | | |
 |---|---|
-| Propiedades | `heading`, `headingIcon` (`heading-icon`, un nombre del registro; si no está, no se pinta), `subheading`, `kpis`, `links`, `labels` (`kpis`, `links`: los nombres de los grupos para el lector), `locale` |
+| Propiedades | `heading`, `headingIcon` (`heading-icon`, un nombre del registro; si no está, no se pinta), `subheading`, `avatar`, `avatarAction` (`avatar-action`), `kpis`, `links`, `labels` (`kpis`, `links`: los nombres de los grupos para el lector), `locale` · CSS `--nx-page-avatar` (64 px) |
 | Hijos | la ruta (sin `slot`), `slot="actions"`, `slot="nav"` |
-| Eventos | ninguno: las acciones, los enlaces y la ruta traen los suyos |
+| Eventos | `nx-page-header-avatar` `{action}`; las acciones, los enlaces y la ruta traen los suyos |
 
 ## `<nx-breadcrumb>`
 

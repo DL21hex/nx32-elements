@@ -31,6 +31,11 @@ export interface PageHeaderLink {
   download?: boolean | string;
 }
 
+/** `nx-page-header-avatar`: se pulsó el botón del avatar («Cambiar la foto»). */
+export interface PageHeaderAvatarDetail {
+  action: string;
+}
+
 export interface PageHeaderLabels {
   /** Nombre de las cifras para el lector de pantalla. */
   kpis: string;

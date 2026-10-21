@@ -10,7 +10,20 @@ export interface TabItem {
   /** Errores de un formulario en esa pestaña: un contador en rojo (gana sobre `count`). */
   errors?: number;
   disabled?: boolean;
+  /** Una línea de estado debajo de la etiqueta («Falta la talla de calzado»). Se ve en el índice
+   *  vertical; en la tira horizontal queda solo su punto y el lector la dice. */
+  status?: string;
+  /** El color del punto del estado (el texto ya lo dice). Sin él, gris. */
+  tone?: TabTone;
+  /** Un ícono registrado (`registerIcons`) antes de la etiqueta, en el índice vertical. */
+  icon?: string;
 }
+
+export type TabTone = "neutral" | "info" | "success" | "warning" | "danger";
+
+/** `horizontal` (por defecto): la tira arriba. `vertical`: el índice al lado de los paneles; en un
+ *  contenedor angosto vuelve a ser la tira. */
+export type TabsOrientation = "horizontal" | "vertical";
 
 /** `nx-tabs-change`. */
 export interface TabsChangeDetail {

@@ -129,6 +129,144 @@ nx-dialog > nx-tabs:not(.nx-dialog__head) {
   }
 }
 
+/* ---------------------------------------------------------------- el estado de cada pestaña */
+/* En la tira horizontal, solo el punto (el texto lo dice el lector). */
+.nx-tabs__label {
+  min-inline-size: 0;
+}
+.nx-tabs__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+}
+.nx-tabs__dot {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--nx-text-quaternary);
+}
+.nx-tabs__status[data-tone="success"] .nx-tabs__dot {
+  background: var(--nx-success);
+}
+.nx-tabs__status[data-tone="info"] .nx-tabs__dot {
+  background: var(--nx-primary);
+}
+.nx-tabs__status[data-tone="warning"] .nx-tabs__dot {
+  background: var(--nx-warning);
+}
+.nx-tabs__status[data-tone="danger"] .nx-tabs__dot {
+  background: var(--nx-danger);
+}
+.nx-tabs__status-t {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.nx-tabs__icon {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- índice vertical */
+/* `orientation="vertical"`: el índice a un lado (`--nx-tabs-side`, 232 px) y el panel al otro. Bajo
+   640 px (`data-narrow`, lo pone el componente) vuelve a ser la tira de arriba. */
+nx-tabs[orientation="vertical"]:not([data-narrow]) {
+  display: grid;
+  grid-template-columns: var(--nx-tabs-side, 232px) minmax(0, 1fr);
+  column-gap: var(--nx-tabs-gap, 28px);
+  align-items: start;
+
+  & > .nx-tabs__list {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    gap: 2px;
+    overflow: visible;
+    box-shadow: none;
+  }
+  &[sticky] > .nx-tabs__list {
+    background: transparent;
+  }
+  & > [role="tabpanel"] {
+    grid-column: 2;
+    grid-row: 1;
+    min-inline-size: 0;
+    padding-block-start: 0;
+  }
+  & .nx-tabs__tab {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 10px;
+    align-items: center;
+    block-size: auto;
+    min-block-size: 40px;
+    padding: 8px 10px;
+    border-radius: var(--nx-radius-md);
+    text-align: start;
+    white-space: normal;
+
+    &:hover:not(:disabled) {
+      background: var(--nx-hover);
+    }
+    &[aria-selected="true"] {
+      background: var(--nx-nav-active-bg);
+    }
+    &[aria-selected="true"]::after {
+      inset-inline: 0 auto;
+      inset-block: 9px;
+      inline-size: 2px;
+      block-size: auto;
+    }
+    &[aria-selected="true"] .nx-tabs__icon {
+      color: var(--nx-primary-ink);
+    }
+  }
+  & .nx-tabs__icon {
+    display: inline-flex;
+    grid-column: 1;
+    color: var(--nx-text-tertiary);
+  }
+  & .nx-tabs__label {
+    grid-column: 2;
+    font-weight: 550;
+  }
+  /* Sin ícono, la etiqueta ocupa también su lugar. */
+  & .nx-tabs__tab:not(:has(.nx-tabs__icon)) .nx-tabs__label {
+    grid-column: 1 / 3;
+  }
+  & .nx-tabs__count {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  & .nx-tabs__status {
+    grid-column: 2 / -1;
+    color: var(--nx-text-tertiary);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  & .nx-tabs__tab:not(:has(.nx-tabs__icon)) .nx-tabs__status {
+    grid-column: 1 / -1;
+  }
+  & .nx-tabs__status[data-tone="warning"] {
+    color: var(--nx-warning-ink);
+  }
+  & .nx-tabs__status[data-tone="danger"] {
+    color: var(--nx-danger);
+  }
+  & .nx-tabs__status-t {
+    position: static;
+    inline-size: auto;
+    block-size: auto;
+    overflow: hidden;
+    clip-path: none;
+    text-overflow: ellipsis;
+  }
+}
+
 /* Alto contraste: el subrayado es un fondo, que el sistema borra; la activa lo conserva en Highlight. */
 @media (forced-colors: active) {
   .nx-tabs__tab[aria-selected="true"]::after {

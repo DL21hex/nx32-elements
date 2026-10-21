@@ -19,14 +19,18 @@
  */
 import { Base, boolAttr, upgrade } from "../../core/define";
 import { h } from "../../core/dom";
+import { hasIcon, icon } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, unwatchLang, watchLang } from "../../core/locale";
 import { focusFrom, hasStops, readingFlow, stepTab, tabOrder, tabThrough } from "../../core/order";
-import type { TabItem, TabsChangeDetail, TabsLabels } from "./types";
+import type { TabItem, TabsChangeDetail, TabsLabels, TabsOrientation, TabTone } from "./types";
 
 export const TABS_LABELS: TabsLabels = { errors: "{n} por corregir" };
 
-const WATCH = ["data-tab", "data-value", "data-count", "data-errors", "data-disabled"];
+const WATCH = ["data-tab", "data-value", "data-count", "data-errors", "data-disabled", "data-status", "data-tone", "data-icon"];
+const TONES = new Set<TabTone>(["neutral", "info", "success", "warning", "danger"]);
+/** Por debajo de este ancho, el índice vertical vuelve a ser la tira de arriba. */
+const NARROW = 640;
 
 let uid = 0;
 /** En el turno de un Tab: 1 hacia adelante, -1 hacia atrás (para saber cómo entró el foco). */
@@ -52,7 +56,7 @@ const num = (v: unknown) => {
 };
 
 export class NxTabs extends Base {
-  static observedAttributes = ["value", "tabs", "sticky", "label", "labels"];
+  static observedAttributes = ["value", "tabs", "sticky", "label", "labels", "orientation"];
 
   #uid = `nx-tabs${++uid}`;
   #tabs: TabItem[] | null = null;
@@ -62,6 +66,7 @@ export class NxTabs extends Base {
   #mo?: MutationObserver;
   #queued = false;
   #current: string | null = null;
+  #ro?: ResizeObserver;
 
   // ---------------------------------------------------------------- propiedades
 
@@ -81,6 +86,16 @@ export class NxTabs extends Base {
   set tabs(v: TabItem[] | null | undefined) {
     this.#tabs = Array.isArray(v) ? v.filter((t) => t && typeof t === "object" && t.value != null && typeof t.label === "string").map((t) => ({ ...t, value: String(t.value) })) : null;
     this.#queue();
+  }
+
+  /** `vertical`: el índice al lado de los paneles, con el estado de cada sección; en angosto
+   *  (menos de 640 px) vuelve a ser la tira de arriba. */
+  get orientation(): TabsOrientation {
+    return this.getAttribute("orientation") === "vertical" ? "vertical" : "horizontal";
+  }
+  set orientation(v: TabsOrientation | null | undefined) {
+    if (v === "vertical") this.setAttribute("orientation", "vertical");
+    else this.removeAttribute("orientation");
   }
 
   /** La lista se queda arriba al desplazarse. */
@@ -120,12 +135,32 @@ export class NxTabs extends Base {
     // Los contadores van con el formato del locale: si cambia el `lang` de la página, se repintan.
     watchLang(this, () => this.#paint());
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => this.#paint(), { once: true });
+    this.#observe();
     this.#paint();
   }
 
   disconnectedCallback(): void {
     this.#mo?.disconnect();
+    this.#ro?.disconnect();
     unwatchLang(this);
+  }
+
+  /** En vertical, el ancho decide si va al lado (índice) o arriba (tira). */
+  #observe(): void {
+    if (this.orientation !== "vertical" || typeof ResizeObserver === "undefined") {
+      this.#ro?.disconnect();
+      this.removeAttribute("data-narrow");
+      return;
+    }
+    this.#ro ??= new ResizeObserver((entries) => {
+      const w = entries[entries.length - 1]?.contentRect.width ?? 0;
+      const narrow = w > 0 && w < NARROW;
+      if (narrow !== this.hasAttribute("data-narrow")) {
+        this.toggleAttribute("data-narrow", narrow);
+        this.#queue();
+      }
+    });
+    this.#ro.observe(this);
   }
 
   attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
@@ -141,6 +176,7 @@ export class NxTabs extends Base {
       return;
     }
     if (name === "value") this.#current = null;
+    if (name === "orientation" && this.isConnected) this.#observe();
     this.#queue();
   }
 
@@ -194,6 +230,9 @@ export class NxTabs extends Base {
       count: num(p.dataset.count),
       errors: num(p.dataset.errors),
       disabled: p.hasAttribute("data-disabled") && p.dataset.disabled !== "false",
+      status: p.dataset.status,
+      tone: p.dataset.tone as TabTone | undefined,
+      icon: p.dataset.icon,
     }));
   }
 
@@ -214,6 +253,8 @@ export class NxTabs extends Base {
     const label = this.label;
     if (label) this.#list.setAttribute("aria-label", label);
     else this.#list.removeAttribute("aria-label");
+    const side = this.orientation === "vertical" && !this.hasAttribute("data-narrow");
+    this.#list.setAttribute("aria-orientation", side ? "vertical" : "horizontal");
     const focused = this.#list.contains(document.activeElement);
     const fmt = nxFormat(resolveLocale(this));
     // Los botones que ya están se actualizan en su lugar; solo se crean o quitan los que sobran.
@@ -225,7 +266,7 @@ export class NxTabs extends Base {
       const panel = this.#panelFor(panels, t.value);
       let b = buttons[i];
       if (!b) {
-        b = h("button", { type: "button", role: "tab", class: "nx-tabs__tab", id }, h("span"));
+        b = h("button", { type: "button", role: "tab", class: "nx-tabs__tab", id });
         this.#list!.append(b);
       }
       b.dataset.v = t.value;
@@ -234,18 +275,23 @@ export class NxTabs extends Base {
       if (panel) b.setAttribute("aria-controls", this.#panelId(panel, i));
       else b.removeAttribute("aria-controls");
       b.disabled = !!t.disabled;
-      const text = b.firstElementChild!;
-      if (text.textContent !== t.label) text.textContent = t.label;
-      // El contador (o los errores, que ganan): se rehace solo si cambió lo que dice.
+      // El contenido (ícono, etiqueta, contador o errores, estado): se rehace solo si cambió lo que
+      // dice; el botón se queda (el foco no se pierde).
       const err = !!t.errors && t.errors > 0;
       const n = err ? t.errors : t.count;
       const txt = n === undefined ? "" : fmt.number(n);
-      const key = txt && `${err ? L.errors : "#"}\n${txt}`;
-      if ((b.dataset.pill ?? "") !== key) {
-        if (b.lastElementChild !== text) b.lastElementChild!.remove();
-        if (err) b.append(h("span", { class: "nx-tabs__count is-error" }, h("span", { "aria-hidden": "true" }, txt), h("span", { class: "nx-sr-only" }, L.errors.replace("{n}", txt))));
-        else if (txt) b.append(h("span", { class: "nx-tabs__count" }, txt));
-        b.dataset.pill = key;
+      const status = typeof t.status === "string" ? t.status.trim() : "";
+      const tone = t.tone && TONES.has(t.tone) ? t.tone : "neutral";
+      const glyphName = typeof t.icon === "string" && hasIcon(t.icon) ? t.icon : "";
+      const key = JSON.stringify([glyphName, t.label, err, txt, err ? L.errors : "", status, tone]);
+      if (b.dataset.sig !== key) {
+        b.replaceChildren(
+          ...(glyphName ? [h("span", { class: "nx-tabs__icon", "aria-hidden": "true" }, icon(glyphName))] : []),
+          h("span", { class: "nx-tabs__label" }, t.label),
+          ...(err ? [h("span", { class: "nx-tabs__count is-error" }, h("span", { "aria-hidden": "true" }, txt), h("span", { class: "nx-sr-only" }, L.errors.replace("{n}", txt)))] : txt ? [h("span", { class: "nx-tabs__count" }, txt)] : []),
+          ...(status ? [h("span", { class: "nx-tabs__status", "data-tone": tone }, h("span", { class: "nx-tabs__dot", "aria-hidden": "true" }), h("span", { class: "nx-tabs__status-t" }, status))] : []),
+        );
+        b.dataset.sig = key;
       }
       if (panel) {
         panel.setAttribute("role", "tabpanel");
@@ -338,7 +384,9 @@ export class NxTabs extends Base {
     const i = tabs.findIndex((b) => b === document.activeElement);
     if (i < 0) return;
     const rtl = getComputedStyle(this).direction === "rtl";
-    const step = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1 }[e.key];
+    // En el índice vertical, arriba y abajo; las de los lados también sirven (en angosto es una tira).
+    const vertical = this.orientation === "vertical";
+    const step = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1, ...(vertical ? { ArrowDown: 1, ArrowUp: -1 } : {}) }[e.key];
     const to = step !== undefined ? (i + step + tabs.length) % tabs.length : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : -1;
     if (to < 0) return;
     e.preventDefault();

@@ -148,6 +148,119 @@ nx-fields :is(button, a, input, select, textarea):focus-visible {
   outline-offset: 2px;
 }
 
+/* La nota bajo el título: quién administra estos datos, o que son sensibles. */
+.nx-fields__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: -6px 0 14px;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+  text-wrap: pretty;
+
+  & .nx-glyph {
+    inline-size: 13px;
+    block-size: 13px;
+    margin-block-start: 2px;
+  }
+}
+/* Un dato oculto (`masked`), verificado o que falta. */
+.nx-fields__masked {
+  letter-spacing: 0.12em;
+}
+.nx-fields__reveal,
+.nx-fields__add {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+.nx-fields__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--nx-success);
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+
+  & .nx-glyph {
+    inline-size: 13px;
+    block-size: 13px;
+  }
+}
+.nx-fields__missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--nx-warning-ink);
+  font-weight: 550;
+
+  & .nx-glyph {
+    inline-size: 14px;
+    block-size: 14px;
+  }
+}
+/* Un cambio en revisión, debajo del valor de hoy. */
+.nx-fields__pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 10px;
+  margin-block-start: 6px;
+  padding: 8px 10px;
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-primary-soft);
+  font-size: 13px;
+
+  & > .nx-glyph {
+    inline-size: 15px;
+    block-size: 15px;
+    margin-block-start: 2px;
+    color: var(--nx-primary-ink);
+  }
+  & p {
+    flex: 1 1 220px;
+    min-inline-size: 0;
+    margin: 0;
+  }
+}
+.nx-fields__pending-t {
+  display: block;
+  color: var(--nx-muted-foreground);
+}
+.nx-fields__pending-act {
+  align-self: center;
+  block-size: 28px;
+  padding-inline: 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+}
+@media (forced-colors: active) {
+  .nx-fields__pending {
+    border: 1px solid CanvasText;
+  }
+}
+
 /* ---------------------------------------------------------------- edición */
 
 .nx-fields__input {

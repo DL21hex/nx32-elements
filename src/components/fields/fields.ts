@@ -24,7 +24,7 @@ import { h, safeHref } from "../../core/dom";
 import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
-import type { FieldInput, FieldInputType, FieldItem, FieldOption, FieldsActionDetail, FieldsLabels, FieldsVariant, FieldValue } from "./types";
+import type { FieldInput, FieldInputType, FieldItem, FieldOption, FieldsActionDetail, FieldsLabels, FieldsNoteIcon, FieldsPendingDetail, FieldsVariant, FieldValue } from "./types";
 
 export const FIELDS_LABELS: FieldsLabels = {
   empty: "Sin dato",
@@ -35,11 +35,22 @@ export const FIELDS_LABELS: FieldsLabels = {
   required: "Este dato es obligatorio.",
   email: "Revisa el correo: le falta la @ o el dominio.",
   number: "Escribe solo el número.",
+  show: "Mostrar",
+  hide: "Ocultar",
+  hidden: "Oculto",
+  verified: "Verificado",
+  pending: "En revisión",
+  missing: "Falta",
+  add: "Agregar",
 };
 
 const COPY = '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>';
 const CHECK = '<path d="M20 6 9 17l-5-5"/>';
 const LOCK = '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+const INFO = '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>';
+const CLOCK = '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>';
+const ALERT = '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>';
+const MASK = "••••••••";
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 let uid = 0;
@@ -102,7 +113,7 @@ function summaryTracks(items: readonly FieldItem[], n: number): string {
 }
 
 export class NxFields extends Base {
-  static observedAttributes = ["items", "variant", "columns", "heading", "action", "editing", "errors", "locale", "currency", "labels"];
+  static observedAttributes = ["items", "variant", "columns", "heading", "action", "note", "note-icon", "editing", "errors", "locale", "currency", "labels"];
 
   #uid = `nx-fields${++uid}`;
   #items: FieldItem[] = [];
@@ -112,6 +123,9 @@ export class NxFields extends Base {
   #head?: HTMLDivElement;
   #title?: HTMLHeadingElement;
   #action?: HTMLButtonElement;
+  #note?: HTMLParagraphElement;
+  /** Los datos ocultos (`masked`) que la persona pidió ver, por clave. */
+  #revealed = new Set<string>();
   #list?: HTMLElement;
   #live?: HTMLSpanElement;
   /** Los campos del modo edición, por clave (para leer valores y pintar errores sin rehacer nada). */
@@ -160,6 +174,23 @@ export class NxFields extends Base {
   }
   set action(v: string | null | undefined) {
     this.#attr("action", v);
+  }
+
+  /** Una línea bajo el título: quién administra estos datos («Lo administra Talento Humano») o una
+   *  advertencia («Datos sensibles: solo los ven tú y Seguridad y Salud en el Trabajo»). */
+  get note(): string {
+    return this.getAttribute("note") ?? "";
+  }
+  set note(v: string | null | undefined) {
+    this.#attr("note", v);
+  }
+
+  /** El ícono de la nota: `lock` (por defecto) o `info`. */
+  get noteIcon(): FieldsNoteIcon {
+    return this.getAttribute("note-icon") === "info" ? "info" : "lock";
+  }
+  set noteIcon(v: FieldsNoteIcon | null | undefined) {
+    this.#attr("note-icon", v);
   }
 
   /** Cada valor se vuelve un campo en su sitio. */
@@ -295,6 +326,7 @@ export class NxFields extends Base {
       this.dispatchEvent(new CustomEvent("nx-fields-action", { detail, bubbles: true, composed: true }));
     });
     this.#head = h("div", { class: "nx-fields__head" }, this.#title, this.#action);
+    this.#note = h("p", { class: "nx-fields__note" });
     this.#live = h("span", { class: "nx-sr-only", "aria-live": "polite" });
     this.addEventListener("input", (e) => {
       const k = (e.target as Element).getAttribute?.("data-k");
@@ -304,8 +336,32 @@ export class NxFields extends Base {
       }
     });
     this.addEventListener("click", (e) => {
-      const b = (e.target as Element).closest?.<HTMLButtonElement>(".nx-fields__copy");
-      if (b && this.contains(b)) this.#copy(b);
+      const t = e.target as Element;
+      const b = t.closest?.<HTMLButtonElement>(".nx-fields__copy");
+      if (b && this.contains(b)) return this.#copy(b);
+      const show = t.closest?.<HTMLButtonElement>(".nx-fields__reveal");
+      if (show && this.contains(show)) {
+        const k = show.dataset.key!;
+        if (this.#revealed.has(k)) this.#revealed.delete(k);
+        else this.#revealed.add(k);
+        this.#render();
+        [...this.querySelectorAll<HTMLElement>(".nx-fields__reveal")].find((x) => x.dataset.key === k)?.focus();
+        return;
+      }
+      const add = t.closest?.<HTMLButtonElement>(".nx-fields__add");
+      if (add && this.contains(add)) {
+        const detail: FieldsActionDetail = { action: this.action, key: add.dataset.key };
+        this.dispatchEvent(new CustomEvent("nx-fields-action", { detail, bubbles: true, composed: true }));
+        return;
+      }
+      const pend = t.closest?.<HTMLButtonElement>(".nx-fields__pending-act");
+      if (pend && this.contains(pend)) {
+        const k = pend.dataset.key!;
+        const item = this.#items.find((it, i) => keyOf(it, i) === k);
+        if (!item?.pending?.action) return;
+        const detail: FieldsPendingDetail = { key: k, action: item.pending.action, item };
+        this.dispatchEvent(new CustomEvent("nx-fields-pending", { detail, bubbles: true, composed: true }));
+      }
     });
   }
 
@@ -327,6 +383,9 @@ export class NxFields extends Base {
     this.#action!.textContent = this.action;
     this.#action!.hidden = !this.action || editing;
     this.#head!.hidden = !this.heading && !this.action;
+    const note = this.note.trim();
+    this.#note!.hidden = !note;
+    this.#note!.replaceChildren(...(note ? [glyph(this.noteIcon === "info" ? INFO : LOCK), h("span", null, note)] : []));
 
     this.style.setProperty("--_cols", String(this.columns));
     const n = Math.min(4, Math.max(1, this.#items.length));
@@ -352,7 +411,7 @@ export class NxFields extends Base {
     this.#controls.clear();
     this.#initial.clear();
     const list = editing ? h("div", { class: "nx-fields__list" }) : h("dl", { class: "nx-fields__list" });
-    this.#items.forEach((it, i) => list.append(editing ? this.#editRow(it, i) : this.#readRow(it, summary, L)));
+    this.#items.forEach((it, i) => list.append(editing ? this.#editRow(it, i) : this.#readRow(it, i, summary, L)));
     for (const [k, t] of typed) {
       const c = this.#controls.get(k);
       if (!c || this.#initial.get(k)?.value !== t.value) continue;
@@ -367,7 +426,7 @@ export class NxFields extends Base {
     }
     this.#list?.remove();
     this.#list = list;
-    for (const el of [this.#head!, list, this.#live!]) this.append(el);
+    for (const el of [this.#head!, this.#note!, list, this.#live!]) this.append(el);
     this.#paintErrors();
     // El campo que tenía el foco lo recupera, con el cursor donde estaba.
     const again = focusKey && this.#controls.get(focusKey);
@@ -403,27 +462,58 @@ export class NxFields extends Base {
   }
 
   /** El valor pintado: `dd` dentro de la lista de lectura; `div` en el modo edición (sin `dl`). */
-  #value(it: FieldItem, L: FieldsLabels, title: boolean, tag: "dd" | "div" = "dd"): HTMLElement {
+  #value(it: FieldItem, L: FieldsLabels, title: boolean, tag: "dd" | "div" = "dd", key = ""): HTMLElement {
     const text = this.#display(it);
     const dd = h(tag, { class: `nx-fields__v${it.mono ? " nx-fields__mono" : ""}` });
     if (!text) {
+      // Un dato obligatorio que falta se dice (y, si hay cómo, se ofrece llenarlo); uno opcional es «—».
+      if (key && inputOf(it).required && tag === "dd") {
+        dd.append(h("span", { class: "nx-fields__missing" }, glyph(ALERT), L.missing));
+        if (this.action && !it.readonly) dd.append(h("button", { type: "button", class: "nx-fields__add", "data-key": key, "aria-label": `${L.add}: ${it.label}` }, L.add));
+        return dd;
+      }
       dd.append(h("span", { class: "nx-fields__empty", "aria-hidden": "true" }, "—"), h("span", { class: "nx-sr-only" }, L.empty));
       return dd;
     }
-    const href = safeHref(it.href);
-    dd.append(href ? h("a", { href }, text) : h("span", null, text));
-    if (title) dd.title = text;
-    if (it.copy) dd.append(h("button", { type: "button", class: "nx-fields__copy", "data-copy": text, "aria-label": L.copy.replace("{label}", it.label) }, glyph(COPY)));
+    const hide = !!it.masked && !(key && this.#revealed.has(key));
+    if (hide) dd.append(h("span", { class: "nx-fields__masked", "aria-hidden": "true" }, MASK), h("span", { class: "nx-sr-only" }, L.hidden));
+    else {
+      const href = safeHref(it.href);
+      dd.append(href ? h("a", { href }, text) : h("span", null, text));
+      if (title) dd.title = text;
+    }
+    if (it.masked && key) dd.append(h("button", { type: "button", class: "nx-fields__reveal", "data-key": key, "aria-pressed": String(!hide), "aria-label": `${hide ? L.show : L.hide}: ${it.label}` }, hide ? L.show : L.hide));
+    if (it.verified && !hide) dd.append(h("span", { class: "nx-fields__verified" }, glyph(CHECK), typeof it.verified === "string" && it.verified.trim() ? it.verified : L.verified));
+    if (it.copy && !hide) dd.append(h("button", { type: "button", class: "nx-fields__copy", "data-copy": text, "aria-label": L.copy.replace("{label}", it.label) }, glyph(COPY)));
     return dd;
   }
 
-  #readRow(it: FieldItem, summary: boolean, L: FieldsLabels): HTMLElement {
+  /** Un cambio en revisión, debajo del valor: el nuevo, su línea y su acción. */
+  #pending(it: FieldItem, key: string, L: FieldsLabels): HTMLElement | null {
+    const p = it.pending;
+    if (!p || typeof p !== "object") return null;
+    const shown = empty(p.value) ? "" : this.#display({ ...it, value: p.value });
+    const text = typeof p.text === "string" ? p.text.trim() : "";
+    if (!shown && !text) return null;
+    const action = typeof p.action === "string" ? p.action.trim() : "";
+    return h(
+      "div",
+      { class: "nx-fields__pending" },
+      glyph(CLOCK),
+      h("p", null, h("strong", null, `${L.pending}${shown ? ":" : ""}`), shown ? ` ${shown}` : "", text ? h("span", { class: "nx-fields__pending-t" }, text) : null),
+      action ? h("button", { type: "button", class: "nx-fields__pending-act", "data-key": key }, action) : null,
+    );
+  }
+
+  #readRow(it: FieldItem, i: number, summary: boolean, L: FieldsLabels): HTMLElement {
+    const key = keyOf(it, i);
     const dt = h("dt", { class: "nx-fields__l" }, it.label);
-    const dd = this.#value(it, L, summary);
+    const dd = this.#value(it, L, summary, "dd", key);
     // El candado también al leer: quien mira la ficha sabe, antes de pulsar «Editar», qué no se
     // cambia aquí. En el resumen va junto a la etiqueta (el valor puede cortarse y se lo llevaría).
     if (it.readonly) (summary ? dt : dd).append(lockOf(L));
-    return h("div", { class: `nx-fields__f${it.wide && !summary ? " is-wide" : ""}` }, dt, dd);
+    const pending = summary ? null : this.#pending(it, key, L);
+    return h("div", { class: `nx-fields__f${(it.wide || pending) && !summary ? " is-wide" : ""}` }, dt, dd, pending);
   }
 
   #editRow(it: FieldItem, i: number): HTMLElement {

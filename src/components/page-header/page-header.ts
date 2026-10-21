@@ -15,6 +15,10 @@
  *   de los enlaces (0.17.0). Para pocas cifras que orientan; un tablero va en `<nx-stats>`.
  * - **La navegación** es el hijo con `slot="nav"` (pestañas que llevan a páginas hermanas, no
  *   filtros de una tabla): al final.
+ * - **La página de una persona** («Mi perfil», la ficha de un empleado): `avatar` (su nombre o la
+ *   dirección de su foto) va en lugar del ícono, más grande, con sus iniciales y un color que sale
+ *   del nombre; con `avatar-action` («Cambiar la foto») lleva un botón que avisa con
+ *   `nx-page-header-avatar`.
  *
  * Los hijos no se mueven (la hidratación de Solid sigue intacta): el componente agrega al final el
  * título, el subtítulo, los enlaces y las cifras, y `order` los pone en su lugar (`reading-flow`
@@ -23,11 +27,12 @@
  * del acento no es de la cabecera, es del contenedor de la página (`data-nx-page`).
  */
 import { attrProps, Base, upgrade } from "../../core/define";
-import { h, safeHref } from "../../core/dom";
-import { hasIcon, icon } from "../../core/icons";
+import { emit, h, safeHref, safeImageSrc } from "../../core/dom";
+import { glyph, hasIcon, icon, initials } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { formatZeroSafe, resolveLocale } from "../../core/locale";
-import type { PageHeaderKpi, PageHeaderLabels, PageHeaderLink, PageHeaderTone } from "./types";
+import { hueOf } from "../presence/logic";
+import type { PageHeaderAvatarDetail, PageHeaderKpi, PageHeaderLabels, PageHeaderLink, PageHeaderTone } from "./types";
 
 export const PAGE_HEADER_LABELS: PageHeaderLabels = {
   kpis: "Cifras",
@@ -35,6 +40,9 @@ export const PAGE_HEADER_LABELS: PageHeaderLabels = {
 };
 
 const TONES = new Set<PageHeaderTone>(["neutral", "info", "success", "warning", "danger"]);
+const CAMERA = '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>';
+/** Una dirección (la foto) y no un nombre. */
+const URLISH = /^(?:https?:|\/|\.\.?\/|data:image\/|blob:)/i;
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 /** Las cifras que llegan de afuera (BDUI: JSON): sin etiqueta o sin valor no sirven. */
@@ -53,8 +61,13 @@ function cleanLinks(v: unknown): PageHeaderLink[] {
 
 export class NxPageHeader extends Base {
   static {
-    attrProps(this, ["heading", "headingIcon", "subheading"]);
+    attrProps(this, ["heading", "headingIcon", "subheading", "avatar", "avatarAction"]);
   }
+  /** La página de una persona: su nombre (para las iniciales) o la dirección de su foto. Va en
+   *  lugar de `heading-icon`. */
+  declare avatar: string | null;
+  /** El texto del botón del avatar («Cambiar la foto»): avisa con `nx-page-header-avatar`. */
+  declare avatarAction: string | null;
   /** El título de la página («Empleados»): un `<h1>`. */
   declare heading: string | null;
   /** Un ícono del registro (`registerIcons`) junto al título, en un cuadro con el degradado del
@@ -63,13 +76,15 @@ export class NxPageHeader extends Base {
   declare headingIcon: string | null;
   /** Una línea bajo el título, si dice algo que el título no dice. */
   declare subheading: string | null;
-  static observedAttributes = ["heading", "heading-icon", "subheading", "kpis", "links", "labels", "locale"];
+  static observedAttributes = ["heading", "heading-icon", "subheading", "avatar", "avatar-action", "kpis", "links", "labels", "locale"];
 
   /** El bloque del título: el `<h1>` y, debajo, el subtítulo. Va junto a las acciones. */
   #head?: HTMLDivElement;
   #title?: HTMLHeadingElement;
   #titleKey = "";
   #sub?: HTMLParagraphElement;
+  #avatarEl?: HTMLSpanElement;
+  #avatarKey = "";
   #kpis: PageHeaderKpi[] = [];
   #links: PageHeaderLink[] = [];
   #labels: PageHeaderLabels = PAGE_HEADER_LABELS;
@@ -143,12 +158,13 @@ export class NxPageHeader extends Base {
     const sub = (this.subheading ?? "").trim();
     if (!text && !sub) {
       this.#head?.remove();
-      this.#head = this.#title = this.#sub = undefined;
-      this.#titleKey = "";
+      this.#head = this.#title = this.#sub = this.#avatarEl = undefined;
+      this.#titleKey = this.#avatarKey = "";
       return;
     }
     this.#head ??= h("div", { class: "nx-page-header__head" }) as HTMLDivElement;
     if (this.#head.parentNode !== this) this.append(this.#head);
+    this.#paintAvatar();
 
     if (!text) {
       this.#title?.remove();
@@ -157,13 +173,14 @@ export class NxPageHeader extends Base {
     } else {
       this.#title ??= h("h1", { class: "nx-page-header__title nx-page-title" }) as HTMLHeadingElement;
       const name = (this.headingIcon ?? "").trim();
-      const glyphName = hasIcon(name) ? name : "";
+      // Con avatar, el ícono del módulo sobra: la página es de una persona.
+      const glyphName = hasIcon(name) && !this.#avatarEl ? name : "";
       const key = `${glyphName}\u0000${text}`;
       if (key !== this.#titleKey) {
         this.#titleKey = key;
         this.#title.replaceChildren(...(glyphName ? [h("span", { class: "nx-page-title__icon", "aria-hidden": "true" }, icon(glyphName))] : []), text);
       }
-      if (this.#title.parentNode !== this.#head) this.#head.prepend(this.#title);
+      if (this.#title.parentNode !== this.#head) this.#head.insertBefore(this.#title, this.#sub?.parentNode === this.#head ? this.#sub : null);
     }
 
     if (!sub) {
@@ -174,6 +191,41 @@ export class NxPageHeader extends Base {
       if (this.#sub.textContent !== sub) this.#sub.textContent = sub;
       if (this.#sub.parentNode !== this.#head) this.#head.append(this.#sub);
     }
+  }
+
+  /** El avatar: la foto o las iniciales con el color de la persona, y su botón si hay `avatar-action`. */
+  #paintAvatar(): void {
+    const head = this.#head!;
+    const av = (this.avatar ?? "").trim();
+    const src = URLISH.test(av) ? safeImageSrc(av) : undefined;
+    const action = (this.avatarAction ?? "").trim();
+    const show = !!av && (!URLISH.test(av) || !!src);
+    head.classList.toggle("has-avatar", show);
+    if (!show) {
+      this.#avatarEl?.remove();
+      this.#avatarEl = undefined;
+      this.#avatarKey = "";
+      return;
+    }
+    const name = (this.heading ?? "").trim() || av;
+    const key = JSON.stringify([av, action, name]);
+    if (key === this.#avatarKey && this.#avatarEl) {
+      if (head.firstElementChild !== this.#avatarEl) head.prepend(this.#avatarEl);
+      return;
+    }
+    this.#avatarKey = key;
+    const face = h("span", { class: "nx-page-header__face", "aria-hidden": "true" });
+    if (src) face.append(h("img", { src, alt: "", referrerpolicy: "no-referrer" }));
+    else {
+      face.textContent = initials(av);
+      face.style.setProperty("--_h", String(hueOf(av)));
+    }
+    const btn = action ? h("button", { type: "button", class: "nx-page-header__avatar-act", "aria-label": action, title: action }, glyph(CAMERA)) : null;
+    btn?.addEventListener("click", () => emit(this, "nx-page-header-avatar", { action } satisfies PageHeaderAvatarDetail));
+    const el = h("span", { class: "nx-page-header__avatar" }, face, btn);
+    this.#avatarEl?.replaceWith(el);
+    this.#avatarEl = el;
+    if (head.firstElementChild !== el) head.prepend(el);
   }
 
   /** Los enlaces: `<a>` de verdad (el router de la app los intercepta como a cualquier enlace). */

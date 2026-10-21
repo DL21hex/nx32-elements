@@ -51,6 +51,7 @@ import { mountHandoffDemo } from "./demo-handoff";
 import { mountAwardDemo } from "./demo-award";
 import { mountLauncherDemo, mountLauncherHomeDemo } from "./demo-launcher";
 import { mountHomeDemo } from "./demo-home";
+import { mountProfileDemo } from "./demo-profile";
 import { mountBoardDemo } from "./demo-board";
 import { mountFlowDemo } from "./demo-flow";
 import { mountLanesDemo } from "./demo-lanes";
@@ -165,6 +166,7 @@ const NAV: MenuItem[] = [
       { id: "launcher", label: "Launcher", href: "#/launcher", icon: "layout-grid" },
       { id: "launcher-inicio", label: "Inicio por secciones", href: "#/launcher-inicio", icon: "layout-grid" },
       { id: "home", label: "Inicio del empleado", href: "#/home", icon: "house" },
+      { id: "profile", label: "Mi perfil", href: "#/profile", icon: "user" },
       { id: "keytips", label: "Atajos con Alt", href: "#/keytips", icon: "keyboard" },
       { id: "account", label: "Cuenta", href: "#/account", icon: "user" },
     ],
@@ -270,6 +272,7 @@ const PAGES: Record<string, { template: string; mount?: (root: HTMLElement) => v
   "#/launcher": { template: "page-launcher", mount: mountLauncherDemo },
   "#/launcher-inicio": { template: "page-launcher-inicio", mount: mountLauncherHomeDemo },
   "#/home": { template: "page-home", mount: mountHomeDemo },
+  "#/profile": { template: "page-profile", mount: mountProfileDemo },
   "#/board": { template: "page-board", mount: mountBoardDemo },
   "#/flow": { template: "page-flow", mount: mountFlowDemo },
   "#/lanes": { template: "page-lanes", mount: mountLanesDemo },

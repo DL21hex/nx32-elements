@@ -1,0 +1,426 @@
+/*
+ * <nx-entries>. Registros que se repiten: `list` (por defecto), `cards` y `timeline`.
+ * Variables: --nx-entries-card (220px, el ancho mínimo de una tarjeta)
+ */
+
+nx-entries {
+  display: block;
+  container-type: inline-size;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+}
+nx-entries [hidden] {
+  display: none !important;
+}
+nx-entries :is(button, a):focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- cabecera */
+.nx-entries__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-block-size: 28px;
+  margin-block-end: 10px;
+}
+.nx-entries__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.nx-entries__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 28px;
+  margin-inline: auto -8px;
+  padding-inline: 8px;
+  border: 0;
+  border-radius: var(--nx-radius-md);
+  background: none;
+  color: var(--nx-primary-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+
+  & .nx-glyph {
+    inline-size: 14px;
+    block-size: 14px;
+  }
+  &:hover {
+    background: var(--nx-primary-soft);
+  }
+}
+.nx-entries__empty {
+  margin: 0;
+  padding-block: 4px;
+  color: var(--nx-text-tertiary);
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- lista */
+.nx-entries__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-entries__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 14px;
+  padding-block: 14px;
+  border-block-start: 1px solid var(--nx-border-subtle);
+  transition: background-color 1.2s var(--nx-ease-out);
+
+  &:first-child {
+    padding-block-start: 2px;
+    border: 0;
+  }
+  &:last-child {
+    padding-block-end: 0;
+  }
+  /* Sin cara, el cuerpo empieza en la primera columna. */
+  &:not(:has(> .nx-entries__face, > .nx-entries__icon, > .nx-entries__dot)) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  &.is-new {
+    background-color: var(--nx-primary-soft);
+    transition: none;
+  }
+}
+.nx-entries__face,
+.nx-entries__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  overflow: hidden;
+}
+.nx-entries__face {
+  --_h: 262;
+  border-radius: 50%;
+  background: light-dark(oklch(0.93 0.045 var(--_h)), oklch(0.36 0.07 var(--_h)));
+  color: light-dark(oklch(0.4 0.11 var(--_h)), oklch(0.92 0.05 var(--_h)));
+  font-size: 13px;
+  font-weight: 650;
+
+  & img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+}
+.nx-entries__icon {
+  border-radius: 10px;
+  background: var(--nx-hover);
+  color: var(--nx-muted-foreground);
+}
+.nx-entries__body {
+  display: grid;
+  gap: 3px;
+  min-inline-size: 0;
+
+  & > p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+.nx-entries__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-weight: 600;
+}
+.nx-entries__badge {
+  --_bg: var(--nx-hover);
+  --_fg: var(--nx-muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 22px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  background: var(--_bg);
+  color: var(--_fg);
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+
+  &::before {
+    content: "";
+    inline-size: 6px;
+    block-size: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  &[data-tone="success"] {
+    --_bg: var(--nx-success-soft);
+    --_fg: var(--nx-success);
+  }
+  &[data-tone="info"] {
+    --_bg: var(--nx-primary-soft);
+    --_fg: var(--nx-primary-ink);
+  }
+  &[data-tone="warning"] {
+    --_bg: var(--nx-warning-soft);
+    --_fg: var(--nx-warning-ink);
+  }
+  &[data-tone="danger"] {
+    --_bg: var(--nx-danger-soft);
+    --_fg: var(--nx-danger);
+  }
+}
+.nx-entries__meta {
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+}
+.nx-entries__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.nx-entries__proof {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  & .nx-glyph {
+    inline-size: 13px;
+    block-size: 13px;
+    color: var(--nx-success);
+  }
+}
+.nx-entries__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-entries__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  block-size: 22px;
+  padding-inline: 8px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: 6px;
+  color: var(--nx-muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+
+  & .nx-icon {
+    inline-size: 12px;
+    block-size: 12px;
+  }
+}
+.nx-entries__note {
+  --_bg: var(--nx-warning-soft);
+  --_ic: var(--nx-warning-ink);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-block-start: 8px;
+  padding: 8px 10px;
+  border-radius: var(--nx-radius-md);
+  background: var(--_bg);
+  font-size: 13px;
+
+  & > .nx-glyph {
+    inline-size: 15px;
+    block-size: 15px;
+    color: var(--_ic);
+  }
+  & p {
+    flex: 1 1 240px;
+    min-inline-size: 0;
+    margin: 0;
+  }
+  &[data-tone="danger"] {
+    --_bg: var(--nx-danger-soft);
+    --_ic: var(--nx-danger);
+  }
+  &[data-tone="info"],
+  &[data-tone="neutral"] {
+    --_bg: var(--nx-primary-soft);
+    --_ic: var(--nx-primary-ink);
+  }
+  &[data-tone="success"] {
+    --_bg: var(--nx-success-soft);
+    --_ic: var(--nx-success);
+  }
+}
+.nx-entries__note-act,
+.nx-entries__cbtn {
+  block-size: 28px;
+  padding-inline: 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+}
+.nx-entries__cbtn.is-danger {
+  border-color: transparent;
+  background: var(--nx-danger);
+  color: var(--nx-danger-foreground, oklch(0.99 0 0));
+
+  &:hover {
+    background: color-mix(in oklch, var(--nx-danger), black 10%);
+  }
+}
+.nx-entries__acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nx-entries__btn {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nx-radius-md);
+  background: none;
+  color: var(--nx-text-tertiary);
+  cursor: pointer;
+
+  & .nx-glyph {
+    inline-size: 15px;
+    block-size: 15px;
+  }
+  &:hover {
+    background: var(--nx-hover);
+    color: var(--nx-foreground);
+  }
+}
+.nx-entries__lock {
+  margin: 6px;
+  inline-size: 14px;
+  block-size: 14px;
+  color: var(--nx-text-quaternary);
+}
+.nx-entries__confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-block-start: 8px;
+  padding: 10px 12px;
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-danger-soft);
+  font-size: 13px;
+
+  & p {
+    flex: 1 1 240px;
+    margin: 0;
+  }
+}
+.nx-entries__foot {
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------- tarjetas */
+nx-entries[data-layout="cards"] {
+  & .nx-entries__list {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--nx-entries-card, 220px)), 1fr));
+    gap: 12px;
+  }
+  & .nx-entries__item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 14px;
+    border: 1px solid var(--nx-border-subtle);
+    border-radius: 12px;
+    background: var(--nx-card);
+    box-shadow: var(--nx-shadow-card);
+  }
+  & .nx-entries__face,
+  & .nx-entries__icon {
+    inline-size: 44px;
+    block-size: 44px;
+  }
+}
+
+/* ---------------------------------------------------------------- línea de tiempo */
+nx-entries[data-layout="timeline"] {
+  & .nx-entries__item {
+    position: relative;
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    padding-block: 0 16px;
+    border: 0;
+  }
+  & .nx-entries__item:last-child {
+    padding-block-end: 0;
+  }
+  & .nx-entries__dot {
+    position: relative;
+    inline-size: 10px;
+    block-size: 10px;
+    margin: 6px 3px 0;
+    border-radius: 50%;
+    background: var(--nx-card);
+    box-shadow: 0 0 0 2px var(--nx-border-strong);
+  }
+  & .nx-entries__item:first-child .nx-entries__dot {
+    background: var(--nx-primary);
+    box-shadow: 0 0 0 2px var(--nx-primary-border);
+  }
+  /* La línea que une un hito con el siguiente. */
+  & .nx-entries__item:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 7.5px;
+    inset-block: 20px 2px;
+    inline-size: 1px;
+    background: var(--nx-border);
+  }
+}
+
+@container (max-width: 420px) {
+  .nx-entries__item {
+    column-gap: 10px;
+  }
+  .nx-entries__face,
+  .nx-entries__icon {
+    inline-size: 32px;
+    block-size: 32px;
+  }
+}
+@media (forced-colors: active) {
+  .nx-entries__note,
+  .nx-entries__confirm,
+  .nx-entries__badge {
+    border: 1px solid CanvasText;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-entries__item {
+    transition: none;
+  }
+}

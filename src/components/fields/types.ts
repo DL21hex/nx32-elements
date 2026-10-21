@@ -44,6 +44,21 @@ export interface FieldItem {
   readonly?: boolean;
   /** El control al editar. */
   input?: FieldInput;
+  /** El dato ya se comprobó (un correo o un celular con su código): «✓ Verificado», o este texto. */
+  verified?: boolean | string;
+  /** Se ve como «••••••••» con «Mostrar» (un salario, una cuenta): quien mira la pantalla de al
+   *  lado no lo lee sin que la persona quiera. */
+  masked?: boolean;
+  /** Un cambio pedido que todavía no se aplica: el valor nuevo, una línea y, si se puede, su acción
+   *  («Cancelar solicitud», que avisa con `nx-fields-pending`). Debajo del valor de hoy. */
+  pending?: FieldPending;
+}
+
+/** Un cambio en revisión («Davivienda •••• 0937», «Nómina lo revisa antes del 25 oct»). */
+export interface FieldPending {
+  value?: string | number | null;
+  text?: string;
+  action?: string;
 }
 
 /** `grid` (por defecto): etiqueta arriba y valor abajo, en columnas. `summary`: una franja de datos clave. */
@@ -64,9 +79,31 @@ export interface FieldsLabels {
   required: string;
   email: string;
   number: string;
+  /** El botón de un dato oculto (`masked`) y lo que el lector dice en su lugar. */
+  show: string;
+  hide: string;
+  hidden: string;
+  verified: string;
+  /** El título de un cambio en revisión: «En revisión». */
+  pending: string;
+  /** Un dato obligatorio vacío, al leer: «Falta», y el botón que lleva a llenarlo. */
+  missing: string;
+  add: string;
 }
 
 export interface FieldsActionDetail {
   /** El texto del botón de la cabecera que se pulsó. */
   action: string;
+  /** Desde «Agregar» de un dato que falta: su clave (la app entra a editar y lo enfoca). */
+  key?: string;
 }
+
+/** `nx-fields-pending`: la acción de un cambio en revisión. */
+export interface FieldsPendingDetail {
+  key: string;
+  action: string;
+  item: FieldItem;
+}
+
+/** El ícono de la nota bajo el título: candado (por defecto) o información. */
+export type FieldsNoteIcon = "lock" | "info";

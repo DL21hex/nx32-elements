@@ -2864,6 +2864,101 @@ lanes.addEventListener("nx-lanes-spotlight", (e) =&gt; pintarFoco(e.detail));</c
             </table>
           </div>
         </template>
+        <template id="page-profile">
+          <p class="eyebrow">Componentes</p>
+          <h1>Mi perfil <code class="tag">&lt;nx-entries&gt;</code> <code class="tag">&lt;nx-documents&gt;</code> <code class="tag">&lt;nx-otp&gt;</code> <code class="tag">&lt;nx-password&gt;</code></h1>
+          <p class="lead">
+            La página de una persona con lo que ya trae la librería: el índice al lado con el estado de cada sección
+            (<code>&lt;nx-tabs orientation="vertical"&gt;</code>), los datos en <code>&lt;nx-fields&gt;</code> (nota, verificado, oculto,
+            en revisión y «Falta»), la familia y la hoja de vida en <code>&lt;nx-entries&gt;</code> con su panel, los documentos con
+            quién los ha usado y la seguridad con <code>&lt;nx-password&gt;</code> y <code>&lt;nx-otp&gt;</code>. Datos inventados;
+            «hoy» es el 14 de octubre de 2026.
+          </p>
+
+          <div class="pf-demo" data-nx-page>
+            <nx-page-header id="pf-head" heading="Laura Marcela Gómez Restrepo" subheading="Analista de nómina sénior · Nómina · Sede Medellín" avatar="Laura Gómez" avatar-action="Cambiar la foto">
+              <div slot="actions"><nx-button label="Cómo me ven" variant="secondary" log-mode="none"></nx-button></div>
+            </nx-page-header>
+            <nx-notice id="pf-notice" tone="info" action="Empezar"><strong>Actualización de datos 2026.</strong> Confirma antes del 31 de octubre que tus datos siguen al día.</nx-notice>
+            <nx-tabs id="pf-tabs" orientation="vertical" label="Secciones del perfil">
+              <section data-tab="Empleado" data-icon="user">
+                <div class="pf-stack">
+                  <nx-fields id="pf-personal" class="pf-card" heading="Datos personales" action="Editar" note="El nombre y el documento los cambia Talento Humano con tu cédula." locale="es-CO"></nx-fields>
+                  <nx-fields id="pf-contact" class="pf-card" heading="Contacto" action="Editar" locale="es-CO"></nx-fields>
+                  <nx-fields id="pf-contract" class="pf-card" heading="Contrato" note="Lo administra Talento Humano." columns="2" locale="es-CO" currency="COP"></nx-fields>
+                  <div class="pf-cols">
+                    <nx-fields id="pf-bank" class="pf-card" heading="Cuenta de nómina" note="Cambiarla pide un código y el certificado bancario." locale="es-CO"></nx-fields>
+                    <nx-fields id="pf-sizes" class="pf-card" heading="Tallas de dotación" action="Editar" note="La próxima entrega es el 20 de diciembre. Enter guarda." note-icon="info" locale="es-CO"></nx-fields>
+                  </div>
+                </div>
+              </section>
+              <section data-tab="Núcleo familiar" data-icon="users">
+                <nx-entries id="pf-family" class="pf-card" heading="Núcleo familiar" add-label="Agregar persona"></nx-entries>
+              </section>
+              <section data-tab="Hoja de vida" data-icon="briefcase">
+                <div class="pf-stack">
+                  <nx-entries id="pf-career" class="pf-card" heading="En Crear Colombia" layout="timeline" readonly></nx-entries>
+                  <nx-entries id="pf-exp" class="pf-card" heading="Experiencia anterior" add-label="Agregar experiencia" empty="Sin experiencia registrada."></nx-entries>
+                  <nx-entries id="pf-courses" class="pf-card" heading="Formación y cursos" readonly></nx-entries>
+                </div>
+              </section>
+              <section data-tab="Documentos" data-icon="file-text">
+                <nx-documents id="pf-docs" today="2026-10-14" locale="es-CO"></nx-documents>
+              </section>
+              <section data-tab="Seguridad" data-icon="shield">
+                <div class="pf-stack">
+                  <div class="pf-card pf-rows">
+                    <div><strong>Contraseña</strong><span>Cambiada hace 94 días, el 12 jul 2026.</span></div>
+                    <nx-button id="pf-pw-open" label="Cambiar" variant="secondary" log-mode="none"></nx-button>
+                    <div><strong>Verificación en dos pasos</strong><span id="pf-mfa-state">Apagada: además de la contraseña, un código de tu celular.</span></div>
+                    <nx-button id="pf-mfa-open" label="Activar" variant="primary" log-mode="none"></nx-button>
+                  </div>
+                  <nx-entries id="pf-sessions" class="pf-card" heading="Sesiones abiertas"></nx-entries>
+                </div>
+              </section>
+              <section data-tab="Privacidad" data-icon="eye" data-status="2 autorizaciones vigentes">
+                <div class="pf-stack">
+                  <nx-entries id="pf-consents" class="pf-card" heading="Autorizaciones"></nx-entries>
+                  <div class="pf-card"><h3 class="pf-h">Tus derechos sobre tus datos</h3><nx-actions id="pf-rights"></nx-actions></div>
+                </div>
+              </section>
+            </nx-tabs>
+          </div>
+          <ol class="stage__log btn-events" id="pf-log"></ol>
+
+          <nx-dialog id="pf-pw-dialog" mode="panel" heading="Cambiar contraseña">
+            <form class="nx-form-grid" onsubmit="return false">
+              <nx-field label="Contraseña actual" required><nx-password id="pf-pw-cur" name="actual"></nx-password></nx-field>
+              <nx-field label="Contraseña nueva" required><nx-password id="pf-pw-new" name="nueva" meter differs="pf-pw-cur" avoid='["Laura","Marcela","Gómez","Restrepo","1036482117"]'></nx-password></nx-field>
+              <nx-field label="Repítela" required><nx-password id="pf-pw-rep" name="repite" match="pf-pw-new"></nx-password></nx-field>
+            </form>
+            <div slot="footer"><nx-button id="pf-pw-save" label="Cambiar contraseña" variant="primary" log-mode="none"></nx-button></div>
+          </nx-dialog>
+          <nx-dialog id="pf-mfa-dialog" mode="panel" heading="Activar la verificación en dos pasos" description="Paso 2 de 3 · la app autenticadora">
+            <div class="pf-stack">
+              <p>Abre Google Authenticator, Microsoft Authenticator u otra, y escanea este código. ¿No puedes? Escribe la clave <code>JBSW Y3DP EHPK 3PXP</code>.</p>
+              <div id="pf-qr" class="pf-qr"></div>
+              <nx-field label="El código de 6 dígitos de la app" hint="En la demo sirve cualquiera menos 000000."><nx-otp id="pf-otp" name="codigo"></nx-otp></nx-field>
+            </div>
+          </nx-dialog>
+
+          <h2>Uso</h2>
+          <pre><code>&lt;nx-tabs orientation="vertical" label="Secciones del perfil"&gt;
+  &lt;section data-tab="Documentos" data-icon="file-text" data-status="Falta 1 · 1 por vencer" data-tone="warning"&gt;
+    &lt;nx-documents today="2026-10-14" handoff-endpoint="/api/handoff"&gt;&lt;/nx-documents&gt;
+  &lt;/section&gt;
+&lt;/nx-tabs&gt;
+familia.schema = [{ key: "nombres", label: "Nombres", required: true }, …];   // el panel de agregar y editar
+familia.items = [{ id: "sofia", title: "Sofía Pérez Gómez", meta: "Hija · 13 años", avatar: "Sofía Pérez",
+  note: { text: "Falta el certificado escolar", action: "Subir" } }];
+familia.addEventListener("nx-entries-save", (e) =&gt; guardar(e.detail.id, e.detail.values));
+documentos.addEventListener("nx-documents-file", async (e) =&gt; {
+  documentos.busy = e.detail.id;
+  documentos.items = await api.subir(e.detail.id, e.detail.file);   // el documento leído y guardado
+  documentos.busy = null;
+});
+pestaña.dataset.status = documentos.summaryText;   // «Falta 1 · 1 por vencer»</code></pre>
+        </template>
         <template id="page-home">
           <p class="eyebrow">Componentes</p>
           <h1>Inicio del empleado <code class="tag">&lt;nx-intent&gt;</code> <code class="tag">&lt;nx-stats&gt;</code> <code class="tag">&lt;nx-timeline&gt;</code> <code class="tag">&lt;nx-tracker&gt;</code></h1>

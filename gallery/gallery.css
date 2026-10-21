@@ -1143,3 +1143,55 @@ td:first-child {
 .bd-seg button { block-size: 28px; padding-inline: 11px; border: 0; border-radius: 6px; background: none; color: var(--nx-muted-foreground); font: inherit; cursor: pointer; }
 .bd-seg button[aria-pressed="true"] { background: var(--nx-card, var(--nx-background)); color: var(--nx-foreground); font-weight: 550; box-shadow: var(--nx-shadow-card); }
 #bd-p-det nx-grid { --nx-grid-height: 320px; }
+
+/* ---------------------------------------------------------------- Mi perfil (#/profile) */
+.pf-demo {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: 12px;
+  background: var(--nx-canvas);
+}
+.pf-stack {
+  display: grid;
+  gap: 16px;
+}
+.pf-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.pf-card {
+  display: block;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
+}
+.pf-h {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pf-rows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 16px;
+  align-items: center;
+
+  & > div {
+    display: grid;
+    gap: 2px;
+  }
+  & span {
+    color: var(--nx-muted-foreground);
+    font-size: 13px;
+  }
+}
+.pf-qr svg {
+  display: block;
+  border-radius: 8px;
+}

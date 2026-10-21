@@ -45,6 +45,95 @@ nx-page-header > [slot="actions"] {
   line-height: 1.45;
   text-wrap: pretty;
 }
+/* La página de una persona (`avatar`): la cara a la izquierda del título y del subtítulo. */
+nx-page-header > .nx-page-header__head.has-avatar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  align-items: center;
+
+  & > .nx-page-header__avatar {
+    grid-row: 1 / span 2;
+  }
+  & > :not(.nx-page-header__avatar) {
+    grid-column: 2;
+  }
+  & > .nx-page-header__title {
+    align-self: end;
+  }
+  & > .nx-page-header__subheading {
+    align-self: start;
+  }
+  &:not(:has(.nx-page-header__subheading)) > .nx-page-header__title {
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+}
+.nx-page-header__avatar {
+  position: relative;
+  inline-size: var(--nx-page-avatar, 64px);
+  block-size: var(--nx-page-avatar, 64px);
+}
+.nx-page-header__face {
+  --_h: 262;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: light-dark(oklch(0.93 0.045 var(--_h)), oklch(0.36 0.07 var(--_h)));
+  color: light-dark(oklch(0.4 0.11 var(--_h)), oklch(0.92 0.05 var(--_h)));
+  font-size: calc(var(--nx-page-avatar, 64px) * 0.34);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+
+  & img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+}
+.nx-page-header__avatar-act {
+  position: absolute;
+  inset-inline-end: -4px;
+  inset-block-end: -4px;
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  border: 2px solid var(--nx-canvas, var(--nx-background));
+  border-radius: 50%;
+  background: var(--nx-foreground);
+  color: var(--nx-background);
+  cursor: pointer;
+
+  & .nx-glyph {
+    inline-size: 14px;
+    block-size: 14px;
+  }
+  &:hover {
+    background: var(--nx-primary);
+    color: var(--nx-primary-foreground);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: 2px;
+  }
+}
+@media (width < 480px) {
+  nx-page-header {
+    --nx-page-avatar: 52px;
+  }
+}
+@media (forced-colors: active) {
+  .nx-page-header__face {
+    border: 1px solid CanvasText;
+  }
+}
+
 /* Los enlaces (`links`): páginas relacionadas o archivos, en un renglón que se parte. */
 nx-page-header > .nx-page-header__links {
   order: 3;

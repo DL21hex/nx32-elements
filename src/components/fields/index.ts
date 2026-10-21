@@ -4,7 +4,7 @@ import { NxFields } from "./fields";
 define("nx-fields", NxFields);
 
 export { NxFields, FIELDS_LABELS } from "./fields";
-export type { FieldFormat, FieldInput, FieldInputType, FieldItem, FieldOption, FieldsActionDetail, FieldsLabels, FieldsVariant, FieldValue } from "./types";
+export type { FieldFormat, FieldInput, FieldInputType, FieldItem, FieldOption, FieldPending, FieldsActionDetail, FieldsLabels, FieldsNoteIcon, FieldsPendingDetail, FieldsVariant, FieldValue } from "./types";
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -12,5 +12,6 @@ declare global {
   }
   interface HTMLElementEventMap {
     "nx-fields-action": CustomEvent<import("./types").FieldsActionDetail>;
+    "nx-fields-pending": CustomEvent<import("./types").FieldsPendingDetail>;
   }
 }

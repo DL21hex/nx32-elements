@@ -130,6 +130,16 @@ import type { InsightItem, InsightsActionDetail, InsightsLabels } from "../compo
 import type { NxActions } from "../components/actions/actions";
 import type { PageHeaderKpi, PageHeaderLabels, PageHeaderLink } from "../components/page-header/types";
 import type { ActionItem, ActionsActionDetail, ActionsLabels } from "../components/actions/types";
+import type { NxOtp } from "../components/otp/otp";
+import type { OtpChangeDetail, OtpCompleteDetail, OtpKind, OtpLabels } from "../components/otp/types";
+import type { NxPassword } from "../components/password/password";
+import type { PasswordChangeDetail, PasswordLabels } from "../components/password/types";
+import type { NxEntries } from "../components/entries/entries";
+import type { EntriesActionDetail, EntriesEditDetail, EntriesLabels, EntriesOpenDetail, EntriesRemoveDetail, EntriesSaveDetail, EntriesSchema, EntryItem } from "../components/entries/types";
+import type { NxDocuments } from "../components/documents/documents";
+import type { DocumentItem, DocumentsFileDetail, DocumentsLabels, DocumentsOpenDetail, DocumentsUploadDetail } from "../components/documents/types";
+import type { FieldsPendingDetail } from "../components/fields/types";
+import type { PageHeaderAvatarDetail } from "../components/page-header/types";
 import type { NxSidemenu } from "../components/sidemenu/sidemenu";
 import type { MenuItem, OpenChangeDetail, SelectDetail, SidemenuLabels, ToggleDetail } from "../components/sidemenu/types";
 
@@ -179,7 +189,7 @@ declare module "solid-js" {
       outputs: WhatIfMetric[] | undefined;
       inputs: WhatIfInput[] | undefined;
       me: PresenceUser | ChecklistPerson | null | undefined;
-      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | FlowItem[] | LaneItem[] | TaskItem[] | null | undefined;
+      items: MenuItem[] | CommandItem[] | InboxItem[] | ScanItem[] | AwardItem[] | AccountItem[] | LauncherItem[] | ChecklistSummaryItem[] | FieldItem[] | BreadcrumbItem[] | TimelineItem[] | TrackerItem[] | StatItem[] | BarItem[] | PartItem[] | AlertItem[] | InsightItem[] | ActionItem[] | FlowItem[] | LaneItem[] | TaskItem[] | EntryItem[] | DocumentItem[] | null | undefined;
       tabs: TabItem[] | null | undefined;
       /** `<nx-page-header>`: las cifras y los enlaces bajo el título. */
       kpis: PageHeaderKpi[] | null | undefined;
@@ -191,8 +201,11 @@ declare module "solid-js" {
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<LanesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | Partial<TasksLabels> | undefined;
-      schema: CaptureSchemaItem[] | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<LanesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | Partial<TasksLabels> | Partial<OtpLabels> | Partial<PasswordLabels> | Partial<EntriesLabels> | Partial<DocumentsLabels> | undefined;
+      /** `<nx-doc-capture>` y `<nx-entries>` (el formulario del panel). */
+      schema: CaptureSchemaItem[] | EntriesSchema | null | undefined;
+      /** `<nx-password>`: lo que no puede llevar. */
+      avoid: string[] | null | undefined;
       suggestions: string[] | undefined;
       context: unknown;
       progress: number | null | undefined;
@@ -314,7 +327,26 @@ declare module "solid-js" {
       "explain-endpoint": string | undefined;
       "children-endpoint": string | undefined;
       detect: string | undefined;
-      kind: TrendKind | HandoffKind | undefined;
+      kind: TrendKind | HandoffKind | OtpKind | undefined;
+      /** `<nx-fields>`: la nota bajo el título y su ícono. */
+      note: string | undefined;
+      "note-icon": "lock" | "info" | undefined;
+      /** `<nx-page-header>`: el botón del avatar. */
+      "avatar-action": string | undefined;
+      /** `<nx-otp>`: cuántas casillas. */
+      length: string | undefined;
+      /** `<nx-password>`. */
+      "min-length": string | undefined;
+      match: string | undefined;
+      differs: string | undefined;
+      "breach-endpoint": string | undefined;
+      autocomplete: string | undefined;
+      /** `<nx-entries>`: el botón de agregar. */
+      "add-label": string | undefined;
+      /** `<nx-documents>`. */
+      soon: string | undefined;
+      "handoff-endpoint": string | undefined;
+      order: "none" | undefined;
       debounce: string | undefined;
       /** `<nx-grid timeout>`, `<nx-select source timeout>`, `<nx-import timeout>`: plazo de cada petición, en ms. */
       timeout: string | undefined;
@@ -430,6 +462,8 @@ declare module "solid-js" {
       "total-label": string | undefined;
     }
     interface ExplicitBoolAttributes {
+      /** `<nx-password meter>`: una contraseña nueva. */
+      meter: boolean;
       sticky: boolean;
       /** `<nx-launcher pack>` y `<nx-launcher typeahead>`. */
       pack: boolean;
@@ -541,6 +575,19 @@ declare module "solid-js" {
       "nx-alerts-action": CustomEvent<AlertsActionDetail>;
       "nx-insights-action": CustomEvent<InsightsActionDetail>;
       "nx-actions-action": CustomEvent<ActionsActionDetail>;
+      "nx-fields-pending": CustomEvent<FieldsPendingDetail>;
+      "nx-page-header-avatar": CustomEvent<PageHeaderAvatarDetail>;
+      "nx-otp-change": CustomEvent<OtpChangeDetail>;
+      "nx-otp-complete": CustomEvent<OtpCompleteDetail>;
+      "nx-password-change": CustomEvent<PasswordChangeDetail>;
+      "nx-entries-edit": CustomEvent<EntriesEditDetail>;
+      "nx-entries-open": CustomEvent<EntriesOpenDetail>;
+      "nx-entries-save": CustomEvent<EntriesSaveDetail>;
+      "nx-entries-remove": CustomEvent<EntriesRemoveDetail>;
+      "nx-entries-action": CustomEvent<EntriesActionDetail>;
+      "nx-documents-open": CustomEvent<DocumentsOpenDetail>;
+      "nx-documents-upload": CustomEvent<DocumentsUploadDetail>;
+      "nx-documents-file": CustomEvent<DocumentsFileDetail>;
       "nx-cards-open": CustomEvent<CardsOpenDetail>;
       "nx-cards-action": CustomEvent<CardsActionDetail>;
       "nx-cards-level": CustomEvent<{ level: CardsLevel }>;
@@ -686,6 +733,10 @@ declare module "solid-js" {
       "nx-alerts": HTMLAttributes<NxAlerts>;
       "nx-insights": HTMLAttributes<NxInsights>;
       "nx-actions": HTMLAttributes<NxActions>;
+      "nx-otp": HTMLAttributes<NxOtp> & { label?: string };
+      "nx-password": HTMLAttributes<NxPassword> & { label?: string; placeholder?: string };
+      "nx-entries": HTMLAttributes<NxEntries> & { heading?: string };
+      "nx-documents": HTMLAttributes<NxDocuments>;
       "nx-cards": HTMLAttributes<NxCards>;
       "nx-handoff": HTMLAttributes<NxHandoff> & { endpoint?: string; for?: string };
       "nx-guard": HTMLAttributes<NxGuard> & { endpoint?: string };

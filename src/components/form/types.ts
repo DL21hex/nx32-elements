@@ -18,7 +18,9 @@ export type FormFieldType =
   | "checkboxes"
   | "readonly"
   | "rows"
-  | "file";
+  | "file"
+  | "otp"
+  | "password";
 
 /** El valor de un campo: texto (también las fechas, en ISO «2026-10-13»), número, sí/no, una lista
  *  (casillas), las filas de un campo `rows`, el `File` de un campo `file` o `null` si está vacío. */
@@ -113,6 +115,17 @@ export interface FormField {
    *  `values`, no se valida ni marca cambios. Sin `label` o con un `href` inseguro, se descarta (con
    *  un aviso). En un campo de una fila (`rows`) no se pinta. */
   link?: FormLink;
+  /** `password`: una contraseña nueva, con el medidor y las condiciones (`<nx-password meter>`); el
+   *  largo mínimo es `minLength` (12 por defecto). Sin él, una contraseña para entrar. */
+  meter?: boolean;
+  /** `password` con `meter`: lo que no puede llevar (el nombre, los apellidos, el documento). */
+  avoid?: string[];
+  /** `password`: la clave del campo que tiene que repetir (la confirmación, «Repítela»). */
+  match?: string;
+  /** `password`: la clave del campo del que tiene que ser distinta (la contraseña actual). */
+  differs?: string;
+  /** `password` con `meter`: la revisión de filtraciones por k-anonimato (`<nx-password breach-endpoint>`). */
+  breachEndpoint?: string;
 }
 
 export interface FormSection {
@@ -219,6 +232,16 @@ export interface FormLabels {
   fileTooBig: string;
   /** Para el lector de pantalla, tras el texto de un enlace (`link`): «(se abre en otra pestaña)». */
   newTab: string;
+  /** Un código (`otp`) a medias: «Escribe los {n} dígitos». */
+  otp: string;
+  /** Una contraseña nueva (`password` con `meter`) que no cumple sus condiciones. */
+  passwordWeak: string;
+  /** La confirmación (`match`) no coincide. */
+  passwordMismatch: string;
+  /** La nueva es igual a la actual (`differs`). */
+  passwordSame: string;
+  /** Una contraseña o un código en lectura: nunca se muestran. */
+  masked: string;
 }
 
 export interface FormChangeDetail {

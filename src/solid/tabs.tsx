@@ -3,9 +3,9 @@ import { splitProps, type JSX } from "solid-js";
 import "./jsx";
 import "../components/tabs/index";
 import type { NxTabs } from "../components/tabs/tabs";
-import type { TabChangeDetail, TabItem, TabsChangeDetail, TabsLabels } from "../components/tabs/types";
+import type { TabChangeDetail, TabItem, TabsChangeDetail, TabsLabels, TabsOrientation, TabTone } from "../components/tabs/types";
 
-export type { NxTabs, TabChangeDetail, TabItem, TabsChangeDetail, TabsLabels };
+export type { NxTabs, TabChangeDetail, TabItem, TabsChangeDetail, TabsLabels, TabsOrientation, TabTone };
 
 export interface TabsProps extends Omit<JSX.HTMLAttributes<NxTabs>, "onChange"> {
   /** La pestaña activa (controlada si se actualiza en `onChange`). */
@@ -14,6 +14,8 @@ export interface TabsProps extends Omit<JSX.HTMLAttributes<NxTabs>, "onChange"> 
   tabs?: TabItem[];
   /** La lista se queda arriba al desplazarse. */
   sticky?: boolean;
+  /** `vertical`: el índice al lado de los paneles, con el estado de cada sección. */
+  orientation?: TabsOrientation;
   /** Nombre de la lista para el lector de pantalla. */
   label?: string;
   labels?: Partial<TabsLabels>;
@@ -23,7 +25,7 @@ export interface TabsProps extends Omit<JSX.HTMLAttributes<NxTabs>, "onChange"> 
 }
 
 export function Tabs(props: TabsProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["value", "tabs", "sticky", "label", "labels", "onChange", "children"]);
+  const [local, rest] = splitProps(props, ["value", "tabs", "sticky", "orientation", "label", "labels", "onChange", "children"]);
   // `onChange` solo con las suyas: el cambio de unas pestañas anidadas también burbujea.
   return (
     <nx-tabs
@@ -32,6 +34,7 @@ export function Tabs(props: TabsProps): JSX.Element {
       prop:tabs={local.tabs}
       prop:labels={local.labels}
       attr:label={local.label}
+      attr:orientation={local.orientation === "vertical" ? "vertical" : undefined}
       bool:sticky={!!local.sticky}
       on:nx-tabs-change={(e) => e.target === e.currentTarget && local.onChange?.(e)}
     >

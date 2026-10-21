@@ -1,0 +1,76 @@
+/*
+ * <nx-otp>. Una casilla por dígito; con 6 u 8, un respiro en el medio (3 + 3).
+ * Variables: --nx-otp-size (44px de ancho; el alto es 50px) · --nx-otp-gap (8px)
+ */
+
+nx-otp {
+  display: inline-block;
+  max-inline-size: 100%;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  vertical-align: middle;
+}
+.nx-otp__boxes {
+  display: flex;
+  gap: var(--nx-otp-gap, 8px);
+}
+.nx-otp__box {
+  box-sizing: border-box;
+  flex: 0 1 var(--nx-otp-size, 44px);
+  inline-size: var(--nx-otp-size, 44px);
+  min-inline-size: 32px;
+  block-size: calc(var(--nx-otp-size, 44px) + 6px);
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: 600 20px/1 var(--nx-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  caret-color: var(--nx-primary);
+  transition:
+    border-color var(--nx-motion-fast),
+    box-shadow var(--nx-motion-fast);
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--nx-primary-border);
+    box-shadow: 0 0 0 3px var(--nx-primary-soft);
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  &[data-split] {
+    margin-inline-start: calc(var(--nx-otp-gap, 8px) + 4px);
+  }
+}
+/* Con un error (lo pone `<nx-field>` en el elemento y en la primera casilla): todas en rojo. */
+nx-otp[aria-invalid="true"] .nx-otp__box,
+nx-otp:has(.nx-otp__box[aria-invalid="true"]) .nx-otp__box {
+  border-color: var(--nx-danger);
+}
+nx-otp[aria-invalid="true"] .nx-otp__box:focus {
+  box-shadow: 0 0 0 3px var(--nx-danger-soft);
+}
+@media (width < 400px) {
+  nx-otp {
+    --nx-otp-gap: 6px;
+  }
+  .nx-otp__box {
+    --nx-otp-size: 40px;
+  }
+}
+@media (forced-colors: active) {
+  .nx-otp__box {
+    border-color: CanvasText;
+  }
+  .nx-otp__box:focus {
+    outline: 2px solid Highlight;
+  }
+}

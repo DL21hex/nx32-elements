@@ -1,0 +1,637 @@
+/*
+ * <nx-documents>. Los documentos en tarjetas; su detalle y la subida en un panel lateral.
+ * El papel de los dibujos es claro también en oscuro (un documento se ve sobre papel).
+ * Variables: --nx-documents-card (232px, el ancho mínimo de una tarjeta)
+ */
+
+nx-documents {
+  display: block;
+  color: var(--nx-foreground);
+  font-family: var(--nx-font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  --_paper: oklch(0.995 0.002 90);
+  --_paper-ink: oklch(0.3 0.01 260);
+  --_paper-line: oklch(0.82 0.008 260);
+}
+nx-documents [hidden] {
+  display: none !important;
+}
+nx-documents :is(button, a, input):focus-visible {
+  outline: 2px solid var(--nx-ring);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- tarjetas */
+.nx-documents__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--nx-documents-card, 232px)), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & > li {
+    display: grid;
+    min-inline-size: 0;
+  }
+}
+.nx-documents__card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-inline-size: 0;
+  padding: 0;
+  overflow: clip;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-card);
+  box-shadow: var(--nx-shadow-card);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--nx-motion-fast);
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+  &[data-state="missing"],
+  &[data-state="rejected"] {
+    border-style: dashed;
+    border-color: var(--nx-border-strong);
+    background: transparent;
+    box-shadow: none;
+  }
+  &[aria-busy="true"] {
+    opacity: 0.7;
+  }
+}
+.nx-documents__thumb {
+  display: grid;
+  place-items: center;
+  block-size: 112px;
+  overflow: hidden;
+  border-block-end: 1px solid var(--nx-border-subtle);
+  background: var(--nx-hover);
+}
+.nx-documents__card:is([data-state="missing"], [data-state="rejected"]) .nx-documents__thumb {
+  border-block-end-style: dashed;
+  background: none;
+}
+.nx-documents__img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.nx-documents__up {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 10px;
+  background: var(--nx-hover);
+  color: var(--nx-foreground);
+}
+.nx-documents__body {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  padding: 11px 13px 13px;
+}
+.nx-documents__name {
+  font-weight: 600;
+}
+.nx-documents__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+  font-weight: 550;
+
+  &[data-tone="success"] {
+    color: var(--nx-success);
+  }
+  &[data-tone="warning"] {
+    color: var(--nx-warning-ink);
+  }
+  &[data-tone="danger"] {
+    color: var(--nx-danger);
+  }
+  &[data-tone="info"] {
+    color: var(--nx-primary-ink);
+  }
+}
+.nx-documents__dot {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.nx-documents__meta {
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+}
+
+/* ---------------------------------------------------------------- dibujos del tipo */
+.nx-documents__paper {
+  position: relative;
+  display: block;
+  flex: none;
+  isolation: isolate;
+  background: var(--_paper);
+  color: var(--_paper-ink);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 4px 12px -6px rgb(0 0 0 / 0.25);
+
+  & .nx-glyph {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+  }
+  &.is-big {
+    scale: 1.9;
+    margin-block: 46px;
+  }
+  &[data-kind="id"] {
+    inline-size: 120px;
+    block-size: 76px;
+    border-radius: 6px;
+    background: linear-gradient(160deg, oklch(0.95 0.03 95), oklch(0.93 0.035 230));
+  }
+  &[data-kind="id"]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 9px;
+    inset-block-start: 18px;
+    inline-size: 30px;
+    block-size: 38px;
+    border-radius: 3px;
+    background: oklch(0.78 0.02 260);
+  }
+  &[data-kind="id"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 46px 10px;
+    inset-block-start: 20px;
+    block-size: 34px;
+    background: repeating-linear-gradient(to bottom, var(--_paper-line) 0 3px, transparent 3px 9px);
+  }
+  &[data-kind="id"] i {
+    position: absolute;
+    inset-inline: 9px;
+    inset-block-start: 7px;
+    block-size: 5px;
+    border-radius: 2px;
+    background: oklch(0.55 0.12 250 / 0.55);
+  }
+  &:is([data-kind="page"], [data-kind="medical"], [data-kind="stack"]) {
+    inline-size: 72px;
+    block-size: 94px;
+    border-radius: 3px;
+  }
+  &:is([data-kind="page"], [data-kind="stack"])::before {
+    content: "";
+    position: absolute;
+    inset-inline: 9px;
+    inset-block: 14px 18px;
+    background: repeating-linear-gradient(to bottom, var(--_paper-line) 0 2px, transparent 2px 8px);
+  }
+  &[data-kind="page"] i {
+    position: absolute;
+    inset-inline-start: 9px;
+    inset-block-start: 6px;
+    inline-size: 26px;
+    block-size: 4px;
+    border-radius: 2px;
+    background: oklch(0.55 0.12 150 / 0.6);
+  }
+  &[data-kind="stack"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 3px;
+    background: var(--_paper);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+    rotate: -6deg;
+    translate: -4px 2px;
+  }
+  &[data-kind="medical"] .nx-glyph {
+    inline-size: 22px;
+    block-size: 22px;
+    color: oklch(0.55 0.15 25);
+  }
+  &[data-kind="passport"] {
+    inline-size: 66px;
+    block-size: 92px;
+    border-radius: 5px;
+    background: oklch(0.36 0.08 20);
+  }
+  &[data-kind="passport"]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 50%;
+    inset-block-start: 32px;
+    inline-size: 24px;
+    block-size: 24px;
+    margin-inline-start: -12px;
+    border: 2px solid oklch(0.8 0.1 85);
+    border-radius: 50%;
+  }
+  &[data-kind="passport"] i {
+    position: absolute;
+    inset-inline: 14px;
+    inset-block-start: 12px;
+    block-size: 3px;
+    background: oklch(0.8 0.1 85);
+  }
+  &[data-kind="card"] {
+    inline-size: 110px;
+    block-size: 70px;
+    border-radius: 6px;
+    background: linear-gradient(160deg, oklch(0.96 0.01 260), oklch(0.9 0.04 150));
+  }
+  &[data-kind="card"]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 10px;
+    inset-block-start: 14px;
+    inline-size: 24px;
+    block-size: 24px;
+    border-radius: 50%;
+    background: oklch(0.6 0.1 150 / 0.5);
+  }
+  &[data-kind="card"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 42px 10px;
+    inset-block-start: 16px;
+    block-size: 24px;
+    background: repeating-linear-gradient(to bottom, var(--_paper-line) 0 3px, transparent 3px 9px);
+  }
+  &[data-kind="photo"] {
+    inline-size: 70px;
+    block-size: 86px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, oklch(0.9 0.02 230) 0 60%, oklch(0.82 0.03 230) 60%);
+  }
+  &[data-kind="photo"]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 50%;
+    inset-block-start: 16px;
+    inline-size: 28px;
+    block-size: 28px;
+    margin-inline-start: -14px;
+    border-radius: 50%;
+    background: oklch(0.72 0.03 230);
+  }
+  &[data-kind="signature"] {
+    inline-size: 140px;
+    block-size: 64px;
+    border-radius: 4px;
+  }
+  &[data-kind="signature"] .nx-glyph {
+    inline-size: 100px;
+    block-size: 44px;
+    color: oklch(0.3 0.08 262);
+  }
+}
+
+/* ---------------------------------------------------------------- panel */
+.nx-documents__panel {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  padding-block: 4px 8px;
+}
+.nx-documents__panel h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.nx-documents__preview {
+  display: grid;
+  place-items: center;
+  min-block-size: 230px;
+  overflow: hidden;
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-hover);
+
+  & .nx-documents__img {
+    max-block-size: 320px;
+    object-fit: contain;
+  }
+}
+.nx-documents__saved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
+  font-weight: 550;
+}
+.nx-documents__vig {
+  display: grid;
+  gap: 6px;
+  color: var(--nx-muted-foreground);
+  font-size: 12.5px;
+
+  &[data-tone="warning"] {
+    color: var(--nx-warning-ink);
+  }
+  &[data-tone="danger"] {
+    color: var(--nx-danger);
+  }
+}
+.nx-documents__vig-bar {
+  position: relative;
+  display: block;
+  block-size: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--nx-hover);
+
+  & i {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    border-radius: 3px;
+    background: var(--nx-success);
+  }
+}
+.nx-documents__vig[data-tone="warning"] .nx-documents__vig-bar i {
+  background: var(--nx-warning);
+}
+.nx-documents__vig[data-tone="danger"] .nx-documents__vig-bar i {
+  background: var(--nx-danger);
+}
+.nx-documents__note,
+.nx-documents__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+
+  & .nx-glyph {
+    flex: none;
+    inline-size: 14px;
+    block-size: 14px;
+    margin-block-start: 2px;
+  }
+}
+.nx-documents__error {
+  padding: 8px 10px;
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+  font-size: 13px;
+}
+.nx-documents__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 0;
+
+  & div {
+    display: grid;
+    gap: 2px;
+    min-inline-size: 0;
+  }
+  & dt {
+    color: var(--nx-muted-foreground);
+    font-size: 12.5px;
+  }
+  & dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+.nx-documents__checks,
+.nx-documents__chips,
+.nx-documents__uses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nx-documents__checks {
+  display: grid;
+  gap: 6px;
+
+  & li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+  }
+  & .nx-glyph {
+    flex: none;
+    inline-size: 15px;
+    block-size: 15px;
+    margin-block-start: 1px;
+    color: var(--nx-success);
+  }
+}
+.nx-documents__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  & li {
+    display: inline-flex;
+    align-items: center;
+    block-size: 26px;
+    padding-inline: 10px;
+    border-radius: 999px;
+    background: var(--nx-hover);
+    font-size: 13px;
+  }
+}
+.nx-documents__uses {
+  display: grid;
+
+  & li {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 2px 12px;
+    padding-block: 9px;
+    border-block-start: 1px solid var(--nx-border-subtle);
+    font-size: 13px;
+  }
+  & li:first-child {
+    border: 0;
+    padding-block-start: 0;
+  }
+  & time {
+    color: var(--nx-text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  & span {
+    color: var(--nx-muted-foreground);
+  }
+  & strong {
+    color: var(--nx-foreground);
+    font-weight: 600;
+  }
+}
+.nx-documents__none,
+.nx-documents__added,
+.nx-documents__hint {
+  margin: 0;
+  color: var(--nx-muted-foreground);
+  font-size: 13px;
+}
+.nx-documents__drop {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1.5px dashed var(--nx-border-strong);
+  border-radius: var(--nx-radius-lg);
+  color: var(--nx-muted-foreground);
+  cursor: pointer;
+  transition:
+    border-color var(--nx-motion-fast),
+    background var(--nx-motion-fast);
+
+  &:hover,
+  &:focus-within {
+    border-color: var(--nx-primary-border);
+    background: var(--nx-primary-soft);
+  }
+  & strong {
+    color: var(--nx-foreground);
+    font-weight: 550;
+  }
+}
+/* El <input type=file> de verdad: cubre la zona (clic y soltar) y recibe el foco. */
+.nx-documents__input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.nx-documents__lim {
+  font-size: 12.5px;
+}
+.nx-documents__or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--nx-text-tertiary);
+  font-size: 12.5px;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    block-size: 1px;
+    background: var(--nx-border-subtle);
+  }
+}
+.nx-documents__busy {
+  display: grid;
+  gap: 10px;
+  padding-block: 14px;
+
+  & p {
+    margin: 0;
+    color: var(--nx-muted-foreground);
+  }
+}
+.nx-documents__bar {
+  position: relative;
+  display: block;
+  block-size: 3px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--nx-hover);
+
+  & i {
+    position: absolute;
+    inset-block: 0;
+    inline-size: 40%;
+    border-radius: 3px;
+    background: var(--nx-primary);
+    animation: nx-documents-slide 1s ease-in-out infinite;
+  }
+}
+@keyframes nx-documents-slide {
+  from {
+    translate: -100% 0;
+  }
+  to {
+    translate: 260% 0;
+  }
+}
+.nx-documents__foot {
+  gap: 8px;
+}
+.nx-documents__grow {
+  flex: 1;
+}
+.nx-documents__link {
+  color: var(--nx-primary-ink);
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-color: var(--nx-primary-border);
+  text-underline-offset: 3px;
+}
+.nx-documents__btn {
+  block-size: 34px;
+  padding-inline: 13px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--nx-border-strong);
+  }
+  &.is-primary {
+    border-color: transparent;
+    background: var(--nx-primary);
+    color: var(--nx-primary-foreground);
+  }
+}
+@media (width < 480px) {
+  .nx-documents__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nx-documents__uses li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (forced-colors: active) {
+  .nx-documents__card {
+    border: 1px solid CanvasText;
+  }
+  .nx-documents__dot {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-documents__bar i {
+    animation: none;
+    inline-size: 100%;
+  }
+}

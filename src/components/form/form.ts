@@ -769,7 +769,7 @@ export class NxForm extends Base {
       }
       case "password": {
         // Con id propio: `match` y `differs` nombran el control del otro campo.
-        const p = h("nx-password", { name, id: this.#secretId(name), placeholder: def.placeholder, autocomplete: def.autocomplete || null, meter: !!def.meter, minlength: def.minLength });
+        const p = h("nx-password", { name, id: this.#secretId(name), placeholder: def.placeholder, autocomplete: def.autocomplete || null, meter: !!def.meter, "min-length": def.minLength });
         if (Array.isArray(def.avoid) && def.avoid.length) p.setAttribute("avoid", JSON.stringify(def.avoid));
         if (def.match) p.setAttribute("match", this.#secretId(def.match));
         if (def.differs) p.setAttribute("differs", this.#secretId(def.differs));

@@ -290,6 +290,26 @@
       "import": "./dist/form.js",
       "default": "./dist/form.js"
     },
+    "./otp": {
+      "types": "./dist/types/components/otp/index.d.ts",
+      "import": "./dist/otp.js",
+      "default": "./dist/otp.js"
+    },
+    "./password": {
+      "types": "./dist/types/components/password/index.d.ts",
+      "import": "./dist/password.js",
+      "default": "./dist/password.js"
+    },
+    "./entries": {
+      "types": "./dist/types/components/entries/index.d.ts",
+      "import": "./dist/entries.js",
+      "default": "./dist/entries.js"
+    },
+    "./documents": {
+      "types": "./dist/types/components/documents/index.d.ts",
+      "import": "./dist/documents.js",
+      "default": "./dist/documents.js"
+    },
     "./tabs": {
       "types": "./dist/types/components/tabs/index.d.ts",
       "import": "./dist/tabs.js",

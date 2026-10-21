@@ -116,7 +116,7 @@ describe("<nx-password>", () => {
   it("differs y match comparan con el otro campo y se revisan cuando el otro cambia", () => {
     document.body.innerHTML = `
       <nx-password id="cur"></nx-password>
-      <nx-password id="new" meter differs="cur" minlength="8"></nx-password>
+      <nx-password id="new" meter differs="cur" min-length="8"></nx-password>
       <nx-password id="rep" match="new"></nx-password>`;
     const [cur, nw, rep] = [...document.querySelectorAll("nx-password")] as NxPassword[];
     type(cur, "ventana roja azul");
@@ -138,7 +138,7 @@ describe("<nx-password>", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     // SHA-1 de «password»: 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8.
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("1E4C9B93F3F0682250B6CF8331B7EE68FD8:3861493\n0018A45C4D1DEF81644B54AB7F969B88D65:1", { status: 200 }));
-    const el = mount('<nx-password meter minlength="8" breach-endpoint="/api/pwned/range"></nx-password>');
+    const el = mount('<nx-password meter min-length="8" breach-endpoint="/api/pwned/range"></nx-password>');
     type(el, "password");
     expect(states(el).breach).toBe("wait");
     expect(el.querySelector('[data-rule="breach"]')!.textContent).toContain("Revisando");

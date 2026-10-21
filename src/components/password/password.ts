@@ -5,7 +5,7 @@
  * - **Mostrar u ocultar** con el ojo, y «Mayúsculas activadas» cuando lo están.
  * - **Con `meter`** (una contraseña nueva): un medidor de cuatro tramos con su nivel en palabras
  *   («Seguridad: Buena») y las condiciones que se van cumpliendo mientras se escribe: el largo
- *   (`minlength`, 12 por defecto), sin el nombre ni el documento de la persona (`avoid`), no ser de
+ *   (`min-length`, 12 por defecto), sin el nombre ni el documento de la persona (`avoid`), no ser de
  *   las más usadas y, con `breach-endpoint`, no aparecer en filtraciones conocidas. Una frase de
  *   varias palabras pasa sin símbolos raros: lo que cuenta es lo difícil de adivinar.
  * - **Filtraciones sin mandar la contraseña.** Con `breach-endpoint` (del mismo origen: la app lo
@@ -56,7 +56,9 @@ let uid = 0;
 
 export class NxPassword extends Base {
   static formAssociated = true;
-  static observedAttributes = ["name", "required", "disabled", "readonly", "placeholder", "autocomplete", "label", "meter", "minlength", "avoid", "match", "differs", "breach-endpoint", "labels"];
+  /** La contraseña no llega en un payload del servidor: BDUI la rechaza con un aviso. */
+  static readonly localProps = ["value"];
+  static observedAttributes = ["name", "required", "disabled", "readonly", "placeholder", "autocomplete", "label", "meter", "min-length", "avoid", "match", "differs", "breach-endpoint", "labels"];
 
   #uid = `nx-pw${++uid}`;
   #internals: ElementInternals | null = null;
@@ -155,11 +157,11 @@ export class NxPassword extends Base {
   }
   /** El largo mínimo con `meter` (12 por defecto). */
   get minLength(): number {
-    const n = Math.round(Number(this.getAttribute("minlength")));
+    const n = Math.round(Number(this.getAttribute("min-length")));
     return n >= 1 ? n : PASSWORD_MIN;
   }
   set minLength(v: number | null | undefined) {
-    setAttr(this, "minlength", v);
+    setAttr(this, "min-length", v);
   }
   /** Lo que no puede llevar: el nombre, los apellidos, el documento. El atributo es JSON o texto
    *  separado por comas. */

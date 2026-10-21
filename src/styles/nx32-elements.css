@@ -13,6 +13,10 @@
 @import "../components/fields/fields.css";
 @import "../components/field/field.css";
 @import "../components/form/form.css";
+@import "../components/otp/otp.css";
+@import "../components/password/password.css";
+@import "../components/entries/entries.css";
+@import "../components/documents/documents.css";
 @import "../components/tabs/tabs.css";
 @import "../components/breadcrumb/breadcrumb.css";
 @import "../components/org/org.css";

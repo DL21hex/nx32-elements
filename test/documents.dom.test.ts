@@ -221,6 +221,20 @@ describe("<nx-documents>", () => {
     expect(ho.getAttribute("for")).toBe(panel(el)!.querySelector(".nx-documents__input")!.id);
   });
 
+  it("las tarjetas conservan su nodo; al cerrar el panel, el foco vuelve a la del documento", async () => {
+    const el = await mount();
+    const before = card(el, "cedula");
+    before.focus();
+    before.click();
+    await until(() => panel(el)?.getAttribute("heading"));
+    el.items = DOCS.map((d) => ({ ...d }));
+    await tick();
+    expect(card(el, "cedula")).toBe(before);
+    el.close();
+    await tick();
+    expect(document.activeElement).toBe(before);
+  });
+
   it("los eventos cancelados no abren el panel", async () => {
     const el = await mount();
     el.addEventListener("nx-documents-open", (e) => e.preventDefault());

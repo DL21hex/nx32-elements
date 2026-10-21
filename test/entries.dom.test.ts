@@ -240,6 +240,23 @@ describe("<nx-entries>", () => {
     expect(row(el, "sofia").querySelector(".nx-entries__meta")!.textContent).toBe("Hija · 14 años");
   });
 
+  it("guardar en el servidor (asíncrono): al cerrar, el foco vuelve al editar del mismo registro repintado", async () => {
+    const el = await mount();
+    el.schema = SCHEMA;
+    el.addEventListener("nx-entries-save", (e) => e.preventDefault());
+    const edit = btn(row(el, "andres"), "edit")!;
+    edit.focus();
+    edit.click();
+    await until(() => el.form);
+    (el.form as NxForm).submit();
+    // La app guardó y asignó los registros otra vez (otros objetos): la lista se repinta.
+    el.items = FAMILY.map((x) => ({ ...x }));
+    await tick();
+    el.close();
+    await tick();
+    expect(document.activeElement).toBe(btn(row(el, "andres"), "edit"));
+  });
+
   it("los atributos aceptan JSON; layout cards", async () => {
     document.body.innerHTML = `<nx-entries layout="cards" items='${JSON.stringify([{ id: "a", title: "A" }])}'></nx-entries>`;
     await tick();

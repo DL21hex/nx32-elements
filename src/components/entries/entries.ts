@@ -95,6 +95,8 @@ export class NxEntries extends Base {
   #dialog?: Dialog;
   #form?: Form;
   #editing: { id: string | null } | null = null;
+  /** El registro del último panel (para devolverle el foco al cerrar, aunque se haya repintado). */
+  #lastEdited: string | null = null;
 
   // ---------------------------------------------------------------- propiedades
 
@@ -458,9 +460,21 @@ export class NxEntries extends Base {
       this.#dialog.addEventListener("nx-dialog-close", (e) => {
         if (e.target === this.#dialog) this.#editing = null;
       });
+      // El diálogo devuelve el foco a quien lo abrió; si la app repintó la lista mientras tanto (guardó
+      // en su servidor y asignó `items`), ese botón ya no está: va al del mismo registro, o a agregar.
+      this.#dialog.addEventListener("nx-open-change", (e) => {
+        if (e.target !== this.#dialog || (e as CustomEvent<{ open: boolean }>).detail.open) return;
+        const a = document.activeElement;
+        // Ya está en la página (no en el panel que se cierra): el diálogo lo devolvió bien.
+        if (a && a !== document.body && a.isConnected && !this.#dialog?.contains(a)) return;
+        const li = this.#lastEdited ? this.#nodes.get(this.#lastEdited) : undefined;
+        const to = li?.querySelector<HTMLElement>('[data-act="edit"]') ?? li?.querySelector<HTMLElement>("[data-act]") ?? (this.#addBtn && !this.#addBtn.hidden ? this.#addBtn : null);
+        to?.focus({ preventScroll: true });
+      });
       this.append(this.#dialog);
     }
     this.#editing = { id };
+    this.#lastEdited = id;
     this.#applySchema();
     const form = this.#form!;
     form.values = { ...(item?.values ?? {}) };

@@ -103,10 +103,12 @@ export class NxDocuments extends Base {
   #items: DocumentItem[] = [];
   #labels: DocumentsLabels = DOCUMENTS_LABELS;
   #list?: HTMLUListElement;
+  #cards = new Map<string, HTMLLIElement>();
   #dialog?: Dialog;
   #body?: HTMLDivElement;
   #foot?: HTMLDivElement;
   #view: View | null = null;
+  #lastId: string | null = null;
   #queued = false;
 
   // ---------------------------------------------------------------- propiedades
@@ -247,30 +249,42 @@ export class NxDocuments extends Base {
     const fmt = this.#fmt();
     const items = this.order === "none" ? this.#items : sortDocuments(this.#items, today, this.soon);
     list.setAttribute("aria-label", L.list);
-    // El foco: la tarjeta que lo tenía (por `id`).
-    const focused = (document.activeElement as HTMLElement | null)?.closest?.<HTMLElement>(".nx-documents__card")?.dataset.id;
-    list.replaceChildren(
-      ...items.map((d) => {
-        const st = documentState(d, today, L, (s) => fmt.date(s), this.soon);
-        const uses = d.uses?.length ?? 0;
-        const meta = st.key === "missing" || st.key === "rejected" ? (d.reason ?? "") : uses ? (uses === 1 ? L.usedInOne : fill(L.usedIn, { n: uses })) : (d.detail ?? (st.key === "review" ? (d.reason ?? "") : ""));
-        const card = h(
-          "button",
-          { type: "button", class: "nx-documents__card", "data-id": d.id, "data-state": st.key, "aria-describedby": `${this.#uid}-${d.id}-s` },
-          h("span", { class: "nx-documents__thumb" }, this.#thumb(d, st.key === "missing")),
-          h(
-            "span",
-            { class: "nx-documents__body" },
-            h("span", { class: "nx-documents__name" }, d.name),
-            h("span", { class: "nx-documents__state", "data-tone": st.tone, id: `${this.#uid}-${d.id}-s` }, h("span", { class: "nx-documents__dot", "aria-hidden": "true" }), st.label),
-            meta ? h("span", { class: "nx-documents__meta" }, meta) : null,
-          ),
-        );
-        if (this.busy === d.id) card.setAttribute("aria-busy", "true");
-        return h("li", null, card);
-      }),
-    );
-    if (focused) [...list.querySelectorAll<HTMLElement>(".nx-documents__card")].find((c) => c.dataset.id === focused)?.focus();
+    // Cada tarjeta conserva su nodo por `id`: el foco no se pierde al repintar, y el panel puede
+    // devolverle el foco al cerrarse aunque el documento haya cambiado.
+    const keep = new Set<string>();
+    items.forEach((d, i) => {
+      keep.add(d.id);
+      let li = this.#cards.get(d.id);
+      if (!li) {
+        li = h("li", null, h("button", { type: "button", class: "nx-documents__card", "data-id": d.id }));
+        this.#cards.set(d.id, li);
+      }
+      const card = li.firstElementChild as HTMLButtonElement;
+      const st = documentState(d, today, L, (s) => fmt.date(s), this.soon);
+      const uses = d.uses?.length ?? 0;
+      const meta = st.key === "missing" || st.key === "rejected" ? (d.reason ?? "") : uses ? (uses === 1 ? L.usedInOne : fill(L.usedIn, { n: uses })) : (d.detail ?? (st.key === "review" ? (d.reason ?? "") : ""));
+      const sid = `${this.#uid}-${i}-s`;
+      card.dataset.state = st.key;
+      card.setAttribute("aria-describedby", sid);
+      card.replaceChildren(
+        h("span", { class: "nx-documents__thumb" }, this.#thumb(d, st.key === "missing")),
+        h(
+          "span",
+          { class: "nx-documents__body" },
+          h("span", { class: "nx-documents__name" }, d.name),
+          h("span", { class: "nx-documents__state", "data-tone": st.tone, id: sid }, h("span", { class: "nx-documents__dot", "aria-hidden": "true" }), st.label),
+          meta ? h("span", { class: "nx-documents__meta" }, meta) : null,
+        ),
+      );
+      if (this.busy === d.id) card.setAttribute("aria-busy", "true");
+      else card.removeAttribute("aria-busy");
+      if (list.children[i] !== li) list.insertBefore(li, list.children[i] ?? null);
+    });
+    for (const [id, li] of this.#cards)
+      if (!keep.has(id)) {
+        li.remove();
+        this.#cards.delete(id);
+      }
   }
 
   /** La miniatura: la imagen, o un dibujo del tipo; si falta, la flecha de subir. */
@@ -299,7 +313,18 @@ export class NxDocuments extends Base {
       this.#dialog.addEventListener("click", (e) => this.#onPanelClick(e));
       this.#dialog.addEventListener("change", (e) => this.#onFile(e));
       this.#dialog.addEventListener("nx-dialog-close", (e) => {
-        if (e.target === this.#dialog) this.#view = null;
+        if (e.target === this.#dialog) {
+          this.#lastId = this.#view?.id ?? null;
+          this.#view = null;
+        }
+      });
+      // Si el foco no pudo volver a quien abrió el panel, va a la tarjeta del documento.
+      this.#dialog.addEventListener("nx-open-change", (e) => {
+        if (e.target !== this.#dialog || (e as CustomEvent<{ open: boolean }>).detail.open) return;
+        const a = document.activeElement;
+        // Ya está en la página (no en el panel que se cierra): el diálogo lo devolvió bien.
+        if (a && a !== document.body && a.isConnected && !this.#dialog?.contains(a)) return;
+        (this.#lastId ? this.#cards.get(this.#lastId)?.firstElementChild as HTMLElement | null : null)?.focus({ preventScroll: true });
       });
       this.append(this.#dialog);
     }

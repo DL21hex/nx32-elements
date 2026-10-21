@@ -1,5 +1,52 @@
 # Registro de cambios
 
+## 0.29.0 — 2026-10-21
+
+- **La página de una persona («Mi perfil»): cuatro piezas nuevas y lo que les faltaba a tres.** Se
+  arman como la propuesta A de `maquetas/nx-perfil.html` (galería: «Mi perfil», `#/profile`).
+  - **`<nx-entries>` (nuevo): registros que se repiten.** El núcleo familiar, la experiencia, los
+    estudios, los cursos, las sesiones abiertas, las autorizaciones. Cada uno en pocas líneas: la
+    cara (iniciales con el color de la persona, foto o ícono), el título y su píldora, dos líneas,
+    etiquetas, lo que lo respalda con un visto y un aviso con su acción dentro del registro
+    (`nx-entries-action`). Con `schema` (campos de `<nx-form>`), agregar y editar abren un panel con
+    el formulario (`nx-entries-open` lo entrega para `fill()`); al enviar bien sale
+    `nx-entries-save` (cancelable: el panel espera al servidor, luego `close()` o `errors`) y lo
+    nuevo se ilumina. Quitar se confirma en el mismo registro diciendo qué pasa (`removeText`,
+    `nx-entries-remove`). `locked` con su razón, `readonly`, y `layout` `list`, `cards` o `timeline`.
+  - **`<nx-documents>` (nuevo): los documentos de la persona.** En tarjetas con su estado calculado
+    con la fecha de hoy (falta, rechazado, vencido, vence en N días, en revisión, vigente), lo que
+    pide atención primero. El detalle dice qué se leyó, qué se comprobó, quién lo pide y **quién lo
+    ha usado**. Subir o reemplazar en el mismo panel (tipo y tamaño se revisan antes; con
+    `handoff-endpoint`, la foto del celular con `<nx-handoff>`): el archivo sale en
+    `nx-documents-file`, la app lo lee con `busy` y asigna `items`, y el panel muestra cómo quedó (o
+    el motivo si volvió rechazado). `summaryText` («Falta 1 · 1 por vencer») para su pestaña.
+    `INTEGRATION.md` trae el contrato del servidor para que otro módulo tome el documento sin pedirlo
+    otra vez y el uso quede registrado.
+  - **`<nx-otp>` (nuevo): el código en casillas.** Se escribe de corrido, se pega o lo llena el
+    celular (`one-time-code`); `nx-otp-complete` sale una vez y en el turno siguiente al evento que
+    llenó la última casilla (el error que la app pinta ahí no lo borra ese mismo `input`). Control
+    de formulario.
+  - **`<nx-password>` (nuevo): la contraseña.** Ojo para mostrar, aviso de mayúsculas y, con
+    `meter`, medidor de cuatro tramos con su nivel en palabras y condiciones que se van cumpliendo:
+    largo (`min-length`, 12), sin datos de la persona (`avoid`), no ser de las más usadas, no aparecer
+    en filtraciones (`breach-endpoint`, k-anonimato) y distinta de la actual (`differs`); `match`
+    para la confirmación. Nunca va a un atributo, no se repone con «atrás», `nx-password-change` no
+    la trae y BDUI no la acepta en un payload (`localProps`).
+  - **`<nx-form>`: tipos `otp` y `password`** (`meter`, `avoid`, `match`, `differs`,
+    `breachEndpoint`). No van al borrador, `fill()` no los llena, no se recortan al salir, en lectura
+    son puntos y no van dentro de `rows`.
+  - **`<nx-tabs orientation="vertical">`:** el índice al lado de los paneles, con una línea de
+    estado por pestaña (`data-status`, `data-tone`, `data-icon`; también en `tabs`) y arriba/abajo;
+    en menos de 640 px vuelve a ser la tira de arriba y el estado queda como un punto.
+  - **`<nx-fields>`:** `note` bajo el título (`note-icon`), y por dato `verified`, `masked` (con
+    «Mostrar»), `pending` (un cambio en revisión con su acción, `nx-fields-pending`) y «Falta ·
+    Agregar» al leer un obligatorio vacío (`nx-fields-action` con su `key`).
+  - **`<nx-page-header avatar>`:** la cara de la persona (iniciales con su color o foto) en lugar del
+    ícono, y `avatar-action` con su botón (`nx-page-header-avatar`).
+  - Envoltorios de Solid (`<Otp>`, `<Password>`, `<Entries>`, `<Documents>`), registro BDUI
+    (`breachEndpoint` y `handoffEndpoint` cuentan como direcciones) y una prueba que monta la página
+    de la galería sin navegador.
+
 ## 0.28.0 — 2026-10-20
 
 - **`<nx-lanes>` (nuevo): lo abierto de varios procesos, un punto por elemento, para un monitor en

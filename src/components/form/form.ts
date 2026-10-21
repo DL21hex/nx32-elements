@@ -37,7 +37,7 @@ import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import "../field/index";
 import { fieldLink, type NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
-import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isNumeric, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
+import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isNumeric, isSecret, otpLength, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
 import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
 
 export const FORM_LABELS: FormLabels = {
@@ -106,6 +106,11 @@ export const FORM_LABELS: FormLabels = {
   fileRemove: "Quitar",
   fileBadType: "Ese tipo de archivo no sirve aquí: elige {accept}",
   fileTooBig: "El archivo pasa de {max}",
+  otp: "Escribe los {n} dígitos",
+  passwordWeak: "Todavía no cumple las condiciones de abajo",
+  passwordMismatch: "No coincide con la nueva",
+  passwordSame: "Tiene que ser distinta de la actual",
+  masked: "••••••••",
 };
 
 const CHECK = '<path d="M20 6 9 17l-5-5"/>';
@@ -661,6 +666,8 @@ export class NxForm extends Base {
     const all = [...this.#defs.values()].flatMap((d) => [d, ...(d.subs ?? [])]);
     if (all.some((d) => isNumeric(d.type))) void import("../number/index");
     if (all.some(usesSearch)) void import("../select/index");
+    if (all.some((d) => d.type === "otp")) void import("../otp/index");
+    if (all.some((d) => d.type === "password")) void import("../password/index");
 
     this.#index!.replaceChildren(
       h(
@@ -754,6 +761,21 @@ export class NxForm extends Base {
         return h("label", { class: "nx-check" }, h("input", { type: "checkbox", name, value: "true" }), h("span", null, def.label));
       case "file":
         return this.#fileControl(def, name);
+      case "otp": {
+        const o = document.createElement("nx-otp");
+        o.setAttribute("name", name);
+        o.setAttribute("length", String(otpLength(def)));
+        return o;
+      }
+      case "password": {
+        // Con id propio: `match` y `differs` nombran el control del otro campo.
+        const p = h("nx-password", { name, id: this.#secretId(name), placeholder: def.placeholder, autocomplete: def.autocomplete || null, meter: !!def.meter, minlength: def.minLength });
+        if (Array.isArray(def.avoid) && def.avoid.length) p.setAttribute("avoid", JSON.stringify(def.avoid));
+        if (def.match) p.setAttribute("match", this.#secretId(def.match));
+        if (def.differs) p.setAttribute("differs", this.#secretId(def.differs));
+        if (def.meter && def.breachEndpoint) p.setAttribute("breach-endpoint", def.breachEndpoint);
+        return p;
+      }
       case "number":
       case "money":
       case "percent": {
@@ -1033,6 +1055,11 @@ export class NxForm extends Base {
       case "radio":
       case "segmented":
         return ctl.querySelector<HTMLInputElement>("input:checked")?.value ?? null;
+      case "otp":
+      case "password": {
+        const v = (ctl as unknown as { value: unknown }).value;
+        return typeof v === "string" && v ? v : null;
+      }
       default: {
         const v = (ctl as HTMLInputElement).value;
         return v === "" ? null : v;
@@ -1067,6 +1094,10 @@ export class NxForm extends Base {
         return;
       case "file":
         return this.#writeFile(ctl, v);
+      case "otp":
+      case "password":
+        (ctl as unknown as { value: unknown }).value = typeof v === "string" ? v : "";
+        return;
       case "select": {
         const sel = ctl as HTMLSelectElement;
         const val = v == null ? "" : String(v);
@@ -1117,7 +1148,7 @@ export class NxForm extends Base {
     if (sameValue(v, this.#get(s))) return void (s.def.type === "file" && this.#paint());
     // Una lista, una fecha o una opción se dan por revisadas al elegir; el texto, al salir.
     const t = s.def.type;
-    if (t !== "text" && t !== "textarea" && t !== "email" && t !== "tel" && t !== "url" && !isNumeric(t)) this.#touched.add(s.key);
+    if (t !== "text" && t !== "textarea" && t !== "email" && t !== "tel" && t !== "url" && !isNumeric(t) && !isSecret(t)) this.#touched.add(s.key);
     this.#setByPerson(s, v);
     // El archivo elegido se ve con su nombre (los demás controles ya muestran lo que se escribió).
     if (t === "file") this.#write(s);
@@ -1169,7 +1200,8 @@ export class NxForm extends Base {
     if (e.relatedTarget instanceof Node && s.field.contains(e.relatedTarget)) return;
     this.#touched.add(s.key);
     const v = this.#get(s);
-    if (typeof v === "string") {
+    // Una contraseña o un código no se tocan: un espacio también es parte de la contraseña.
+    if (typeof v === "string" && !isSecret(s.def.type)) {
       let t = s.def.type === "textarea" ? v.trim() : v.trim().replace(/\s+/g, " ");
       if (s.def.type === "email") t = t.toLowerCase();
       if (s.def.type === "url" && t && !/^[a-z][a-z0-9+.-]*:/i.test(t) && /\.[a-z]{2,}/i.test(t)) t = `https://${t}`;
@@ -1284,6 +1316,8 @@ export class NxForm extends Base {
       }
       // Un archivo solo llega como `File` (o `null`, que lo quita): un texto no es un archivo.
       if (def.type === "file" && raw !== null && !isFile(raw)) continue;
+      // Una contraseña o un código no llegan de un documento ni de un texto pegado.
+      if (isSecret(def.type)) continue;
       const v = coerce(def, raw, this.#fmt);
       const cur = this.#v[k] ?? null;
       const typed = !force && def.type !== "readonly" && this.#touched.has(k) && !this.#marks[k] && !isEmpty(cur);
@@ -1369,7 +1403,18 @@ export class NxForm extends Base {
   // ---------------------------------------------------------------- pintar
 
   #check(s: Slot): Check {
-    return check(s.def, this.#get(s), { labels: this.#labels, fmt: this.#fmt, today: todayISO() });
+    const c = check(s.def, this.#get(s), { labels: this.#labels, fmt: this.#fmt, today: todayISO(), values: this.#v });
+    // Lo que solo sabe el control: una contraseña que apareció en una filtración.
+    if (!c.error && s.def.type === "password" && s.ctl && !isEmpty(this.#get(s))) {
+      const ctl = s.ctl as unknown as { validity?: ValidityState; validationMessage?: string };
+      if (ctl.validity && !ctl.validity.valid && ctl.validity.customError) c.error = ctl.validationMessage || this.#labels.passwordWeak;
+    }
+    return c;
+  }
+
+  /** El id del control de una contraseña (lo nombran `match` y `differs` del otro campo). */
+  #secretId(key: string): string {
+    return `${this.#uid}-pw-${key.replace(/[^\w-]/g, "_")}`;
   }
 
   #paint(): void {
@@ -1669,7 +1714,7 @@ export class NxForm extends Base {
     let any = false;
     for (const [k, raw] of Object.entries(d.v)) {
       const def = this.#defs.get(k);
-      if (!def || def.type === "readonly" || def.type === "file") continue;
+      if (!def || def.type === "readonly" || def.type === "file" || isSecret(def.type)) continue;
       const v = coerce(def, raw, this.#fmt);
       if (sameValue(v, this.#v[k])) continue;
       this.#v[k] = v;
@@ -1698,7 +1743,8 @@ export class NxForm extends Base {
     // Solo lo que cambió frente al registro: al volver, se aplica encima del que traiga la app.
     const v: Record<string, FormValue> = {};
     // Un archivo no va al borrador: no cabe en `localStorage` y el navegador no deja reponerlo.
-    for (const [k, def] of this.#defs) if (def.type !== "file" && !sameValue(this.#v[k], this.#initial[k])) v[k] = this.#v[k] ?? null;
+    // Ni una contraseña ni un código: no pueden quedar en el navegador.
+    for (const [k, def] of this.#defs) if (def.type !== "file" && !isSecret(def.type) && !sameValue(this.#v[k], this.#initial[k])) v[k] = this.#v[k] ?? null;
     try {
       if (Object.keys(v).length) {
         const t = Date.now();

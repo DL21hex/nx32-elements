@@ -1,6 +1,6 @@
 /**
  * `<nx-field>`: el campo de la casa. Envuelve un control (un `<input>`, `<select>` o `<textarea>`
- * nativo, `<nx-number>`, `<nx-select>`, `<nx-date-range>`… o un grupo de radios o casillas) y le pone
+ * nativo, `<nx-number>`, `<nx-select>`, `<nx-date-range>`, `<nx-otp>`, `<nx-password>`… o un grupo de radios o casillas) y le pone
  * alrededor lo de todo campo, siempre en el mismo lugar:
  *
  * - arriba, la etiqueta (`label`), «Opcional» si se puede dejar vacío (`optional`) y, a la derecha,
@@ -56,7 +56,7 @@ export function fieldLink(label: string, href: string, newTab: string): HTMLAnch
 }
 
 /** Lo que cuenta como el control del campo (el primero, en orden de documento). */
-const CONTROL = "input:not([type=hidden]), select, textarea, nx-number, nx-select, nx-date-range, nx-recurrence, nx-signature, [data-nx-control]";
+const CONTROL = "input:not([type=hidden]), select, textarea, nx-number, nx-select, nx-date-range, nx-recurrence, nx-signature, nx-otp, nx-password, [data-nx-control]";
 
 let uid = 0;
 
@@ -221,7 +221,7 @@ export class NxField extends Base {
   /** Los controles del autor (todos los radios o casillas de un grupo; si no, uno). */
   #controls(): HTMLElement[] {
     const mine = (el: Element) => this.#top?.contains(el) || this.#view?.contains(el) || this.#msg?.contains(el) || this.#link?.contains(el);
-    const first = [...this.querySelectorAll<HTMLElement>(CONTROL)].find((el) => !mine(el) && !el.parentElement?.closest("nx-number, nx-select, nx-date-range, nx-recurrence, nx-signature"));
+    const first = [...this.querySelectorAll<HTMLElement>(CONTROL)].find((el) => !mine(el) && !el.parentElement?.closest("nx-number, nx-select, nx-date-range, nx-recurrence, nx-signature, nx-otp, nx-password"));
     if (!first) return [];
     if (first instanceof HTMLInputElement && (first.type === "radio" || first.type === "checkbox")) {
       const group = [...this.querySelectorAll<HTMLInputElement>(`input[type="${first.type}"]`)].filter((el) => !mine(el));

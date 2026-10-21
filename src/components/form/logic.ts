@@ -6,9 +6,18 @@
 import { safeHref } from "../../core/dom";
 import type { NxFormat } from "../../core/locale";
 import { acceptsFile, formatBytes } from "../capture/logic";
+import { firstUnmet, passwordRules } from "../password/logic";
 import type { FormCondition, FormField, FormFieldType, FormLabels, FormLink, FormOption, FormRow, FormRule, FormSection, FormValue } from "./types";
 
-export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows", "file"];
+export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows", "file", "otp", "password"];
+/** Lo que no se guarda en el borrador, no se llena desde afuera y no se muestra al leer. */
+const SECRET = new Set<FormFieldType>(["otp", "password"]);
+export const isSecret = (t: FormFieldType): boolean => SECRET.has(t);
+/** Las casillas de un código: `maxLength` (de 4 a 8) o 6. */
+export const otpLength = (def: Pick<FormField, "maxLength">): number => {
+  const n = Math.round(Number(def.maxLength));
+  return n >= 4 && n <= 8 ? n : 6;
+};
 /** El tamaño máximo de un archivo si el campo no trae `maxSize` (20 MB, como `<nx-doc-capture>`). */
 export const FILE_MAX_SIZE = 20 * 1024 * 1024;
 /** Con más opciones que esto, un `select` lleva buscador (`<nx-select>`). */
@@ -84,9 +93,10 @@ function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean)
     return null;
   }
   const t = f.type as FormFieldType;
-  // Un archivo no va en una fila: su valor no es texto y las filas se guardan en el borrador.
-  if (nested && t === "file") {
-    console.warn(`[nx-form] un archivo no va dentro de una fila: "${key}" no se pinta`);
+  // Un archivo no va en una fila: su valor no es texto y las filas se guardan en el borrador. Una
+  // contraseña o un código tampoco: no pueden terminar en el borrador.
+  if (nested && (t === "file" || t === "otp" || t === "password")) {
+    console.warn(`[nx-form] ${t === "file" ? "un archivo" : t === "otp" ? "un código" : "una contraseña"} no va dentro de una fila: "${key}" no se pinta`);
     return null;
   }
   if (t !== undefined && (!FORM_TYPES.includes(t) || (nested && t === "rows"))) console.warn(`[nx-form] tipo ${nested && t === "rows" ? "rows dentro de una fila" : `desconocido "${String(t)}"`} en "${key}": se usa text`);
@@ -272,6 +282,8 @@ export interface CheckContext {
   labels: FormLabels;
   fmt: NxFormat;
   today: string;
+  /** Los valores del formulario: los usa una contraseña con `match` o `differs`. */
+  values?: Record<string, FormValue>;
 }
 
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
@@ -297,6 +309,23 @@ export function check(def: FieldDef, value: FormValue | undefined, ctx: CheckCon
     if (!isFile(value)) out.error = L.required;
     else if (def.accept && !acceptsFile(def.accept, value.name, value.type)) out.error = fill(L.fileBadType, { accept: acceptText(def.accept) });
     else if (value.size > fileMaxSize(def)) out.error = fill(L.fileTooBig, { max: formatBytes(fileMaxSize(def), ctx.fmt.locale) });
+    return out;
+  }
+  if (def.type === "password") {
+    // La contraseña tal cual: un espacio al final también cuenta.
+    const pw = typeof value === "string" ? value : "";
+    const others = ctx.values ?? {};
+    if (def.meter) {
+      const unmet = firstUnmet(passwordRules(pw, { minLength: def.minLength, avoid: Array.isArray(def.avoid) ? def.avoid : [] }));
+      if (unmet) out.error = L.passwordWeak;
+    }
+    if (!out.error && def.match && pw !== (others[def.match] ?? "")) out.error = L.passwordMismatch;
+    if (!out.error && def.differs && pw === others[def.differs]) out.error = L.passwordSame;
+    return out;
+  }
+  if (def.type === "otp") {
+    const n = otpLength(def);
+    if (typeof value !== "string" || value.length < n) out.error = fill(L.otp, { n });
     return out;
   }
   const text = typeof value === "string" ? value.trim() : "";
@@ -379,6 +408,7 @@ export function optionLabel(def: FieldDef, value: string): string {
 export function displayValue(def: FieldDef, value: FormValue | undefined, fmt: NxFormat, labels: FormLabels, currency?: string): string {
   if (def.type === "checkbox") return value ? labels.yes : labels.no;
   if (isEmpty(value)) return "";
+  if (isSecret(def.type)) return labels.masked;
   if (def.type === "rows") return String(Array.isArray(value) ? value.length : 0);
   if (isFile(value)) return value.name;
   if (Array.isArray(value)) return (value as string[]).map((v) => optionLabel(def, String(v))).join(", ");

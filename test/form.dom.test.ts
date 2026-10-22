@@ -276,6 +276,37 @@ describe("<nx-form>: lo que pone la app", () => {
     expect(field(f, "celular").getAttribute("hint")).toBe("Sin el +57");
   });
 
+  it("setErrors con {focus: false}: el error se ve y se anuncia, y el foco se queda donde la persona escribe", async () => {
+    const f = await mount();
+    const live = f.querySelector<HTMLElement>("p.nx-sr-only[aria-live]")!;
+    const nombres = ctl(f, "nombres");
+    nombres.focus();
+    type(nombres, "Lau", false);
+    const scroll = vi.fn();
+    field(f, "correo").scrollIntoView = scroll;
+    // Una comprobación que termina sola mientras la persona escribe en otro campo.
+    f.setErrors({ correo: "Ya existe un empleado con este correo" }, { focus: false });
+    expect(field(f, "correo").getAttribute("error")).toBe("Ya existe un empleado con este correo");
+    expect(f.errors).toEqual({ correo: "Ya existe un empleado con este correo" });
+    expect(f.missing).toContain("correo");
+    expect(document.activeElement).toBe(nombres);
+    expect(scroll).not.toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 40));
+    expect(live.textContent).toBe("Correo personal: Ya existe un empleado con este correo");
+    // Sumado a los que ya se ven: sólo el nuevo se anuncia.
+    f.setErrors({ ...f.errors, apellidos: "No coincide con la cédula" }, { focus: false });
+    expect(field(f, "correo").getAttribute("error")).toBe("Ya existe un empleado con este correo");
+    expect(field(f, "apellidos").getAttribute("error")).toBe("No coincide con la cédula");
+    expect(document.activeElement).toBe(nombres);
+    await new Promise((r) => setTimeout(r, 40));
+    expect(live.textContent).toBe("Apellidos: No coincide con la cédula");
+    // Sin la opción es como asignar `errors`: la respuesta a un envío, enfoca el primero.
+    f.setErrors({ correo: "Ya existe un empleado con este correo" });
+    expect(document.activeElement).toBe(ctl(f, "correo"));
+    expect(scroll).toHaveBeenCalledOnce();
+    expect(field(f, "apellidos").hasAttribute("error")).toBe(false);
+  });
+
   it("values carga un registro; reset vuelve a él", async () => {
     const f = await mount();
     f.values = { nombres: "Laura", tipo: "Término fijo", fin: "2027-01-31", acepta: "true" };

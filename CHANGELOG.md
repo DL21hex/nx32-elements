@@ -1,5 +1,15 @@
 # Registro de cambios
 
+## 0.29.1 — 2026-10-22
+
+- **`<nx-form>`: `setErrors(errores, {focus: false})` pone errores sin mover el foco.** Asignar
+  `errors` enfoca el primer campo con error y lo trae a la vista, y eso está bien al enviar. Pero un
+  error que llega solo, sin que la persona haya hecho nada (una comprobación del servidor que
+  termina 1–3 s después de elegir un archivo), le movía el cursor a ese campo mientras escribía en
+  otro, y lo que tecleaba se perdía. Con `{focus: false}` el foco y la vista se quedan donde están, y
+  el primer error nuevo se anuncia a los lectores de pantalla («Soporte: …»), que si no, no se
+  enterarían. Sin la opción, `setErrors(e)` es lo mismo que `errors = e`.
+
 ## 0.29.0 — 2026-10-21
 
 - **La página de una persona («Mi perfil»): cuatro piezas nuevas y lo que les faltaba a tres.** Se

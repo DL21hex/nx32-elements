@@ -2814,7 +2814,10 @@ lo escrito no se pierde.
   primera vez. Un aviso no bloquea y trae su arreglo: un correo «@gmial.com» dice «¿Quisiste decir
   …@gmail.com?» con «Usar gmail.com». El texto se limpia al salir (espacios; el correo en
   minúsculas; «https://» si falta). `errors` muestra los del servidor (se borran al cambiar el
-  campo); `warnings` y `hints`, los avisos y ayudas de la app.
+  campo) y enfoca el primero, porque es la respuesta a un envío; un error que llega solo (una
+  comprobación que termina mientras la persona escribe en otro campo) va con
+  `setErrors(errores, {focus: false})`, que no le mueve el cursor y lo anuncia a los lectores de
+  pantalla. `warnings` y `hints`, los avisos y ayudas de la app.
 - **Cuánto falta.** Con tres secciones o más, un índice al lado (una franja arriba en angosto) con el
   avance de cada sección («3 de 5», «Completa», «2 por llenar») y la sección que se ve. El pie,
   pegado abajo: «Faltan 4 datos obligatorios · Ir al siguiente» (al que falta después del último
@@ -2883,7 +2886,7 @@ descargar), en otra pestaña y también en lectura. Las clases `.nx-input`, `.nx
 
 | | |
 |---|---|
-| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `missing`, `sources`, `dirty` (lo que se ve difiere de lo último cargado con `values` o con un `fill()` sin origen; escribir y borrar vuelve a `false`), `markClean()` · `nx-form-change` `{key, value, values}`, `nx-form-dirty` `{dirty}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
+| `<nx-form>` | `sections` / `fields`, `values`, `errors`, `warnings`, `hints`, `heading`, `submit-label`, `cancel-label`, `draft`, `mode` (`edit` / `read`), `variant` (`cards` / `plain`), `index` (`auto` / `none`), `no-footer`, `currency`, `locale`, `labels` · `fill(valores, origen?, {force?, details?})`, `undo()`, `submit()`, `validate()`, `reset()`, `clearDraft()`, `focusField(key)`, `setErrors(errores, {focus?})` (como `errors`; `focus: false` no mueve el foco), `missing`, `sources`, `dirty` (lo que se ve difiere de lo último cargado con `values` o con un `fill()` sin origen; escribir y borrar vuelve a `false`), `markClean()` · `nx-form-change` `{key, value, values}`, `nx-form-dirty` `{dirty}`, `nx-form-fill` `{keys, source}`, `nx-form-undo` `{keys}`, `nx-form-submit` `{values, sources}`, `nx-form-cancel` |
 | Campo del esquema | `{key, label, type?, required?, hint?, placeholder?, span?, value?, options?: (texto \| {value, label?, fills?, …columnas})[], when?, min?, max?, minLength?, maxLength?, pattern?, patternMessage?, rows?, currency?, decimals?, mono?, autocomplete?, search?, source?, fields? (rows), addLabel? (rows), accept? (file), maxSize? (file, bytes), link? ({label, href}: un enlace debajo, en otra pestaña), meter?, avoid?, match?, differs?, breachEndpoint? (password)}` |
 | `<nx-field>` | `label`, `hint`, `error`, `warning`, `action`, `required`, `optional`, `source`, `source-detail`, `span` (1–6), `text`, `locked`, `link-label` + `link-href` (un enlace debajo, en otra pestaña; también con `text`), `labels` · `control`, `focus()` · `nx-field-action` `{action}` |
 | Clases | `.nx-input`, `.nx-check`, `.nx-choices` (`data-inline`), `.nx-segmented`, `.nx-form-grid` · variables `--nx-field-height` (36px), `--nx-form-grid-gap`, `--nx-form-index`, `--nx-form-foot-bg`, `--nx-sticky-top` |

@@ -281,19 +281,15 @@ export class NxForm extends Base {
   }
 
   /** Errores del servidor por clave (`{correo: "Ya existe"}`; en una fila, `"beneficiarios.0.nombre"`).
-   *  Se borran al cambiar el campo. */
+   *  Se borran al cambiar el campo. Asignarlos enfoca el primero (la respuesta a un envío); para uno
+   *  que llega solo, `setErrors(errores, {focus: false})`. */
   get errors(): Record<string, string> {
     const out: Record<string, string> = {};
     for (const [k, m] of Object.entries(this.#server)) out[this.#publicKey(k)] = m;
     return out;
   }
   set errors(v: Record<string, string> | null | undefined) {
-    this.#rawServer = textMap(v);
-    this.#server = {};
-    for (const [k, m] of Object.entries(this.#rawServer)) this.#server[this.#innerKey(k)] = m;
-    this.#paint();
-    const first = this.#problems.find((k) => this.#server[k]);
-    if (first) this.focusField(first);
+    this.setErrors(v);
   }
 
   /** Avisos de la app por clave: no bloquean (`{salario: "Por encima de la banda"}`). */
@@ -455,15 +451,35 @@ export class NxForm extends Base {
     return true;
   }
 
+  /**
+   * Pone los errores del servidor: reemplaza los que había, como asignar `errors`. Por defecto
+   * enfoca el primero y lo trae a la vista, porque es la respuesta a un envío. Con `{focus: false}`
+   * el foco y la vista se quedan donde están: para un error que llega solo, sin que la persona haya
+   * hecho nada (una comprobación que termina mientras escribe en otro campo), que si no le movería el
+   * cursor a media palabra. El primer error nuevo se anuncia a los lectores de pantalla.
+   */
+  setErrors(v: Record<string, string> | null | undefined, options: { focus?: boolean } = {}): void {
+    const before = this.#server;
+    this.#rawServer = textMap(v);
+    this.#server = {};
+    for (const [k, m] of Object.entries(this.#rawServer)) this.#server[this.#innerKey(k)] = m;
+    this.#paint();
+    if (options.focus === false) {
+      const fresh = this.isConnected ? this.#problems.find((k) => this.#server[k] && this.#server[k] !== before[k]) : undefined;
+      if (fresh) this.#announce(`${this.#labelOf(fresh)}: ${this.#server[fresh]}`);
+      return;
+    }
+    const first = this.#problems.find((k) => this.#server[k]);
+    if (first) this.focusField(first);
+  }
+
   /** Revisa todo, muestra los errores y enfoca el primero. Devuelve si está todo bien. */
   validate(): boolean {
     this.#submitted = true;
     this.#paint();
     const first = this.#problems[0];
     if (first) {
-      const s = this.#slot(first);
-      const label = s?.row ? `${this.#defs.get(s.row.parent)?.label ?? ""}: ${s.def.label}` : (s?.def.label ?? "");
-      this.#announce(tpl(this.#labels.goTo, { n: this.#problems.length, label }));
+      this.#announce(tpl(this.#labels.goTo, { n: this.#problems.length, label: this.#labelOf(first) }));
       this.focusField(first);
     }
     return !first;
@@ -1779,6 +1795,12 @@ export class NxForm extends Base {
   }
 
   // ---------------------------------------------------------------- utilidades
+
+  /** El nombre de un campo para decirlo en voz alta (en una fila, «Beneficiarios: Nombre»). */
+  #labelOf(key: string): string {
+    const s = this.#slot(key);
+    return s?.row ? `${this.#defs.get(s.row.parent)?.label ?? ""}: ${s.def.label}` : (s?.def.label ?? "");
+  }
 
   #announce(text: string): void {
     const live = this.#live!;

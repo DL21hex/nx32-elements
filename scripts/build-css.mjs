@@ -28,6 +28,7 @@ const entries = {
   "presence": "src/components/presence/presence.css",
   "paste-fill": "src/components/paste-fill/paste-fill.css",
   "date-range": "src/components/date-range/date-range.css",
+  "date": "src/components/date/date.css",
   "history": "src/components/history/history.css",
   "kanban": "src/components/kanban/kanban.css",
   "number": "src/components/number/number.css",

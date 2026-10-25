@@ -1,0 +1,285 @@
+/*
+ * <nx-date>. Variables propias:
+ *   --nx-date-width (100%) · --nx-date-height (36px) · --nx-date-cell (38px)
+ */
+
+nx-date {
+  display: inline-block;
+  inline-size: var(--nx-date-width, 100%);
+  max-inline-size: 100%;
+  vertical-align: middle;
+  font-family: var(--nx-font-sans);
+  font-size: 13.5px;
+  line-height: 1.3;
+}
+nx-date *,
+nx-date *::before,
+nx-date *::after {
+  box-sizing: border-box;
+}
+nx-date .nx-glyph {
+  display: inline-flex;
+  flex: none;
+  inline-size: 15px;
+  block-size: 15px;
+  & svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------- la caja */
+
+.nx-date__box {
+  display: flex;
+  align-items: center;
+  block-size: var(--nx-date-height, var(--nx-field-height, 36px));
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-card);
+  color: var(--nx-foreground);
+  transition:
+    border-color var(--nx-motion-fast),
+    box-shadow var(--nx-motion-fast);
+}
+.nx-date__box:hover {
+  border-color: var(--nx-border-strong);
+}
+.nx-date__box:focus-within {
+  border-color: var(--nx-primary-border);
+  box-shadow: 0 0 0 3px var(--nx-primary-soft);
+}
+.nx-date__box:has([aria-invalid="true"]),
+nx-field[data-invalid] .nx-date__box {
+  border-color: var(--nx-danger);
+}
+.nx-date__box:has([aria-invalid="true"]):focus-within {
+  box-shadow: 0 0 0 3px var(--nx-danger-soft);
+}
+nx-field[data-warning] .nx-date__box {
+  border-color: var(--nx-warning);
+}
+.nx-date__box:has(:disabled) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.nx-date__input {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 100%;
+  padding: 0 0 0 10px;
+  border: 0;
+  outline: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  &::placeholder {
+    color: var(--nx-text-tertiary);
+    opacity: 1;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+.nx-date__btn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 32px;
+  block-size: calc(100% - 6px);
+  margin-inline-end: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  background: none;
+  color: var(--nx-text-tertiary);
+  cursor: pointer;
+  &:hover:not(:disabled),
+  &[aria-expanded="true"] {
+    background: var(--nx-hover);
+    color: var(--nx-foreground);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+    outline-offset: -2px;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* ---------------------------------------------------------------- el calendario */
+
+.nx-date__pop {
+  --_cell: var(--nx-date-cell, 38px);
+  position: fixed;
+  inset: auto;
+  inline-size: min(calc(7 * var(--_cell) + 22px), calc(100vw - 16px));
+  margin: 0;
+  padding: 10px;
+  max-block-size: calc(100dvh - 16px);
+  overflow: auto;
+  border: 1px solid var(--nx-border-strong);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-popover);
+  color: var(--nx-foreground);
+  box-shadow: var(--nx-shadow-popover);
+  font-family: var(--nx-font-sans);
+  font-size: 13.5px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  overscroll-behavior: contain;
+}
+.nx-date__pop:popover-open {
+  display: flex;
+  flex-direction: column;
+  animation: nx-date-in var(--nx-motion-fast) var(--nx-ease-out);
+}
+.nx-date__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: 6px;
+}
+.nx-date__title {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+.nx-date__nav {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nx-radius-md);
+  background: none;
+  color: var(--nx-muted-foreground);
+  cursor: pointer;
+  &:hover:not(:disabled) {
+    background: var(--nx-hover);
+    color: var(--nx-foreground);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--nx-ring);
+  }
+  &:disabled {
+    cursor: default;
+    opacity: 0.35;
+  }
+}
+.nx-date__grid {
+  display: grid;
+  row-gap: 2px;
+}
+.nx-date__row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, var(--_cell)));
+}
+.nx-date__wd {
+  padding-block: 4px;
+  color: var(--nx-text-tertiary);
+  font-size: 11px;
+  font-weight: 550;
+  text-align: center;
+}
+.nx-date__day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  block-size: 34px;
+  border-radius: var(--nx-radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--nx-motion-fast),
+    color var(--nx-motion-fast);
+  &:hover:not([aria-selected="true"], [aria-disabled]) {
+    background: var(--nx-hover);
+  }
+  &:focus-visible {
+    z-index: 1;
+    outline: 2px solid var(--nx-ring);
+    outline-offset: -1px;
+  }
+  &[aria-current="date"] {
+    color: var(--nx-primary-ink);
+    font-weight: 700;
+    &::after {
+      content: "";
+      position: absolute;
+      inset-block-end: 4px;
+      inline-size: 4px;
+      block-size: 4px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+  }
+  &[aria-selected="true"] {
+    background: var(--nx-primary);
+    color: var(--nx-primary-foreground);
+    font-weight: 650;
+  }
+  /* Bloqueado: tachado y apagado, pero se puede enfocar para saber por qué. */
+  &[aria-disabled="true"] {
+    color: var(--nx-text-tertiary);
+    text-decoration: line-through;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+.nx-date__note {
+  min-block-size: 0;
+  margin: 0;
+  color: var(--nx-text-tertiary);
+  font-size: 12px;
+  &:not(:empty) {
+    margin-block-start: 8px;
+    padding-block-start: 8px;
+    border-block-start: 1px solid var(--nx-border-subtle);
+  }
+  &::first-letter {
+    text-transform: uppercase;
+  }
+  &.is-shake {
+    color: var(--nx-danger);
+    animation: nx-date-shake 0.32s var(--nx-ease-out);
+  }
+}
+
+@keyframes nx-date-in {
+  from {
+    opacity: 0;
+    translate: 0 -3px;
+  }
+}
+@keyframes nx-date-shake {
+  20%,
+  60% {
+    translate: -4px 0;
+  }
+  40%,
+  80% {
+    translate: 4px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-date__pop,
+  nx-date * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+@media (forced-colors: active) {
+  .nx-date__day[aria-selected="true"] {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+  .nx-date__day[aria-current="date"] {
+    text-decoration: underline;
+  }
+}

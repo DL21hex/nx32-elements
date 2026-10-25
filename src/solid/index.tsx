@@ -1,7 +1,7 @@
 /**
  * Adaptador para SolidJS: tipos JSX de las etiquetas y envoltorios (`<SideMenu>`, `<Button>`,
  * `<Select>`, `<AIAnswer>`, `<DocCapture>`, `<Grid>`, `<Dialog>`, `<Agent>`, `<Command>`, `<Explain>`,
- * `<Inbox>`, `<Survey>`, `<NumberInput>`, `<Kanban>`, `<History>`, `<DateRange>`,
+ * `<Inbox>`, `<Survey>`, `<NumberInput>`, `<Kanban>`, `<History>`, `<DateRange>`, `<DateInput>`,
  * `<PasteFill>`, `<Presence>`, `<WhatIf>`, `<Trend>`, `<Scan>`, `<Sync>`, `<Import>`,
  * `<Keytips>`, `<Guard>`, `<Handoff>`, `<Award>`, `<Account>`, `<Launcher>`, `<Timeline>`, `<Intent>`, `<Tracker>`, `<Stats>`, `<Board>`, `<BoardPanel>`, `<Bars>`, `<Heatmap>`, `<Parts>`, `<Phases>`, `<Alerts>`, `<Insights>`, `<Actions>`, `<Cards>`, `<Print>`, `<Badge>`, `<Notice>`, `<PageHeader>`, `<Fields>`, `<Field>`, `<Form>`, `<Otp>`, `<Password>`, `<Entries>`, `<Documents>`, `<Tabs>`, `<Breadcrumb>`, `<Signature>`, `<Planner>`, `<Review>`, `<Voice>`, `<Thread>`, `<Checklist>`, `<Recurrence>`, `<Jobs>`, `<Tasks>`), y `nxToast` / `nxConfirm` / `nxSync`.
  *
@@ -43,6 +43,7 @@ export * from "./documents";
 export * from "./kanban";
 export * from "./history";
 export * from "./date-range";
+export * from "./date";
 export * from "./paste-fill";
 export * from "./presence";
 export * from "./what-if";

@@ -61,6 +61,8 @@ import type { ScanCountDetail, ScanDetail, ScanItem, ScanLabels, ScanMode, ScanP
 import type { NxSync } from "../components/sync/sync";
 import type { SyncChangeDetail, SyncField, SyncLabels, SyncOp } from "../components/sync/types";
 import type { NxDateRange } from "../components/date-range/date-range";
+import type { NxDate } from "../components/date/date";
+import type { DateChangeDetail, DateLabels, DateUnavailable } from "../components/date/types";
 import type { DateRangeChangeDetail, DateRangeCompare, DateRangeLabels, DateRangePresetInput, DateRangeValue } from "../components/date-range/types";
 import type { NxImport } from "../components/import/import";
 import type { ImportBatchDetail, ImportColumnInput, ImportDoneDetail, ImportErrorDetail, ImportLabels, ImportMappedDetail, ImportParsedDetail, ImportState } from "../components/import/types";
@@ -201,7 +203,7 @@ declare module "solid-js" {
       contacts: OrgContact[] | null | undefined;
       metrics: OrgMetric[] | null | undefined;
       errors: Record<string, string> | null | undefined;
-      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<LanesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | Partial<TasksLabels> | Partial<OtpLabels> | Partial<PasswordLabels> | Partial<EntriesLabels> | Partial<DocumentsLabels> | undefined;
+      labels: Partial<SidemenuLabels> | Partial<ButtonLabels> | Partial<SelectLabels> | Partial<AiLabels> | Partial<CaptureLabels> | Partial<GridLabels> | Partial<DialogLabels> | Partial<AgentLabels> | Partial<CommandLabels> | Partial<ExplainLabels> | Partial<InboxLabels> | Partial<SurveyLabels> | Partial<NumberLabels> | Partial<KanbanLabels> | Partial<HistoryLabels> | Partial<DateRangeLabels> | Partial<PasteFillLabels> | Partial<PresenceLabels> | Partial<WhatIfLabels> | Partial<TrendLabels> | Partial<ScanLabels> | Partial<SyncLabels> | Partial<ImportLabels> | Partial<KeytipsLabels> | Partial<GuardLabels> | Partial<HandoffLabels & HandoffPhoneLabels> | Partial<AwardLabels> | Partial<AccountLabels> | Partial<LauncherLabels> | Partial<CardsLabels> | Partial<PrintLabels> | Partial<SignatureLabels> | Partial<PlannerLabels> | Partial<ReviewLabels> | Partial<VoiceLabels> | Partial<ThreadLabels> | Partial<ChecklistLabels> | Partial<RecurrenceLabels> | Partial<JobsLabels> | Partial<FieldsLabels> | Partial<TabsLabels> | Partial<BreadcrumbLabels> | Partial<OrgLabels> | Partial<FieldLabels> | Partial<FormLabels> | Partial<TimelineLabels> | Partial<IntentLabels> | Partial<TrackerLabels> | Partial<StatsLabels> | Partial<BoardLabels> | Partial<BarsLabels> | Partial<HeatmapLabels> | Partial<PartsLabels> | Partial<PhasesLabels> | Partial<FlowLabels> | Partial<LanesLabels> | Partial<AlertsLabels> | Partial<InsightsLabels> | Partial<ActionsLabels> | Partial<PageHeaderLabels> | Partial<TasksLabels> | Partial<OtpLabels> | Partial<PasswordLabels> | Partial<EntriesLabels> | Partial<DocumentsLabels> | Partial<DateLabels> | undefined;
       /** `<nx-doc-capture>` y `<nx-entries>` (el formulario del panel). */
       schema: CaptureSchemaItem[] | EntriesSchema | null | undefined;
       /** `<nx-password>`: lo que no puede llevar. */
@@ -238,6 +240,8 @@ declare module "solid-js" {
       highlight: (string | number)[] | null | undefined;
       ticks: number[] | undefined;
       sort: GridSort | null | undefined;
+      /** `<nx-date>`: los días que no se pueden elegir. */
+      unavailable: DateUnavailable | undefined;
       search: string | undefined;
       view: Partial<GridView> | undefined;
       views: GridSavedView[] | undefined;
@@ -638,6 +642,7 @@ declare module "solid-js" {
       "nx-select-change": CustomEvent<SelectChangeDetail>;
       "nx-number-change": CustomEvent<NumberChangeDetail>;
       "nx-date-range-change": CustomEvent<DateRangeChangeDetail>;
+      "nx-date-change": CustomEvent<DateChangeDetail>;
       "nx-recurrence-change": CustomEvent<RecurrenceChangeDetail>;
       "nx-ai-answer-done": CustomEvent<AiDoneDetail>;
       "nx-ai-answer-action": CustomEvent<AiActionDetail>;
@@ -762,6 +767,7 @@ declare module "solid-js" {
       "nx-number": HTMLAttributes<NxNumber> & { label?: string; placeholder?: string };
       "nx-kanban": HTMLAttributes<NxKanban> & { heading?: string };
       "nx-date-range": HTMLAttributes<NxDateRange> & { label?: string; placeholder?: string };
+      "nx-date": HTMLAttributes<NxDate> & { label?: string; placeholder?: string };
       "nx-history": HTMLAttributes<NxHistory> & { heading?: string; source?: string };
       "nx-paste-fill": HTMLAttributes<NxPasteFill> & { endpoint?: string; for?: string };
     }

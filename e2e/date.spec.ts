@@ -38,3 +38,31 @@ test("los tipos se piden con la empresa elegida", async ({ page }) => {
   await tipo.locator(".nx-select__field").click();
   await expect(page.getByRole("option", { name: /No remunerado/ })).toBeVisible();
 });
+
+// 0.31.0: lo que el servidor pone en un valor oculto, los avisos, las opciones según el tipo y las
+// variantes de la fecha.
+test("registrar a nombre de otro: el aviso que bloquea, las opciones del tipo y la anticipación del motivo", async ({ page }) => {
+  await open(page, "#/form");
+  const form = page.locator("#frm-permiso-th");
+  const empleado = form.locator('nx-field[data-key="empleado"] select');
+  await empleado.selectOption("8");
+  const aviso = form.locator('[data-key="sin_jornada"]');
+  await expect(aviso).toBeVisible();
+  await expect(aviso).toContainText("no tiene jornada");
+  await expect(form.locator('nx-field[data-key="tipo"]')).toBeHidden();
+  await form.getByRole("button", { name: "Registrar" }).click();
+  await expect(aviso).toBeFocused();
+
+  await empleado.selectOption("7");
+  await expect(aviso).toBeHidden();
+  const tipo = form.locator('nx-field[data-key="tipo"] select');
+  const motivo = form.locator('nx-field[data-key="motivo"] select');
+  await tipo.selectOption("rem");
+  await expect(motivo.locator("option")).toHaveText(["Elige…", "Cita médica", "Calamidad doméstica"]);
+  await motivo.selectOption("cita");
+  await expect(form.locator('[data-key="nota_soporte"]')).toContainText("Obligatorio");
+  await expect(form.locator('nx-field[data-key="inicio"]')).toHaveAttribute("hint", "Una cita médica se registra desde hoy");
+  await tipo.selectOption("norem");
+  await expect(motivo).toHaveValue("");
+  await expect(form.locator('[data-key="nota_soporte"]')).toBeHidden();
+});

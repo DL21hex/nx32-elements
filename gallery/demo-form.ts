@@ -312,6 +312,64 @@ function mountPermiso(root: HTMLElement, add: (t: string) => void): void {
   });
 }
 
+/** El mismo permiso registrado por Talento Humano: la situación del empleado llega del servidor a
+ *  un valor oculto, las notas son avisos y la anticipación depende del motivo. */
+function inDays(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const p = (x: number) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+export const PERMISO_TH: FormField[] = [
+  { key: "empleado", label: "Empleado", type: "select", required: true, options: [{ value: "7", label: "Ana Pérez · con jornada" }, { value: "8", label: "Luis Gómez · sin jornada" }] },
+  { key: "situacion", label: "Situación", type: "hidden" },
+  { key: "sin_jornada", label: "Jornada laboral sin configurar", type: "notice", tone: "danger", blocks: true, value: "Este empleado no tiene jornada: sin ella no hay horas que contar. Configúrala en su ficha.", when: { situacion: "sin_jornada" } },
+  { key: "tipo", label: "Tipo de permiso", type: "select", required: true, span: 3, options: [{ value: "rem", label: "Remunerado" }, { value: "norem", label: "No remunerado" }], when: { situacion: "lista" } },
+  {
+    key: "motivo",
+    label: "Motivo",
+    type: "select",
+    required: true,
+    span: 3,
+    when: { situacion: "lista" },
+    options: [
+      { value: "cita", label: "Cita médica", when: { tipo: "rem" } },
+      { value: "calamidad", label: "Calamidad doméstica", when: { tipo: "rem" } },
+      { value: "personal", label: "Asunto personal", when: { tipo: "norem" } },
+      { value: "estudio", label: "Estudio", when: { tipo: "norem" } },
+    ],
+  },
+  { key: "nota_pago", label: "Remuneración", type: "notice", value: "Se remunera. No repone tiempo.", when: { motivo: ["cita", "calamidad"] } },
+  { key: "nota_soporte", label: "Soporte", type: "notice", tone: "warning", value: "Obligatorio: la orden o la constancia de la cita.", when: { motivo: "cita" } },
+  {
+    key: "inicio",
+    label: "Fecha de inicio",
+    type: "date",
+    required: true,
+    min: inDays(3),
+    hint: "Con tres días de anticipación",
+    unavailable: { dates: FESTIVOS, weekdays: [0] },
+    cases: [{ when: { motivo: "cita" }, min: "today", hint: "Una cita médica se registra desde hoy" }],
+    when: { motivo: { filled: true } },
+  },
+];
+
+function mountPermisoTh(root: HTMLElement, add: (t: string) => void): void {
+  const form = root.querySelector<NxForm>("#frm-permiso-th");
+  if (!form) return;
+  form.fields = PERMISO_TH;
+  // Lo que haría el recálculo del servidor al elegir el empleado.
+  form.addEventListener("nx-form-change", (e) => {
+    add(`nx-form-change · ${e.detail.key} = ${JSON.stringify(e.detail.value)}`);
+    if (e.detail.key === "empleado") form.fill({ situacion: e.detail.value === "8" ? "sin_jornada" : e.detail.value ? "lista" : null });
+  });
+  form.addEventListener("nx-form-submit", (e) => {
+    add(`nx-form-submit · ${JSON.stringify(e.detail.values)}`);
+    void nxToast({ message: "Permiso registrado", tone: "success" });
+  });
+}
+
+// ---------------------------------------------------------------- montar
 // ---------------------------------------------------------------- montar
 
 export function mountFormDemo(root: HTMLElement): void {
@@ -366,4 +424,5 @@ export function mountFormDemo(root: HTMLElement): void {
 
   mountRecepcion(root, add);
   mountPermiso(root, add);
+  mountPermisoTh(root, add);
 }

@@ -713,3 +713,44 @@ nx-field.is-revealed {
     }
   }
 }
+
+/* Un aviso dentro del formulario (`notice`): una franja con el tono, el título y el texto. El texto
+   respeta los saltos de línea (varias notas en un mismo aviso). */
+.nx-form__notice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--nx-radius-md);
+  border-inline-start: 3px solid var(--nx-primary);
+  background: var(--nx-primary-soft);
+  color: var(--nx-foreground);
+  outline-offset: 2px;
+
+  &[data-tone="success"] {
+    border-color: var(--nx-success);
+    background: var(--nx-success-soft);
+  }
+  &[data-tone="warning"] {
+    border-color: var(--nx-warning);
+    background: var(--nx-warning-soft);
+  }
+  &[data-tone="danger"] {
+    border-color: var(--nx-danger);
+    background: var(--nx-danger-soft);
+  }
+}
+.nx-form__notice-title {
+  margin: 0;
+  font-weight: 600;
+}
+.nx-form__notice-text {
+  margin: 0;
+  white-space: pre-line;
+}
+.nx-form__notice[data-tone="warning"] .nx-form__notice-title {
+  color: var(--nx-warning-ink);
+}
+.nx-form__notice[data-tone="danger"] .nx-form__notice-title {
+  color: var(--nx-danger);
+}

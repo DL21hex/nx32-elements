@@ -10,7 +10,7 @@ import { blockedReason, cleanUnavailable, plainUnavailable, type Unavailable } f
 import { firstUnmet, passwordRules } from "../password/logic";
 import type { FormCondition, FormField, FormFieldType, FormLabels, FormLink, FormOption, FormRow, FormRule, FormSection, FormValue } from "./types";
 
-export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows", "file", "otp", "password"];
+export const FORM_TYPES: readonly FormFieldType[] = ["text", "email", "tel", "url", "textarea", "number", "money", "percent", "date", "select", "radio", "segmented", "checkbox", "checkboxes", "readonly", "rows", "file", "otp", "password", "hidden", "notice"];
 /** Lo que no se guarda en el borrador, no se llena desde afuera y no se muestra al leer. */
 const SECRET = new Set<FormFieldType>(["otp", "password"]);
 export const isSecret = (t: FormFieldType): boolean => SECRET.has(t);
@@ -27,6 +27,9 @@ const NUMERIC = new Set<FormFieldType>(["number", "money", "percent"]);
 const CHOICE = new Set<FormFieldType>(["select", "radio", "segmented", "checkboxes"]);
 
 export const isNumeric = (t: FormFieldType): boolean => NUMERIC.has(t);
+/** Lo que no escribe la persona: un valor de lectura, uno oculto o un aviso. No marca cambios ni va
+ *  al borrador, y un `fill()` lo cambia aunque la persona haya tocado el formulario. */
+export const isSystem = (t: FormFieldType): boolean => t === "readonly" || t === "hidden" || t === "notice";
 export const hasOptions = (t: FormFieldType): boolean => CHOICE.has(t);
 
 /** Un campo ya limpio: tipo conocido, opciones normalizadas y su sección. */
@@ -39,6 +42,18 @@ export interface FieldDef extends Omit<FormField, "fields"> {
   subs?: FieldDef[];
   /** `date` con `unavailable`: lo que no se puede elegir, ya limpio. */
   blocked?: Unavailable;
+  /** Las variantes, ya limpias. */
+  cases?: CaseDef[];
+}
+
+/** Una variante ya limpia (`cases`). */
+export interface CaseDef {
+  when: FormCondition;
+  required?: boolean;
+  min?: number | string;
+  max?: number | string;
+  hint?: string;
+  blocked?: Unavailable;
 }
 
 /** Un `select` que va con buscador (`<nx-select>`): lo pide, busca en el servidor o tiene muchas opciones. */
@@ -46,7 +61,40 @@ export const usesSearch = (def: FieldDef): boolean => def.type === "select" && (
 /** Un `select` de varios: su valor es una lista. */
 export const isMulti = (def: FieldDef): boolean => def.type === "select" && !!def.multiple;
 /** Una fecha con días bloqueados: va con `<nx-date>`. */
-export const usesCalendar = (def: FieldDef): boolean => def.type === "date" && !!def.blocked;
+export const usesCalendar = (def: FieldDef): boolean => def.type === "date" && (!!def.blocked || !!def.cases?.some((c) => c.blocked));
+/** Alguna opción con condición (`when`): la lista se filtra con los valores. */
+export const followsOptions = (def: FieldDef): boolean => hasOptions(def.type) && def.options.some((o) => !!o.when);
+
+/** El campo con su primera variante que se cumple (`cases`): `required`, límites, ayuda y días
+ *  bloqueados. Sin variantes o sin ninguna que se cumpla, el mismo campo. */
+export function effective(def: FieldDef, values: Record<string, FormValue>): FieldDef {
+  const c = def.cases?.find((x) => matches(x.when, values));
+  if (!c) return def;
+  const out: FieldDef = { ...def };
+  if (c.required !== undefined) out.required = c.required;
+  if (c.min !== undefined) out.min = c.min;
+  if (c.max !== undefined) out.max = c.max;
+  if (c.hint !== undefined) out.hint = c.hint;
+  if (c.blocked !== undefined) (out.blocked = c.blocked), (out.unavailable = plainUnavailable(c.blocked));
+  return out;
+}
+
+/** Las opciones que se ofrecen con estos valores (las de `when` que se cumple, y las sin `when`). */
+export function shownOptions(def: FieldDef, values: Record<string, FormValue>): FormOption[] {
+  return followsOptions(def) ? def.options.filter((o) => matches(o.when, values)) : def.options;
+}
+
+/** El valor sin las opciones que ya no se ofrecen: `undefined` si no cambia. Una lista pierde las
+ *  que sobran; un valor suelto, si sobra, queda vacío. */
+export function prunedValue(def: FieldDef, value: FormValue | undefined, values: Record<string, FormValue>): FormValue | undefined {
+  if (!followsOptions(def) || isEmpty(value)) return undefined;
+  const ok = new Set(shownOptions(def, values).map((o) => o.value));
+  if (Array.isArray(value)) {
+    const kept = (value as unknown[]).map(String).filter((v) => ok.has(v));
+    return kept.length === value.length ? undefined : kept;
+  }
+  return ok.has(String(value)) ? undefined : def.type === "checkboxes" ? [] : null;
+}
 
 export interface SectionDef {
   id: string;
@@ -67,6 +115,7 @@ export function optionOf(o: unknown): FormOption | null {
   const out: FormOption = { ...o, value: value || str(o.label) };
   if (typeof o.label !== "string") delete out.label;
   if (!isObj(o.fills)) delete out.fills;
+  if (!isObj(o.when)) delete out.when;
   return out;
 }
 
@@ -110,7 +159,7 @@ function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean)
   const type: FormFieldType = FORM_TYPES.includes(t) && !(nested && t === "rows") ? t : "text";
   const options = (Array.isArray(f.options) ? f.options : []).map(optionOf).filter((o): o is FormOption => !!o);
   const { fields: subs, link: rawLink, ...rest } = f as unknown as FormField;
-  const { unavailable: rawBlocked, dependsOn: rawDeps, multiple, minFrom, maxFrom, defaultFrom, ...base } = rest;
+  const { unavailable: rawBlocked, dependsOn: rawDeps, multiple, minFrom, maxFrom, defaultFrom, cases: rawCases, tone, blocks, ...base } = rest;
   const def: FieldDef = { ...base, key, type, options, sec };
   const link = cleanLink(rawLink, key, nested);
   if (link) def.link = link;
@@ -121,6 +170,30 @@ function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean)
     if (blocked) (def.blocked = blocked), (def.unavailable = plainUnavailable(blocked));
   }
   if (type === "select" && multiple === true) def.multiple = true;
+  if (type === "notice") {
+    if (tone === "success" || tone === "warning" || tone === "danger" || tone === "info") def.tone = tone;
+    if (blocks === true) def.blocks = true;
+  }
+  if (rawCases !== undefined) {
+    if (nested) console.warn(`[nx-form] cases de "${key}" no va dentro de una fila: se ignora`);
+    else {
+      const cases: CaseDef[] = [];
+      for (const c of Array.isArray(rawCases) ? rawCases : []) {
+        if (!isObj(c) || !isObj(c.when)) {
+          console.warn(`[nx-form] una variante de "${key}" sin when: se ignora`);
+          continue;
+        }
+        const out: CaseDef = { when: c.when as FormCondition };
+        if (typeof c.required === "boolean") out.required = c.required;
+        if (typeof c.min === "number" || typeof c.min === "string") out.min = c.min;
+        if (typeof c.max === "number" || typeof c.max === "string") out.max = c.max;
+        if (typeof c.hint === "string") out.hint = c.hint;
+        if (type === "date" && c.unavailable !== undefined) out.blocked = cleanUnavailable(c.unavailable) ?? { dates: new Map(), weekdays: new Set() };
+        cases.push(out);
+      }
+      if (cases.length) def.cases = cases;
+    }
+  }
   const ref = (v: unknown, what: string): string | undefined => {
     const k = str(v).trim();
     if (!k) return undefined;
@@ -359,7 +432,7 @@ const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{
 export function check(def: FieldDef, value: FormValue | undefined, ctx: CheckContext): Check {
   const L = ctx.labels;
   const out: Check = { error: "", warning: "" };
-  if (def.type === "readonly") return out;
+  if (isSystem(def.type)) return out;
   if (def.type === "rows") {
     const n = Array.isArray(value) ? value.length : 0;
     const min = Math.max(numLimit(def.min) ?? 0, def.required ? 1 : 0);
@@ -544,7 +617,10 @@ export function coerce(def: FieldDef, v: unknown, fmt: NxFormat): FormValue {
       return s || null;
     }
     case "readonly":
+    case "hidden":
       return typeof v === "number" || typeof v === "boolean" ? v : str(v) || null;
+    case "notice":
+      return str(v).trim() || null;
     default: {
       const s = str(v);
       return s === "" ? null : s;

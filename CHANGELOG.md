@@ -1,5 +1,36 @@
 # Registro de cambios
 
+## 0.30.0 — 2026-10-25
+
+- **`<nx-form>`: los formularios de solicitudes (permisos, vacaciones, asistencias) ya caben en el
+  esquema.** Les faltaban cuatro cosas que hasta hoy obligaban a una app a seguir con su formulario
+  propio:
+  - **Días bloqueados en una fecha (`unavailable`).** `{dates, weekdays}`: festivos (con su nombre:
+    `{date, label}`), cierres y los días que la jornada no incluye. El campo pasa a ser `<nx-date>`
+    (nuevo, se carga solo si el esquema lo usa) y el formulario no deja enviarlos («No se puede
+    elegir: Festivo: Día de la Raza»). El campo de fecha del navegador solo sabe de mínimo y máximo:
+    no puede apagar un sábado.
+  - **Selects que dependen de otro (`dependsOn`).** Un `select` con `source` busca con el valor de
+    los campos de los que depende (`?q=…&tipo=7`), queda apagado con «Primero elige…» mientras falte
+    alguno y se vacía cuando uno cambia, en cadena. Un `fill()` que trae al padre y al hijo respeta
+    al hijo, y `values` no vacía nada.
+  - **Selección múltiple (`multiple`).** `<nx-select>` ya la tenía; el formulario no la exponía. El
+    valor es una lista (de afuera también llega `"1,2"`), vacía cuenta como faltante y en lectura se
+    nombran todos.
+  - **Una fecha que depende de otra.** `minFrom`/`maxFrom` («hasta» no antes de «desde», en la
+    validación y en el calendario) y `defaultFrom` («hasta» empieza igual que «desde» y lo sigue
+    mientras la persona no escriba el suyo).
+  - Al repintar, el formulario solo escribe en un control los atributos que cambian: escribir el
+    `placeholder` de un `<nx-select>` abierto en cada pintado lo cerraba.
+- **`<nx-date>` (nuevo): una fecha.** Se escribe a mano («12/10/2026», «12.10.26», ISO; al salir
+  queda en el formato del locale) o se elige en un calendario de un mes con lo bloqueado tachado y
+  su motivo al pasar o al llegar con el teclado; un clic en un día bloqueado dice por qué en vez de
+  elegirlo. Sin fecha, abre en el primer día que se puede elegir. Form-associated, con su validez
+  (falta, no es una fecha, fuera de rango, bloqueado), su `<label for>` como nombre de la caja,
+  BDUI `Date` y `<DateInput>` en Solid. Galería: «Formularios», la solicitud de permiso.
+- Peso: `dist/form.js` pasa de ≈21,9 KB a ≈23,6 KB (referencia nueva: 24 KB); `dist/date.js`,
+  ≈6,8 KB.
+
 ## 0.29.1 — 2026-10-22
 
 - **`<nx-form>`: `setErrors(errores, {focus: false})` pone errores sin mover el foco.** Asignar

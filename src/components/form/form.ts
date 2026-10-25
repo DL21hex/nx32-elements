@@ -30,14 +30,14 @@
  * botones para llenar desde afuera, por ejemplo) se ve bajo el título, sin moverlo.
  */
 import { attrProps, Base, boolAttr, upgrade } from "../../core/define";
-import { h } from "../../core/dom";
+import { h, setAttr } from "../../core/dom";
 import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import "../field/index";
 import { fieldLink, type NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
-import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isNumeric, isSecret, otpLength, sameValue, todayISO, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
+import { acceptText, check, cleanSections, coerce, dateBounds, dateLimit, dependentSource, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isMulti, isNumeric, isSecret, otpLength, sameValue, todayISO, usesCalendar, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
 import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
 
 export const FORM_LABELS: FormLabels = {
@@ -65,6 +65,9 @@ export const FORM_LABELS: FormLabels = {
   date: "Escribe una fecha válida",
   dateMin: "No antes del {min}",
   dateMax: "No después del {max}",
+  dateBlocked: "Ese día no se puede elegir",
+  dateBlockedWhy: "No se puede elegir: {reason}",
+  dependsFirst: "Primero elige {label}",
   minLength: "Mínimo {n} caracteres",
   maxLength: "Máximo {n} caracteres",
   pattern: "Revisa el formato",
@@ -199,6 +202,8 @@ export class NxForm extends Base {
   /** El id de cada fila de cada campo `rows`, en orden. */
   #rowIds = new Map<string, string[]>();
   #rowSeq = 0;
+  /** Los campos que hoy llevan el valor de otro (`defaultFrom`) porque la persona no escribió el suyo. */
+  #derived = new Set<string>();
   #v: Record<string, FormValue> = {};
   /** Los valores de partida (los de `values`, o los del esquema): `reset()` vuelve a ellos. */
   #initial: Record<string, FormValue> = {};
@@ -682,6 +687,7 @@ export class NxForm extends Base {
     const all = [...this.#defs.values()].flatMap((d) => [d, ...(d.subs ?? [])]);
     if (all.some((d) => isNumeric(d.type))) void import("../number/index");
     if (all.some(usesSearch)) void import("../select/index");
+    if (all.some(usesCalendar)) void import("../date/index");
     if (all.some((d) => d.type === "otp")) void import("../otp/index");
     if (all.some((d) => d.type === "password")) void import("../password/index");
 
@@ -744,10 +750,19 @@ export class NxForm extends Base {
       sel.setAttribute("name", name);
       sel.setAttribute("placeholder", def.placeholder || L.pick);
       if (def.source) sel.setAttribute("source", def.source);
+      if (def.multiple) sel.setAttribute("multiple", "");
       if (!def.required) sel.setAttribute("clearable", "");
       sel.fields = Array.isArray(def.search) && def.search.length ? def.search : [{ key: "label", label: def.label }];
       sel.options = def.options.map((o) => ({ ...o, label: o.label ?? o.value }));
       return sel;
+    }
+    if (usesCalendar(def)) {
+      // Los límites con «today» se resuelven aquí (el mismo «hoy» que valida); los que dependen de
+      // otro campo los pone `#syncLinks`.
+      const today = todayISO();
+      const d = h("nx-date", { name, placeholder: def.placeholder, min: dateLimit(def.min, today), max: dateLimit(def.max, today), today, locale: this.locale });
+      d.setAttribute("unavailable", JSON.stringify(def.unavailable));
+      return d;
     }
     switch (def.type) {
       case "readonly":
@@ -913,6 +928,7 @@ export class NxForm extends Base {
     this.#server = {};
     this.#rawServer = {};
     this.#touched.clear();
+    this.#derived.clear();
     this.#submitted = false;
     this.#last = null;
     this.#status = null;
@@ -1052,7 +1068,14 @@ export class NxForm extends Base {
     if (!ctl || def.type === "rows") return this.#get(s);
     if (ctl.localName === "nx-select") {
       const v = (ctl as unknown as { value: unknown }).value;
+      if (isMulti(def)) return Array.isArray(v) ? v.map(String) : [];
       return typeof v === "string" && v ? v : null;
+    }
+    if (ctl.localName === "nx-date") {
+      // Lo escrito que no es una fecha también cuenta: así el campo dice que no la entiende.
+      const d = ctl as unknown as { value?: unknown; text?: unknown };
+      const v = typeof d.value === "string" && d.value ? d.value : typeof d.text === "string" ? d.text.trim() : "";
+      return v || null;
     }
     switch (def.type) {
       case "number":
@@ -1089,6 +1112,10 @@ export class NxForm extends Base {
     const v = this.#get(s);
     if (!ctl) return;
     if (ctl.localName === "nx-select") {
+      (ctl as unknown as { value: unknown }).value = isMulti(def) ? (Array.isArray(v) ? v : []) : v == null ? "" : String(v);
+      return;
+    }
+    if (ctl.localName === "nx-date") {
       (ctl as unknown as { value: unknown }).value = v == null ? "" : String(v);
       return;
     }
@@ -1164,7 +1191,8 @@ export class NxForm extends Base {
     if (sameValue(v, this.#get(s))) return void (s.def.type === "file" && this.#paint());
     // Una lista, una fecha o una opción se dan por revisadas al elegir; el texto, al salir.
     const t = s.def.type;
-    if (t !== "text" && t !== "textarea" && t !== "email" && t !== "tel" && t !== "url" && !isNumeric(t) && !isSecret(t)) this.#touched.add(s.key);
+    // Una fecha que se escribe a mano (`<nx-date>`) también espera a que se salga del campo.
+    if (t !== "text" && t !== "textarea" && t !== "email" && t !== "tel" && t !== "url" && !isNumeric(t) && !isSecret(t) && !usesCalendar(s.def)) this.#touched.add(s.key);
     this.#setByPerson(s, v);
     // El archivo elegido se ve con su nombre (los demás controles ya muestran lo que se escribió).
     if (t === "file") this.#write(s);
@@ -1181,7 +1209,14 @@ export class NxForm extends Base {
     this.#put(s, v);
     delete this.#marks[s.key];
     delete this.#server[s.key];
+    this.#derived.delete(s.key);
     if (s.row) delete this.#server[s.row.parent];
+    else {
+      // Lo que depende de este campo: los selects que buscan con su valor se vacían, y lo que toma
+      // su valor mientras nadie escriba el suyo, lo sigue.
+      this.#cascade(s.key);
+      this.#derive(s.key);
+    }
     this.#pending = null;
     if (this.#last) this.#last = null;
     // Lo habitual de la opción elegida (el cargo trae el área), sin pisar lo escrito. En una fila,
@@ -1362,6 +1397,12 @@ export class NxForm extends Base {
       flash.push(k);
       if (typeof v === "string" && hasOptions(def.type)) opts.push([def, v]);
     }
+    for (const k of [...keys]) {
+      for (const c of [...this.#cascade(k, explicit), ...this.#derive(k, explicit)]) {
+        if (!keys.includes(c)) keys.push(c);
+        flash.push(c);
+      }
+    }
     for (const [def, v] of opts) {
       const opt = def.options.find((o) => o.value === v);
       if (opt?.fills)
@@ -1392,6 +1433,72 @@ export class NxForm extends Base {
       out.push(s.key);
     }
     return out;
+  }
+
+  /** Vacía los selects que buscan con el valor de `key` (`dependsOn`), y los que dependen de ellos.
+   *  Lo que está en `skip` (llegó en el mismo `fill`) no se toca. Devuelve las claves vaciadas. */
+  #cascade(key: string, skip: Set<string> = new Set(), seen: Set<string> = new Set()): string[] {
+    const out: string[] = [];
+    for (const def of this.#defs.values()) {
+      if (!def.dependsOn?.includes(key) || skip.has(def.key) || seen.has(def.key)) continue;
+      seen.add(def.key);
+      const s = this.#slots.get(def.key);
+      if (s && !isEmpty(this.#v[def.key])) {
+        this.#v[def.key] = coerce(def, null, this.#fmt);
+        delete this.#marks[def.key];
+        delete this.#server[def.key];
+        this.#write(s);
+        out.push(def.key);
+      }
+      out.push(...this.#cascade(def.key, skip, seen));
+    }
+    return out;
+  }
+
+  /** Los campos con `defaultFrom: key` que la persona no ha escrito toman el valor de `key`. */
+  #derive(key: string, skip: Set<string> = new Set()): string[] {
+    const out: string[] = [];
+    const src = this.#defs.get(key);
+    if (!src) return out;
+    const v = this.#v[key] ?? null;
+    for (const def of this.#defs.values()) {
+      if (def.defaultFrom !== key || def.type !== src.type || skip.has(def.key)) continue;
+      const s = this.#slots.get(def.key);
+      const cur = this.#v[def.key] ?? null;
+      if (!s || !(isEmpty(cur) || this.#derived.has(def.key)) || sameValue(cur, v)) continue;
+      this.#v[def.key] = copy(v);
+      if (isEmpty(v)) this.#derived.delete(def.key);
+      else this.#derived.add(def.key);
+      this.#write(s);
+      out.push(def.key);
+    }
+    return out;
+  }
+
+  /** Lo que un campo toma de otros, en sus controles: la búsqueda de un select con `dependsOn` (o
+   *  apagado, con «Primero elige…», si falta su campo padre) y los límites de una fecha con
+   *  `minFrom`/`maxFrom`. */
+  #syncLinks(): void {
+    const L = this.#labels;
+    const today = todayISO();
+    for (const s of this.#slots.values()) {
+      const { def, ctl } = s;
+      if (!ctl) continue;
+      if (def.dependsOn && def.source && ctl.localName === "nx-select") {
+        const src = dependentSource(def.source, def.dependsOn, this.#v);
+        if (ctl.hasAttribute("disabled") !== (src === null)) ctl.toggleAttribute("disabled", src === null);
+        if (src !== null && ctl.getAttribute("source") !== src) ctl.setAttribute("source", src);
+        const missing = def.dependsOn.filter((k) => isEmpty(this.#v[k])).map((k) => this.#labelOf(k).toLowerCase());
+        // Solo si cambia: cada atributo que se escribe repinta el control (este pintado corre a cada tecla).
+        const ph = src === null && missing.length ? tpl(L.dependsFirst, { label: missing.join(", ") }) : def.placeholder || L.pick;
+        if (ctl.getAttribute("placeholder") !== ph) ctl.setAttribute("placeholder", ph);
+      }
+      if (def.type === "date" && (def.minFrom || def.maxFrom)) {
+        const { min, max } = dateBounds(def, this.#v, today);
+        if (ctl.getAttribute("min") !== min) setAttr(ctl, "min", min);
+        if (ctl.getAttribute("max") !== max) setAttr(ctl, "max", max);
+      }
+    }
   }
 
   #usual(opt: { value: string; label?: string }): FormSource {
@@ -1466,6 +1573,7 @@ export class NxForm extends Base {
         for (const sub of this.#subs.values()) if (sub.row?.parent === def.key) this.#paintField(sub, st, tally);
       } else this.#paintField(s, st, tally);
     }
+    if (!read) this.#syncLinks();
     this.#problems = tally.problems;
     this.#paintIndex(stats);
     this.#paintFoot(tally.missing, tally.invalid);
@@ -1515,7 +1623,12 @@ export class NxForm extends Base {
     set(f, "label", def.type !== "checkbox" || read ? def.label : null);
     if (read || def.type === "readonly") {
       // Un select que busca en el servidor sabe el texto de lo elegido; el esquema no.
-      const chosen = s.ctl?.localName === "nx-select" ? (s.ctl as unknown as { selection?: { label?: unknown }[] }).selection?.[0]?.label : undefined;
+      const picked = s.ctl?.localName === "nx-select" ? ((s.ctl as unknown as { selection?: { label?: unknown }[] }).selection ?? []) : [];
+      const chosen = picked
+        .map((o) => o.label)
+        .filter((l): l is string => typeof l === "string" && !!l)
+        .slice(0, isMulti(def) ? undefined : 1)
+        .join(", ");
       set(f, "text", typeof chosen === "string" && chosen ? chosen : displayValue(def, v, this.#fmt, L, this.currency ?? undefined));
       set(f, "locked", def.type === "readonly" && !read ? "" : null);
       for (const a of ["error", "warning", "action", "source", "source-detail"]) set(f, a, null);

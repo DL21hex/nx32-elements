@@ -55,7 +55,8 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
 | `<nx-tasks>` + lector de fechas + núcleo (ESM); la lista del `@` y el dictado se cargan aparte | ≈ 14,0 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
-| `<nx-form>` + campo + núcleo (ESM); `<nx-number>`, `<nx-select>`, `<nx-otp>` y `<nx-password>` se cargan si el esquema los usa | ≈ 21,7 KB |
+| `<nx-form>` + campo + núcleo (ESM); `<nx-number>`, `<nx-select>`, `<nx-date>`, `<nx-otp>` y `<nx-password>` se cargan si el esquema los usa | ≈ 23,6 KB |
+| `<nx-date>` + calendario + núcleo (ESM) | ≈ 6,8 KB |
 | `<nx-otp>` + núcleo (ESM) | ≈ 3,4 KB |
 | `<nx-password>` + núcleo (ESM) | ≈ 6,4 KB |
 | `<nx-entries>` + núcleo (ESM); el panel (`<nx-dialog>`, `<nx-form>`) se carga al abrirlo | ≈ 6,2 KB |
@@ -76,7 +77,7 @@ que todo funcione, después se optimiza (`NX_SIZE_STRICT=1 npm run size` vuelve 
    (`items`), eventos para las acciones y slots para tu contenido. Cada evento se llama
    `nx-<componente>-<acción>`, con la etiqueta sin «nx-» (`nx-sidemenu-select`, `nx-number-change`,
    `nx-scan-read`); `nx-open-change` `{open}` es el único compartido. Los controles de formulario
-   (`nx-select`, `nx-number`, `nx-date-range`, `nx-recurrence`, `nx-signature`) emiten además el
+   (`nx-select`, `nx-number`, `nx-date-range`, `nx-date`, `nx-recurrence`, `nx-signature`) emiten además el
    `change` nativo, que burbujea: el código genérico no tiene que conocer el evento propio.
 2. **BDUI sin costo.** Ninguna prop es una función: todo lo que acepta un componente puede venir
    del backend. `nx32-elements/bdui` es un adaptador opcional que convierte `{component, props}` en elementos.
@@ -2743,6 +2744,30 @@ guardar.onclick = async () => {
 | `<nx-dialog loading>` | la espera común en lugar del contenido, `aria-busy`, `labels.loading` |
 | Tokens nuevos | `--nx-warning`, `--nx-warning-ink` (texto e íconos), `--nx-warning-soft` |
 
+## Una fecha: `<nx-date>`
+
+**El campo de fecha de siempre, con los días que no se pueden elegir a la vista.** Se escribe a mano
+(«25/10/2026», «25.10.26», «25102026» o ISO; al salir queda en el formato del locale) o se elige en
+un calendario de un mes donde los festivos, los días que la jornada no incluye y lo que queda fuera
+de `min`/`max` salen tachados, con su motivo al pasar por encima o al llegar con el teclado. Un clic
+en un día bloqueado no lo elige: dice por qué. El `<input type=date>` del navegador solo sabe de
+mínimo y máximo. Lo usa `<nx-form>` en un campo de fecha con `unavailable`.
+
+```html
+<nx-field label="Desde">
+  <nx-date name="desde" min="today" unavailable='{"dates":[{"date":"2026-10-12","label":"Festivo: Día de la Raza"}],"weekdays":[0]}'></nx-date>
+</nx-field>
+```
+
+| | |
+|---|---|
+| Atributos | `value` (ISO), `min`, `max` (ISO o `today`), `today`, `unavailable` (JSON: `{dates?: (ISO \| {date, label?})[], weekdays?: number[]}`, 0 domingo … 6 sábado), `week-start` (1–7; por defecto, el del locale), `name`, `required`, `disabled`, `placeholder` (por defecto «dd/mm/aaaa»), `label`, `locale`, `labels` |
+| Propiedades | `value` (ISO o `""`), `text` (lo escrito, aunque no sea una fecha), `unavailable`, `open`, `validationMessage` · `show()`, `hide()`, `focus()` |
+| Eventos | `nx-date-change` `{value}` (al elegir en el calendario o al salir de la caja), y `input`/`change` como cualquier control · `nx-open-change` `{open}` |
+| Formulario | form-associated: envía `name=ISO`; validez `valueMissing`, `badInput`, `rangeUnderflow`/`rangeOverflow` y `customError` (día bloqueado, con su motivo) |
+| Teclado | ↓ con la caja vacía o Alt+↓ abre · flechas, Inicio/Fin, RePág/AvPág (con Mayús, un año), Enter o Espacio eligen, Escape cierra |
+| BDUI | `Date` · Solid: `<DateInput>` (`nx32-elements/solid/date`) |
+
 ## Formularios: `<nx-form>` y `<nx-field>`
 
 **Un formulario entero desde un esquema JSON**, con aspecto de formulario sobrio (etiqueta arriba,
@@ -2781,7 +2806,25 @@ lo escrito no se pierde.
 - **Listas largas con buscador.** Un `select` con más de 12 opciones, con `search` (`true`, o las
   columnas en las que busca: `[{key: "label", label: "Nombre"}, {key: "cedula", label: "Cédula",
   kind: "digits"}]`, con esas claves en cada opción) o con `source` (busca en el servidor, del mismo
-  origen) es un `<nx-select>`, que se carga solo si el esquema lo usa.
+  origen) es un `<nx-select>`, que se carga solo si el esquema lo usa. Con `multiple: true` se
+  eligen varios (chips) y el valor es una lista (`["1", "2"]`; de afuera también llega `"1,2"`).
+- **Selects que dependen de otro (`dependsOn`).** Un `select` con `source` y `dependsOn:
+  ["empresa", "tipo"]` busca con esos valores (`/motivos?q=…&empresa=2&tipo=7`; una lista, separada
+  por comas), queda apagado con «Primero elige empresa» mientras alguno esté vacío y **se vacía
+  cuando uno cambia** (en cadena: el motivo depende del tipo, que depende de la empresa). Un `fill()`
+  que trae al padre y al hijo a la vez respeta al hijo; `values` (cargar un registro) no vacía nada.
+  Solo entre campos de primer nivel.
+- **Fechas con días bloqueados (`unavailable`).** `{dates: ["2026-11-02", {date: "2026-10-12",
+  label: "Festivo: Día de la Raza"}], weekdays: [0, 6]}` (0 domingo … 6 sábado, como `getDay`): el
+  campo pasa a ser `<nx-date>` (se carga solo si el esquema lo usa), que se escribe a mano
+  («12/10/2026») o se elige en un calendario con esos días tachados y su motivo, y el formulario no
+  deja enviarlos («No se puede elegir: Festivo: Día de la Raza»). Sin `unavailable`, el campo de
+  fecha sigue siendo el del navegador. Viajan enteros en el esquema: acota la ventana (un año de
+  festivos son ~18 fechas) y usa `weekdays` para lo que se repite.
+- **Una fecha que depende de otra (`minFrom`/`maxFrom`, `defaultFrom`).** `minFrom: "desde"`: «Hasta»
+  no puede ser antes de «Desde» (además de su `min`, gana el más estricto), en la validación y en el
+  calendario. `defaultFrom: "desde"`: empieza con el valor de «Desde» y lo sigue mientras la persona
+  no escriba el suyo (sirve en cualquier par de campos del mismo tipo).
 - **Filas (`type: "rows"`).** Un grupo de campos que se repite: los beneficiarios, las líneas de una
   factura. `fields` son los de cada fila (con su `span`, sus reglas y sus `fills`, que llenan su misma
   fila), `min`/`max` cuentan filas, `addLabel` es el botón. El valor es un arreglo de objetos;

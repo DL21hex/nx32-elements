@@ -34,6 +34,7 @@ const registry = new Map<string, Entry>(
     Kanban: "kanban",
     History: "history",
     DateRange: "date-range",
+    Date: "date",
     PasteFill: "paste-fill",
     Presence: "presence",
     WhatIf: "what-if",

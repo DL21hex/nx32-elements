@@ -6,7 +6,12 @@ con su control (montos y números con `<nx-number>`; listas largas, con `search`
 (`file`: el valor es el `File`, la app lo sube; `accept` y `maxSize` con la lógica de
 `<nx-doc-capture>`, `capture/logic.ts`; nunca en una fila ni en el borrador), condiciones
 (`when`), un enlace bajo el campo (`link`: `{label, href}`, botón secundario siempre en otra
-pestaña, también en lectura; no es un dato), lo habitual de una opción (`fills`), llenar desde
+pestaña, también en lectura; no es un dato), selects que buscan con el valor de otro campo
+(`dependsOn`: la URL de búsqueda la arma `dependentSource`, `#syncLinks` la pone en el control con
+cada pintado, y `#cascade` vacía a los hijos cuando cambia el padre), selección múltiple
+(`multiple`), fechas con días bloqueados (`unavailable`: el control es `<nx-date>`, que se carga
+aparte) o que dependen de otra (`minFrom`/`maxFrom` con `dateBounds`, `defaultFrom` con `#derive`),
+lo habitual de una opción (`fills`), llenar desde
 afuera con origen (`fill`, `undo`),
 validación al salir o al enviar, avisos con arreglo, índice de secciones, pie con lo que falta,
 borrador en el navegador (`draft`) y lectura (`mode="read"`).
@@ -17,7 +22,8 @@ Pruebas: `test/form.sources.dom.test.ts`.
 
 Archivos: `form.ts` (el elemento), `logic.ts` (sin DOM: limpiar el esquema, condiciones, validación,
 texto de lectura), `types.ts`, `form.css` (importa `field.css`), `index.ts`. Pruebas:
-`test/form.logic.test.ts` y `test/form.dom.test.ts` (también la demo de la galería). Galería: página
+`test/form.logic.test.ts`, `test/form.dom.test.ts` (también la demo de la galería) y
+`test/form.links.dom.test.ts` (lo que un campo toma de otro). Galería: página
 «Formularios» (`gallery/demo-form.ts`).
 
 ## BDUI
@@ -38,5 +44,5 @@ por fila sería ruido; el de un campo `rows` va al pie del grupo. El campo se lo
 
 | Pieza | Tamaño (min + gzip) | Referencia |
 |---|---|---|
-| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>` y `<nx-select>` con `import()`) | 20,04 KB | 20,25 KB |
+| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>`, `<nx-select>` y `<nx-date>` con `import()`) | 23,6 KB | 24 KB |
 | `dist/form.css` (con `field.css`) | 3,88 KB | 4 KB |

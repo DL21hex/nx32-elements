@@ -6,6 +6,7 @@
 import { safeHref } from "../../core/dom";
 import type { NxFormat } from "../../core/locale";
 import { acceptsFile, formatBytes } from "../capture/logic";
+import { blockedReason, cleanUnavailable, plainUnavailable, type Unavailable } from "../date/logic";
 import { firstUnmet, passwordRules } from "../password/logic";
 import type { FormCondition, FormField, FormFieldType, FormLabels, FormLink, FormOption, FormRow, FormRule, FormSection, FormValue } from "./types";
 
@@ -36,10 +37,16 @@ export interface FieldDef extends Omit<FormField, "fields"> {
   sec: number;
   /** `rows`: los campos de cada fila, ya limpios. */
   subs?: FieldDef[];
+  /** `date` con `unavailable`: lo que no se puede elegir, ya limpio. */
+  blocked?: Unavailable;
 }
 
 /** Un `select` que va con buscador (`<nx-select>`): lo pide, busca en el servidor o tiene muchas opciones. */
-export const usesSearch = (def: FieldDef): boolean => def.type === "select" && (!!def.search || !!def.source || def.options.length > SEARCH_FROM);
+export const usesSearch = (def: FieldDef): boolean => def.type === "select" && (!!def.search || !!def.source || !!def.multiple || def.options.length > SEARCH_FROM);
+/** Un `select` de varios: su valor es una lista. */
+export const isMulti = (def: FieldDef): boolean => def.type === "select" && !!def.multiple;
+/** Una fecha con días bloqueados: va con `<nx-date>`. */
+export const usesCalendar = (def: FieldDef): boolean => def.type === "date" && !!def.blocked;
 
 export interface SectionDef {
   id: string;
@@ -103,9 +110,42 @@ function cleanField(f: unknown, seen: Set<string>, sec: number, nested: boolean)
   const type: FormFieldType = FORM_TYPES.includes(t) && !(nested && t === "rows") ? t : "text";
   const options = (Array.isArray(f.options) ? f.options : []).map(optionOf).filter((o): o is FormOption => !!o);
   const { fields: subs, link: rawLink, ...rest } = f as unknown as FormField;
-  const def: FieldDef = { ...rest, key, type, options, sec };
+  const { unavailable: rawBlocked, dependsOn: rawDeps, multiple, minFrom, maxFrom, defaultFrom, ...base } = rest;
+  const def: FieldDef = { ...base, key, type, options, sec };
   const link = cleanLink(rawLink, key, nested);
   if (link) def.link = link;
+  // Lo que solo tiene sentido en su tipo se descarta en los demás (sin aviso: un esquema compartido
+  // entre tipos no es un error). Lo que nombra otro campo, solo en el primer nivel.
+  if (type === "date") {
+    const blocked = cleanUnavailable(rawBlocked);
+    if (blocked) (def.blocked = blocked), (def.unavailable = plainUnavailable(blocked));
+  }
+  if (type === "select" && multiple === true) def.multiple = true;
+  const ref = (v: unknown, what: string): string | undefined => {
+    const k = str(v).trim();
+    if (!k) return undefined;
+    if (nested || k === key) {
+      console.warn(`[nx-form] ${what} de "${key}" ${nested ? "no va dentro de una fila" : "no puede nombrar al mismo campo"}: se ignora`);
+      return undefined;
+    }
+    return k;
+  };
+  if (type === "date") {
+    const lo = ref(minFrom, "minFrom");
+    const hi = ref(maxFrom, "maxFrom");
+    if (lo) def.minFrom = lo;
+    if (hi) def.maxFrom = hi;
+  }
+  const from = ref(defaultFrom, "defaultFrom");
+  if (from) def.defaultFrom = from;
+  if (rawDeps !== undefined && type === "select") {
+    if (!def.source) console.warn(`[nx-form] dependsOn de "${key}" necesita source: se ignora`);
+    else if (nested) console.warn(`[nx-form] dependsOn de "${key}" no va dentro de una fila: se ignora`);
+    else {
+      const deps = [...new Set((Array.isArray(rawDeps) ? rawDeps : [rawDeps]).map((d) => str(d).trim()).filter((d) => d && d !== key))];
+      if (deps.length) def.dependsOn = deps;
+    }
+  }
   if (type === "rows") {
     const inner = new Set<string>();
     def.subs = (Array.isArray(subs) ? subs : []).map((x) => cleanField(x, inner, sec, true)).filter((x): x is FieldDef => !!x);
@@ -234,6 +274,33 @@ export function isISODate(s: unknown): s is string {
 export function dateLimit(v: unknown, today: string): string | null {
   if (v === "today") return today;
   return isISODate(v) ? v : null;
+}
+
+/** Los límites de una fecha con estos valores: `min`/`max` (ISO o «today») y, si el otro campo
+ *  tiene una fecha, `minFrom`/`maxFrom` (gana el más estricto). */
+export function dateBounds(def: Pick<FormField, "min" | "max" | "minFrom" | "maxFrom">, values: Record<string, FormValue>, today: string): { min: string | null; max: string | null } {
+  let min = dateLimit(def.min, today);
+  let max = dateLimit(def.max, today);
+  const lo = def.minFrom ? values[def.minFrom] : null;
+  const hi = def.maxFrom ? values[def.maxFrom] : null;
+  if (isISODate(lo) && (!min || lo > min)) min = lo;
+  if (isISODate(hi) && (!max || hi < max)) max = hi;
+  return { min, max };
+}
+
+/** La URL de búsqueda de un `select` con `dependsOn`: `source` con el valor de cada campo del que
+ *  depende (una lista, separada por comas), o `null` si alguno está vacío (el campo se apaga). */
+export function dependentSource(source: string, dependsOn: readonly string[], values: Record<string, FormValue>): string | null {
+  const params: string[] = [];
+  for (const k of dependsOn) {
+    const v = values[k];
+    if (isEmpty(v) || isFile(v)) return null;
+    const text = Array.isArray(v) ? (v as unknown[]).map(String).join(",") : String(v);
+    params.push(`${encodeURIComponent(k)}=${encodeURIComponent(text)}`);
+  }
+  if (!params.length) return source;
+  const [path, hash = ""] = source.split("#");
+  return `${path}${path.includes("?") ? "&" : "?"}${params.join("&")}${hash ? `#${hash}` : ""}`;
 }
 
 const numLimit = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() && Number.isFinite(Number(v)) ? Number(v) : null);
@@ -374,10 +441,11 @@ export function check(def: FieldDef, value: FormValue | undefined, ctx: CheckCon
         out.error = L.date;
         break;
       }
-      const min = dateLimit(def.min, ctx.today);
-      const max = dateLimit(def.max, ctx.today);
+      const { min, max } = dateBounds(def, ctx.values ?? {}, ctx.today);
+      const why = blockedReason(def.blocked ?? null, text);
       if (min && text < min) out.error = fill(L.dateMin, { min: ctx.fmt.date(min) });
       else if (max && text > max) out.error = fill(L.dateMax, { max: ctx.fmt.date(max) });
+      else if (why !== null) out.error = why ? fill(L.dateBlockedWhy, { reason: why }) : L.dateBlocked;
       break;
     }
   }
@@ -449,7 +517,7 @@ export function coerce(def: FieldDef, v: unknown, fmt: NxFormat): FormValue {
       return row;
     });
   }
-  if (v === null || v === undefined) return def.type === "checkbox" ? false : def.type === "checkboxes" ? [] : null;
+  if (v === null || v === undefined) return def.type === "checkbox" ? false : def.type === "checkboxes" || isMulti(def) ? [] : null;
   // Un archivo solo es un `File`: un texto (el nombre que trae un registro, un borrador) no lo es.
   if (def.type === "file") return isFile(v) ? v : null;
   if (isFile(v)) return null;
@@ -458,6 +526,10 @@ export function coerce(def: FieldDef, v: unknown, fmt: NxFormat): FormValue {
       return v === true || v === "true" || v === 1 || v === "1" || v === "on";
     case "checkboxes":
       return (Array.isArray(v) ? v : [v]).map(str).filter(Boolean);
+    case "select":
+      // Varios: una lista; «1,2» (lo que manda un formulario plano) también. Uno: el primero.
+      if (isMulti(def)) return [...new Set((Array.isArray(v) ? v : str(v).split(",")).map((x) => str(x).trim()).filter(Boolean))];
+      return (Array.isArray(v) ? str(v[0]) : str(v)) || null;
     case "number":
     case "money":
     case "percent": {

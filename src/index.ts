@@ -20,6 +20,7 @@ export * from "./components/what-if/index";
 export * from "./components/presence/index";
 export * from "./components/paste-fill/index";
 export * from "./components/date-range/index";
+export * from "./components/date/index";
 export * from "./components/history/index";
 export * from "./components/kanban/index";
 export * from "./components/number/index";

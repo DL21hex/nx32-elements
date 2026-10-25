@@ -54,6 +54,7 @@ export default defineConfig(({ command, mode }) => {
           "presence": "src/components/presence/index.ts",
           "paste-fill": "src/components/paste-fill/index.ts",
           "date-range": "src/components/date-range/index.ts",
+          date: "src/components/date/index.ts",
           history: "src/components/history/index.ts",
           kanban: "src/components/kanban/index.ts",
           number: "src/components/number/index.ts",

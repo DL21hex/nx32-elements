@@ -510,3 +510,13 @@ test("adjudicación, con la recomendación y el detalle de un artículo repartid
   await expect(el.locator(".nx-award__detail")).toBeVisible();
   await audit(page, ["#award-demo"]);
 });
+
+test("formulario de permiso: selects dependientes y el calendario de nx-date abierto", async ({ page }) => {
+  await open(page, "#/form");
+  const form = page.locator("#frm-permiso");
+  await expect(form.locator('nx-field[data-key="tipo"] nx-select')).toBeVisible();
+  await audit(page, ["#frm-permiso"]);
+  await form.locator('nx-field[data-key="desde"] .nx-date__btn').click();
+  await expect(form.locator('nx-field[data-key="desde"] .nx-date__pop')).toBeVisible();
+  await audit(page, ["#frm-permiso"]);
+});

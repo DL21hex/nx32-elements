@@ -1,4 +1,5 @@
 /** `<nx-form>`: tipos del esquema. Todo es JSON: un formulario entero puede venir del backend. */
+import type { DateUnavailable } from "../date/types";
 
 /** El control de cada campo. `text` por defecto. */
 export type FormFieldType =
@@ -21,6 +22,10 @@ export type FormFieldType =
   | "file"
   | "otp"
   | "password";
+
+/** Lo que no se puede elegir en un campo `date`: fechas concretas (festivos, cierres; ISO o
+ *  `{date, label}` con el motivo) y días de la semana (0 domingo … 6 sábado, como `Date#getDay`). */
+export type FormUnavailable = DateUnavailable;
 
 /** El valor de un campo: texto (también las fechas, en ISO «2026-10-13»), número, sí/no, una lista
  *  (casillas), las filas de un campo `rows`, el `File` de un campo `file` o `null` si está vacío. */
@@ -102,6 +107,22 @@ export interface FormField {
   search?: boolean | FormSearchField[];
   /** `select`: busca en el servidor mientras se escribe (`GET ?q=`), del mismo origen. */
   source?: string;
+  /** `select` con `source`: los campos de los que depende («el motivo depende del tipo»). Su valor
+   *  viaja en la búsqueda (`?q=…&type_id=3`; una lista, separada por comas), el campo queda apagado
+   *  mientras alguno esté vacío y se vacía cuando uno cambia. Solo campos de primer nivel. */
+  dependsOn?: string[];
+  /** `select`: se eligen varios (siempre con `<nx-select>`, como chips). El valor es una lista. */
+  multiple?: boolean;
+  /** `date`: los días que no se pueden elegir. Con él, el campo es `<nx-date>` (un calendario que
+   *  los muestra tachados, con su motivo); sin él, el `<input type=date>` del navegador. */
+  unavailable?: FormUnavailable;
+  /** `date`: el mínimo es el valor de este otro campo de fecha («fin» no antes de «inicio»), si
+   *  tiene, además de `min`. `maxFrom` igual con el máximo. */
+  minFrom?: string;
+  maxFrom?: string;
+  /** Toma el valor de este otro campo mientras la persona no escriba el suyo («fin» empieza igual
+   *  que «inicio»). Solo entre campos del mismo tipo. */
+  defaultFrom?: string;
   /** `rows`: los campos de cada fila (sin filas adentro). `min` y `max` cuentan filas. */
   fields?: FormField[];
   /** `rows`: el botón para agregar una fila («Agregar beneficiario»). */
@@ -177,6 +198,11 @@ export interface FormLabels {
   date: string;
   dateMin: string;
   dateMax: string;
+  /** Un día bloqueado (`unavailable`) sin motivo; con motivo, `dateBlockedWhy` («No se puede: {reason}»). */
+  dateBlocked: string;
+  dateBlockedWhy: string;
+  /** Un `select` con `dependsOn` cuyo campo padre está vacío: «Primero elige {label}». */
+  dependsFirst: string;
   minLength: string;
   maxLength: string;
   pattern: string;

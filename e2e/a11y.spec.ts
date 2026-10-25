@@ -520,3 +520,16 @@ test("formulario de permiso: selects dependientes y el calendario de nx-date abi
   await expect(form.locator('nx-field[data-key="desde"] .nx-date__pop')).toBeVisible();
   await audit(page, ["#frm-permiso"]);
 });
+
+test("registrar permiso: un aviso que bloquea y las notas del motivo", async ({ page }) => {
+  await open(page, "#/form");
+  const form = page.locator("#frm-permiso-th");
+  await form.locator('nx-field[data-key="empleado"] select').selectOption("8");
+  await expect(form.locator('[data-key="sin_jornada"]')).toBeVisible();
+  await audit(page, ["#frm-permiso-th"]);
+  await form.locator('nx-field[data-key="empleado"] select').selectOption("7");
+  await form.locator('nx-field[data-key="tipo"] select').selectOption("rem");
+  await form.locator('nx-field[data-key="motivo"] select').selectOption("cita");
+  await expect(form.locator('[data-key="nota_soporte"]')).toBeVisible();
+  await audit(page, ["#frm-permiso-th"]);
+});

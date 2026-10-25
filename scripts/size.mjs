@@ -85,7 +85,7 @@ const BUDGET = [
   ["dist/page-header.js", 4 * 1024, "page-header + núcleo (ESM; con enlaces, cifras y avatar)"],
   ["dist/fields.js", 5.25 * 1024, "fields + núcleo (ESM; lectura, resumen y edición en la misma rejilla)"],
   ["dist/field.js", 4.5 * 1024, "field + núcleo (ESM; el campo de la casa)"],
-  ["dist/form.js", 24 * 1024, "form + field + núcleo (ESM; con el campo de archivo, las reglas de contraseña, los días bloqueados y los selects dependientes; nx-number, nx-select, nx-date, nx-otp y nx-password con import() si el esquema los usa)"],
+  ["dist/form.js", 25 * 1024, "form + field + núcleo (ESM; con el campo de archivo, las reglas de contraseña, los días bloqueados, los selects dependientes, avisos, ocultos y variantes; nx-number, nx-select, nx-date, nx-otp y nx-password con import() si el esquema los usa)"],
   ["dist/otp.js", 3.5 * 1024, "otp + núcleo (ESM)"],
   ["dist/password.js", 6.5 * 1024, "password + núcleo (ESM; con la lista de las más usadas)"],
   ["dist/entries.js", 6.5 * 1024, "entries + núcleo (ESM; el panel, nx-dialog y nx-form, con import())"],

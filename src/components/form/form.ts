@@ -37,7 +37,8 @@ import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
 import "../field/index";
 import { fieldLink, type NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
-import { acceptText, check, cleanSections, coerce, dateBounds, dateLimit, dependentSource, displayValue, fileMaxSize, hasOptions, isEmpty, isFile, isMulti, isNumeric, isSecret, otpLength, sameValue, todayISO, usesCalendar, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
+import { plainUnavailable } from "../date/logic";
+import { acceptText, check, cleanSections, coerce, dateBounds, dateLimit, dependentSource, displayValue, effective, fileMaxSize, followsOptions, hasOptions, isEmpty, isFile, isMulti, isNumeric, isSecret, isSystem, otpLength, prunedValue, sameValue, shownOptions, todayISO, usesCalendar, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
 import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
 
 export const FORM_LABELS: FormLabels = {
@@ -274,7 +275,7 @@ export class NxForm extends Base {
   get values(): Record<string, FormValue> {
     const out: Record<string, FormValue> = {};
     const vis = visibleKeys([...this.#defs.values()], this.#v);
-    for (const k of this.#defs.keys()) if (vis.has(k)) out[k] = copy(this.#v[k] ?? null);
+    for (const [k, def] of this.#defs) if (vis.has(k) && def.type !== "notice") out[k] = copy(this.#v[k] ?? null);
     return out;
   }
   set values(v: Record<string, unknown> | null | undefined) {
@@ -375,7 +376,7 @@ export class NxForm extends Base {
    */
   get dirty(): boolean {
     const vis = visibleKeys([...this.#defs.values()], this.#v);
-    for (const [k, def] of this.#defs) if (def.type !== "readonly" && vis.has(k) && !sameValue(this.#v[k] ?? null, this.#loaded[k] ?? null)) return true;
+    for (const [k, def] of this.#defs) if (!isSystem(def.type) && vis.has(k) && !sameValue(this.#v[k] ?? null, this.#loaded[k] ?? null)) return true;
     return false;
   }
 
@@ -710,6 +711,7 @@ export class NxForm extends Base {
 
   /** Un campo: su `<nx-field>` y su control. `key` es la clave o, en una fila, la ruta. */
   #slot1(def: FieldDef, key: string, row?: RowRef): Slot {
+    if (def.type === "notice") return this.#noticeSlot(def, key);
     const L = this.#labels;
     const field = document.createElement("nx-field") as NxField;
     field.dataset.key = key;
@@ -727,6 +729,20 @@ export class NxForm extends Base {
     const ctl = this.#control(def, key);
     if (ctl) field.append(ctl);
     return { key, def, field, ctl, row };
+  }
+
+  /** Un aviso (`notice`): su título y su texto, con el tono del esquema. Ocupa su lugar en la rejilla
+   *  como un campo; recibe el foco cuando impide enviar (`blocks`). */
+  #noticeSlot(def: FieldDef, key: string): Slot {
+    const field = h(
+      "div",
+      { class: "nx-form__notice", "data-key": key, "data-tone": def.tone ?? "info", role: "status", tabindex: def.blocks ? "-1" : null },
+      def.label ? h("p", { class: "nx-form__notice-title" }, def.label) : null,
+      h("p", { class: "nx-form__notice-text" }),
+    );
+    const span = Math.round(Number(def.span));
+    if (span >= 1 && span <= 5) field.setAttribute("span", String(span));
+    return { key, def, field, ctl: null };
   }
 
   /** Un campo `rows`: un grupo con su leyenda, las filas y «Agregar». */
@@ -766,6 +782,8 @@ export class NxForm extends Base {
     }
     switch (def.type) {
       case "readonly":
+      case "hidden":
+      case "notice":
       case "rows":
         return null;
       case "textarea": {
@@ -1216,6 +1234,7 @@ export class NxForm extends Base {
       // su valor mientras nadie escriba el suyo, lo sigue.
       this.#cascade(s.key);
       this.#derive(s.key);
+      this.#prune();
     }
     this.#pending = null;
     if (this.#last) this.#last = null;
@@ -1371,7 +1390,7 @@ export class NxForm extends Base {
       if (isSecret(def.type)) continue;
       const v = coerce(def, raw, this.#fmt);
       const cur = this.#v[k] ?? null;
-      const typed = !force && def.type !== "readonly" && this.#touched.has(k) && !this.#marks[k] && !isEmpty(cur);
+      const typed = !force && !isSystem(def.type) && this.#touched.has(k) && !this.#marks[k] && !isEmpty(cur);
       if (sameValue(cur, v)) {
         // El mismo valor que ya estaba: si nadie lo escribió, ahora sabemos de dónde viene.
         const m = mark(k, k);
@@ -1387,14 +1406,15 @@ export class NxForm extends Base {
         continue;
       }
       this.#v[k] = v;
-      const m = mark(k, k);
+      // Un valor oculto o un aviso no lleva origen: no se ve como dato.
+      const m = isSystem(def.type) ? null : mark(k, k);
       if (m) this.#marks[k] = m;
       else delete this.#marks[k];
       delete this.#server[k];
       const s = this.#slots.get(k);
       if (s) this.#write(s);
       keys.push(k);
-      flash.push(k);
+      if (!isSystem(def.type)) flash.push(k);
       if (typeof v === "string" && hasOptions(def.type)) opts.push([def, v]);
     }
     for (const k of [...keys]) {
@@ -1402,6 +1422,9 @@ export class NxForm extends Base {
         if (!keys.includes(c)) keys.push(c);
         flash.push(c);
       }
+    }
+    for (const c of this.#prune(explicit)) {
+      if (!keys.includes(c)) keys.push(c);
     }
     for (const [def, v] of opts) {
       const opt = def.options.find((o) => o.value === v);
@@ -1455,6 +1478,31 @@ export class NxForm extends Base {
     return out;
   }
 
+  /** Quita lo elegido que ya no se ofrece (una opción con `when` que dejó de cumplirse: cambió el
+   *  tipo y el motivo ya no es de él), hasta que nada cambie. Lo que está en `skip` (llegó en el
+   *  mismo `fill`) no se toca. Devuelve las claves que cambiaron. */
+  #prune(skip: Set<string> = new Set()): string[] {
+    const out: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      let changed = false;
+      for (const def of this.#defs.values()) {
+        if (skip.has(def.key) || !followsOptions(def)) continue;
+        const next = prunedValue(def, this.#v[def.key], this.#v);
+        if (next === undefined) continue;
+        this.#v[def.key] = next;
+        delete this.#marks[def.key];
+        delete this.#server[def.key];
+        const s = this.#slots.get(def.key);
+        if (s) this.#write(s);
+        if (!out.includes(def.key)) out.push(def.key);
+        changed = true;
+        out.push(...this.#cascade(def.key, skip).filter((k) => !out.includes(k)));
+      }
+      if (!changed) break;
+    }
+    return out;
+  }
+
   /** Los campos con `defaultFrom: key` que la persona no ha escrito toman el valor de `key`. */
   #derive(key: string, skip: Set<string> = new Set()): string[] {
     const out: string[] = [];
@@ -1493,12 +1541,38 @@ export class NxForm extends Base {
         const ph = src === null && missing.length ? tpl(L.dependsFirst, { label: missing.join(", ") }) : def.placeholder || L.pick;
         if (ctl.getAttribute("placeholder") !== ph) ctl.setAttribute("placeholder", ph);
       }
-      if (def.type === "date" && (def.minFrom || def.maxFrom)) {
-        const { min, max } = dateBounds(def, this.#v, today);
+      if (def.type === "date" && (def.minFrom || def.maxFrom || def.cases)) {
+        const eff = effective(def, this.#v);
+        const { min, max } = dateBounds(eff, this.#v, today);
         if (ctl.getAttribute("min") !== min) setAttr(ctl, "min", min);
         if (ctl.getAttribute("max") !== max) setAttr(ctl, "max", max);
+        if (ctl.localName === "nx-date") {
+          const blocked = JSON.stringify(eff.unavailable ?? {});
+          if (ctl.getAttribute("unavailable") !== blocked) ctl.setAttribute("unavailable", blocked);
+        }
       }
+      if (followsOptions(def)) this.#syncOptions(s);
     }
+  }
+
+  /** Las opciones que se ofrecen hoy (`when` de cada opción), en su control. Solo si cambiaron. */
+  #syncOptions(s: Slot): void {
+    const { def, ctl } = s;
+    if (!ctl) return;
+    const shown = shownOptions(def, this.#v);
+    const sig = shown.map((o) => o.value).join("\u0000");
+    if (ctl.dataset.options === sig) return;
+    ctl.dataset.options = sig;
+    if (ctl.localName === "nx-select") {
+      (ctl as unknown as { options: unknown }).options = shown.map((o) => ({ ...o, label: o.label ?? o.value }));
+    } else if (ctl instanceof HTMLSelectElement) {
+      const first = ctl.options[0];
+      ctl.replaceChildren(first, ...shown.map((o) => h("option", { value: o.value }, o.label ?? o.value)));
+    } else {
+      const ok = new Set(shown.map((o) => o.value));
+      for (const input of ctl.querySelectorAll<HTMLInputElement>("input")) (input.closest("label") as HTMLElement).hidden = !ok.has(input.value);
+    }
+    this.#write(s);
   }
 
   #usual(opt: { value: string; label?: string }): FormSource {
@@ -1526,7 +1600,7 @@ export class NxForm extends Base {
   // ---------------------------------------------------------------- pintar
 
   #check(s: Slot): Check {
-    const c = check(s.def, this.#get(s), { labels: this.#labels, fmt: this.#fmt, today: todayISO(), values: this.#v });
+    const c = check(s.row ? s.def : effective(s.def, this.#v), this.#get(s), { labels: this.#labels, fmt: this.#fmt, today: todayISO(), values: this.#v });
     // Lo que solo sabe el control: una contraseña que apareció en una filtración.
     if (!c.error && s.def.type === "password" && s.ctl && !isEmpty(this.#get(s))) {
       const ctl = s.ctl as unknown as { validity?: ValidityState; validationMessage?: string };
@@ -1566,6 +1640,14 @@ export class NxForm extends Base {
           s.field.classList.add("is-revealed");
         }
       }
+      if (def.type === "hidden") {
+        s.field.hidden = true;
+        continue;
+      }
+      if (def.type === "notice") {
+        this.#paintNotice(s, shown, tally);
+        continue;
+      }
       if (!shown) continue;
       const st = stats[def.sec];
       if (def.type === "rows") {
@@ -1581,6 +1663,21 @@ export class NxForm extends Base {
     this.#tellDirty();
   }
 
+  /** Un aviso: su texto (el de `values` o el último `fill()`); vacío, no se ve. Con `blocks`, mientras
+   *  se ve, cuenta como un dato por corregir y no deja enviar. */
+  #paintNotice(s: Slot, shown: boolean, tally: Tally): void {
+    const v = this.#v[s.key];
+    const text = typeof v === "string" ? v : "";
+    const visible = shown && !!text;
+    s.field.hidden = !visible;
+    const p = s.field.querySelector(".nx-form__notice-text")!;
+    if (p.textContent !== text) p.textContent = text;
+    if (visible && s.def.blocks && this.mode !== "read") {
+      tally.problems.push(s.key);
+      tally.invalid++;
+    }
+  }
+
   /** Avisa `nx-form-dirty` si `dirty` cambió desde el último aviso. */
   #tellDirty(): void {
     const dirty = this.dirty;
@@ -1594,7 +1691,11 @@ export class NxForm extends Base {
   #paintField(s: Slot, st: Stat, tally: Tally): void {
     const L = this.#labels;
     const read = this.mode === "read";
-    const { def } = s;
+    const def = s.row || !s.def.cases ? s.def : effective(s.def, this.#v);
+    if (s.def.cases && !s.row && def.type !== "readonly" && def.type !== "checkbox") {
+      set(s.field, "required", def.required ? "" : null);
+      set(s.field, "optional", def.required ? null : "");
+    }
     const f = s.field;
     const v = this.#get(s);
     const c = this.#check(s);
@@ -1843,7 +1944,7 @@ export class NxForm extends Base {
     let any = false;
     for (const [k, raw] of Object.entries(d.v)) {
       const def = this.#defs.get(k);
-      if (!def || def.type === "readonly" || def.type === "file" || isSecret(def.type)) continue;
+      if (!def || isSystem(def.type) || def.type === "file" || isSecret(def.type)) continue;
       const v = coerce(def, raw, this.#fmt);
       if (sameValue(v, this.#v[k])) continue;
       this.#v[k] = v;
@@ -1873,7 +1974,7 @@ export class NxForm extends Base {
     const v: Record<string, FormValue> = {};
     // Un archivo no va al borrador: no cabe en `localStorage` y el navegador no deja reponerlo.
     // Ni una contraseña ni un código: no pueden quedar en el navegador.
-    for (const [k, def] of this.#defs) if (def.type !== "file" && !isSecret(def.type) && !sameValue(this.#v[k], this.#initial[k])) v[k] = this.#v[k] ?? null;
+    for (const [k, def] of this.#defs) if (def.type !== "file" && !isSecret(def.type) && !isSystem(def.type) && !sameValue(this.#v[k], this.#initial[k])) v[k] = this.#v[k] ?? null;
     try {
       if (Object.keys(v).length) {
         const t = Date.now();
@@ -1928,8 +2029,10 @@ export class NxForm extends Base {
 
 /** Un campo limpio, como se publicó en el esquema (sin lo interno). */
 function plain(def: FieldDef): FormField {
-  const { sec: _sec, subs, ...rest } = def;
-  return subs ? { ...rest, fields: subs.map(plain) } : rest;
+  const { sec: _sec, subs, blocked: _blocked, cases, ...rest } = def;
+  const out: FormField = subs ? { ...rest, fields: subs.map(plain) } : rest;
+  if (cases) out.cases = cases.map(({ blocked, ...c }) => (blocked ? { ...c, unavailable: plainUnavailable(blocked) ?? {} } : c));
+  return out;
 }
 
 /** Una copia que no comparte listas ni filas. */

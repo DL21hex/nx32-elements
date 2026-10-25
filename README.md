@@ -55,7 +55,7 @@ página HTML plana, en SolidJS (con SSR) o pintados desde un JSON que manda el b
 | `<nx-jobs>` + núcleo (ESM); el panel se carga aparte | ≈ 9,2 KB |
 | `<nx-tasks>` + lector de fechas + núcleo (ESM); la lista del `@` y el dictado se cargan aparte | ≈ 14,0 KB |
 | `<nx-field>` + núcleo (ESM) | ≈ 3,9 KB |
-| `<nx-form>` + campo + núcleo (ESM); `<nx-number>`, `<nx-select>`, `<nx-date>`, `<nx-otp>` y `<nx-password>` se cargan si el esquema los usa | ≈ 23,6 KB |
+| `<nx-form>` + campo + núcleo (ESM); `<nx-number>`, `<nx-select>`, `<nx-date>`, `<nx-otp>` y `<nx-password>` se cargan si el esquema los usa | ≈ 24,7 KB |
 | `<nx-date>` + calendario + núcleo (ESM) | ≈ 6,8 KB |
 | `<nx-otp>` + núcleo (ESM) | ≈ 3,4 KB |
 | `<nx-password>` + núcleo (ESM) | ≈ 6,4 KB |
@@ -2825,6 +2825,24 @@ lo escrito no se pierde.
   no puede ser antes de «Desde» (además de su `min`, gana el más estricto), en la validación y en el
   calendario. `defaultFrom: "desde"`: empieza con el valor de «Desde» y lo sigue mientras la persona
   no escriba el suyo (sirve en cualquier par de campos del mismo tipo).
+- **Opciones según otro campo (`when` en la opción).** `{value: "10", label: "Cita médica", when:
+  {tipo: "1"}}`: el motivo solo se ofrece con ese tipo (las opciones sin `when` siempre). Si la
+  persona cambia el tipo, un motivo que ya no es de él se vacía y uno que sigue se conserva; un
+  `fill()` que trae los dos los respeta, y cargar un registro no poda nada. Vale en `select`, `radio`,
+  `segmented` y `checkbox` con opciones fijas (para listas que viven en el servidor, `dependsOn`).
+- **Valores ocultos (`type: "hidden"`).** No se ven y viajan en `values`: lo que la app sabe y la
+  persona no edita (el estado que calculó el servidor, un id). Sirven de condición (`when: {estado:
+  "sin_jornada"}`) y la app los cambia con `fill()` sin marcar cambios, aunque la persona ya haya
+  escrito.
+- **Avisos (`type: "notice"`).** Un recuadro dentro del formulario con `label` (título) y su texto en
+  `value`; `tone`: `info` (por defecto), `success`, `warning` o `danger`. Con texto vacío no se ve, así
+  que la app lo pone y lo quita con `fill()` («Duración: 2,5 horas»). No sale en `values`. Con
+  `blocks: true`, mientras se ve no deja enviar: cuenta como faltante, se enfoca y se anuncia
+  («Tu empresa no tiene motivos configurados»).
+- **Variantes de un campo (`cases`).** `[{when: {motivo: "con"}, min: "2026-10-29", hint: "Con tres días
+  de anticipación", required: true}]`: la primera que se cumple cambia `required`, `min`, `max`,
+  `hint` o `unavailable` del campo; si ninguna, quedan los suyos. Para la fecha de inicio con un
+  mínimo según el motivo, sin repetir el campo con condiciones excluyentes.
 - **Filas (`type: "rows"`).** Un grupo de campos que se repite: los beneficiarios, las líneas de una
   factura. `fields` son los de cada fila (con su `span`, sus reglas y sus `fills`, que llenan su misma
   fila), `min`/`max` cuentan filas, `addLabel` es el botón. El valor es un arreglo de objetos;

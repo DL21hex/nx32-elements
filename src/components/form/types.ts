@@ -1,7 +1,10 @@
 /** `<nx-form>`: tipos del esquema. Todo es JSON: un formulario entero puede venir del backend. */
 import type { DateUnavailable } from "../date/types";
 
-/** El control de cada campo. `text` por defecto. */
+/** El control de cada campo. `text` por defecto. `hidden` guarda un valor que no se ve (lo pone la
+ *  app o el servidor con `fill()`, viaja en `values` y sirve de condición en `when`). `notice` es un
+ *  aviso dentro del formulario: su texto es `value` (la app lo cambia con `fill()`), no es un dato
+ *  (no sale en `values`) y, vacío, no se ve. */
 export type FormFieldType =
   | "text"
   | "email"
@@ -21,7 +24,25 @@ export type FormFieldType =
   | "rows"
   | "file"
   | "otp"
-  | "password";
+  | "password"
+  | "hidden"
+  | "notice";
+
+/** El tono de un aviso (`notice`). */
+export type FormTone = "info" | "success" | "warning" | "danger";
+
+/** Una variante de un campo: la primera cuya condición se cumple cambia estos datos del campo («la
+ *  fecha de inicio no antes del {preaviso} si el motivo lo exige; si no, desde hoy»). */
+export interface FormCase {
+  when: FormCondition;
+  required?: boolean;
+  /** Números, montos y fechas (ISO o «today»): los límites de esta variante. */
+  min?: number | string;
+  max?: number | string;
+  hint?: string;
+  /** `date`: los días que no se pueden elegir en esta variante (reemplaza los del campo). */
+  unavailable?: FormUnavailable;
+}
 
 /** Lo que no se puede elegir en un campo `date`: fechas concretas (festivos, cierres; ISO o
  *  `{date, label}` con el motivo) y días de la semana (0 domingo … 6 sábado, como `Date#getDay`). */
@@ -51,6 +72,9 @@ export interface FormOption {
   /** Lo habitual de esta opción: al elegirla, llena estos campos si están vacíos o los llenó el
    *  sistema («Soldador» → área, centro de costo, clase de riesgo). Nunca pisa lo que escribió la persona. */
   fills?: Record<string, FormValue>;
+  /** La opción se ofrece solo si se cumple (el motivo según el tipo elegido). Elegida y ya sin
+   *  cumplirse (cambió el tipo), el campo se vacía. */
+  when?: FormCondition;
 }
 
 /** Una regla de `when`, por clave: un valor (igual a), una lista (alguno de), `{not}` (ninguno de) o
@@ -123,6 +147,13 @@ export interface FormField {
   /** Toma el valor de este otro campo mientras la persona no escriba el suyo («fin» empieza igual
    *  que «inicio»). Solo entre campos del mismo tipo. */
   defaultFrom?: string;
+  /** Variantes: la primera cuyo `when` se cumple cambia `required`, los límites, la ayuda y (en una
+   *  fecha) los días bloqueados. Solo campos de primer nivel. */
+  cases?: FormCase[];
+  /** `notice`: el tono del aviso (`info` por defecto). */
+  tone?: FormTone;
+  /** `notice`: mientras se ve, no deja enviar (lo que impide seguir: «Sin motivos configurados»). */
+  blocks?: boolean;
   /** `rows`: los campos de cada fila (sin filas adentro). `min` y `max` cuentan filas. */
   fields?: FormField[];
   /** `rows`: el botón para agregar una fila («Agregar beneficiario»). */

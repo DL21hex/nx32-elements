@@ -11,8 +11,12 @@ pestaña, también en lectura; no es un dato), selects que buscan con el valor d
 cada pintado, y `#cascade` vacía a los hijos cuando cambia el padre), selección múltiple
 (`multiple`), fechas con días bloqueados (`unavailable`: el control es `<nx-date>`, que se carga
 aparte) o que dependen de otra (`minFrom`/`maxFrom` con `dateBounds`, `defaultFrom` con `#derive`),
-lo habitual de una opción (`fills`), llenar desde
-afuera con origen (`fill`, `undo`),
+opciones que se ofrecen según otro campo (`when` en la opción: `shownOptions`, `#syncOptions` las
+pone en el control y `#prune` vacía un valor que dejó de ofrecerse, solo ante un cambio de la
+persona o un `fill()` que no lo trae), valores ocultos (`hidden`) y avisos (`notice`, con `tone` y
+`blocks`; `#paintNotice`), variantes de un campo (`cases`: `effective` da el campo con la primera que
+se cumple, para la validación, el pintado y el calendario), lo habitual de una opción (`fills`),
+llenar desde afuera con origen (`fill`, `undo`),
 validación al salir o al enviar, avisos con arreglo, índice de secciones, pie con lo que falta,
 borrador en el navegador (`draft`) y lectura (`mode="read"`).
 
@@ -22,8 +26,9 @@ Pruebas: `test/form.sources.dom.test.ts`.
 
 Archivos: `form.ts` (el elemento), `logic.ts` (sin DOM: limpiar el esquema, condiciones, validación,
 texto de lectura), `types.ts`, `form.css` (importa `field.css`), `index.ts`. Pruebas:
-`test/form.logic.test.ts`, `test/form.dom.test.ts` (también la demo de la galería) y
-`test/form.links.dom.test.ts` (lo que un campo toma de otro). Galería: página
+`test/form.logic.test.ts`, `test/form.dom.test.ts` (también la demo de la galería),
+`test/form.links.dom.test.ts` (lo que un campo toma de otro) y `test/form.cases.dom.test.ts`
+(opciones con `when`, ocultos, avisos y variantes). Galería: página
 «Formularios» (`gallery/demo-form.ts`).
 
 ## BDUI
@@ -31,7 +36,11 @@ texto de lectura), `types.ts`, `form.css` (importa `field.css`), `index.ts`. Pru
 `Form: "form"` en el registro de `src/bdui.ts`. `sections`, `fields`, `values`, `errors`,
 `warnings`, `hints` y `labels` aceptan el objeto o su JSON. Ninguna regla es una función: lo que
 necesita al negocio lo calcula la app y lo devuelve con `fill()` y `hints`. Los textos del esquema
-van siempre como texto (nunca HTML).
+van siempre como texto (nunca HTML): también el de un aviso (`notice`).
+
+`hidden`, `notice` y `readonly` son campos «del sistema» (`isSystem`): no se validan, no marcan
+cambios, no van al borrador y un `fill()` los escribe aunque la persona haya tocado el formulario.
+Un aviso con `blocks` es la única excepción a «no se validan»: mientras se ve, impide enviar.
 
 `link` llega tal cual en el JSON del campo (`{"link": {"label": "Descargar formato", "href":
 "/formatos/descarte.pdf"}}`). `cleanSections` lo limpia: el `href` pasa por `safeHref` y, sin
@@ -44,5 +53,5 @@ por fila sería ruido; el de un campo `rows` va al pie del grupo. El campo se lo
 
 | Pieza | Tamaño (min + gzip) | Referencia |
 |---|---|---|
-| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>`, `<nx-select>` y `<nx-date>` con `import()`) | 23,6 KB | 24 KB |
-| `dist/form.css` (con `field.css`) | 3,88 KB | 4 KB |
+| `dist/form.js` (con `<nx-field>`, el campo de archivo y el núcleo; `<nx-number>`, `<nx-select>` y `<nx-date>` con `import()`) | 24,7 KB | 25 KB |
+| `dist/form.css` (con `field.css`) | 3,99 KB | 4 KB |

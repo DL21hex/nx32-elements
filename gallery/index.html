@@ -3676,6 +3676,16 @@ import { Tabs } from "nx32-elements/solid/tabs";
           </p>
           <nx-form id="frm-permiso" heading="Solicitar permiso" submit-label="Solicitar" locale="es-CO"></nx-form>
 
+          <h2>Registrar un permiso a nombre de otro: avisos, ocultos, opciones y variantes</h2>
+          <p class="frm-tip">
+            Al elegir el empleado, el «servidor» llena un valor oculto con su situación (<code>type: "hidden"</code>): sin
+            jornada aparece un aviso que no deja registrar (<code>type: "notice"</code> con <code>blocks</code>). El motivo
+            ofrece solo los del tipo elegido (<code>when</code> en cada opción) y se vacía si el tipo cambia. Las notas del
+            motivo son avisos con su tono, y la fecha de inicio pide tres días de anticipación salvo una cita médica
+            (<code>cases</code>).
+          </p>
+          <nx-form id="frm-permiso-th" heading="Registrar permiso" submit-label="Registrar" locale="es-CO"></nx-form>
+
           <h2>Recepción de mercancía: la factura y el escáner</h2>
           <p class="frm-tip">
             <code>&lt;nx-doc-capture for="frm-recepcion"&gt;</code> lee la factura; al confirmar lo dudoso, «Pasar al formulario»

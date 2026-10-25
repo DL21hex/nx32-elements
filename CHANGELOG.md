@@ -1,5 +1,21 @@
 # Registro de cambios
 
+## 0.31.0 — 2026-10-25
+
+- **`<nx-form>`: lo que les faltaba a los formularios de solicitudes después de 0.30.0.**
+  - **Opciones según otro campo (`when` en cada opción).** El motivo se ofrece según el tipo; al
+    cambiar el tipo, un motivo que ya no es de él se vacía. `select`, `radio`, `segmented` y
+    `checkbox` con opciones fijas.
+  - **Valores ocultos (`type: "hidden"`).** No se ven, viajan en `values`, sirven de condición y la
+    app los cambia con `fill()` sin marcar cambios.
+  - **Avisos (`type: "notice"`).** Un recuadro con título, texto y `tone` (`info`, `success`,
+    `warning`, `danger`) que la app actualiza con `fill()`; vacío no se ve. Con `blocks`, mientras se
+    ve no deja enviar.
+  - **Variantes de un campo (`cases`).** La primera que se cumple cambia `required`, `min`, `max`,
+    `hint` o `unavailable`: la fecha de inicio con otro mínimo según el motivo.
+  - Galería: «Formularios», registrar un permiso a nombre de otra persona.
+  - Peso: `form.js` pasa de 24 a 25 KB de referencia.
+
 ## 0.30.0 — 2026-10-25
 
 - **`<nx-form>`: los formularios de solicitudes (permisos, vacaciones, asistencias) ya caben en el

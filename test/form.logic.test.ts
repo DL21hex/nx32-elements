@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { nxFormat } from "../src/core/locale";
 import { FORM_LABELS } from "../src/components/form/form";
-import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, emailTypo, FILE_MAX_SIZE, fileMaxSize, isEmpty, isFile, isISODate, matches, parseDateText, sameValue, todayISO, usesSearch, visibleKeys, type FieldDef } from "../src/components/form/logic";
+import { acceptText, check, cleanSections, coerce, dateLimit, displayValue, effective, emailTypo, isSystem, prunedValue, shownOptions, FILE_MAX_SIZE, fileMaxSize, isEmpty, isFile, isISODate, matches, parseDateText, sameValue, todayISO, usesSearch, visibleKeys, type FieldDef } from "../src/components/form/logic";
 
 const fmt = nxFormat("es-CO");
 const ctx = { labels: FORM_LABELS, fmt, today: "2026-10-07" };
@@ -264,5 +264,54 @@ describe("archivo (file)", () => {
     expect(out[0].fields[1].type).toBe("file");
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
+  });
+});
+
+describe("0.31.0: variantes, opciones con condición, ocultos y avisos", () => {
+  it("cleanSections limpia cases, tone y blocks (y los descarta donde no van)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const [sec] = cleanSections([
+      {
+        fields: [
+          { key: "d", label: "D", type: "date", cases: [{ when: { m: "1" }, min: "today", unavailable: { weekdays: [6, 9] }, extra: 1 }, { min: "x" }] },
+          { key: "n", label: "", type: "notice", tone: "warning", blocks: true, value: "  Ojo  " },
+          { key: "t", label: "T", tone: "danger", blocks: true },
+          { key: "o", label: "O", type: "select", options: [{ value: "1", when: { m: "1" } }, { value: "2", when: "no" }] },
+        ],
+      },
+    ]);
+    const [d, n, t, o] = sec.fields;
+    expect(d.cases).toHaveLength(1);
+    expect(d.cases![0].min).toBe("today");
+    expect([...d.cases![0].blocked!.weekdays]).toEqual([6]);
+    expect(n).toMatchObject({ type: "notice", tone: "warning", blocks: true });
+    expect(coerce(n, n.value, fmt)).toBe("Ojo");
+    expect(t.tone).toBeUndefined();
+    expect(t.blocks).toBeUndefined();
+    expect(o.options[0].when).toEqual({ m: "1" });
+    expect(o.options[1].when).toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it("effective toma la primera variante que se cumple", () => {
+    const d = def({ key: "d", type: "date", min: "a", hint: "h", cases: [{ when: { m: "1" }, min: "b" }, { when: { m: ["1", "2"] }, min: "c", required: true }] });
+    expect(effective(d, {}).min).toBe("a");
+    expect(effective(d, { m: "1" })).toMatchObject({ min: "b", hint: "h" });
+    expect(effective(d, { m: "2" })).toMatchObject({ min: "c", required: true });
+  });
+
+  it("shownOptions y prunedValue", () => {
+    const o = def({ key: "o", type: "checkboxes", options: [{ value: "1", when: { t: "a" } }, { value: "2" }] });
+    expect(shownOptions(o, {}).map((x) => x.value)).toEqual(["2"]);
+    expect(prunedValue(o, ["1", "2"], {})).toEqual(["2"]);
+    expect(prunedValue(o, ["1", "2"], { t: "a" })).toBeUndefined();
+    const s = def({ key: "s", type: "select", options: [{ value: "1", when: { t: "a" } }] });
+    expect(prunedValue(s, "1", { t: "b" })).toBeNull();
+    expect(prunedValue(s, null, { t: "b" })).toBeUndefined();
+  });
+
+  it("ocultos y avisos no se validan ni los escribe la persona", () => {
+    expect(isSystem("hidden") && isSystem("notice") && isSystem("readonly")).toBe(true);
+    expect(check(def({ key: "h", type: "hidden", required: true }), null, ctx).error).toBe("");
   });
 });

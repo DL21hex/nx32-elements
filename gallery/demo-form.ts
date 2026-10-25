@@ -4,13 +4,16 @@
  * lo habitual de cada cargo, una lista larga con buscador, beneficiarios en filas, una regla de la
  * app (el periodo de prueba, que la app calcula y explica) y la lectura después de crear. Después,
  * una recepción de mercancía que llenan `<nx-doc-capture>` (la factura) y `<nx-scan>` (lo recibido),
- * y el campo de la casa sin el formulario. No es parte de la librería.
+ * y el campo de la casa sin el formulario. Al final, una solicitud de permiso: días bloqueados
+ * (`<nx-date>`), listas que buscan con el valor de otra (`dependsOn`), «hasta» que sigue a «desde»
+ * y una selección múltiple. No es parte de la librería.
  */
 import "../src/components/form/index";
 import "../src/components/paste-fill/index";
 import "../src/components/capture/index";
 import "../src/components/scan/index";
-import { nxToast, type FormSection, type FormSource, type NxButton, type NxDocCapture, type NxForm, type NxPasteFill, type NxScan } from "../src/index";
+import { addDemoRoute } from "./demo-api";
+import { nxToast, type FormField, type FormSection, type FormSource, type NxButton, type NxDocCapture, type NxForm, type NxPasteFill, type NxScan } from "../src/index";
 
 /** Más de doce: la lista va con buscador (`<nx-select>`). */
 const CIUDADES = ["Barranquilla", "Malambo", "Soledad", "Puerto Colombia", "Galapa", "Sabanalarga", "Baranoa", "Sabanagrande", "Santo Tomás", "Palmar de Varela", "Cartagena", "Santa Marta", "Valledupar", "Montería", "Sincelejo", "Bogotá", "Medellín", "Cali", "Bucaramanga"];
@@ -256,6 +259,59 @@ export function periodoDePrueba(v: Record<string, unknown>): { text: string | nu
   return { text: `Hasta el ${fmt(dos)} · 2 meses`, why: "El máximo de la ley (art. 78 del CST)" };
 }
 
+// ---------------------------------------------------------------- una solicitud de permiso
+
+/** Los festivos del trimestre, con su nombre: el calendario los tacha y dice cuál es. */
+const FESTIVOS = [
+  { date: "2026-10-12", label: "Festivo: Día de la Raza" },
+  { date: "2026-11-02", label: "Festivo: Todos los Santos" },
+  { date: "2026-11-16", label: "Festivo: Independencia de Cartagena" },
+  { date: "2026-12-08", label: "Festivo: Inmaculada Concepción" },
+  { date: "2026-12-25", label: "Festivo: Navidad" },
+];
+/** Los tipos de permiso de cada empresa y los motivos de cada tipo: lo que respondería el servidor. */
+const TIPOS: Record<string, { value: string; label: string }[]> = {
+  "1": [
+    { value: "rem", label: "Remunerado" },
+    { value: "norem", label: "No remunerado" },
+  ],
+  "2": [
+    { value: "rem", label: "Remunerado" },
+    { value: "comp", label: "Compensado" },
+  ],
+};
+const MOTIVOS: Record<string, string[]> = {
+  rem: ["Cita médica", "Calamidad doméstica", "Diligencia judicial"],
+  norem: ["Asunto personal", "Estudio"],
+  comp: ["Turno extra trabajado", "Domingo laborado"],
+};
+
+export const PERMISO: FormField[] = [
+  { key: "empresa", label: "Empresa", type: "segmented", required: true, options: [{ value: "1", label: "Crear" }, { value: "2", label: "Banasan" }] },
+  { key: "tipo", label: "Tipo de permiso", type: "select", required: true, span: 3, source: "/demo/permiso/tipos", dependsOn: ["empresa"] },
+  { key: "motivo", label: "Motivo", type: "select", required: true, span: 3, source: "/demo/permiso/motivos", dependsOn: ["tipo"] },
+  { key: "desde", label: "Desde", type: "date", required: true, span: 3, min: "today", unavailable: { dates: FESTIVOS, weekdays: [0] }, hint: "Los domingos y festivos no se pueden elegir" },
+  { key: "hasta", label: "Hasta", type: "date", required: true, span: 3, minFrom: "desde", defaultFrom: "desde", unavailable: { dates: FESTIVOS, weekdays: [0] } },
+  { key: "avisar", label: "Avisar también a", type: "select", multiple: true, source: "/demo/empleados", search: [{ key: "nombre", label: "Nombre" }, { key: "cedula", label: "Cédula", kind: "digits" }, { key: "cargo", label: "Cargo" }] },
+];
+
+function mountPermiso(root: HTMLElement, add: (t: string) => void): void {
+  const form = root.querySelector<NxForm>("#frm-permiso");
+  if (!form) return;
+  const reply = (out: { type(t: string): void; end(s?: string): void }, list: unknown[]) => {
+    out.type("application/json");
+    out.end(JSON.stringify(list));
+  };
+  addDemoRoute("/demo/permiso/tipos", async (req, out) => reply(out, TIPOS[req.url.searchParams.get("empresa") ?? ""] ?? []));
+  addDemoRoute("/demo/permiso/motivos", async (req, out) => reply(out, (MOTIVOS[req.url.searchParams.get("tipo") ?? ""] ?? []).map((m) => ({ value: m, label: m }))));
+  form.fields = PERMISO;
+  form.addEventListener("nx-form-change", (e) => add(`nx-form-change · ${e.detail.key} = ${JSON.stringify(e.detail.value)}`));
+  form.addEventListener("nx-form-submit", (e) => {
+    add(`nx-form-submit · ${JSON.stringify(e.detail.values)}`);
+    void nxToast({ message: "Permiso solicitado", tone: "success" });
+  });
+}
+
 // ---------------------------------------------------------------- montar
 
 export function mountFormDemo(root: HTMLElement): void {
@@ -309,4 +365,5 @@ export function mountFormDemo(root: HTMLElement): void {
   });
 
   mountRecepcion(root, add);
+  mountPermiso(root, add);
 }

@@ -3667,6 +3667,15 @@ import { Tabs } from "nx32-elements/solid/tabs";
           <p class="stage__loglabel">Eventos</p>
           <ol class="stage__log btn-events" id="frm-log"></ol>
 
+          <h2>Una solicitud de permiso: días bloqueados y listas que dependen de otra</h2>
+          <p class="frm-tip">
+            Los tipos dependen de la empresa y los motivos del tipo (<code>dependsOn</code>: apagados con «Primero elige…»
+            hasta que haya con qué buscar, y se vacían si cambia). Las fechas son <code>&lt;nx-date&gt;</code>: se escriben a
+            mano o se eligen en un calendario que tacha domingos y festivos, con su nombre. «Hasta» empieza igual que
+            «Desde» y no puede ser antes (<code>defaultFrom</code>, <code>minFrom</code>). «Avisar también a» elige varios.
+          </p>
+          <nx-form id="frm-permiso" heading="Solicitar permiso" submit-label="Solicitar" locale="es-CO"></nx-form>
+
           <h2>Recepción de mercancía: la factura y el escáner</h2>
           <p class="frm-tip">
             <code>&lt;nx-doc-capture for="frm-recepcion"&gt;</code> lee la factura; al confirmar lo dudoso, «Pasar al formulario»

@@ -18,11 +18,12 @@ import type {
   FormSection,
   FormSource,
   FormSubmitDetail,
+  FormUnavailable,
   FormValue,
   FormVariant,
 } from "../components/form/types";
 
-export type { NxForm, FormChangeDetail, FormDirtyDetail, FormCondition, FormField, FormFieldType, FormFillDetail, FormLabels, FormLink, FormMode, FormOption, FormRule, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant };
+export type { NxForm, FormChangeDetail, FormDirtyDetail, FormCondition, FormField, FormFieldType, FormFillDetail, FormLabels, FormLink, FormMode, FormOption, FormRule, FormSection, FormSource, FormSubmitDetail, FormUnavailable, FormValue, FormVariant };
 
 export interface FormProps extends Omit<JSX.HTMLAttributes<NxForm>, "onChange" | "onSubmit" | "onCancel"> {
   sections?: FormSection[];

@@ -1,5 +1,48 @@
 # Registro de cambios
 
+## 0.31.1 — 2026-10-26
+
+Una revisión de rendimiento y estabilidad de lo que usa nx32: lo que se notaba (una pantalla que se
+congela, un dato que se ve mal, una acción que no corre), medido antes y después.
+
+- **`<nx-form>`: agregar o quitar una fila ya no rehace las demás.** Lo escrito, el foco y lo elegido
+  en una búsqueda del servidor se quedan: antes, la persona elegida desde la búsqueda en otra fila
+  volvía a decir «Elige…» (el formulario guardaba bien el id, pero no se veía). Con 40 filas,
+  «Agregar» pasa de ~60 a ~9 ms. Lo elegido en un select que busca se recuerda: si el control se
+  rehace (otro esquema), vuelve con su nombre.
+- **`<nx-form>`: reasignar el mismo esquema no rehace nada.** Al recargar el registro el foco ya no
+  cae en la página; si el esquema cambia, vuelve al mismo campo, con lo escrito y la selección.
+- **`<nx-form>`: un `fill()` sin origen (un recálculo del servidor) ya no ilumina los campos ni
+  mueve la vista**, y **sostener Ctrl+S envía una sola vez.**
+- **`<nx-dialog>` y `nxConfirm`: el doble clic en el botón que abre la confirmación ya no la cierra
+  sola con «no».** El segundo clic caía en el fondo: la acción no corría y nada lo decía. Lo que se
+  pulsa mientras abre, en sus primeros 300 ms o como segundo clic de un doble clic no cuenta como
+  clic en el fondo.
+- **`<nx-select source>`: un valor que no conoce ya no deja a la vista el registro anterior.** Queda
+  vacío y pendiente hasta que llega su registro, como decía el README.
+- **`nxToast()`: el mismo aviso otra vez mientras se ve no se apila.** El que está vuelve a empezar
+  su tiempo y responde a las dos llamadas; los de «Deshacer» siguen siendo uno por acción.
+- **`<nx-grid>`, memoria y velocidad con muchas filas.**
+  - Las filas guardadas ya no quedan en el modo lento de V8: 20.000 filas de 14 campos ocupaban
+    16,5 MB y ahora 2,8 MB, y filtrar es más rápido.
+  - Con un filtro «contiene» sobre textos largos (observaciones de más de 256 caracteres), cada
+    tecla de «Buscar en la tabla» o cada casilla del panel volvía a plegar todos los textos: ~145 ms
+    por pasada con 20.000 filas de 1.500 caracteres, ahora ~15–20 ms.
+  - Lo plegado se suelta cuando no queda ninguna tabla en la página.
+  - Reasignar el mismo orden ya no vuelve a ordenar todas las filas.
+- **`<nx-grid>`: `save()` repinta una vez por tarea**, no dos veces por llamada: pegar 200 horas
+  (un `save()` por fila) eran 400 repintados completos y ahora son 2.
+- **`<nx-grid>`: la matriz y el panel del filtro ven las filas que cambian en su lugar.** Sin
+  filtros, `patchRow`, `removeRow` o una edición dejaban la matriz con los números viejos.
+- **`<nx-grid>`: los chips de filtro ya no parpadean.** Se recreaban (y repetían su entrada) en cada
+  tecla, cada orden y cada fila que cambiaba.
+- **`<nx-grid>`: la primera petición sale en el segundo microtask.** Lo que la app repone en un
+  microtask encolado al montar (la URL o lo recordado, encima de la vista predeterminada) viaja ya
+  en ella, como decía el README; antes la cortaba y salía otra: una consulta cara de más por visita.
+- **`<nx-grid>`: exportar con `source` se corta si la tabla sale del DOM.** Seguía pidiendo bloques y
+  descargaba el archivo en la página siguiente.
+- Peso: `grid.js` 42,9 KB (+0,4), `form.js` 25,4 KB (+0,7), `toast.js` 3,3 KB (+0,2).
+
 ## 0.31.0 — 2026-10-25
 
 - **`<nx-form>`: lo que les faltaba a los formularios de solicitudes después de 0.30.0.**

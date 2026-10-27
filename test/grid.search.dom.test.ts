@@ -177,8 +177,8 @@ describe("Buscar en la tabla", () => {
       ),
     );
     const el = mount('source="/datos"');
-    // La primera petición sale al final de la tarea (ver `#reload`).
-    await Promise.resolve();
+    // La primera petición sale al final de la tarea, en el segundo microtask (ver `#reload`).
+    await sleep(0);
     // Antes de la primera respuesta ya se está escribiendo: la carga inicial tampoco borra «ERI».
     box(el).value = "ERI";
     box(el).dispatchEvent(new Event("input", { bubbles: true }));

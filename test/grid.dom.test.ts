@@ -1002,3 +1002,68 @@ describe("<nx-grid>: shownIds", () => {
     expect(ids.slice(0, 3)).toEqual(["249", "248", "247"]);
   });
 });
+
+describe("<nx-grid>: los chips de filtro", () => {
+  it("un chip que no cambió es el mismo nodo tras buscar, ordenar o cambiar una fila (no repite su entrada)", () => {
+    const el = mount();
+    el.filters = [{ key: "estado", op: "in", values: ["pend"] }];
+    const chip = el.querySelector(".nx-grid__chip")!;
+    el.search = "OC";
+    el.sort = { key: "monto", dir: -1 };
+    el.patchRow({ id: "1", oc: "OC-1", prov: "Aceros", estado: "pend", monto: 9_000_000 });
+    expect(el.querySelector(".nx-grid__chip")).toBe(chip);
+    expect(chip.isConnected).toBe(true);
+    // Lo que sí cambió, cambia: el conteo y un chip nuevo al lado del viejo.
+    expect(count(el)).toBe("2 de 4 filas");
+    el.filters = [...el.filters, { key: "prov", op: "in", values: ["Aceros"] }];
+    expect(chips(el)).toEqual(["Estado: Pendiente", "Proveedor: Aceros"]);
+    expect(el.querySelector(".nx-grid__chip")).toBe(chip);
+    el.filters = [];
+    expect(chips(el)).toEqual([]);
+    expect(chip.isConnected).toBe(false);
+  });
+});
+
+describe("<nx-grid>: el panel del filtro con datos que cambian", () => {
+  it("abierto, ve una fila que cambió en su lugar (patchRow sin filtros ni búsqueda)", async () => {
+    const el = mount();
+    await el.openFilter("prov");
+    const pop = await panel(el, "Proveedor");
+    expect(pop.querySelector('input[data-v="Metales"]')).toBeNull();
+    el.patchRow({ id: "2", oc: "OC-2", prov: "Metales", estado: "apr", monto: 1_000_000 });
+    await vi.waitFor(() => expect(pop.querySelector('input[data-v="Metales"]')).not.toBeNull());
+    expect(pop.querySelector('input[data-v="Empaques"]')).toBeNull();
+  });
+
+  it("las barras de un número se rehacen con el valor nuevo (el reparto no queda del arreglo viejo)", async () => {
+    const el = mount();
+    await el.openFilter("monto");
+    const pop = await panel(el, "Monto");
+    const top = () => pop.querySelector(".nx-grid__axis")!.lastChild!.textContent;
+    const before = top();
+    el.patchRow({ id: "2", oc: "OC-2", prov: "Empaques", estado: "apr", monto: 90_000_000 });
+    await vi.waitFor(() => expect(top()).not.toBe(before));
+  });
+});
+
+describe("<nx-grid>: el mismo orden otra vez", () => {
+  it("reasignar el mismo orden (otro objeto) no vuelve a ordenar las filas", () => {
+    document.body.innerHTML = "<nx-grid></nx-grid>";
+    const el = document.querySelector("nx-grid")!;
+    el.columns = COLS;
+    el.rows = Array.from({ length: 500 }, (_, i) => ({ id: String(i), oc: `OC-${(i * 7919) % 500}`, prov: "Aceros", estado: "pend", monto: i }));
+    el.sort = { key: "oc", dir: 1 };
+    const first = el.shownIds;
+    // Lo que ordena las filas: los arreglos del tamaño de la tabla (otros pequeños se ordenan igual).
+    const spy = vi.spyOn(Array.prototype, "sort");
+    try {
+      el.sort = { key: "oc", dir: 1 };
+      expect(spy.mock.contexts.filter((a) => (a as unknown[]).length >= 500)).toEqual([]);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(el.shownIds).toEqual(first);
+    el.sort = { key: "oc", dir: -1 };
+    expect(el.shownIds).toEqual([...first].reverse());
+  });
+});

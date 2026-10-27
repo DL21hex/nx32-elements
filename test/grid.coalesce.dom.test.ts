@@ -93,6 +93,9 @@ describe("la primera carga es una sola petición", () => {
     expect(s.fetch).not.toHaveBeenCalled();
     // «Cargando…» ya se ve: no se espera la red para pintarlo.
     expect(el.querySelector(".nx-grid__empty.is-loading")).not.toBeNull();
+    // Tampoco en el primer microtask (ver la prueba siguiente): sale en el segundo.
+    await Promise.resolve();
+    expect(s.fetch).not.toHaveBeenCalled();
     await Promise.resolve();
     expect(s.fetch).toHaveBeenCalledTimes(1);
     expect(s.bodies[0]).toMatchObject({ offset: 0, limit: 100, sort: SORT, filters: FILTERS, search: "oc" });
@@ -104,12 +107,28 @@ describe("la primera carga es una sola petición", () => {
     expect(el.querySelector('[data-r="0"] [data-c="0"]')!.textContent).toBe("OC-249");
   });
 
+  it("lo que la app repone en un microtask encolado al montar viaja en la primera petición", async () => {
+    // Como nx32: la tabla se conecta, aplica su vista predeterminada, y el adaptador encola en un
+    // microtask lo recordado o lo de la URL. Antes, la primera petición salía con la vista y esa
+    // reposición la cortaba: una consulta cara de más por visita.
+    const s = server();
+    const el = connect({ source: "/datos", "client-max": "5000" });
+    queueMicrotask(() => {
+      el.filters = FILTERS;
+      el.sort = SORT;
+    });
+    await s.settle(20);
+    expect(s.aborted).toEqual([]);
+    expect(s.rows()[0]).toMatchObject({ offset: 0, sort: SORT, filters: FILTERS });
+    expect(s.rows().map((b) => b.limit)).toEqual([100, 5001]);
+  });
+
   it("una consulta nueva en otra tarea sí corta la anterior (la de antes ya no sirve)", async () => {
     const s = server();
     const el = connect({ source: "/datos" });
-    await Promise.resolve();
+    await sleep(0);
     el.filters = FILTERS;
-    await Promise.resolve();
+    await sleep(0);
     expect(s.rows()).toHaveLength(2);
     expect(s.rows()[1]).toMatchObject({ filters: FILTERS });
     await s.settle(20);
@@ -149,7 +168,7 @@ describe("refresh()", () => {
     await s.settle(20);
     expect(s.rows()).toHaveLength(1);
     el.refresh();
-    await Promise.resolve();
+    await sleep(0);
     expect(s.rows()).toHaveLength(2);
     await s.settle(20);
     el.refresh();
@@ -228,7 +247,7 @@ describe("sin columnas no se pide nada", () => {
     const el = ssr('source="/datos"');
     await s.settle(20);
     el.columns = COLS;
-    await Promise.resolve();
+    await sleep(0);
     el.filters = FILTERS;
     el.sort = SORT;
     await s.settle(20);

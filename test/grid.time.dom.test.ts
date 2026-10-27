@@ -187,6 +187,28 @@ describe("<nx-grid> save()", () => {
     expect(live(el)).toContain("No se guardó: Hora inválida en «first_box_at»");
   });
 
+  it("muchos save() en la misma tarea repintan las filas una vez, no una por llamada", async () => {
+    document.body.innerHTML = "<nx-grid></nx-grid>";
+    const el = document.querySelector("nx-grid")!;
+    el.columns = COLS;
+    el.rows = Array.from({ length: 50 }, (_, i) => ({ id: String(i), finca: `F${i}`, caja: null, pallet: null, salida: null }));
+    await tick();
+    const box = el.querySelector<HTMLElement>(".nx-grid__rows")!;
+    let rebuilt = 0;
+    const replace = box.replaceChildren.bind(box);
+    box.replaceChildren = (...nodes) => (rebuilt++, replace(...nodes));
+    const done: (() => void)[] = [];
+    // Pegar una columna: la app guarda fila por fila, todas en la misma tarea.
+    for (let i = 0; i < 50; i++) void el.save([{ id: String(i), key: "caja", value: "07:00", old: null }], new Promise<void>((r) => done.push(r)));
+    await tick();
+    expect(cellEl(el, 3, 1).classList.contains("is-saving")).toBe(true);
+    expect(rebuilt).toBe(1);
+    done.forEach((r) => r());
+    await tick();
+    expect(cellEl(el, 3, 1).classList.contains("is-saved")).toBe(true);
+    expect(rebuilt).toBe(2);
+  });
+
   it("una celda que se volvió a editar mientras se guardaba no se revierte", async () => {
     const el = mount();
     const fails: ((e: Error) => void)[] = [];

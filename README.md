@@ -980,6 +980,8 @@ Cuatro formas de hacer lo que hoy se hace con un modal, cada una para su caso:
 El diálogo es el propio elemento en la capa superior (Popover API): el contenido del autor no se
 mueve, así que la hidratación de Solid no se rompe. Se comporta como modal: `aria-modal`, foco
 atrapado y devuelto a quien lo abrió, Escape, fondo que bloquea y scroll de la página bloqueado.
+El clic en el fondo cierra, salvo lo que se pulsa mientras abre o en sus primeros 300 ms y el
+segundo clic de un doble clic: un doble clic sobre el botón que abre un `nxConfirm` no lo cierra solo.
 Tab sigue el orden en que se ve (cabecera, cuerpo, pie) y da la vuelta en los extremos; una fecha
 se recorre por sus segmentos, y lo de adentro de un hijo con `tabindex="-1"` sigue en el recorrido.
 

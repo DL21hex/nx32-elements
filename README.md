@@ -2788,7 +2788,9 @@ lo escrito no se pierde.
   `password` (`<nx-password>`; con `meter`, `avoid`, `match`, `differs` y `breachEndpoint`, ver «La
   página de una persona»). Una contraseña o un código no van al borrador, `fill()` no los llena, no
   se recortan al salir, en lectura se ven como puntos y no van dentro de `rows`. Nada es una
-  función: todo puede venir del backend (BDUI).
+  función: todo puede venir del backend (BDUI). Reasignar el mismo esquema (al recargar el registro)
+  no rehace nada; uno distinto rehace los campos y el foco vuelve al de la misma clave, con lo escrito
+  y la selección del texto.
 - **Un enlace bajo el campo (`link`).** `{label: "Descargar formato", href: "/formatos/descarte.pdf"}`:
   un botón secundario pequeño después de la ayuda, en cualquier tipo de campo (también bajo un
   `readonly` que trae la nota, o al pie de un grupo `rows`). **Siempre abre en otra pestaña**

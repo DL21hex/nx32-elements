@@ -34,6 +34,7 @@ import { h, setAttr } from "../../core/dom";
 import { glyph } from "../../core/icons";
 import { mergeLabels } from "../../core/labels";
 import { nxFormat, resolveLocale, type NxFormat } from "../../core/locale";
+import { FOCUSABLE } from "../../core/order";
 import "../field/index";
 import { fieldLink, type NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
@@ -175,6 +176,14 @@ interface Tally {
   missing: number;
   invalid: number;
 }
+/** Dónde estaba el foco antes de rehacer campos: el control, la clave (o ruta) de su campo, cuál de
+ *  los controles del campo era (un radio del grupo, una casilla de un código) y la selección del texto. */
+interface FocusSpot {
+  el: HTMLElement;
+  key: string;
+  at: number;
+  sel?: [number, number, "forward" | "backward" | "none"];
+}
 
 let uid = 0;
 
@@ -196,6 +205,8 @@ export class NxForm extends Base {
 
   #uid = `nx-form${++uid}`;
   #sections: SectionDef[] = [];
+  /** El esquema publicado, en JSON: el mismo otra vez no rehace nada. */
+  #schemaSig = "[]";
   #defs = new Map<string, FieldDef>();
   /** Los campos de primer nivel, en orden. */
   #slots = new Map<string, Slot>();
@@ -284,11 +295,13 @@ export class NxForm extends Base {
     return out;
   }
   set values(v: Record<string, unknown> | null | undefined) {
+    const spot = this.#focusSpot();
     this.#given = v && typeof v === "object" && !Array.isArray(v) ? { ...v } : {};
     this.#load();
     // Un borrador recuperado gana sobre el registro que llega después (la app lo trae del servidor).
     if (this.#pending) this.#applyDraft(this.#pending);
     this.#paint();
+    this.#refocus(spot);
   }
 
   /** Errores del servidor por clave (`{correo: "Ya existe"}`; en una fila, `"beneficiarios.0.nombre"`).
@@ -645,14 +658,21 @@ export class NxForm extends Base {
   }
 
   #setSchema(sections: SectionDef[]): void {
+    // El mismo esquema otra vez (la app lo reasigna al recargar el registro): rehacerlo todo le
+    // quitaría el foco a quien escribe y costaría lo mismo que pintarlo la primera vez.
+    const sig = JSON.stringify(sections.map((s) => [s.id, s.heading, s.description, s.fields.map(plain)]));
+    if (sig === this.#schemaSig) return;
+    this.#schemaSig = sig;
     this.#sections = sections;
     this.#defs = new Map(sections.flatMap((s) => s.fields.map((f) => [f.key, f] as const)));
     this.#render();
   }
 
-  /** Rehace la estructura (el esquema, el locale o los textos cambiaron). Los valores se conservan. */
+  /** Rehace la estructura (el esquema, el locale o los textos cambiaron). Los valores se conservan,
+   *  y el foco vuelve al campo de la misma clave (o ruta) si sigue. */
   #render(): void {
     if (!this.isConnected || !this.#head) return;
+    const spot = this.#focusSpot();
     const L = this.#labels;
     this.#fmt = nxFormat(resolveLocale(this));
     this.#index!.setAttribute("aria-label", L.sections);
@@ -712,6 +732,41 @@ export class NxForm extends Base {
     this.#checkDraft();
     this.#paint();
     this.#painted = true;
+    this.#refocus(spot);
+  }
+
+  /** El foco, si está en un campo de este formulario (ver `FocusSpot`). */
+  #focusSpot(): FocusSpot | null {
+    const el = document.activeElement;
+    const field = el instanceof HTMLElement && this.#form?.contains(el) ? el.closest<HTMLElement>("nx-field[data-key]") : null;
+    if (!field) return null;
+    const spot: FocusSpot = { el: el as HTMLElement, key: field.dataset.key!, at: stops(field).indexOf(el as HTMLElement) };
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
+      try {
+        if (el.selectionStart !== null) spot.sel = [el.selectionStart, el.selectionEnd ?? el.selectionStart, el.selectionDirection ?? "none"];
+      } catch {
+        /* un tipo sin selección de texto */
+      }
+    return spot;
+  }
+
+  /** Si el control que tenía el foco se rehízo (y el foco quedó en ninguna parte), vuelve al mismo
+   *  control del campo con esa clave, con su selección de texto, si el campo sigue y se ve. */
+  #refocus(spot: FocusSpot | null): void {
+    if (!spot || spot.el.isConnected) return;
+    const a = document.activeElement;
+    if (a && a !== document.body) return;
+    const s = this.#slot(spot.key);
+    if (!s || s.field.closest("[hidden]")) return;
+    const to = spot.at >= 0 ? stops(s.field)[spot.at] : undefined;
+    to?.focus({ preventScroll: true });
+    if (!to || document.activeElement !== to) return void s.field.focus({ preventScroll: true });
+    if (spot.sel && (to instanceof HTMLInputElement || to instanceof HTMLTextAreaElement))
+      try {
+        to.setSelectionRange(...spot.sel);
+      } catch {
+        /* otro tipo de control en el campo nuevo */
+      }
   }
 
   /** Un campo: su `<nx-field>` y su control. `key` es la clave o, en una fila, la ruta. */
@@ -2091,6 +2146,15 @@ function plain(def: FieldDef): FormField {
 function copy(v: FormValue): FormValue {
   if (!Array.isArray(v)) return v;
   return (v as unknown[]).map((x) => (x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, y]) => [k, Array.isArray(y) ? [...y] : y])) : x)) as FormValue;
+}
+
+/** Lo que recibe el foco dentro de un campo, sin lo de un panel suyo (el buscador de un select):
+ *  cerrado, no se puede enfocar. */
+function stops(field: HTMLElement): HTMLElement[] {
+  return [...field.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => {
+    const pop = el.closest("[popover]");
+    return !pop || !field.contains(pop);
+  });
 }
 
 /** La clave del campo donde ocurrió algo. */

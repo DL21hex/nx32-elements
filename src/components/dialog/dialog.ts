@@ -46,6 +46,10 @@ const LAYER = "nx-toaster, nx-command, body > :popover-open:not(nx-dialog)";
 const INVOKER_TTL = 10_000;
 /** Cerrar arrastrando: esta distancia (px), o un gesto rápido. */
 const DRAG_CLOSE = 120;
+/** Lo que se pulsa en el fondo hasta este tiempo después de quedar a la vista (ms) no lo cierra: es el
+ *  segundo clic de un doble clic sobre el botón que lo abrió (un `nxConfirm` que se cerraba solo, con
+ *  `false`), no la persona pulsando el fondo. */
+const SETTLE_MS = 300;
 
 let uid = 0;
 /** Distingue esta carga de la página: el historial conserva estados de cargas anteriores. */
@@ -230,6 +234,8 @@ export class NxDialog extends Base {
   /** Lo que espera la respuesta al aviso de cambios sin guardar: un cierre, o pasar de registro. */
   #pending: { value: string | undefined; reason: CloseReason } | { dir: DialogNavDetail["dir"] } | null = null;
   #downOutside = false;
+  /** Cuándo quedó a la vista (`performance.now()`); 0 mientras abre. */
+  #shownAt = 0;
   #drag: { y: number; t: number; id: number } | null = null;
   /** Los popovers de la página que ya estaban abiertos al abrirse: quedan debajo, el foco no va a ellos. */
   #under = new Set<Element>();
@@ -393,6 +399,7 @@ export class NxDialog extends Base {
     wire();
     if (!this.#built) this.#build();
     this.#open = true;
+    this.#shownAt = 0;
     this.#clean();
     this.returnValue = undefined;
     // De dónde nace: lo que se pasa, o el control con foco (quien lo abrió con teclado o clic), o
@@ -420,6 +427,7 @@ export class NxDialog extends Base {
       } finally {
         this.#opening = false;
       }
+      this.#shownAt = performance.now();
       this.#reflect(true);
       paintStack();
       this.focusFirst();
@@ -575,9 +583,13 @@ export class NxDialog extends Base {
   handleBackdrop(e: MouseEvent): void {
     const t = e.target as Element;
     const out = (t === this || (!this.contains(t) && !this.layer(t))) && this.#outside(e);
-    if (e.type === "pointerdown") return void (this.#downOutside = out);
+    // Lo que se pulsa mientras abre o recién abierto (`SETTLE_MS`), y el segundo clic de un doble clic
+    // (`detail` > 1, por lento que sea), no es un clic en el fondo.
+    const early = !this.#shownAt || performance.now() - this.#shownAt < SETTLE_MS;
+    if (e.type === "pointerdown") return void (this.#downOutside = out && !early);
     if (!out || !this.#downOutside) return;
     this.#downOutside = false;
+    if (e.detail > 1) return;
     // Si el clic le llegó a la página de debajo, no la activa.
     if (t !== this) {
       e.preventDefault();
@@ -816,6 +828,7 @@ export class NxDialog extends Base {
 
   #finish(value: string | undefined, reason: CloseReason, silent = false): void {
     this.#open = false;
+    this.#shownAt = 0;
     this.#under.clear();
     const gen = ++this.#gen;
     this.returnValue = value;

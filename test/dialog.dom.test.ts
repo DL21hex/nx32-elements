@@ -28,11 +28,23 @@ afterEach(() => {
 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const esc = () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+/** Lo que se pulsa un rato después de abrir: lo de recién abierto (el segundo clic del doble clic que
+ *  lo abrió) no cuenta como clic en el fondo. */
+const settled = (fn: () => void) => {
+  const now = vi.spyOn(performance, "now").mockReturnValue(performance.now() + 1000);
+  try {
+    fn();
+  } finally {
+    now.mockRestore();
+  }
+};
 /** Un clic a la izquierda del diálogo (su caja va de x=500 a x=1000), entregado a `target`. */
 const backdropClick = (d: NxDialog, target: Element) => {
   d.getBoundingClientRect = () => ({ left: 500, right: 1000, top: 0, bottom: 800, width: 500, height: 800, x: 500, y: 0, toJSON() {} }) as DOMRect;
-  target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 100, clientY: 100 }));
-  target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }));
+  settled(() => {
+    target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 100, clientY: 100 }));
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }));
+  });
 };
 
 function mount(html = '<nx-dialog id="d" heading="Nuevo pedido" description="Se envía a aprobación"><form><input name="a"></form><div slot="footer"><button data-nx-close="cancel">Cancelar</button></div></nx-dialog>'): NxDialog {
@@ -119,8 +131,10 @@ describe("<nx-dialog>", () => {
     backdropClick(d, document.getElementById("toast")!);
     expect(d.open).toBe(true);
     // Apretar dentro y soltar fuera (seleccionar texto) tampoco.
-    d.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 700, clientY: 100 }));
-    page.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 100, clientY: 100 }));
+    settled(() => {
+      d.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 700, clientY: 100 }));
+      page.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 100, clientY: 100 }));
+    });
     expect(d.open).toBe(true);
   });
 

@@ -617,7 +617,8 @@ Una tabla de datos que se explora sola:
 - **Exportar a .xlsx.** Es un Excel de verdad: números, montos (con el símbolo de su moneda y
   decimales solo si los hay) y fechas como valores, cabecera fija y autofiltro. El generador no
   tiene dependencias y se carga solo al exportar. Con `source`, las filas se piden por bloques de
-  5.000 (hasta el tope de una hoja de Excel); si el servidor falla, `exportXlsx()` se rechaza. La
+  5.000 (hasta el tope de una hoja de Excel); si el servidor falla, `exportXlsx()` se rechaza, y si
+  la tabla sale del DOM a mitad de camino deja de pedir, no descarga nada y responde `0`. La
   hoja se arma por partes, sin una cadena gigante, y un texto de más de 32.767 caracteres (el tope
   de una celda de Excel) se recorta con «…».
 - **Copiar sin fórmulas.** Un texto que empieza con `=`, `+`, `-` o `@` se copia con un apóstrofo

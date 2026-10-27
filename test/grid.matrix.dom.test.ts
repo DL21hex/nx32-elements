@@ -426,3 +426,15 @@ describe("matrixSheet", () => {
     expect(xml).toContain('<autoFilter ref="A1:B2"/>');
   });
 });
+
+describe("<nx-grid> con matriz: los datos que cambian en su lugar", () => {
+  it("sin filtros, patchRow y removeRow cambian los cruces (la lista filtrada es el mismo arreglo)", async () => {
+    const el = mount();
+    await toMatrix(el);
+    expect(cell(el, "Aceros", "pend")!.textContent).toBe("2");
+    el.patchRow({ id: "7", oc: "OC-7", prov: "Aceros", estado: "pend", monto: 1 });
+    await vi.waitFor(() => expect(cell(el, "Aceros", "pend")!.textContent).toBe("3"));
+    el.removeRow("1");
+    await vi.waitFor(() => expect(cell(el, "Aceros", "pend")!.textContent).toBe("2"));
+  });
+});

@@ -37,6 +37,7 @@ import {
   facetColumns,
   facetOrder,
   filterLabel,
+  forgetFolds,
   formulaSafe,
   formatCell,
   groupRows,
@@ -450,8 +451,31 @@ const dotEl = (d: ReturnType<typeof dotOf>): HTMLElement[] =>
   d ? [h("span", { class: "nx-grid__dot", "aria-hidden": "true", ...("tone" in d ? { "data-tone": d.tone } : { "data-cat": String(d.cat) }) })] : [];
 
 /** La copia de una fila que guarda la tabla: sin prototipo, para que una columna «constructor» o
- *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. */
-const own = (r: GridRow): GridRow => Object.assign(Object.create(null) as GridRow, r);
+ *  «toString» en una fila que no la trae lea `undefined` y no el código de una función. Se copia
+ *  con `{...r}` y después se le quita el prototipo: `Object.create(null)` deja el objeto en el modo
+ *  diccionario de V8 (20.000 filas de 14 campos ocupaban 16,5 MB en vez de 2,8, y filtrar iba más
+ *  lento). */
+const own = (r: GridRow): GridRow => Object.setPrototypeOf({ ...r }, null) as GridRow;
+/** Deja `next` como hijos de `box` sin sacar del DOM los que ya estaban iguales (`isEqualNode`):
+ *  volver a insertar un nodo reinicia su animación de entrada, y los chips de filtro parpadeaban en
+ *  cada tecla de la búsqueda, cada orden y cada fila que cambiaba. */
+function keepChildren(box: Element, next: Node[]): void {
+  const free = new Set(box.childNodes);
+  const out = next.map((n) => {
+    for (const o of free)
+      if (o.isEqualNode(n)) {
+        free.delete(o);
+        return o;
+      }
+    return n;
+  });
+  for (const o of free) o.remove();
+  let at = box.firstChild;
+  for (const n of out) {
+    if (n === at) at = at.nextSibling;
+    else box.insertBefore(n, at);
+  }
+}
 /** El mismo valor de una celda (un número, un texto, o una lista u objeto con lo mismo adentro). */
 function sameValue(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
@@ -651,6 +675,8 @@ export class NxGrid extends Base {
   #saved = new Set<string>();
   #saveFailed = new Map<string, string>();
   #savedTimer?: ReturnType<typeof setTimeout>;
+  /** Hay un repintado pendiente por lo que se guarda (ver `#paintSaves`). */
+  #savesDirty = false;
   /** Los procesos (`sequence`) de las columnas actuales; se recalculan si cambian las columnas. */
   #seqFor: GridColumn[] | null = null;
   #seqs: GridColumn[][] = [];
@@ -681,6 +707,8 @@ export class NxGrid extends Base {
    *  `client-max`; `#resume`: al salir del DOM quedó algo sin pedir, que se pide al volver. */
   #ac?: AbortController;
   #tryAc?: AbortController;
+  /** La exportación en curso con la consulta en el servidor (`#fetchAll`). */
+  #exportAc?: AbortController;
   #resume = false;
   /** El primer bloque de una consulta nueva espera al final de la tarea (ver `#reload`): la `#gen`
    *  de la consulta que lo espera, o 0 si no hay ninguno en espera. */
@@ -793,8 +821,13 @@ export class NxGrid extends Base {
   #matrixUI?: MatrixUI;
   #matrixLoad?: Promise<MatrixUI>;
   #mxCells: GridMatrixCell[] | null = null;
-  /** De qué salieron los cruces: en el cliente, la lista filtrada y la matriz; en el servidor, la consulta. */
-  #mxFor: { rows: GridRow[] | null; key: string } = { rows: null, key: "" };
+  /** De qué salieron los cruces: en el cliente, la lista filtrada (con su versión de datos) y la
+   *  matriz; en el servidor, la consulta. */
+  #mxFor: { rows: GridRow[] | null; key: string; v?: number } = { rows: null, key: "" };
+  /** Sube con cada cambio de datos, también los que no cambian de arreglo: sin filtros, `patchRow`,
+   *  `removeRow` y una edición tocan `#all` en su lugar y la lista filtrada sigue siendo la misma.
+   *  Lo que se guarda según las filas (la matriz, las barras y listas del panel) lo mira. */
+  #dataV = 0;
   #mxState: "idle" | "loading" | "failed" = "idle";
   #mxAc?: AbortController;
   #mxGen = 0;
@@ -1410,6 +1443,7 @@ export class NxGrid extends Base {
    *  que el de recalcular todo (lo fija `grid.gold3.dom.test.ts`). */
   #rowChanged(old: GridRow | undefined, next: GridRow | null): void {
     if (!this.#built || this.#server) return this.#dataChanged();
+    this.#dataV++;
     if (this.#presetN.size) {
       const hit = (fs: GridFilter[], r: GridRow | null | undefined) => (r ? applyFilters([r], fs, this.accents).length : 0);
       for (const p of this.#presets) {
@@ -1486,6 +1520,8 @@ export class NxGrid extends Base {
       this.#emit("nx-grid-export", { ok: true, count: n, filename: name, layout } satisfies GridExportDetail);
       return n;
     } catch (err) {
+      // La tabla salió del DOM a mitad de la exportación: no hay a quién avisar, ni error que contar.
+      if (!this.isConnected && (err as Error)?.name === "AbortError") return 0;
       this.#emit("nx-grid-export", { ok: false, count: 0, filename: name, layout, error: String((err as Error)?.message ?? err) } satisfies GridExportDetail);
       throw err;
     }
@@ -1620,6 +1656,8 @@ export class NxGrid extends Base {
     }
     this.#ac?.abort();
     this.#ac = undefined;
+    this.#exportAc?.abort();
+    this.#exportAc = undefined;
     // El primer bloque que esperaba el final de la tarea no sale: al volver se pide con lo que falte,
     // como una petición cortada.
     if (this.#queued && this.#queued === this.#gen) {
@@ -1640,6 +1678,8 @@ export class NxGrid extends Base {
       }
       this.#abortWhole();
     }
+    // Sin tablas en la página, lo plegado de sus textos se suelta (ver `forgetFolds`).
+    if (!document.querySelector("nx-grid")) forgetFolds();
   }
 
   attributeChangedCallback(name: string, old: string | null, value: string | null): void {
@@ -1766,6 +1806,7 @@ export class NxGrid extends Base {
    *  que aún no se haya pedido nada. */
   #dataChanged(columns = false, columnsOnly = false): void {
     if (!this.#built) return;
+    this.#dataV++;
     if (!this.#server) this.#presetN.clear();
     this.#loc = nxFormat(this.locale);
     this.#sortedAll = null;
@@ -1840,7 +1881,10 @@ export class NxGrid extends Base {
   #sortOf(rows: GridRow[]): GridRow[] {
     const sort = this.#sort;
     if (!sort) return rows;
-    let all = this.#sortedAll?.sort === sort ? this.#sortedAll.rows : null;
+    // Por clave y sentido, no por identidad: reasignar el mismo orden (una vista, un framework que
+    // repinta) volvía a ordenar todas las filas (~30 ms con 20.000 por texto).
+    const was = this.#sortedAll;
+    let all = was && was.sort.key === sort.key && was.sort.dir === sort.dir ? was.rows : null;
     if (!all && rows.length * 4 < this.#all.length) return sortRows(rows, sort, this.#cols, this.#loc);
     if (!all) this.#sortedAll = { sort, rows: (all = sortRows(this.#all, sort, this.#cols, this.#loc)) };
     if (rows.length === this.#all.length) return all;
@@ -1939,11 +1983,16 @@ export class NxGrid extends Base {
     // queda «cargando» ya (la espera se pinta sin esperar, y el scroll no lo pide otra vez); una
     // consulta nueva antes del microtask lo reemplaza (`#gen`). Una app que asigna lo suyo un cuadro
     // después (dentro de un `Suspense`, tras un `await`) sigue costando una petición cortada: esperar
-    // un cuadro más retrasaría la primera pintura de todas las demás.
+    // un cuadro más retrasaría la primera pintura de todas las demás. Sale en el SEGUNDO microtask:
+    // una app que repone lo suyo en un microtask encolado al montar (después de conectar, en la
+    // misma tarea: lo recordado o lo de la URL encima de la vista predeterminada) llega antes. Con
+    // uno solo, la primera petición salía con la vista y se cortaba enseguida: una consulta cara de
+    // más por visita.
     const gen = (this.#queued = this.#gen);
     this.#blocks.set(0, "loading");
-    queueMicrotask(() => {
-      if (this.#queued !== gen || this.#gen !== gen) return;
+    const still = () => this.#queued === gen && this.#gen === gen;
+    queueMicrotask(() => still() && queueMicrotask(() => {
+      if (!still()) return;
       this.#queued = 0;
       // Las columnas se quitaron en la misma tarea: no sale, y las próximas columnas lo piden.
       if (!this.#cols.length) {
@@ -1952,7 +2001,7 @@ export class NxGrid extends Base {
         return;
       }
       void this.#load(0, true);
-    });
+    }));
     this.#paintAll();
   }
 
@@ -2386,14 +2435,23 @@ export class NxGrid extends Base {
   async #fetchAll(): Promise<GridRow[]> {
     const out: GridRow[] = [];
     const q = this.#query();
-    // El servidor puede mandar menos de lo pedido (un tope por página, p. ej. 100): se sigue desde
-    // donde quedó hasta el total, no se corta en el primer bloque corto.
-    for (let offset = 0, i = 0; out.length < EXPORT_MAX && i < 20_000; i++) {
-      const page = await this.#request(offset, EXPORT_BLOCK, q);
-      if (!page?.rows.length) break;
-      for (const r of page.rows) if (r && typeof r === "object" && out.length < EXPORT_MAX) out.push(r);
-      offset += page.rows.length;
-      if (offset >= (Number(page.total) || 0)) break;
+    // Se corta si la tabla sale del DOM: seguía pidiendo bloques (con miles de filas, un buen rato)
+    // y descargaba el archivo en la página siguiente.
+    this.#exportAc?.abort();
+    const ac = (this.#exportAc = new AbortController());
+    try {
+      // El servidor puede mandar menos de lo pedido (un tope por página, p. ej. 100): se sigue desde
+      // donde quedó hasta el total, no se corta en el primer bloque corto.
+      for (let offset = 0, i = 0; out.length < EXPORT_MAX && i < 20_000; i++) {
+        const page = await this.#request(offset, EXPORT_BLOCK, q, ac.signal);
+        ac.signal.throwIfAborted();
+        if (!page?.rows.length) break;
+        for (const r of page.rows) if (r && typeof r === "object" && out.length < EXPORT_MAX) out.push(r);
+        offset += page.rows.length;
+        if (offset >= (Number(page.total) || 0)) break;
+      }
+    } finally {
+      if (this.#exportAc === ac) this.#exportAc = undefined;
     }
     return out;
   }
@@ -3041,7 +3099,7 @@ export class NxGrid extends Base {
     // mientras no llega la primera respuesta del servidor (sería «0 filas»).
     const counting = this.#server && this.#blocks.get(0) === "loading" && !this.#count();
     this.#chips!.hidden = !this.#columns.length;
-    this.#chips!.replaceChildren(
+    keepChildren(this.#chips!, [
       ...(counting ? [] : [this.#countEl()]),
       ...this.#filters.map((f, i) => {
         const text = this.#chipText(f);
@@ -3057,7 +3115,7 @@ export class NxGrid extends Base {
       // El recorte de `client-only`, bajo el conteo que lo resume: su propio renglón (el aviso de las
       // vistas y el de la exportación lo pisarían).
       ...(!this.#server && this.#truncated ? [h("span", { class: "nx-grid__truncated" }, this.#truncText(this.#truncated))] : []),
-    );
+    ]);
     // Cabeceras: cuántas filas tienen cada paso de un proceso (en el cliente, donde están todas).
     this.#stepN.clear();
     if (!this.#server)
@@ -3207,8 +3265,8 @@ export class NxGrid extends Base {
   #paintMatrix(cfg: MatrixConfig): void {
     const key = JSON.stringify(cfg);
     if (this.#server) this.#askMatrix(cfg);
-    else if (this.#mxFor.rows !== this.#filtered || this.#mxFor.key !== key) {
-      this.#mxFor = { rows: this.#filtered, key };
+    else if (this.#mxFor.rows !== this.#filtered || this.#mxFor.v !== this.#dataV || this.#mxFor.key !== key) {
+      this.#mxFor = { rows: this.#filtered, key, v: this.#dataV };
       this.#mxCells = matrixCells(this.#filtered, cfg);
       this.#mxState = "idle";
     }
@@ -3830,6 +3888,7 @@ export class NxGrid extends Base {
     box.style.insetBlockStart = `${start * rh - (top - s.scrollTop)}px`;
     const kids = [...box.children] as HTMLElement[];
     if (!force && start === old.start && end === old.end && !kids.some((el) => this.#stale(el))) return;
+    if (force) this.#savesDirty = false;
     this.#win = { start, end };
     if (all || end <= old.start || start >= old.end) {
       const rows: HTMLElement[] = [];
@@ -4479,6 +4538,9 @@ export class NxGrid extends Base {
       // Lo que dejó la búsqueda: el panel cuenta y dibuja sus barras sobre eso.
       get all() {
         return self.#base;
+      },
+      get version() {
+        return self.#dataV;
       },
       kind: (c) => this.#kind(c),
       set: (key, next) => this.#setColumn(key, next),
@@ -5273,6 +5335,7 @@ export class NxGrid extends Base {
       if (ch.value === o || ((ch.value === null || ch.value === undefined || ch.value === "") && (o === null || o === undefined || o === ""))) this.#edited.delete(k);
       else this.#edited.add(k);
     }
+    this.#dataV++;
     if (source !== "undo" && source !== "redo") {
       this.#undo.push(changes);
       if (this.#undo.length > HISTORY) this.#undo.shift();
@@ -5426,7 +5489,7 @@ export class NxGrid extends Base {
       this.#saveFailed.delete(k);
     }
     this.#saveSaid("saving");
-    this.#paintRows(true);
+    this.#paintSaves();
     let error: unknown = null;
     let ok = true;
     try {
@@ -5449,7 +5512,7 @@ export class NxGrid extends Base {
       }, 1200);
       if (this.#live) this.#live.textContent = this.#labels.saved;
       this.#saveSaid(this.pendingSaves ? "saving" : "saved");
-      this.#paintRows(true);
+      this.#paintSaves();
       return true;
     }
     const why = (error instanceof Error ? error.message : typeof error === "string" ? error : "") || this.#labels.saveError;
@@ -5457,6 +5520,20 @@ export class NxGrid extends Base {
     this.#revert(changes, why);
     if (this.#live) this.#live.textContent = `${this.#labels.saveError}: ${why}`;
     return false;
+  }
+
+  /** Lo que se guarda cambió de estado: las filas se repintan una vez al final de la tarea, no una
+   *  vez por llamada. Pegar una columna manda un `save()` por fila, y eran dos repintados completos
+   *  por fila (con 200 filas, unos 26.000 elementos al enviar y otros tantos al responder). Si algo
+   *  repinta antes (la edición que disparó el guardado), ya no hace falta. */
+  #paintSaves(): void {
+    if (this.#savesDirty) return;
+    this.#savesDirty = true;
+    queueMicrotask(() => {
+      if (!this.#savesDirty) return;
+      this.#savesDirty = false;
+      this.#paintRows(true);
+    });
   }
 
   /** Junto a deshacer, cómo va lo que se guarda: «Guardando…», «Guardado» (se va solo) o «No se
@@ -5496,6 +5573,7 @@ export class NxGrid extends Base {
       back.push(ch);
     }
     if (!back.length) return;
+    this.#dataV++;
     const lines = this.#restate(new Set(back.map((c) => this.#byId.get(c.id)!)));
     const gone = (c: GridChange) => back.some((b) => b.id === c.id && b.key === c.key && same(b.value, c.value));
     const prune = (list: GridChange[][]) => list.map((batch) => batch.filter((c) => !gone(c))).filter((batch) => batch.length > 0);

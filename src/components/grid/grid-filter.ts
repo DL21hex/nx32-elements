@@ -30,6 +30,8 @@ export interface FilterHost {
   readonly accents: GridAccents;
   /** Todas las filas (modo cliente). */
   readonly all: GridRow[];
+  /** Sube cuando cambian los datos aunque `all` sea el mismo arreglo (una fila cambiada en su lugar). */
+  readonly version: number;
   kind(col: GridColumn): FilterKind;
   /** Reemplaza los filtros de una columna. */
   set(key: string, next: GridFilter[]): void;
@@ -51,7 +53,7 @@ export interface FilterHost {
 type Body = { el: HTMLElement; update(): void; focus(): void; flush?(apply: boolean): void };
 /** Lo caro que sale de todas las filas (el orden de una lista, cómo se reparten las barras): se
  *  calcula una vez por versión de los datos mientras el panel está abierto, no en cada cambio. */
-type Memo<T> = { rows?: GridRow[]; v?: T };
+type Memo<T> = { rows?: GridRow[]; ver?: number; v?: T };
 type Value = { value: string; label: string; count?: number };
 
 /** El punto de color de un valor (el mismo de la celda, del panel y del chip), o nada. */
@@ -294,8 +296,10 @@ export class FilterPanel {
 
   #memo<T>(m: Memo<T>, make: (rows: GridRow[]) => T): T {
     const rows = this.#host.all;
-    if (m.rows !== rows) {
+    const ver = this.#host.version;
+    if (m.rows !== rows || m.ver !== ver) {
       m.rows = rows;
+      m.ver = ver;
       m.v = make(rows);
     }
     return m.v as T;

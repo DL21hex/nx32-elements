@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { nxFormat } from "../src/core/locale";
 import {
   applyFilters,
@@ -308,5 +308,37 @@ describe("filtro por columna", () => {
     expect(filterLabel({ key: "fecha", op: "range", rel: "month", min: "2026-09-01", max: "2026-10-01" }, COLS[2], undefined, { month: "Este mes" })).toBe("Fecha: este mes");
     expect(filterLabel({ key: "fecha", op: "range", max: "2026-09-29" }, COLS[2])).toBe("Fecha ≤ 28 sept 2026");
     expect(filterLabel({ key: "estado", op: "in", values: [] }, COLS[3])).toBe("Estado: —");
+  });
+});
+
+describe("«contiene» sobre textos largos", () => {
+  const long = (i: number, extra = "") => `Observación ${i}: ${"la caja llegó mojada y se cambió en bodega. ".repeat(8)}${extra}`;
+  const rows: GridRow[] = Array.from({ length: 200 }, (_, i) => ({ id: String(i), obs: long(i, i === 7 ? "Revisó Ñandú Pérez" : ""), estado: i % 2 ? "a" : "b" }));
+  const cols: GridColumn[] = [{ key: "obs", label: "Obs" }, { key: "estado", label: "Estado" }];
+
+  it("encuentra sin tildes ni mayúsculas, igual que en un texto corto", () => {
+    expect(long(1).length).toBeGreaterThan(256);
+    const f: GridFilter = { key: "obs", op: "contains", value: "nandu perez" };
+    expect(crossfilter(rows, [f], cols).filtered.map((r) => r.id)).toEqual(["7"]);
+    expect(applyFilters(rows, [f], "exact")).toEqual([]);
+    expect(applyFilters(rows, [{ key: "obs", op: "contains", value: "Ñandú" }], "exact").map((r) => r.id)).toEqual(["7"]);
+  });
+
+  it("con el mismo filtro, otra pasada no vuelve a plegar los textos (otra tecla de la búsqueda, otra casilla)", () => {
+    const f: GridFilter = { key: "obs", op: "contains", value: "mojada" };
+    expect(crossfilter(rows, [f], cols).filtered).toHaveLength(200);
+    const spy = vi.spyOn(String.prototype, "normalize");
+    try {
+      crossfilter(rows, [f, { key: "estado", op: "in", values: ["a"] }], cols);
+      applyFilters(rows, [f]);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+    // Otro texto buscado se vuelve a evaluar, y una celda cambiada es otro texto.
+    f.value = "seca";
+    expect(applyFilters(rows, [f])).toEqual([]);
+    const changed = [...rows.slice(0, 3), { ...rows[3], obs: long(3, "quedó seca") }];
+    expect(applyFilters(changed, [f]).map((r) => r.id)).toEqual(["3"]);
   });
 });

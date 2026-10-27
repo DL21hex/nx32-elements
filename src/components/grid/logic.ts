@@ -146,6 +146,28 @@ export function foldValue(s: string, accents: GridAccents = "fold"): string {
   return t;
 }
 
+/** «Contiene» sobre un texto largo, que `foldValue` no guarda plegado: la respuesta (sí o no) se
+ *  guarda por filtro y por texto. Con un «contiene» puesto, cada tecla de «Buscar en la tabla», cada
+ *  casilla del panel y cada `patchRow` vuelven a pasar por todas las filas, y plegar otra vez miles de
+ *  observaciones costaba ~150 ms por pasada (20.000 filas de 1.500 caracteres). Un sí o un no no
+ *  guarda el texto plegado (la memoria que evita el tope), se suelta con el filtro y una celda
+ *  editada es otro texto. */
+const longHits = new WeakMap<GridFilter, { q: string; accents: GridAccents; hits: Map<string, boolean> }>();
+function longContains(s: string, f: Extract<GridFilter, { op: "contains" }>, accents: GridAccents): boolean {
+  let m = longHits.get(f);
+  if (!m || m.q !== f.value || m.accents !== accents) longHits.set(f, (m = { q: f.value, accents, hits: new Map() }));
+  let hit = m.hits.get(s);
+  if (hit === undefined) m.hits.set(s, (hit = normalizer(accents)(s).includes(folded(f.value, accents))));
+  return hit;
+}
+
+/** Suelta lo plegado (`foldValue`) cuando ya no queda ninguna tabla en la página: la memoria es del
+ *  módulo y guardaba los textos de una tabla que ya no existe (varios MB tras salir de ella). */
+export function forgetFolds(): void {
+  foldMemo.fold = new Map();
+  foldMemo.exact = new Map();
+}
+
 /** Los valores de un `in` / `notIn` como conjunto, armado una vez por lista: con miles de valores,
  *  buscar en la lista por cada fila congelaba la página varios segundos. */
 const valueSets = new WeakMap<readonly string[], { n: number; set: Set<string> }>();
@@ -174,8 +196,10 @@ function matchValue(v: unknown, f: GridFilter, accents: GridAccents): boolean {
       return valueSet(f.values).has(String(v ?? ""));
     case "notIn":
       return !valueSet(f.values).has(String(v ?? ""));
-    case "contains":
-      return foldValue(String(v ?? ""), accents).includes(folded(f.value, accents));
+    case "contains": {
+      const s = String(v ?? "");
+      return s.length > FOLD_LONG ? longContains(s, f, accents) : foldValue(s, accents).includes(folded(f.value, accents));
+    }
     case "range": {
       if (v === null || v === undefined || v === "") return false;
       const x = typeof f.min === "string" || typeof f.max === "string" ? String(v) : num(v);

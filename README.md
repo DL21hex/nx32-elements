@@ -389,8 +389,9 @@ sel.options = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987", 
   que llegue (si llega vacía, nada). El servidor decide qué casa (puede buscar en campos que el
   cliente no ve, como la cédula): no se descarta ninguno de sus resultados. Al cerrar se olvidan.
 - **Con `source`, el valor elegido tiene que llegar con su registro.** El select no pide al
-  servidor un `value` suelto: si el valor inicial no viene en `options` (ni en `selection`), queda
-  pendiente y `value` es `""` hasta que aparezca en una búsqueda. Para pintar la selección inicial,
+  servidor un `value` suelto: si el valor (el inicial o uno que llega después) no viene en `options`
+  (ni en `selection`), queda pendiente, lo que estaba elegido se suelta y `value` es `""` hasta que
+  aparezca en una búsqueda. Para pintar la selección inicial,
   pasa los registros elegidos en `selection` (o en `options`):
   `sel.selection = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987" }]`.
 
@@ -617,7 +618,8 @@ Una tabla de datos que se explora sola:
 - **Exportar a .xlsx.** Es un Excel de verdad: números, montos (con el símbolo de su moneda y
   decimales solo si los hay) y fechas como valores, cabecera fija y autofiltro. El generador no
   tiene dependencias y se carga solo al exportar. Con `source`, las filas se piden por bloques de
-  5.000 (hasta el tope de una hoja de Excel); si el servidor falla, `exportXlsx()` se rechaza. La
+  5.000 (hasta el tope de una hoja de Excel); si el servidor falla, `exportXlsx()` se rechaza, y si
+  la tabla sale del DOM a mitad de camino deja de pedir, no descarga nada y responde `0`. La
   hoja se arma por partes, sin una cadena gigante, y un texto de más de 32.767 caracteres (el tope
   de una celda de Excel) se recorta con «…».
 - **Copiar sin fórmulas.** Un texto que empieza con `=`, `+`, `-` o `@` se copia con un apóstrofo
@@ -979,6 +981,8 @@ Cuatro formas de hacer lo que hoy se hace con un modal, cada una para su caso:
 El diálogo es el propio elemento en la capa superior (Popover API): el contenido del autor no se
 mueve, así que la hidratación de Solid no se rompe. Se comporta como modal: `aria-modal`, foco
 atrapado y devuelto a quien lo abrió, Escape, fondo que bloquea y scroll de la página bloqueado.
+El clic en el fondo cierra, salvo lo que se pulsa mientras abre o en sus primeros 300 ms y el
+segundo clic de un doble clic: un doble clic sobre el botón que abre un `nxConfirm` no lo cierra solo.
 Tab sigue el orden en que se ve (cabecera, cuerpo, pie) y da la vuelta en los extremos; una fecha
 se recorre por sus segmentos, y lo de adentro de un hijo con `tabindex="-1"` sigue en el recorrido.
 
@@ -1003,7 +1007,7 @@ if (await nxConfirm({ heading: "Anular OC-2291", impact: "/compras/oc/2291/impac
 | | |
 |---|---|
 | `<nx-dialog>` | `heading`, `description`, `mode` (`modal` / `panel`), `size` (`sm` / `md` / `lg` / `full`), `persistent`, `url`, `open`, `dirty` (la marca propia O algún `<nx-form>` de adentro con `dirty`, también en una pestaña oculta; `dirty = false` solo quita la marca propia), `loading` (la espera común mientras llega el registro), `labels` · `show(origen?)` → promesa con el valor, `close(valor?)` → si cerró · `nx-dialog-beforeclose` `{reason, value}` (cancelable, en todo intento de cierre y ANTES del aviso de cambios: la app se niega ahí mientras guarda), `nx-dialog-close` `{reason, value}` (cancelable, cuando ya se va a cerrar), `nx-open-change` · mientras está arriba, el fondo queda `inert` (no los avisos ni la paleta) · cabecera de ficha (`avatar`, `badge`, `badges`, `nav`, `actions`): ver [La ficha lateral](#la-ficha-lateral-nx-tabs-nx-fields-nx-notice-y-nx-badge) |
-| `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo; por defecto 5 s, 7 s con `undo`, y un error, `tone: "danger"`, hasta cerrarlo con su ×). Cada aviso se anuncia una vez, en una región viva aparte de la lista (de alerta si es un error) |
+| `nxToast()` | `{message, tone?, undo?, action?, duration?, signal?}` → `"undo"`, `"action"`, `"timeout"` o `"dismiss"`. Abortar `signal` lo cierra con `"dismiss"`. El mismo aviso (texto, tono y acción; sin `undo`, que confirma cada acción) pedido otra vez mientras se ve no se apila: el que está vuelve a empezar su tiempo y la nueva promesa termina con él (abortar el `signal` de una llamada la termina a ella, y cierra el aviso si nadie más lo espera). Se pausa con el mouse o el foco encima; al cerrar la página, los pendientes terminan como `"timeout"`. Un `tone` desconocido es neutro; `duration` se acota a lo que acepta `setTimeout` (0 = hasta cerrarlo; por defecto 5 s, 7 s con `undo`, y un error, `tone: "danger"`, hasta cerrarlo con su ×). Cada aviso se anuncia una vez, en una región viva aparte de la lista (de alerta si es un error) |
 | `nxConfirm()` | `{heading, message?, impact?, body?, confirmLabel?, tone?, hold?, failOpen?}` → `true` / `false`. Con `impact` como URL (mismo origen o `allowOrigins`) falla cerrado: si hay un error de red o del servidor, un evento `error` o el stream termina sin `done`, no se puede confirmar; `failOpen: true` deja confirmar igual, con el aviso a la vista |
 | `<nx-button hold>` | Mantener pulsado (ms, 1000 por defecto) para activarlo; con teclado, mantener Enter o Espacio |
 
@@ -2787,7 +2791,9 @@ lo escrito no se pierde.
   `password` (`<nx-password>`; con `meter`, `avoid`, `match`, `differs` y `breachEndpoint`, ver «La
   página de una persona»). Una contraseña o un código no van al borrador, `fill()` no los llena, no
   se recortan al salir, en lectura se ven como puntos y no van dentro de `rows`. Nada es una
-  función: todo puede venir del backend (BDUI).
+  función: todo puede venir del backend (BDUI). Reasignar el mismo esquema (al recargar el registro)
+  no rehace nada; uno distinto rehace los campos y el foco vuelve al de la misma clave, con lo escrito
+  y la selección del texto.
 - **Un enlace bajo el campo (`link`).** `{label: "Descargar formato", href: "/formatos/descarte.pdf"}`:
   un botón secundario pequeño después de la ayuda, en cualquier tipo de campo (también bajo un
   `readonly` que trae la nota, o al pie de un grupo `rows`). **Siempre abre en otra pestaña**
@@ -2847,7 +2853,8 @@ lo escrito no se pierde.
   factura. `fields` son los de cada fila (con su `span`, sus reglas y sus `fills`, que llenan su misma
   fila), `min`/`max` cuentan filas, `addLabel` es el botón. El valor es un arreglo de objetos;
   `fill()` agrega las filas que no estaban, y los errores del servidor por fila van como
-  `"beneficiarios.0.nombre"`.
+  `"beneficiarios.0.nombre"`. Agregar, quitar o recargar filas no rehace las que siguen (lo escrito,
+  el foco y lo elegido en una búsqueda del servidor se quedan como estaban).
 - **Archivo (`type: "file"`).** Pide un archivo: «Elegir archivo o suéltalo aquí» (clic, <kbd>Enter</kbd>
   o <kbd>Espacio</kbd> sobre el campo, o arrastrarlo encima) y, ya elegido, su nombre, su tamaño y
   «Quitar». `accept` es la sintaxis de `<input accept>` (`".pdf,image/*"`) y `maxSize` el tope en
@@ -2861,7 +2868,8 @@ lo escrito no se pierde.
 - **Llenar desde afuera: `fill(valores, origen)`.** Una requisición del servidor, la cédula, lo que
   dijo la app: cada dato lleva su chip (`origen` es `"Cédula"` o `{label, detail}`; `details` cambia
   el detalle de alguno) hasta que la persona lo cambia, el formulario dice «7 datos de
-  Cédula · Deshacer», los campos se iluminan en orden y **nunca se pisa lo que la persona escribió**
+  Cédula · Deshacer», los campos se iluminan en orden (sin origen, como un recálculo del servidor,
+  ni se iluminan ni mueven la vista) y **nunca se pisa lo que la persona escribió**
   («respeté 1 que ya escribiste»; `{force: true}` para la app). `undo()` o <kbd>Ctrl</kbd>+<kbd>Z</kbd>
   fuera de un campo deshacen el último llenado entero. `sources` dice de dónde vino cada dato, para
   la bitácora.
@@ -2884,7 +2892,7 @@ lo escrito no se pierde.
   pegado abajo: «Faltan 4 datos obligatorios · Ir al siguiente» (al que falta después del último
   campo tocado) y el botón de enviar.
 - **Teclado de captura.** <kbd>Enter</kbd> pasa al campo siguiente que se ve (en el último, al botón
-  de enviar), <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> envía.
+  de enviar), <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> envía (una vez, aunque se sostenga).
 - **Borrador solo (`draft`).** Lo que cambió se guarda en este navegador mientras se escribe
   («Borrador guardado · hace 5 s») y se recupera al volver, encima del registro que cargue la app
   («Recuperamos tu borrador… · Empezar de cero»). `clearDraft()` cuando el servidor confirme.

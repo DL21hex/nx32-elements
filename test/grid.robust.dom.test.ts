@@ -222,6 +222,34 @@ describe("exportar", () => {
     expect(text).toContain('<dimension ref="A1:C251"/>');
   });
 
+  it("modo servidor: si la tabla sale del DOM a mitad de la exportación, deja de pedir y no descarga", async () => {
+    const all = Array.from({ length: 12_000 }, (_, i) => ({ id: String(i), oc: `OC-${i}`, prov: "x", monto: i }));
+    const fetch = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          const q = JSON.parse(init.body as string);
+          // La segunda página de la exportación tarda: la tabla sale del DOM mientras tanto.
+          const t = setTimeout(() => resolve(new Response(JSON.stringify({ rows: all.slice(q.offset, q.offset + q.limit), total: all.length }))), q.offset ? 10_000 : 5);
+          init.signal?.addEventListener("abort", () => (clearTimeout(t), reject(new DOMException("cortada", "AbortError"))));
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const el = mount('source="/datos"');
+    await sleep(20);
+    fetch.mockClear();
+    const events: unknown[] = [];
+    el.addEventListener("nx-grid-export", (e) => events.push(e.detail));
+    const done = el.exportXlsx("pedidos");
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    el.remove();
+    await expect(done).resolves.toBe(0);
+    await sleep(30);
+    expect(fetch.mock.calls.map((c) => body(c).offset)).toEqual([0, 5000]);
+    expect(click).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+  });
+
   it("si el servidor falla, el botón no deja una promesa rechazada sin atender", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("x", { status: 500 })));
     const el = mount('source="/datos"');

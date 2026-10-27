@@ -9,7 +9,8 @@
  *
  * Viven en `<nx-toaster>`, en la capa superior (por encima de los diálogos), que se crea sola. Pasar
  * el mouse o el foco por encima pausa el tiempo. Un aviso de error (`tone: "danger"`) no se va solo:
- * se queda hasta cerrarlo (salvo un `duration` explícito).
+ * se queda hasta cerrarlo (salvo un `duration` explícito). El mismo aviso pedido otra vez mientras
+ * se ve no se apila: el que está vuelve a empezar su tiempo.
  *
  * Cada aviso se anuncia UNA vez: la lista que se ve no es una región viva (volver a subirla sobre
  * un diálogo, `raise()`, la ocultaba y mostraba, y un lector podía repetirla); el texto va aparte, a
@@ -42,7 +43,10 @@ const X = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
 /** Cuánto se queda el texto en la región viva (ms): lo justo para que el lector lo tome. */
 const SAY_MS = 4000;
 
-type Live = { el: HTMLLIElement; opts: ToastOptions; resolve: (r: ToastResult) => void; left: number; since: number; timer: number; done: boolean };
+/** Un aviso a la vista. `waiting`: quienes esperan cómo termina (más de uno si se pidió el mismo
+ *  aviso otra vez mientras se veía). `same`: lo que lo hace igual a otro (`null` con deshacer: cada
+ *  uno confirma su propia acción). `dur`: su tiempo completo (0 = hasta cerrarlo). */
+type Live = { el: HTMLLIElement; opts: ToastOptions; waiting: ((r: ToastResult) => void)[]; left: number; since: number; timer: number; done: boolean; same: string | null; dur: number };
 
 let labels: ToastLabels = TOAST_LABELS;
 let wired = false;
@@ -91,6 +95,11 @@ export class NxToaster extends Base {
     // Un error no se va solo: quien lo lee puede necesitar más de 5 s (o estar mirando a otro lado).
     // Con «Deshacer» sí corre el tiempo (es el que confirma la acción).
     const duration = clampDelay(opts.duration, opts.undo ? 7000 : tone === "danger" ? 0 : 5000);
+    // El mismo aviso otra vez mientras se ve (guardar dos veces, un error que se repite): no se apila
+    // otro igual; el que está vuelve a empezar su tiempo y también le responde a esta llamada.
+    const same = opts.undo ? null : JSON.stringify([tone, opts.message, opts.action ?? ""]);
+    const twin = same ? this.#live.find((t) => t.same === same && !t.done) : undefined;
+    if (twin) return this.#again(twin, opts, duration);
     const lead = opts.undo ? ICONS.undo : Object.hasOwn(ICONS, tone) ? ICONS[tone] : undefined;
     // El tiempo que queda, como un anillo que se vacía (lo anima CSS; se pausa con el toaster).
     const ring = duration ? h("span", { class: "nx-toast__ring", "aria-hidden": "true" }) : null;
@@ -106,19 +115,53 @@ export class NxToaster extends Base {
     );
     if (duration) el.style.setProperty("--_dur", `${duration}ms`);
     return new Promise<ToastResult>((resolve) => {
-      const t: Live = { el, opts, resolve, left: duration, since: 0, timer: 0, done: false };
+      const t: Live = { el, opts, waiting: [resolve], left: duration, since: 0, timer: 0, done: false, same, dur: duration };
       el.addEventListener("click", (e) => {
         const r = (e.target as Element).closest<HTMLElement>("[data-r]")?.dataset.r as ToastResult | undefined;
         if (r) this.end(t, r);
       });
       if (opts.signal?.aborted) return void resolve("dismiss");
-      opts.signal?.addEventListener("abort", () => this.end(t, "dismiss"), { once: true });
+      opts.signal?.addEventListener("abort", () => this.#leave(t, resolve), { once: true });
       this.#live.push(t);
       this.#list!.append(el);
       this.raise();
       this.#say(opts.message, tone === "danger");
       if (duration && !this.#paused) this.#run(t);
     });
+  }
+
+  /** El mismo aviso pedido otra vez: su tiempo vuelve a empezar (si alguno de los dos es «hasta
+   *  cerrarlo», se queda hasta cerrarlo) y esta llamada espera el mismo final. */
+  #again(t: Live, opts: ToastOptions, duration: number): Promise<ToastResult> {
+    return new Promise<ToastResult>((resolve) => {
+      if (opts.signal?.aborted) return void resolve("dismiss");
+      t.waiting.push(resolve);
+      opts.signal?.addEventListener("abort", () => this.#leave(t, resolve), { once: true });
+      clearTimeout(t.timer);
+      t.dur = t.dur && duration ? duration : 0;
+      t.left = t.dur;
+      // El anillo vuelve a llenarse: uno nuevo empieza su animación desde el principio.
+      const ring = t.el.querySelector(".nx-toast__ring");
+      if (t.dur) {
+        t.el.style.setProperty("--_dur", `${t.dur}ms`);
+        ring?.replaceWith(h("span", { class: "nx-toast__ring", "aria-hidden": "true" }));
+      } else ring?.remove();
+      this.raise();
+      this.#say(opts.message, t.el.dataset.tone === "danger");
+      if (t.dur && !this.#paused) this.#run(t);
+    });
+  }
+
+  /** Quien pidió el aviso ya no lo espera (abortó su `signal`): termina para él con `"dismiss"`, y el
+   *  aviso se cierra si nadie más lo espera. */
+  #leave(t: Live, resolve: (r: ToastResult) => void): void {
+    if (t.done) return;
+    t.waiting = t.waiting.filter((r) => r !== resolve);
+    if (t.waiting.length) resolve("dismiss");
+    else {
+      t.waiting = [resolve];
+      this.end(t, "dismiss");
+    }
   }
 
   /** El aviso con deshacer más reciente que sigue vivo (para Ctrl+Z). */
@@ -131,7 +174,7 @@ export class NxToaster extends Base {
     t.done = true;
     clearTimeout(t.timer);
     this.#live = this.#live.filter((x) => x !== t);
-    t.resolve(r);
+    for (const resolve of t.waiting) resolve(r);
     const out = () => {
       t.el.classList.add("is-out");
       setTimeout(() => {
@@ -174,8 +217,9 @@ export class NxToaster extends Base {
     const region = urgent ? this.#urgent : this.#polite;
     if (!region || !text) return;
     setTimeout(() => {
-      // El aviso se fue (o la página se cerró) en esos 60 ms: no hay a quién anunciárselo.
-      if (!region.isConnected) return;
+      // El aviso se fue (o la página se cerró) en esos 60 ms: no hay a quién anunciárselo. Y lo que
+      // todavía se está diciendo (el mismo aviso pedido otra vez enseguida) no se repite.
+      if (!region.isConnected || [...region.children].some((l) => l.textContent === text)) return;
       const line = h("span", null, text);
       region.append(line);
       setTimeout(() => line.remove(), SAY_MS);

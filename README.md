@@ -2848,7 +2848,8 @@ lo escrito no se pierde.
   factura. `fields` son los de cada fila (con su `span`, sus reglas y sus `fills`, que llenan su misma
   fila), `min`/`max` cuentan filas, `addLabel` es el botón. El valor es un arreglo de objetos;
   `fill()` agrega las filas que no estaban, y los errores del servidor por fila van como
-  `"beneficiarios.0.nombre"`.
+  `"beneficiarios.0.nombre"`. Agregar, quitar o recargar filas no rehace las que siguen (lo escrito,
+  el foco y lo elegido en una búsqueda del servidor se quedan como estaban).
 - **Archivo (`type: "file"`).** Pide un archivo: «Elegir archivo o suéltalo aquí» (clic, <kbd>Enter</kbd>
   o <kbd>Espacio</kbd> sobre el campo, o arrastrarlo encima) y, ya elegido, su nombre, su tamaño y
   «Quitar». `accept` es la sintaxis de `<input accept>` (`".pdf,image/*"`) y `maxSize` el tope en

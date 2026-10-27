@@ -39,6 +39,7 @@ import { fieldLink, type NxField } from "../field/field";
 import { formatBytes } from "../capture/logic";
 import { plainUnavailable } from "../date/logic";
 import { acceptText, check, cleanSections, coerce, dateBounds, dateLimit, dependentSource, displayValue, effective, fileMaxSize, followsOptions, hasOptions, isEmpty, isFile, isMulti, isNumeric, isSecret, isSystem, otpLength, prunedValue, sameValue, shownOptions, todayISO, usesCalendar, usesSearch, visibleKeys, type Check, type FieldDef, type SectionDef } from "./logic";
+import type { SelectOption } from "../select/types";
 import type { FormChangeDetail, FormDirtyDetail, FormField, FormFillDetail, FormLabels, FormMode, FormOption, FormRow, FormSection, FormSource, FormSubmitDetail, FormValue, FormVariant } from "./types";
 
 export const FORM_LABELS: FormLabels = {
@@ -205,6 +206,10 @@ export class NxForm extends Base {
   #rowSeq = 0;
   /** Los campos que hoy llevan el valor de otro (`defaultFrom`) porque la persona no escribió el suyo. */
   #derived = new Set<string>();
+  /** Lo elegido en un select que busca en el servidor, por clave o ruta: sus registros (con el
+   *  nombre), que no están en `options`. Si el control se rehace (una fila nueva, otro esquema),
+   *  vuelve con ellos y se sigue viendo el nombre, no «Elige…». */
+  #picked = new Map<string, SelectOption[]>();
   #v: Record<string, FormValue> = {};
   /** Los valores de partida (los de `values`, o los del esquema): `reset()` vuelve a ellos. */
   #initial: Record<string, FormValue> = {};
@@ -941,7 +946,9 @@ export class NxForm extends Base {
       this.#v[k] = copy(v);
       this.#loaded[k] = copy(v);
     }
-    this.#rowIds.clear();
+    // Los ids de las filas siguen por lugar (`#ids` los acorta o agrega): recargar el registro no
+    // rehace las filas que ya estaban, solo les escribe los valores nuevos (y el foco no se pierde).
+    // Lo que colgaba de esos ids (orígenes, errores, lo tocado) vuelve a empezar aquí abajo.
     this.#marks = {};
     this.#server = {};
     this.#rawServer = {};
@@ -972,28 +979,60 @@ export class NxForm extends Base {
     return this.#v[parent] as FormRow[];
   }
 
-  /** Rehace las filas de un campo `rows` (agregar, quitar, llenar, deshacer, cargar). */
+  /**
+   * Pone al día las filas de un campo `rows` (agregar, quitar, llenar, deshacer, cargar), por id de
+   * fila: las que siguen conservan sus nodos (el foco, lo elegido en una búsqueda del servidor) y
+   * solo se escribe en ellas lo que su control no muestra ya; se crean las nuevas y se quitan las que
+   * no están. Lo que depende del lugar («Beneficiarios, fila 2») se renumera.
+   */
   #paintRows(s: Slot): void {
     const L = this.#labels;
     const def = s.def;
-    const rows = this.#rows(def.key);
+    const list = s.ctl!;
+    this.#rows(def.key);
     const ids = this.#ids(def.key);
-    for (const [k, sub] of [...this.#subs]) if (sub.row?.parent === def.key) this.#subs.delete(k);
-    const kids = rows.map((_, i) => {
-      const id = ids[i];
+    const want = new Set(ids);
+    const have = new Map<string, HTMLElement>();
+    for (const el of [...list.children] as HTMLElement[]) {
+      const id = el.dataset.row ?? "";
+      if (want.has(id) && !have.has(id)) have.set(id, el);
+      else el.remove();
+    }
+    for (const [k, sub] of [...this.#subs]) if (sub.row?.parent === def.key && !have.has(sub.row.id)) this.#subs.delete(k);
+    // Lo elegido en las filas que ya no están se olvida.
+    for (const k of [...this.#picked.keys()]) {
+      const m = ROW_PATH.exec(k);
+      if (m && m[1] === def.key && !want.has(m[2])) this.#picked.delete(k);
+    }
+    ids.forEach((id, i) => {
+      const old = have.get(id);
+      const el = old ?? this.#rowEl(def, id);
       const name = tpl(L.rowName, { label: def.label, n: i + 1 });
-      const grid = h("div", { class: "nx-form-grid" });
+      set(el, "aria-label", name);
+      const del = el.querySelector<HTMLElement>(".nx-form__row-del")!;
+      set(del, "aria-label", tpl(L.removeRow, { row: name }));
+      set(del, "title", tpl(L.removeRow, { row: name }));
+      // Las que siguen ya están en orden (las filas solo se agregan al final o se quitan): no se
+      // mueven, que moverlas les quitaría el foco.
+      if (list.children[i] !== el) list.insertBefore(el, list.children[i] ?? null);
       for (const sub of def.subs ?? []) {
-        const path = `${def.key}[${id}].${sub.key}`;
-        const slot = this.#slot1(sub, path, { parent: def.key, id, sub: sub.key });
-        this.#subs.set(path, slot);
-        grid.append(slot.field);
+        const slot = this.#subs.get(`${def.key}[${id}].${sub.key}`);
+        if (slot && (!old || !sameValue(this.#read(slot), this.#get(slot)))) this.#write(slot);
       }
-      const del = h("button", { type: "button", class: "nx-form__row-del", "data-act": "del-row", "data-row": id, "aria-label": tpl(L.removeRow, { row: name }), title: tpl(L.removeRow, { row: name }) }, glyph(TRASH));
-      return h("div", { class: "nx-form__row", "data-row": id, role: "group", "aria-label": name }, grid, del);
     });
-    s.ctl!.replaceChildren(...kids);
-    for (const sub of this.#subs.values()) if (sub.row?.parent === def.key) this.#write(sub);
+  }
+
+  /** Una fila nueva: sus campos (por ruta, en `#subs`) y su botón para quitarla. */
+  #rowEl(def: FieldDef, id: string): HTMLElement {
+    const grid = h("div", { class: "nx-form-grid" });
+    for (const sub of def.subs ?? []) {
+      const path = `${def.key}[${id}].${sub.key}`;
+      const slot = this.#slot1(sub, path, { parent: def.key, id, sub: sub.key });
+      this.#subs.set(path, slot);
+      grid.append(slot.field);
+    }
+    const del = h("button", { type: "button", class: "nx-form__row-del", "data-act": "del-row", "data-row": id }, glyph(TRASH));
+    return h("div", { class: "nx-form__row", "data-row": id, role: "group" }, grid, del);
   }
 
   #addRow(s: Slot): void {
@@ -1130,7 +1169,15 @@ export class NxForm extends Base {
     const v = this.#get(s);
     if (!ctl) return;
     if (ctl.localName === "nx-select") {
-      (ctl as unknown as { value: unknown }).value = isMulti(def) ? (Array.isArray(v) ? v : []) : v == null ? "" : String(v);
+      const sel = ctl as unknown as { value: unknown; selection?: SelectOption[] };
+      const value = isMulti(def) ? (Array.isArray(v) ? v : []) : v == null ? "" : String(v);
+      // Lo que se eligió en una búsqueda, si sigue siendo el valor: un control recién hecho no lo
+      // conoce y sin su registro quedaría pendiente.
+      const want = (Array.isArray(value) ? value : [value]).map(String);
+      const known = (this.#picked.get(s.key) ?? []).filter((o) => want.includes(o.value));
+      const has = new Set((Array.isArray(sel.selection) ? sel.selection : []).map((o) => o.value));
+      if (known.some((o) => !has.has(o.value))) sel.selection = known;
+      sel.value = value;
       return;
     }
     if (ctl.localName === "nx-date") {
@@ -1203,6 +1250,11 @@ export class NxForm extends Base {
     if (this.mode === "read") return;
     const s = this.#slot(keyOf(e.target));
     if (!s || s.def.type === "rows") return;
+    if (s.def.source && s.ctl?.localName === "nx-select") {
+      const picked = (s.ctl as unknown as { selection?: SelectOption[] }).selection;
+      if (Array.isArray(picked) && picked.length) this.#picked.set(s.key, picked.map((o) => ({ ...o })));
+      else this.#picked.delete(s.key);
+    }
     const v = this.#read(s);
     // El mismo archivo llega con `input` y con `change`; `<nx-field>` borra el error con cada uno: se
     // vuelve a poner (un archivo que no sirve se avisa al elegirlo).

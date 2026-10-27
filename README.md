@@ -389,8 +389,9 @@ sel.options = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987", 
   que llegue (si llega vacía, nada). El servidor decide qué casa (puede buscar en campos que el
   cliente no ve, como la cédula): no se descarta ninguno de sus resultados. Al cerrar se olvidan.
 - **Con `source`, el valor elegido tiene que llegar con su registro.** El select no pide al
-  servidor un `value` suelto: si el valor inicial no viene en `options` (ni en `selection`), queda
-  pendiente y `value` es `""` hasta que aparezca en una búsqueda. Para pintar la selección inicial,
+  servidor un `value` suelto: si el valor (el inicial o uno que llega después) no viene en `options`
+  (ni en `selection`), queda pendiente, lo que estaba elegido se suelta y `value` es `""` hasta que
+  aparezca en una búsqueda. Para pintar la selección inicial,
   pasa los registros elegidos en `selection` (o en `options`):
   `sel.selection = [{ value: "17", nombre: "Ana María Rincón", cedula: "52341987" }]`.
 

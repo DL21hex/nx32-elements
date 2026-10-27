@@ -423,18 +423,18 @@ export class NxSelect extends Base {
     this.#fromAttr = true;
   }
 
-  /** Un `value` que llegó antes que sus `options` se resuelve cuando llegan. */
+  /** Un `value` que llegó antes que sus `options` se resuelve cuando llegan. Mientras tanto la
+   *  selección es lo que ya se conoce de él (vacía si nada): un valor que no se puede resolver no deja
+   *  a la vista el registro anterior (`selection = [A]; value = "B"` ya no sigue diciendo A). */
   #resolvePending(): void {
     const want = this.#pendingValue;
     if (!want) return;
     const known = [...this.#options, ...this.#selected, ...this.#remote, ...this.#initial.records];
     const found = want.map((v) => known.find((o) => o.value === v)).filter((o): o is SelectOption => !!o);
-    if (found.length === want.length || this.#options.length) {
-      // Todo lo pedido, aunque todavía no haya `multiple` (ver `#selected`).
-      this.#selected = found;
-      this.#pendingValue = found.length === want.length ? null : want;
-      this.#sync();
-    }
+    // Todo lo pedido, aunque todavía no haya `multiple` (ver `#selected`).
+    this.#selected = found;
+    this.#pendingValue = found.length === want.length ? null : want;
+    this.#sync();
   }
 
   /** Lo que impide enviar: el error propio o `required` sin elegir. */

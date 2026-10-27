@@ -2865,7 +2865,8 @@ lo escrito no se pierde.
 - **Llenar desde afuera: `fill(valores, origen)`.** Una requisición del servidor, la cédula, lo que
   dijo la app: cada dato lleva su chip (`origen` es `"Cédula"` o `{label, detail}`; `details` cambia
   el detalle de alguno) hasta que la persona lo cambia, el formulario dice «7 datos de
-  Cédula · Deshacer», los campos se iluminan en orden y **nunca se pisa lo que la persona escribió**
+  Cédula · Deshacer», los campos se iluminan en orden (sin origen, como un recálculo del servidor,
+  ni se iluminan ni mueven la vista) y **nunca se pisa lo que la persona escribió**
   («respeté 1 que ya escribiste»; `{force: true}` para la app). `undo()` o <kbd>Ctrl</kbd>+<kbd>Z</kbd>
   fuera de un campo deshacen el último llenado entero. `sources` dice de dónde vino cada dato, para
   la bitácora.
@@ -2888,7 +2889,7 @@ lo escrito no se pierde.
   pegado abajo: «Faltan 4 datos obligatorios · Ir al siguiente» (al que falta después del último
   campo tocado) y el botón de enviar.
 - **Teclado de captura.** <kbd>Enter</kbd> pasa al campo siguiente que se ve (en el último, al botón
-  de enviar), <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> envía.
+  de enviar), <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> envía (una vez, aunque se sostenga).
 - **Borrador solo (`draft`).** Lo que cambió se guarda en este navegador mientras se escribe
   («Borrador guardado · hace 5 s») y se recupera al volver, encima del registro que cargue la app
   («Recuperamos tu borrador… · Empezar de cero»). `clearDraft()` cuando el servidor confirme.

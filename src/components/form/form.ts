@@ -427,9 +427,10 @@ export class NxForm extends Base {
   /**
    * Llena con lo que llega de afuera. Con `source` («Cédula», o `{label, detail}`), cada dato lleva
    * su chip hasta que la persona lo cambia (`details` cambia el detalle de alguno: de qué parte del
-   * texto salió), se anuncia «7 datos de Cédula» y se puede deshacer. No pisa lo que la persona
-   * escribió (salvo `force`). En un campo `rows`, las filas que trae se agregan (las que ya están no
-   * se repiten). Devuelve cuántos campos cambiaron.
+   * texto salió), se anuncia «7 datos de Cédula», los campos se iluminan y se puede deshacer. Sin
+   * `source` (la app recalculando), ni destello ni desplazamiento. No pisa lo que la persona escribió
+   * (salvo `force`). En un campo `rows`, las filas que trae se agregan (las que ya están no se
+   * repiten). Devuelve cuántos campos cambiaron.
    */
   fill(values: Record<string, unknown> | null | undefined, source?: FormSource | string | null, options: { force?: boolean; details?: Record<string, string> } = {}): number {
     if (!values || typeof values !== "object") return 0;
@@ -454,7 +455,9 @@ export class NxForm extends Base {
       this.#announce(this.#status.text);
     }
     this.#paint();
-    this.#flash(flash);
+    // Sin origen es la app (un recálculo del servidor mientras la persona escribe): sin destello y
+    // sin llevarle la vista a otro campo.
+    if (src) this.#flash(flash);
     this.#emit<FormFillDetail>("nx-form-fill", { keys, source: src });
     this.#scheduleSave();
     return keys.length;
@@ -1396,6 +1399,8 @@ export class NxForm extends Base {
     const key = e.key.toLowerCase();
     if (mod && !e.altKey && !e.shiftKey && key === "s") {
       e.preventDefault();
+      // Sostener la tecla repite el `keydown`: se envía una vez (sin dejar pasar el «Guardar como»).
+      if (e.repeat) return;
       const k = keyOf(e.target);
       if (k) this.#touched.add(k);
       this.submit();

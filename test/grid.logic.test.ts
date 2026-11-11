@@ -7,8 +7,10 @@ import {
   facetColumns,
   facets,
   filterLabel,
+  filterParts,
   formatCell,
   groupRows,
+  knowsAllValues,
   parseInput,
   parseNumber,
   parseTSV,
@@ -293,6 +295,37 @@ describe("filtro por columna", () => {
     expect(toggleFacet([{ key: "k", op: "notIn", values: ["c"] }], "k", "c", vals)).toEqual([]);
   });
 
+  it("toggleFacet con exclude: más de la mitad marcada es exclusión, y sigue siéndolo", () => {
+    const vals = ["a", "b", "c", "d", "e"];
+    let f = toggleFacet(toggleFacet([], "k", "a", vals, true), "k", "b", vals, true);
+    expect(f).toEqual([{ key: "k", op: "in", values: ["a", "b"] }]);
+    f = toggleFacet(f, "k", "c", vals, true);
+    expect(f).toEqual([{ key: "k", op: "notIn", values: ["d", "e"] }]);
+    f = toggleFacet(f, "k", "d", vals, true);
+    expect(f).toEqual([{ key: "k", op: "notIn", values: ["e"] }]);
+    f = toggleFacet(f, "k", "a", vals, true);
+    expect(f).toEqual([{ key: "k", op: "notIn", values: ["a", "e"] }]);
+    // Todo marcado es no filtrar; por debajo de la mitad vuelve a ser `in`.
+    expect(toggleFacet(toggleFacet(f, "k", "a", vals, true), "k", "e", vals, true)).toEqual([]);
+    expect(toggleFacet([{ key: "k", op: "notIn", values: ["d", "e"] }], "k", "c", vals, true)).toEqual([{ key: "k", op: "in", values: ["a", "b"] }]);
+    // Sin `exclude` (no se conocen todos los valores), como antes: siempre `in`.
+    expect(toggleFacet([{ key: "k", op: "in", values: ["a", "b"] }], "k", "c", vals)).toEqual([{ key: "k", op: "in", values: ["a", "b", "c"] }]);
+    // Un valor marcado que no está entre los conocidos no se pierde: se queda en `in`.
+    expect(toggleFacet([{ key: "k", op: "in", values: ["z", "a"] }], "k", "b", vals, true)).toEqual([{ key: "k", op: "in", values: ["z", "a", "b"] }]);
+    // Los demás filtros de la columna se quedan.
+    expect(toggleFacet([{ key: "k", op: "contains", value: "x" }, { key: "k", op: "in", values: ["a", "b"] }], "k", "c", vals, true)).toEqual([
+      { key: "k", op: "contains", value: "x" },
+      { key: "k", op: "notIn", values: ["d", "e"] },
+    ]);
+  });
+
+  it("knowsAllValues: con las filas aquí, o con las opciones de la columna", () => {
+    expect(knowsAllValues(COLS[1], false)).toBe(true);
+    expect(knowsAllValues(COLS[1], true)).toBe(false);
+    expect(knowsAllValues(COLS[3], true)).toBe(true);
+    expect(knowsAllValues(undefined, true)).toBe(false);
+  });
+
   it("parseAmount: como sale natural", () => {
     expect(parseAmount("5.000.000")).toBe(5_000_000);
     expect(parseAmount("$ 5 M")).toBe(5_000_000);
@@ -308,6 +341,16 @@ describe("filtro por columna", () => {
     expect(filterLabel({ key: "fecha", op: "range", rel: "month", min: "2026-09-01", max: "2026-10-01" }, COLS[2], undefined, { month: "Este mes" })).toBe("Fecha: este mes");
     expect(filterLabel({ key: "fecha", op: "range", max: "2026-09-29" }, COLS[2])).toBe("Fecha ≤ 28 sept 2026");
     expect(filterLabel({ key: "estado", op: "in", values: [] }, COLS[3])).toBe("Estado: —");
+  });
+
+  it("filterLabel: hasta tres valores los nombra; con más, dos y cuántos más (filterParts los separa)", () => {
+    expect(filterLabel({ key: "prov", op: "in", values: ["a", "b", "c"] }, COLS[1])).toBe("Proveedor: a, b, c");
+    expect(filterLabel({ key: "prov", op: "in", values: ["a", "b", "c", "d", "e"] }, COLS[1])).toBe("Proveedor: a, b y 3 más");
+    expect(filterLabel({ key: "estado", op: "notIn", values: ["pend", "apr", "anu", "x"] }, COLS[3])).toBe("Estado: sin Pendiente, Aprobado y 2 más");
+    expect(filterParts({ key: "prov", op: "in", values: ["a", "b", "c", "d"] }, COLS[1])).toEqual(["Proveedor: a, b", " y 2 más"]);
+    expect(filterParts({ key: "prov", op: "in", values: ["a", "b", "c"] }, COLS[1])).toEqual(["Proveedor: a, b, c", ""]);
+    expect(filterParts({ key: "prov", op: "contains", value: "ace" }, COLS[1])).toEqual(["Proveedor contiene «ace»", ""]);
+    expect(filterParts({ key: "monto", op: "range", min: 5_000_001 }, COLS[4])).toEqual(["Monto ≥ $5 M", ""]);
   });
 });
 

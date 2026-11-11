@@ -605,10 +605,15 @@ a.nx-grid__preset {
   color: var(--nx-warning-ink);
   font-size: 12px;
 }
+/* Un renglón, nunca más ancho que la fila de chips: lo que nombra se recorta con «…» y «y 130 más»
+   y la ✕ quedan a la vista. Sin esto, un texto largo se partía en varios renglones dentro de los
+   26px del chip y se montaba sobre «Limpiar todo» y el conteo. */
 .nx-grid__chip {
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  min-inline-size: 0;
+  max-inline-size: 100%;
   block-size: 26px;
   padding-inline: 10px 3px;
   border: 1px solid var(--nx-primary-border);
@@ -617,6 +622,7 @@ a.nx-grid__preset {
   color: var(--nx-primary-ink);
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
   animation: nx-grid-in var(--nx-motion-base) var(--nx-ease-out);
 
   & button {
@@ -627,8 +633,22 @@ a.nx-grid__preset {
     font: inherit;
     cursor: pointer;
   }
+  & > :not([data-i]) {
+    display: inline-flex;
+    align-items: center;
+    min-inline-size: 0;
+  }
+  & .nx-grid__chip-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  & .nx-grid__chip-more {
+    flex: none;
+    white-space: pre;
+  }
   & [data-i] {
     display: grid;
+    flex: none;
     place-items: center;
     inline-size: 20px;
     block-size: 20px;
@@ -648,6 +668,7 @@ a.nx-grid__preset {
   }
   & .nx-grid__dot {
     display: inline-block;
+    flex: none;
     margin-inline-end: 6px;
     vertical-align: 0.05em;
   }

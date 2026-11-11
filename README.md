@@ -498,7 +498,11 @@ Una tabla de datos que se explora sola:
 
   Se aplica mientras se elige y dice cuántas filas quedan (lo anuncia la tabla, una vez); lo escrito
   en «contiene», «Desde» o «Hasta» también se aplica al cerrar o al pasar a otra columna. El chip lo
-  vuelve a abrir. Con más de la mitad marcada se guarda como exclusión («Proveedor: sin Aceros»).
+  vuelve a abrir. Con más de la mitad marcada se guarda como exclusión («Proveedor: sin Aceros»), si
+  se conocen todos los valores (las filas están aquí, o la columna trae `options`); la casilla del
+  panel de facetas sigue la misma regla. El chip nombra hasta tres valores; con más, dos y cuántos
+  faltan («Subdivisión: Don Said, Eva Norte y 130 más»), y si no cabe se recorta con «…» sin
+  esconder el «y 130 más» ni la ✕. La lista entera está en el filtro que el chip abre.
   `filter` en la columna lo fuerza o lo quita (`false`). El panel se carga aparte, la primera vez que hace falta.
 - **Buscar en la tabla.** La caja de la barra busca por palabras: deja las filas en las que cada
   palabra escrita (separadas por espacios, en cualquier orden) está en alguna columna visible, sin

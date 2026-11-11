@@ -1,5 +1,21 @@
 # Registro de cambios
 
+## 0.31.2 — 2026-11-10
+
+- **`<nx-grid>`: un chip de filtro con muchos valores ya no es un párrafo.** Nombra hasta tres
+  valores; con más, dos y cuántos faltan («Subdivisión: Don Said, Eva Norte y 130 más»). El mismo
+  texto corto va en la etiqueta de la ✕, el nombre que se propone a una vista y los avisos
+  (`filterLabel`). La lista entera sigue en el filtro que el chip abre.
+- **`<nx-grid>`: el chip es un renglón y nunca más ancho que su fila.** Tenía 26 px de alto y ningún
+  tope de ancho: 132 subdivisiones se partían dentro de él y se montaban sobre «Limpiar todo»,
+  «Guardar como vista» y el conteo. Si no cabe, lo que nombra se recorta con «…» y «y 130 más» y la
+  ✕ quedan a la vista.
+- **`<nx-grid>`: el panel de facetas guarda «sin …» como el filtro de la cabecera.** Con más de la
+  mitad marcada, y si se conocen todos los valores (filas aquí, o `options` en la columna), queda
+  como exclusión y lo sigue siendo al marcar o desmarcar. Antes, cualquier casilla del panel
+  convertía «sin Químicos» en la lista de todos los demás.
+- Peso: `grid.js` 43,1 KB (+0,2), `grid.css` 8,9 KB (+0,1).
+
 ## 0.31.1 — 2026-10-26
 
 Una revisión de rendimiento y estabilidad de lo que usa nx32: lo que se notaba (una pantalla que se

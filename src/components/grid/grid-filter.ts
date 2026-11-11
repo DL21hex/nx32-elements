@@ -12,7 +12,7 @@ import { h } from "../../core/dom";
 import { foldText } from "../../core/text";
 import { nxFormat, type NxFormat } from "../../core/locale";
 import { histogram, histogramSpec, type HistogramSpec } from "./bars";
-import { addDays, applyFilters, colType, crossfilter, DATE_RELS, dotOf, facetOrder, foldValue, formatCell, fromSelection, matchFilter, normalizer, relRange, selection, todayISO, type GridFacet } from "./logic";
+import { addDays, applyFilters, colType, crossfilter, DATE_RELS, dotOf, facetOrder, foldValue, formatCell, fromSelection, knowsAllValues, matchFilter, normalizer, relRange, selection, todayISO, type GridFacet } from "./logic";
 import type { GridAccents, GridColumn, GridDateRel, GridFilter, GridHistogram, GridLabels, GridRow } from "./types";
 
 export type FilterKind = "list" | "range" | "date" | "text";
@@ -312,9 +312,9 @@ export class FilterPanel {
     return (c.options ?? []).map((o) => ({ value: o.value, label: o.label ?? o.value }));
   }
 
-  /** `true` si se conocen todos los valores (se puede guardar «sin Cali»). */
+  /** `true` si se conocen todos los valores (se puede guardar «sin Cali»). La misma regla que el panel de facetas. */
   #complete(c: GridColumn): boolean {
-    return !this.#host.server || !!c.options;
+    return knowsAllValues(c, this.#host.server);
   }
 
   /** Las barras: `counts` sobre todas las filas y `filtered` con los demás filtros. El reparto

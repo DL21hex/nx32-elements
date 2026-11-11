@@ -37,11 +37,13 @@ import {
   facetColumns,
   facetOrder,
   filterLabel,
+  filterParts,
   forgetFolds,
   formulaSafe,
   formatCell,
   groupRows,
   isNumeric,
+  knowsAllValues,
   matrixCells,
   normalizer,
   num,
@@ -2841,7 +2843,9 @@ export class NxGrid extends Base {
       const key = t.dataset.key;
       if (t.type !== "checkbox" || !key) return;
       const values = this.#facetList.find((f) => f.key === key)?.options.map((o) => o.value);
-      this.#setFilters(toggleFacet(this.#filters, key, t.dataset.value ?? "", values));
+      // La misma regla que el filtro de la cabecera: con más de la mitad marcada, «sin …».
+      const exclude = knowsAllValues(this.#cols.find((c) => c.key === key), this.#server);
+      this.#setFilters(toggleFacet(this.#filters, key, t.dataset.value ?? "", values, exclude));
     });
     this.#aside.addEventListener("input", (e) => {
       const t = e.target as HTMLInputElement;
@@ -3102,12 +3106,15 @@ export class NxGrid extends Base {
     keepChildren(this.#chips!, [
       ...(counting ? [] : [this.#countEl()]),
       ...this.#filters.map((f, i) => {
-        const text = this.#chipText(f);
+        const [named, more] = filterParts(f, this.#colOf(f.key), this.#loc, this.#labels);
+        const text = named + more;
         const col = this.#cols.find((c) => c.key === f.key);
         // Un solo valor con color («Estado: Activo») lleva su punto, el mismo de la celda y del panel.
         const dot = f.op === "in" && f.values.length === 1 ? dotEl(dotOf(col, f.values[0])) : [];
+        // Lo que nombra se recorta con «…» si no cabe; «y 130 más» queda a la vista.
+        const words = [...dot, h("span", { class: "nx-grid__chip-text" }, named), ...(more ? [h("span", { class: "nx-grid__chip-more" }, more)] : [])];
         // El texto del chip vuelve a abrir el filtro de su columna.
-        const label = col && this.#filterable(col) ? h("button", { type: "button", class: "nx-grid__chip-edit", "data-edit": f.key, title: this.#fmt(L.filterBy, { col: col.label }) }, ...dot, text) : h("span", null, ...dot, text);
+        const label = col && this.#filterable(col) ? h("button", { type: "button", class: "nx-grid__chip-edit", "data-edit": f.key, title: this.#fmt(L.filterBy, { col: col.label }) }, ...words) : h("span", null, ...words);
         return h("span", { class: "nx-grid__chip" }, label, h("button", { type: "button", "data-i": i, "aria-label": `${L.remove}: ${text}` }, glyph(X)));
       }),
       ...(this.#filters.length ? [h("button", { type: "button", class: "nx-grid__clear", "data-clear": "" }, L.clear)] : []),

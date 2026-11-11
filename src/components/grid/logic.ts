@@ -245,27 +245,40 @@ export function sortRows(rows: readonly GridRow[], sort: GridSort | null, column
   return keyed.sort((a, b) => ((a.k as number) - (b.k as number)) * sort.dir || a.i - b.i).map((x) => x.r);
 }
 
+/** Cuántos valores nombra un chip: con más, los dos primeros y «y N más». La lista entera está en
+ *  el filtro de la columna; en el chip, 132 subdivisiones eran un párrafo que tapaba la barra. */
+const CHIP_VALUES = 3;
+
 /** El texto de un chip de filtro. `rels`: los nombres de los tramos relativos («Este mes»). */
 export function filterLabel(f: GridFilter, c: GridColumn | undefined, fmt: NxFormat = nxFormat(), rels?: Partial<Record<GridDateRel, string>>): string {
+  return filterParts(f, c, fmt, rels).join("");
+}
+
+/** El texto de un chip en dos partes: lo que nombra y, si la lista se resume, « y 130 más». El chip
+ *  recorta la primera con «…» y deja la segunda a la vista. */
+export function filterParts(f: GridFilter, c: GridColumn | undefined, fmt: NxFormat = nxFormat(), rels?: Partial<Record<GridDateRel, string>>): [string, string] {
   const name = c?.label ?? f.key;
   const show = (v: number | string) => (typeof v === "string" ? fmt.date(v) : c && colType(c) === "money" ? fmt.money(v, c, true) : fmt.compact(v));
   const opt = (v: string) => c?.options?.find((o) => o.value === v)?.label ?? v;
   switch (f.op) {
     case "in":
-      return `${name}: ${f.values.map(opt).join(", ") || "—"}`;
-    case "notIn":
-      return `${name}: sin ${f.values.map(opt).join(", ")}`;
+    case "notIn": {
+      const shown = f.values.length > CHIP_VALUES ? f.values.slice(0, CHIP_VALUES - 1) : f.values;
+      const list = shown.map(opt).join(", ");
+      const more = f.values.length - shown.length;
+      return [f.op === "in" ? `${name}: ${list || "—"}` : `${name}: sin ${list}`, more ? ` y ${more} más` : ""];
+    }
     case "contains":
-      return `${name} contiene «${f.value}»`;
+      return [`${name} contiene «${f.value}»`, ""];
     case "range": {
       const rel = f.rel && rels?.[f.rel];
-      if (rel) return `${name}: ${rel.toLowerCase()}`;
-      if (typeof f.min === "string" && typeof f.max === "string" && /-01$/.test(f.min) && /-01$/.test(f.max) && monthSpan(f.min, f.max) === 1) return `${name}: ${fmt.date(f.min.slice(0, 7))}`;
+      if (rel) return [`${name}: ${rel.toLowerCase()}`, ""];
+      if (typeof f.min === "string" && typeof f.max === "string" && /-01$/.test(f.min) && /-01$/.test(f.max) && monthSpan(f.min, f.max) === 1) return [`${name}: ${fmt.date(f.min.slice(0, 7))}`, ""];
       // `max` no se incluye: en una fecha, el tramo termina el día anterior.
       const max = typeof f.max === "string" && ISO_DAY.test(f.max) ? addDays(f.max, -1) : f.max;
-      if (f.min !== undefined && max !== undefined) return `${name}: ${show(f.min)} – ${show(max)}`;
-      if (f.min !== undefined) return `${name} ≥ ${show(f.min)}`;
-      return typeof max === "string" ? `${name} ≤ ${show(max)}` : `${name} < ${show(max!)}`;
+      if (f.min !== undefined && max !== undefined) return [`${name}: ${show(f.min)} – ${show(max)}`, ""];
+      if (f.min !== undefined) return [`${name} ≥ ${show(f.min)}`, ""];
+      return [typeof max === "string" ? `${name} ≤ ${show(max)}` : `${name} < ${show(max!)}`, ""];
     }
   }
 }
@@ -641,15 +654,24 @@ export function matrixCells(rows: readonly GridRow[], m: { rows: string; cols: s
 
 /** Marca o desmarca un valor de faceta: edita (o crea, o quita) el filtro `in` de esa columna. Si
  *  la columna tiene una exclusión («sin Cali», del filtro de la cabecera) y se conocen sus valores,
- *  parte de lo que esa exclusión deja marcado. */
-export function toggleFacet(filters: readonly GridFilter[], key: string, value: string, all?: readonly string[]): GridFilter[] {
+ *  parte de lo que esa exclusión deja marcado. Con `exclude` (`all` son todos los valores), la
+ *  regla de la cabecera: más de la mitad marcada se guarda como exclusión, y sigue siéndolo. */
+export function toggleFacet(filters: readonly GridFilter[], key: string, value: string, all?: readonly string[], exclude = false): GridFilter[] {
   if (all && filters.some((f) => f.key === key && f.op === "notIn")) {
     const sel = selection(filters, key, all)!;
     if (!sel.delete(value)) sel.add(value);
-    return withColumn(filters, key, sel.size ? fromSelection(key, sel, all, false) : []);
+    return withColumn(filters, key, sel.size ? fromSelection(key, sel, all, exclude) : []);
   }
   const own = filters.find((f): f is Extract<GridFilter, { op: "in" }> => f.key === key && f.op === "in");
   const rest = filters.filter((f) => f !== own);
   const values = own ? (own.values.includes(value) ? own.values.filter((v) => v !== value) : [...own.values, value]) : [value];
-  return values.length ? [...rest, { key, op: "in", values }] : rest;
+  if (!values.length) return rest;
+  if (exclude && all && values.length > all.length / 2 && values.every((v) => all.includes(v))) return [...rest, ...fromSelection(key, new Set(values), all)];
+  return [...rest, { key, op: "in", values }];
+}
+
+/** `true` si se conocen todos los valores de la columna (se puede guardar «sin Cali»): las filas
+ *  están aquí, o la columna declara sus `options`. */
+export function knowsAllValues(c: GridColumn | undefined, server: boolean): boolean {
+  return !server || !!c?.options;
 }

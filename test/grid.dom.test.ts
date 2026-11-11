@@ -148,6 +148,30 @@ describe("<nx-grid>", () => {
     expect(pop.querySelector<HTMLInputElement>('input[data-v="Empaques"]')!.checked).toBe(false);
   });
 
+  it("en el panel de facetas, más de la mitad marcada también se guarda como exclusión", () => {
+    const el = mount("facets-open");
+    const box = (v: string) => el.querySelector<HTMLInputElement>(`.nx-grid__facets input[data-value="${v}"]`)!;
+    box("Aceros").click();
+    expect(el.filters).toEqual([{ key: "prov", op: "in", values: ["Aceros"] }]);
+    box("Empaques").click();
+    expect(el.filters).toEqual([{ key: "prov", op: "notIn", values: ["Químicos"] }]);
+    expect(chips(el)).toEqual(["Proveedor: sin Químicos"]);
+    expect([box("Aceros").checked, box("Empaques").checked, box("Químicos").checked]).toEqual([true, true, false]);
+  });
+
+  it("un chip con muchos valores nombra dos y dice cuántos más, aparte de lo que se recorta", () => {
+    const el = mount();
+    el.filters = [{ key: "prov", op: "in", values: ["Aceros", "Empaques", "Químicos", "Plásticos"] }];
+    expect(chips(el)).toEqual(["Proveedor: Aceros, Empaques y 2 más"]);
+    const chip = el.querySelector(".nx-grid__chip")!;
+    expect(chip.querySelector(".nx-grid__chip-text")!.textContent).toBe("Proveedor: Aceros, Empaques");
+    expect(chip.querySelector(".nx-grid__chip-more")!.textContent).toBe(" y 2 más");
+    expect(chip.querySelector("[data-i]")!.getAttribute("aria-label")).toBe("Quitar: Proveedor: Aceros, Empaques y 2 más");
+    el.filters = [{ key: "prov", op: "in", values: ["Aceros", "Empaques", "Químicos"] }];
+    expect(chips(el)).toEqual(["Proveedor: Aceros, Empaques, Químicos"]);
+    expect(el.querySelector(".nx-grid__chip-more")).toBeNull();
+  });
+
   it("rango: barras y campos que aceptan «1 M» o «3 millones»; «Hasta» incluye lo escrito", async () => {
     const el = mount();
     await el.openFilter("monto");
